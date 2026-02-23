@@ -259,6 +259,8 @@ export async function triggerAutoOutreach(userId: string): Promise<void> {
     const allLeads = [...newLeads, ...hardenedLeads];
     console.log(`[AutoOutreach] Found ${allLeads.length} leads for user ${userId} to trigger outreach.`);
 
+    /* 
+    // DISABLED for stabilization: User requested to stop unauthorized sending
     for (const lead of allLeads) {
       // Check if they already have a follow-up scheduled to avoid duplicates
       const existing = await storage.getPendingFollowUp(lead.id);
@@ -267,6 +269,8 @@ export async function triggerAutoOutreach(userId: string): Promise<void> {
         await scheduleInitialFollowUp(userId, lead.id, lead.channel);
       }
     }
+    */
+    console.log(`[AutoOutreach] Manual trigger required. Not automatically scheduling for ${allLeads.length} leads.`);
   } catch (error) {
     console.error('[AutoOutreach] Error triggering auto-outreach:', error);
   }

@@ -216,11 +216,18 @@ export default function InboxPage() {
     }
   }, [leadsData]);
 
-  // Handle clearing unread status when lead is selected
+  // Handle clearing unread status and status transition when lead is selected
   useEffect(() => {
     if (leadId) {
       // Clear lead-specific notifications on the server
       apiRequest("POST", `/api/messages/${leadId}/read`).catch(console.error);
+
+      // REDUCED: Move lead from 'new' to 'open' status immediately on click
+      if (activeLead?.status === 'new') {
+        apiRequest("PATCH", `/api/leads/${leadId}`, { status: 'open' }).then(() => {
+          queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+        });
+      }
 
       if (activeLead?.metadata?.isUnread) {
         const { isUnread, ...restMetadata } = activeLead.metadata;
@@ -234,7 +241,7 @@ export default function InboxPage() {
       // Always refresh notifications when a lead is opened
       queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
     }
-  }, [leadId, activeLead?.id, queryClient]); // Use activeLead?.id to prevent loop if metadata object changes but ID is same
+  }, [leadId, activeLead?.id, activeLead?.status, queryClient]); // Added activeLead?.status to dependencies
 
   const filteredLeads = useMemo(() => {
     return allLeads.filter((lead: any) => {
@@ -633,8 +640,8 @@ export default function InboxPage() {
                     <div className="w-20 h-20 rounded-[2.5rem] bg-muted/20 flex items-center justify-center mb-6 mx-auto">
                       <InboxIcon className="h-10 w-10 text-muted-foreground/30" />
                     </div>
-                    <p className="text-sm font-black uppercase tracking-widest text-muted-foreground/50">No conversations found</p>
-                    <p className="text-[10px] text-muted-foreground/30 font-bold mt-2 uppercase">
+                    <p className="text-sm font-black uppercase tracking-widest text-foreground">No conversations found</p>
+                    <p className="text-[10px] text-muted-foreground font-bold mt-2 uppercase">
                       {searchQuery || filterStatus !== 'all' ? "Try adjusting your filters" : "Wait for new leads to arrive"}
                     </p>
                   </div>
@@ -724,10 +731,12 @@ export default function InboxPage() {
                     <div className="p-4">
                       <Button
                         variant="outline"
-                        className="w-full text-xs font-bold uppercase tracking-widest rounded-xl h-10 border-dashed"
+                        className="w-full text-xs font-bold uppercase tracking-widest rounded-xl h-10 border-dashed text-foreground"
                         onClick={() => setPage(p => p + 1)}
                         disabled={leadsLoading}
                       >
+                        {leadsLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                        Load More
                       </Button>
                     </div>
                   )}

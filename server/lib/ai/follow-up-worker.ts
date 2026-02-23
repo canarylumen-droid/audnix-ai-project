@@ -833,11 +833,27 @@ Generate a natural follow-up message:`;
       return;
     }
 
-    // Standard sequence: 3 days, then 7 days, then 14 days
-    const days = followUpCount === 0 ? 3 : followUpCount === 1 ? 7 : 14;
-    const scheduledAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+    // Standard sequence relative to lead creation (Day 3, Day 7, Day 14)
+    const creationTime = lead.createdAt?.getTime() || Date.now();
+    let scheduledAt: Date;
 
-    console.log(`📅 Scheduling follow-up ${followUpCount + 1} for lead ${lead.name} in ${days} days`);
+    if (followUpCount === 0) {
+      // First follow-up at Day 3
+      scheduledAt = new Date(creationTime + 3 * 24 * 60 * 60 * 1000);
+    } else if (followUpCount === 1) {
+      // Second follow-up at Day 7
+      scheduledAt = new Date(creationTime + 7 * 24 * 60 * 60 * 1000);
+    } else {
+      // Subsequent at +7 days from now (approx Day 14, 21, etc)
+      scheduledAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    }
+
+    // Safety: ensure we don't schedule in the past
+    if (scheduledAt.getTime() < Date.now()) {
+      scheduledAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 1 day from now if already past
+    }
+
+    console.log(`📅 Scheduling follow-up ${followUpCount + 1} for lead ${lead.name} at ${scheduledAt.toISOString()}`);
 
     await db.insert(followUpQueue).values({
       userId,
@@ -846,7 +862,7 @@ Generate a natural follow-up message:`;
       scheduledAt: scheduledAt,
       context: {
         follow_up_number: followUpCount + 1,
-        campaign_day: Math.floor((Date.now() - (lead.createdAt?.getTime() || Date.now())) / (1000 * 60 * 60 * 24))
+        campaign_day: Math.floor((scheduledAt.getTime() - creationTime) / (1000 * 60 * 60 * 24))
       }
     });
   }
@@ -951,8 +967,9 @@ export async function scheduleInitialFollowUp(
     // Map channel to proper follow-up channel
     const followUpChannel = channel === 'manual' ? 'email' : channel;
 
-    // Schedule first follow-up in 2-4 hours (gives time for immediate manual review)
-    const initialDelay = (2 + Math.random() * 2) * 60 * 60 * 1000; // 2-4 hours
+    // Initial outreach for "import" leads now waits 3 days by default (Day 3 rule) 
+    // unless user explicitly starts a campaign.
+    const initialDelay = 3 * 24 * 60 * 60 * 1000; 
     const scheduledTime = new Date(Date.now() + initialDelay);
 
     await db.insert(followUpQueue).values({
@@ -964,7 +981,7 @@ export async function scheduleInitialFollowUp(
         follow_up_number: 1,
         source: 'import',
         temperature: 'warm', // Default to warm for imported leads
-        campaign_day: 0,
+        campaign_day: 3,
         sequence_number: 1,
         initial_outreach: true
       }

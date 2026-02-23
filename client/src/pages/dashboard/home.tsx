@@ -64,11 +64,13 @@ interface DashboardStats {
   recoveredLeads?: number;
   lastSync?: string | null;
   engineStatus?: string;
-  domainHealth?: number;
   openRate?: number;
   responseRate?: number;
   pipelineValue?: number;
   closedRevenue?: number;
+  queuedLeads?: number;
+  undeliveredLeads?: number;
+  lastOutreachActivity?: string | null;
 }
 
 interface PreviousDashboardStats {
@@ -117,10 +119,31 @@ export default function DashboardHome() {
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
     };
 
+    const handleStatsUpdated = () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+    };
+
+    const handleActivityUpdated = () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/activity"] });
+    };
+
+    const handleLeadsUpdated = () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/activity"] });
+    };
+
     socket.on('settings_updated', handleSettingsUpdated);
+    socket.on('stats_updated', handleStatsUpdated);
+    socket.on('activity_updated', handleActivityUpdated);
+    socket.on('leads_updated', handleLeadsUpdated);
+    socket.on('notification', handleActivityUpdated); // Refresh activity on notification
 
     return () => {
       socket.off('settings_updated', handleSettingsUpdated);
+      socket.off('stats_updated', handleStatsUpdated);
+      socket.off('activity_updated', handleActivityUpdated);
+      socket.off('leads_updated', handleLeadsUpdated);
+      socket.off('notification', handleActivityUpdated);
     };
   }, [socket, queryClient]);
 
@@ -233,8 +256,8 @@ export default function DashboardHome() {
       value: stats?.openRate || 0,
       suffix: "%",
       icon: Mail,
-      percentage: "—",
-      trend: "neutral" as const,
+      percentage: calculatePercentageChange(stats?.openRate || 0, previousStats?.openRate),
+      trend: previousStats ? ((stats?.openRate || 0) > (previousStats?.openRate || 0) ? "up" : (stats?.openRate || 0) < (previousStats?.openRate || 0) ? "down" : "neutral") : "neutral",
       color: "text-emerald-500",
       glow: "group-hover:shadow-[0_0_20px_rgba(16,185,129,0.15)]"
     },
@@ -243,8 +266,8 @@ export default function DashboardHome() {
       value: stats?.responseRate || 0,
       suffix: "%",
       icon: MessageSquare,
-      percentage: "—",
-      trend: "neutral" as const,
+      percentage: calculatePercentageChange(stats?.responseRate || 0, previousStats?.responseRate),
+      trend: previousStats ? ((stats?.responseRate || 0) > (previousStats?.responseRate || 0) ? "up" : (stats?.responseRate || 0) < (previousStats?.responseRate || 0) ? "down" : "neutral") : "neutral",
       color: "text-amber-500",
       glow: "hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]"
     },
@@ -253,8 +276,8 @@ export default function DashboardHome() {
       value: stats?.closedRevenue?.toLocaleString() || "0",
       prefix: "$",
       icon: DollarSign,
-      percentage: "—",
-      trend: "neutral" as const,
+      percentage: calculatePercentageChange(stats?.closedRevenue || 0, previousStats?.closedRevenue),
+      trend: previousStats ? ((stats?.closedRevenue || 0) > (previousStats?.closedRevenue || 0) ? "up" : (stats?.closedRevenue || 0) < (previousStats?.closedRevenue || 0) ? "down" : "neutral") : "neutral",
       color: "text-primary",
       glow: "hover:shadow-[0_0_20px_rgba(var(--primary),0.15)]"
     },
@@ -435,17 +458,29 @@ export default function DashboardHome() {
                       </div>
                     </div>
                     <div className="space-y-2 max-w-sm px-4">
-                      <p className="font-black text-2xl tracking-tighter text-foreground uppercase">Ready to launch?</p>
+                      <p className="font-black text-2xl tracking-tighter text-foreground uppercase">
+                        {isSmtpConnected ? "Neural Engine Active" : "Ready to launch?"}
+                      </p>
                       <p className="text-sm text-muted-foreground/60 leading-relaxed">
-                        Connect your email or Instagram channels to start tracking real-time lead intent and automated outreach.
+                        {isSmtpConnected 
+                          ? "Waiting for incoming lead activities. Your outreach engine is warm and ready to track intent."
+                          : "Connect your email or Instagram channels to start tracking real-time lead intent and automated outreach."}
                       </p>
                     </div>
-                    <Button
-                      className="rounded-2xl px-10 h-12 bg-primary text-black font-black uppercase tracking-widest text-xs hover:scale-105 transition-all shadow-lg shadow-primary/20"
-                      onClick={() => setLocation('/dashboard/integrations')}
-                    >
-                      Connect Integration <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
+                    {!isSmtpConnected && (
+                      <Button
+                        className="rounded-2xl px-10 h-12 bg-primary text-black font-black uppercase tracking-widest text-xs hover:scale-105 transition-all shadow-lg shadow-primary/20"
+                        onClick={() => setLocation('/dashboard/integrations')}
+                      >
+                        Connect Integration <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    )}
+                    {isSmtpConnected && (
+                      <div className="flex items-center gap-2 text-primary/40 text-[10px] uppercase font-bold tracking-[0.2em] animate-pulse">
+                        <RefreshCw className="w-3 h-3 animate-spin-slow" />
+                        Listening for events...
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>
@@ -507,6 +542,20 @@ export default function DashboardHome() {
                   </Badge>
                 </div>
 
+                {/* AI Deliverability Metrics */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest leading-none">Queued</p>
+                    <p className="text-xl font-black text-indigo-400 tracking-tighter">{stats?.queuedLeads || 0}</p>
+                    <Badge className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20 text-[7px] font-black uppercase tracking-widest py-0 h-3">Waiting</Badge>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest leading-none">Undelivered</p>
+                    <p className="text-xl font-black text-rose-400 tracking-tighter">{stats?.undeliveredLeads || 0}</p>
+                    <Badge className="bg-rose-500/10 text-rose-400 border-rose-500/20 text-[7px] font-black uppercase tracking-widest py-0 h-3">Retry</Badge>
+                  </div>
+                </div>
+
                 {/* Real-time Advisory */}
                 <div className="p-3 rounded-xl bg-primary/5 border border-primary/10">
                   <p className="text-[9px] font-bold text-primary uppercase mb-1 flex items-center gap-1.5">
@@ -551,9 +600,9 @@ export default function DashboardHome() {
                     AI Automation
                   </span>
                   <Badge variant="secondary" className={cn("border-0 text-[10px] uppercase font-bold tracking-tighter",
-                    (stats?.engineStatus === "Autonomous" && stats?.leads !== 0) ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"
+                    (stats?.engineStatus === "Autonomous" && stats?.lastOutreachActivity && (new Date().getTime() - new Date(stats.lastOutreachActivity).getTime() < 3600000)) ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"
                   )}>
-                    {stats?.engineStatus === "Autonomous" ? (stats?.leads === 0 ? "Idle" : "Active") : "Paused"}
+                    {(stats?.engineStatus === "Autonomous" && stats?.lastOutreachActivity && (new Date().getTime() - new Date(stats.lastOutreachActivity).getTime() < 3600000)) ? "Active" : "Idle"}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between">

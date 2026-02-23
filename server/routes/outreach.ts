@@ -513,15 +513,88 @@ router.get('/track/:trackingId', async (req, res) => {
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
     return res.end(pixel);
+  }
+});
+
+/**
+ * GET /api/outreach/click/:trackingId
+ * Tracking redirect for link clicks
+ */
+router.get('/click/:trackingId', async (req, res) => {
+  try {
+    const { trackingId } = req.params;
+    const { url } = req.query;
+    const { wsSync } = await import('../lib/websocket-sync.js');
+
+    if (!url || typeof url !== 'string') {
+      return res.status(400).send('Invalid redirect URL');
+    }
+
+    // 1. Update clickedAt for the message
+    const [message] = await db.update(messages)
+      .set({
+        clickedAt: new Date(),
+        isRead: true
+      })
+      .where(eq(messages.trackingId, trackingId))
+      .returning();
+
+    // 2. Update campaign_emails status
+    const [campaignEmail] = await db.update(campaignEmails)
+      .set({ 
+        status: 'clicked',
+        metadata: sql`jsonb_set(metadata, '{clickedAt}', ${JSON.stringify(new Date().toISOString())}::jsonb)`
+      })
+      .where(and(eq(campaignEmails.messageId, trackingId), ne(campaignEmails.status, 'clicked')))
+      .returning();
+
+    // 3. Roll up stats
+    if (campaignEmail?.campaignId) {
+      await db.update(outreachCampaigns)
+        .set({
+          stats: sql`jsonb_set(stats, '{clicked}', (COALESCE((stats->>'clicked')::int, 0) + 1)::text::jsonb)`,
+          updatedAt: new Date()
+        })
+        .where(eq(outreachCampaigns.id, campaignEmail.campaignId));
+    }
+
+    if (message) {
+      // Notify UI
+      wsSync.notifyMessagesUpdated(message.userId, {
+        type: 'UPDATE',
+        messageId: message.id,
+        event: 'clicked'
+      });
+      
+      wsSync.notifyActivityUpdated(message.userId, {
+        type: 'email_clicked',
+        messageId: message.id,
+        leadId: message.leadId,
+        trackingId,
+        url
+      });
+
+      await storage.createAuditLog({
+        userId: message.userId,
+        leadId: message.leadId,
+        action: 'email_clicked',
+        details: {
+          message: `Link clicked in email`,
+          url,
+          trackingId
+        }
+      });
+    }
+
+    // Redirect to the target URL
+    return res.redirect(url);
   } catch (error) {
-    console.error('Tracking pixel error:', error);
-    // Still return the pixel even on error to avoid broken images
-    const pixel = Buffer.from(
-      'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
-      'base64'
-    );
-    res.set('Content-Type', 'image/gif');
-    return res.end(pixel);
+    console.error('Click tracking error:', error);
+    const { url } = req.query;
+    if (url && typeof url === 'string') {
+      return res.redirect(url);
+    }
+    res.status(500).send('Internal Server Error');
   }
 });
 

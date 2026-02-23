@@ -100,11 +100,31 @@ export function injectTrackingPixel(html: string, trackingId: string): string {
   const pixelUrl = `${baseUrl}/api/outreach/track/${trackingId}`;
   const pixelHtml = `<img src="${pixelUrl}" width="1" height="1" style="display:none !important;" alt="" />`;
 
-  // Try to inject before </body> or at the end
   if (html.includes('</body>')) {
     return html.replace('</body>', `${pixelHtml}</body>`);
   }
   return html + pixelHtml;
+}
+
+/**
+ * Wraps links in HTML email content with tracking URLs
+ */
+export function wrapLinksWithTracking(html: string, trackingId: string): string {
+  if (!trackingId) return html;
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://audnixai.com';
+  const linkRegex = /<a\s+([^>]*href=["'])([^"']+)(["'][^>]*)>/gi;
+  
+  return html.replace(linkRegex, (match, prefix, url, suffix) => {
+    // Skip mailto, tel, and already tracked links
+    if (url.startsWith('mailto:') || url.startsWith('tel:') || url.includes('/api/outreach/track/') || url.includes('/api/outreach/click/')) {
+      return match;
+    }
+    
+    const encodedUrl = encodeURIComponent(url);
+    const trackingUrl = `${baseUrl}/api/outreach/click/${trackingId}?url=${encodedUrl}`;
+    return `<a ${prefix}${trackingUrl}${suffix}>`;
+  });
 }
 
 /**
@@ -129,7 +149,8 @@ async function sendCustomSMTP(
 
   let emailBody = body;
   if (isHtml && trackingId) {
-    emailBody = injectTrackingPixel(body, trackingId);
+    emailBody = injectTrackingPixel(emailBody, trackingId);
+    emailBody = wrapLinksWithTracking(emailBody, trackingId);
   }
 
   const transporter = nodemailer.createTransport({
@@ -677,7 +698,8 @@ async function sendGmailMessage(
 ): Promise<{ messageId: string }> {
   let emailBody = body;
   if (isHtml && trackingId) {
-    emailBody = injectTrackingPixel(body, trackingId);
+    emailBody = injectTrackingPixel(emailBody, trackingId);
+    emailBody = wrapLinksWithTracking(emailBody, trackingId);
   }
 
   const message = createMimeMessage(credentials.email, to, subject, emailBody, isHtml);
@@ -715,7 +737,8 @@ async function sendOutlookMessage(
 ): Promise<{ messageId: string }> {
   let emailBody = body;
   if (isHtml && trackingId) {
-    emailBody = injectTrackingPixel(body, trackingId);
+    emailBody = injectTrackingPixel(emailBody, trackingId);
+    emailBody = wrapLinksWithTracking(emailBody, trackingId);
   }
 
   const response = await fetch('https://graph.microsoft.com/v1.0/me/sendMail', {

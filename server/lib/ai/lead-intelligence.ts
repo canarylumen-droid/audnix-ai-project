@@ -80,6 +80,12 @@ export interface LeadIntelligenceDashboard {
   suggestedActions: string[];
   nextBestAction: string;
   socialProfiles?: SocialProfile[];
+  stats?: {
+    totalInbound: number;
+    totalOutbound: number;
+    lastInteractionDays: number;
+    hasReplied: boolean;
+  };
 }
 
 
@@ -108,7 +114,16 @@ export async function detectLeadIntent(
     const industry = lead.metadata?.industry as string | undefined;
 
     if (!openai) {
-      throw new Error("OpenAI not initialized");
+      // Fallback: Deterministic Intent Scoring for Local Mode
+      const inboundCount = messages.filter(m => m.direction === 'inbound').length;
+      const score = Math.min(100, inboundCount * 25);
+      return {
+        intentLevel: score >= 75 ? "high" : score >= 25 ? "medium" : "low",
+        intentScore: score,
+        buyerStage: score >= 75 ? "decision" : score >= 25 ? "consideration" : "awareness",
+        signals: inboundCount > 0 ? ["interaction_detected"] : ["no_engagement"],
+        reasoning: "Analysis based on historical interaction volume (Local Mode)"
+      };
     }
 
     const response = await openai.chat.completions.create({
@@ -552,13 +567,22 @@ export async function generateLeadIntelligenceDashboard(
         ? "Send personalized case study"
         : "Re-engage with education content";
 
+  const lastMsgAt = messages.length > 0 ? new Date(messages[messages.length - 1].createdAt).getTime() : new Date(lead.createdAt || Date.now()).getTime();
+  const lastInteractionDays = Math.floor((Date.now() - lastMsgAt) / (1000 * 60 * 60 * 24));
+
   return {
     intent,
     predictions,
     churnRisk,
     suggestedActions,
     nextBestAction,
-    socialProfiles: socialProfiles.length > 0 ? socialProfiles : undefined
+    socialProfiles: socialProfiles.length > 0 ? socialProfiles : undefined,
+    stats: {
+      totalInbound: messages.filter(m => m.direction === 'inbound').length,
+      totalOutbound: messages.filter(m => m.direction === 'outbound').length,
+      lastInteractionDays,
+      hasReplied: messages.some(m => m.direction === 'inbound')
+    }
   };
 }
 

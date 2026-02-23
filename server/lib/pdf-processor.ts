@@ -169,12 +169,14 @@ export async function processPDF(
           company: lead.metadata?.company || undefined
         });
 
-        // Auto-schedule initial follow-up for imported leads
+        // DISABLED: Auto-scheduling initial follow-up for imported leads (User request to stop blasting)
+        /*
         try {
           await scheduleInitialFollowUp(userId, lead.id, leadChannel as 'email' | 'instagram' | 'manual');
         } catch (followUpError) {
           console.warn(`Failed to schedule follow-up for ${lead.name}:`, followUpError);
         }
+        */
 
         // Auto-reach out if enabled and offer data exists
         if (options?.autoReachOut && offerData && (leadData.email || leadData.phone)) {

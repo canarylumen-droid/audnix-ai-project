@@ -112,6 +112,20 @@ export default function AnalyticsPage() {
         refetchInterval: 10000
     });
 
+    const { data: previousStats } = useQuery<any>({
+        queryKey: ["/api/dashboard/stats/previous"],
+    });
+
+    const calculatePercentageChange = (current: number, previous: number | undefined): { percentage: string; isUp: boolean; isNeutral: boolean } => {
+        if (previous === undefined || previous === 0) return { percentage: "—", isUp: false, isNeutral: true };
+        const change = ((current - previous) / previous) * 100;
+        return { 
+            percentage: `${change > 0 ? "+" : ""}${change.toFixed(1)}%`, 
+            isUp: change > 0,
+            isNeutral: Math.abs(change) < 0.01
+        };
+    };
+
     // Filtered metrics based on channelFilter
     const filteredMetrics = analytics?.metrics ? {
         ...analytics.metrics,
@@ -139,7 +153,8 @@ export default function AnalyticsPage() {
                             label="Total Sent"
                             value={filteredMetrics?.sent || 0}
                             icon={Send}
-                            trend="+12.5%"
+                            trend={calculatePercentageChange(filteredMetrics?.sent || 0, previousStats?.messages).percentage}
+                            isUp={calculatePercentageChange(filteredMetrics?.sent || 0, previousStats?.messages).isUp}
                             color="text-blue-500"
                             index={0}
                         />
@@ -147,7 +162,8 @@ export default function AnalyticsPage() {
                             label="Open Rate"
                             value={`${isNaN(Number(filteredMetrics?.openRate)) ? 0 : (filteredMetrics?.openRate || 0)}%`}
                             icon={Eye}
-                            trend="+8.2%"
+                            trend={calculatePercentageChange(filteredMetrics?.openRate || 0, previousStats?.openRate).percentage}
+                            isUp={calculatePercentageChange(filteredMetrics?.openRate || 0, previousStats?.openRate).isUp}
                             color="text-amber-500"
                             index={1}
                         />
@@ -155,7 +171,8 @@ export default function AnalyticsPage() {
                             label="Response Rate"
                             value={`${isNaN(Number(filteredMetrics?.responseRate)) ? 0 : (filteredMetrics?.responseRate || 0)}%`}
                             icon={MessageCircle}
-                            trend="+5.1%"
+                            trend={calculatePercentageChange(filteredMetrics?.responseRate || 0, previousStats?.responseRate).percentage}
+                            isUp={calculatePercentageChange(filteredMetrics?.responseRate || 0, previousStats?.responseRate).isUp}
                             color="text-fuchsia-500"
                             index={2}
                         />
@@ -163,7 +180,8 @@ export default function AnalyticsPage() {
                             label="Revenue"
                             value={`$${(filteredMetrics?.booked || 0) * 1500}`} // Estimated LTV
                             icon={DollarSign}
-                            trend="+24%"
+                            trend={calculatePercentageChange((filteredMetrics?.booked || 0) * 1500, (previousStats?.closedRevenue || 0)).percentage}
+                            isUp={calculatePercentageChange((filteredMetrics?.booked || 0) * 1500, (previousStats?.closedRevenue || 0)).isUp}
                             color="text-emerald-500"
                             index={3}
                         />
@@ -482,6 +500,67 @@ export default function AnalyticsPage() {
                 </Card>
             </div>
 
+            {/* Stats Table Section */}
+            <Card className="bg-card border-border/40 rounded-[2rem] overflow-hidden">
+                <CardHeader className="p-8 border-b border-border/40 bg-muted/30">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <CardTitle className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground/40">Performance Matrix</CardTitle>
+                            <CardDescription className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/30 mt-1">Numerical breakdown by intersection cycle</CardDescription>
+                        </div>
+                        <Badge variant="outline" className="rounded-full px-4 h-6 border-primary/20 bg-primary/5 text-primary text-[8px] font-black tracking-widest uppercase">
+                            Real-time Sync
+                        </Badge>
+                    </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="border-b border-border/20">
+                                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Metric</th>
+                                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 text-right">Current Period</th>
+                                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 text-right">Previous Period</th>
+                                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 text-right">Inertia</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border/10">
+                                {[
+                                    { label: "Messages Sent", currentVal: filteredMetrics?.sent, previousVal: previousStats?.messages },
+                                    { label: "Email Open Rate", current: `${filteredMetrics?.openRate || 0}%`, previous: `${previousStats?.openRate || 0}%`, currentVal: filteredMetrics?.openRate, previousVal: previousStats?.openRate },
+                                    { label: "Engagement Rate", current: `${filteredMetrics?.responseRate || 0}%`, previous: `${previousStats?.responseRate || 0}%`, currentVal: filteredMetrics?.responseRate, previousVal: previousStats?.responseRate },
+                                    { label: "Total Bookings", currentVal: filteredMetrics?.booked, previousVal: previousStats?.convertedLeads },
+                                    { label: "Gross Revenue", current: `$${((filteredMetrics?.booked || 0) * 1500).toLocaleString()}`, previous: `$${(previousStats?.closedRevenue || 0).toLocaleString()}`, currentVal: (filteredMetrics?.booked || 0) * 1500, previousVal: previousStats?.closedRevenue },
+                                ].map((row, idx) => {
+                                    const { percentage, isUp, isNeutral } = calculatePercentageChange(
+                                        Number(row.currentVal || 0),
+                                        Number(row.previousVal || 0)
+                                    );
+                                    
+                                    return (
+                                        <tr key={idx} className="hover:bg-muted/20 transition-colors group">
+                                            <td className="px-8 py-5 text-sm font-black text-foreground/80 group-hover:text-primary transition-colors">{row.label}</td>
+                                            <td className="px-8 py-5 text-sm font-black text-right">{row.current !== undefined ? row.current : (row.currentVal || 0)}</td>
+                                            <td className="px-8 py-5 text-sm font-black text-right opacity-40">{row.previous !== undefined ? row.previous : (row.previousVal || 0)}</td>
+                                            <td className="px-8 py-5 text-right">
+                                                <div className={cn(
+                                                    "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
+                                                    isNeutral ? "bg-muted text-muted-foreground" : 
+                                                    isUp ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"
+                                                )}>
+                                                    {!isNeutral && (isUp ? <ArrowUpRight className="w-3 h-3" /> : <TrendingUp className="w-3 h-3 rotate-180" />)}
+                                                    {percentage}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </CardContent>
+            </Card>
+
             {/* Audit Logs Modal */}
             <Sheet open={isAuditModalOpen} onOpenChange={setIsAuditModalOpen}>
                 <SheetContent side="right" className="w-full sm:max-w-xl p-0 bg-background border-l border-border">
@@ -520,7 +599,7 @@ export default function AnalyticsPage() {
     );
 }
 
-function StatCard({ label, value, icon: Icon, trend, color, index }: any) {
+function StatCard({ label, value, icon: Icon, trend, isUp, color, index }: any) {
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -537,10 +616,18 @@ function StatCard({ label, value, icon: Icon, trend, color, index }: any) {
                 <CardContent className="pt-2">
                     <div className="flex items-baseline justify-between gap-1 w-full">
                         <div className="text-3xl font-black tracking-tighter truncate">{value}</div>
-                        {trend && (
-                            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 shrink-0">
-                                <ArrowUpRight className="w-3 h-3" />
+                        {trend && trend !== "—" && (
+                            <div className={cn(
+                                "flex items-center gap-1 px-2 py-0.5 rounded-full shrink-0",
+                                isUp ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"
+                            )}>
+                                {isUp ? <ArrowUpRight className="w-3 h-3" /> : <TrendingUp className="w-3 h-3 rotate-180" />}
                                 <span className="text-[10px] font-black">{trend}</span>
+                            </div>
+                        )}
+                        {trend === "—" && (
+                            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
+                                <span className="text-[10px] font-black">STABLE</span>
                             </div>
                         )}
                     </div>

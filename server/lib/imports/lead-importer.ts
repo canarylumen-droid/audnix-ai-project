@@ -3,6 +3,7 @@ import { storage } from '../../storage.js';
 import { decrypt } from "../crypto/encryption.js";
 import type { Lead, Message } from "../../../shared/schema.js";
 import { EmailVerifier } from "../scraping/email-verifier.js";
+import { wsSync } from "../websocket-sync.js";
 
 const verifier = new EmailVerifier();
 
@@ -190,6 +191,8 @@ export async function importManychatLeads(userId: string): Promise<{
         results.leadsImported++;
       } catch (e) { }
     }
+    wsSync.notifyActivityUpdated(userId, { type: 'import_completed', count: results.leadsImported });
+    wsSync.broadcastToUser(userId, { type: 'stats_updated', payload: { source: 'manychat_importer' } });
     return results;
   } catch (e: any) { results.errors.push(e.message); return results; }
 }

@@ -49,15 +49,20 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
     // Enhanced Domain Health Calculation (0-100)
     const hardBounces = recentBounces.filter(b => b.bounceType === 'hard').length;
     const softBounces = recentBounces.filter(b => b.bounceType === 'soft').length;
+    const spamBounces = recentBounces.filter(b => b.bounceType === 'spam').length;
 
     let reputationScore = 100;
     if (stats.totalLeads > 0) {
-      const bouncePenalty = (hardBounces * 5) + (softBounces * 2);
+      const bouncePenalty = (hardBounces * 5) + (softBounces * 2) + (spamBounces * 5);
       reputationScore = Math.max(0, 100 - bouncePenalty);
     }
 
-    const unverifiedDomains = domainVerifications.filter(v => v.verification_result !== 'pass').length;
-    const verificationPenalty = unverifiedDomains * 10;
+    const unverifiedDomains = domainVerifications.filter(v => {
+      const result = v.verification_result as any;
+      return result && result.overallStatus !== 'excellent' && result.overallStatus !== 'good';
+    }).length;
+
+    const verificationPenalty = unverifiedDomains * 15;
     const domainHealth = Math.max(0, reputationScore - verificationPenalty);
 
     res.json({
@@ -67,9 +72,14 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
       plan: user?.plan || 'trial',
       trialDaysLeft: user?.trialExpiresAt ? Math.ceil((new Date(user.trialExpiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 0,
       lastSync: lastSyncTimestamp > 0 ? new Date(lastSyncTimestamp).toISOString() : null,
+      lastOutreachActivity: user?.metadata?.last_outreach_activity || null,
       engineStatus,
       domainHealth,
-      domainVerifications: domainVerifications.slice(0, 3) 
+      domainVerifications: domainVerifications.slice(0, 3).map(v => ({
+        domain: v.domain,
+        result: v.verification_result as any,
+        createdAt: v.created_at
+      }))
     });
   } catch (error) {
     console.error('Dashboard stats error:', error);

@@ -1552,6 +1552,8 @@ export class DrizzleStorage implements IStorage {
     closedRevenue: number;
     openRate: number;
     responseRate: number;
+    queuedLeads: number;
+    undeliveredLeads: number;
   }> {
     checkDatabase();
     const sevenDaysAgo = new Date();
@@ -1582,6 +1584,7 @@ export class DrizzleStorage implements IStorage {
       hardenedLeads: sql<number>`count(*) filter (where verified = true)`,
       bouncyLeads: sql<number>`count(*) filter (where status = 'bouncy')`,
       recoveredLeads: sql<number>`count(*) filter (where status = 'recovered')`,
+      queuedLeads: sql<number>`count(*) filter (where status = 'new' and ai_paused = false)`,
     })
       .from(leads)
       .where(leadsBaseWhere);
@@ -1624,6 +1627,8 @@ export class DrizzleStorage implements IStorage {
       closedRevenue: Number(dealsStats?.closedRevenue || 0),
       openRate: totalSent > 0 ? Math.round((opened / totalSent) * 100) : 0,
       responseRate: totalLeads > 0 ? Math.round((replied / totalLeads) * 100) : 0,
+      queuedLeads: Number(leadsStats?.queuedLeads || 0),
+      undeliveredLeads: Number(leadsStats?.bouncyLeads || 0),
     };
   }
 
@@ -1695,6 +1700,7 @@ export class DrizzleStorage implements IStorage {
       const [dayLeads] = await db.select({
         replied_email: sql<number>`count(*) filter (where status in ('replied', 'converted') and channel = 'email')`,
         replied_instagram: sql<number>`count(*) filter (where status in ('replied', 'converted') and channel = 'instagram')`,
+        booked: sql<number>`count(*) filter (where status = 'converted')`
       }).from(leads).where(and(eq(leads.userId, userId), gte(leads.updatedAt, dayStart), lte(leads.updatedAt, dayEnd)));
 
       timeSeries.push({
@@ -1704,7 +1710,7 @@ export class DrizzleStorage implements IStorage {
         opened: Number(dayMsg?.opened || 0),
         replied_email: Number(dayLeads?.replied_email || 0),
         replied_instagram: Number(dayLeads?.replied_instagram || 0),
-        booked: 0
+        booked: Number(dayLeads?.booked || 0)
       });
     }
 

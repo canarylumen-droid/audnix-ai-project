@@ -205,7 +205,7 @@ async function processEmailForLead(
       // Ignore duplicates
     }
 
-    // Notify UI of new message
+    // Notify UI of new message and potentially lead status change
     try {
       const { wsSync } = await import('../websocket-sync.js');
       wsSync.notifyMessagesUpdated(userId, {
@@ -213,6 +213,21 @@ async function processEmailForLead(
         messageId: (newMessage as any).id,
         direction
       });
+
+      // Crucial: Also notify lead update to refresh Inbox list immediately
+      if (direction === 'inbound') {
+        wsSync.notifyLeadsUpdated(userId, { 
+          leadId: lead.id, 
+          action: 'message_received' 
+        });
+        
+        // Also fire an activity update for toasts/analytics
+        wsSync.notifyActivityUpdated(userId, {
+          type: 'email_received',
+          leadId: lead.id,
+          messageId: (newMessage as any).id
+        });
+      }
     } catch (wsError) { }
 
     // Update last message time on lead

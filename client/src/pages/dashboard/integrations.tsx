@@ -248,6 +248,18 @@ export default function IntegrationsPage() {
   const integrations = integrationsData?.integrations ?? [];
   const isCustomEmailConnected = customEmailStatus?.connected || false;
 
+  const verifyDomainMutation = useMutation({
+    mutationFn: async (domain: string) => {
+      const res = await apiRequest("POST", "/api/dns/verify", { domain });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Check Complete", description: "Domain reputation updated." });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+    },
+    onError: (err: any) => toast({ title: "Verification Failed", description: err.message, variant: "destructive" })
+  });
+
   const disconnectProviderMutation = useMutation({
     mutationFn: async (provider: string) => {
       const response = await apiRequest("POST", `/api/integrations/${provider}/disconnect`);
@@ -361,6 +373,11 @@ export default function IntegrationsPage() {
     setIsDisconnectDialogOpen(true);
   };
 
+  const getDomainFromEmail = (email: string | null) => {
+    if (!email) return null;
+    return email.split('@')[1];
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <DisconnectConfirmationDialog
@@ -449,152 +466,179 @@ export default function IntegrationsPage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="connected" className="space-y-8">
-          {/* Email Integration Section */}
-          <Card className="rounded-2xl border-border/50 overflow-hidden">
-            <CardHeader className="p-8 border-b bg-muted/20">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                <div className="flex items-center gap-4">
-                  <div className={`p-3 rounded-xl bg-primary/10 text-primary`}>
-                    <Mail className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-semibold">Custom Email Server</h2>
-                    <p className="text-sm text-muted-foreground">Connect your own SMTP/IMAP settings for maximum deliverability.</p>
-                  </div>
+        <TabsContent value="connected" className="space-y-12">
+          {/* Custom SMTP Integration Section */}
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                  <Mail className="h-5 w-5" />
                 </div>
-                {isCustomEmailConnected ? (
-                  <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-0 font-semibold px-4 py-1 rounded-full uppercase text-[10px] tracking-wider">
-                    Connected
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="text-muted-foreground border-border/50 font-semibold px-4 py-1 rounded-full uppercase text-[10px] tracking-wider">
-                    Offline
-                  </Badge>
-                )}
+                <h2 className="text-xl font-bold tracking-tight text-foreground">Custom Email Domain</h2>
               </div>
-            </CardHeader>
+              <Badge variant="outline" className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest border-primary/20 bg-primary/5 text-primary">
+                Advanced
+              </Badge>
+            </div>
 
-            <CardContent className="p-8">
+            <Card className={cn(
+              "rounded-3xl border-border/50 overflow-hidden transition-all duration-500",
+              isCustomEmailConnected ? "bg-card shadow-2xl shadow-primary/5 border-primary/20" : "bg-muted/20"
+            )}>
               {isCustomEmailConnected && !isEditingCustomEmail ? (
-                <div className="flex flex-col md:flex-row items-center justify-between bg-muted/30 p-6 rounded-xl border border-border/40">
-                  <div className="flex items-center gap-4 mb-6 md:mb-0">
-                    <div className="h-12 w-12 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600">
-                      <CheckCircle2 className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-foreground">{customEmailStatus?.email}</p>
-                      <p className="text-xs text-muted-foreground font-medium">Primary Sending Address</p>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2 w-full md:w-auto mt-4 md:mt-0 justify-start md:justify-end">
-                    <Button variant="outline" size="sm" className="rounded-lg h-7 md:h-9 text-[10px] md:text-xs px-2 md:px-3 whitespace-nowrap" onClick={() => syncNowMutation.mutate()} disabled={syncNowMutation.isPending}>
-                      <RefreshCw className={cn("h-3 w-3 mr-1.5", syncNowMutation.isPending && "animate-spin")} /> {syncNowMutation.isPending ? 'Syncing...' : 'Sync Now'}
-                    </Button>
-                    <Button variant="outline" size="sm" className="rounded-lg h-7 md:h-9 text-[10px] md:text-xs px-2 md:px-3 whitespace-nowrap" onClick={() => setIsTestEmailOpen(true)}>
-                      <Mail className="h-3 w-3 mr-1.5" /> Test Send
-                    </Button>
-                    <Button variant="outline" size="sm" className="rounded-lg h-7 md:h-9 text-[10px] md:text-xs px-2 md:px-3 whitespace-nowrap" onClick={() => setIsEditingCustomEmail(true)}>
-                      <Pencil className="h-3 w-3 mr-1.5" /> Edit
-                    </Button>
-                    <Button variant="ghost" size="sm" className="rounded-lg h-7 md:h-9 text-[10px] md:text-xs px-2 md:px-3 whitespace-nowrap text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => confirmDisconnect('custom_email')}>
-                      <Unplug className="h-3 w-3 mr-1.5" /> Disconnect
-                    </Button>
-                  </div>
-                </div>
-              ) : null}
-
-              {isCustomEmailConnected && !isEditingCustomEmail && (
-                <div className="mt-8 pt-8 border-t grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="flex items-center justify-around p-6 rounded-2xl bg-muted/20 border border-border/40 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-32 h-32 blur-[60px] opacity-10 bg-primary rounded-full" />
-                    <CircularProgress
-                      value={stats?.messagesToday ? (stats.messagesToday / getDailyLimit()) * 100 : 0}
-                      label={stats?.messagesToday || "0"}
-                      sublabel="Sent Today"
-                    />
-                    <CircularProgress
-                      value={stats?.messagesYesterday ? (stats.messagesYesterday / getDailyLimit()) * 100 : 0}
-                      label={stats?.messagesYesterday || "0"}
-                      sublabel="Sent Yesterday"
-                      color="secondary"
-                    />
-                    <div className="absolute bottom-3 right-4 flex items-center gap-1.5">
-                      <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="text-[9px] font-black text-emerald-500/80 uppercase tracking-widest">Real-time Feed</span>
-                    </div>
-                  </div>
-
-                  <div className="p-6 rounded-2xl bg-muted/20 border border-border/40 space-y-6">
-                    <div className="flex items-start justify-between">
+                <div className="p-8">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-border/50">
+                    <div className="flex items-center gap-4">
+                      <div className="h-14 w-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+                        <CheckCircle2 className="h-7 w-7 text-emerald-500" />
+                      </div>
                       <div className="space-y-1">
-                        <h3 className="text-sm font-bold uppercase tracking-widest text-foreground flex items-center gap-2">
-                          <ShieldCheck className="w-4 h-4 text-primary" />
-                          Domain Health Monitor
-                        </h3>
-                        <p className="text-[10px] text-muted-foreground font-medium uppercase">
-                          Last detected folders: {folderData?.isDiscovering ? 'Discovering...' : `${folderData?.inbox?.length || 0} Inbox, ${folderData?.sent?.length || 0} Sent`}
-                        </p>
-                      </div>
-                      <Badge className={cn(
-                        "text-[9px] font-black border-0 uppercase tracking-tighter",
-                        parseFloat(calculateReputation()) > 90 ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"
-                      )}>
-                        {parseFloat(calculateReputation()) > 90 ? "Healthy" : "Attention Required"}
-                      </Badge>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-0.5">
-                        <p className="text-[9px] font-bold text-muted-foreground/60 uppercase">Domain Grade</p>
-                        <p className="text-3xl font-black tracking-tighter text-foreground">{calculateReputation()}%</p>
-                      </div>
-                      <div className="space-y-0.5">
-                        <p className="text-[9px] font-bold text-muted-foreground/60 uppercase">Engine Status</p>
-                        <p className={cn(
-                          "text-xs font-black uppercase tracking-widest pt-2",
-                          parseFloat(calculateReputation()) > 90 ? "text-emerald-500" : "text-amber-500"
-                        )}>
-                          {parseFloat(calculateReputation()) > 95 ? "Autonomous" : "User Oversight Recommended"}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-lg font-bold text-foreground">Active Connection</h3>
+                          <Badge className="bg-emerald-500/10 text-emerald-500 border-0 text-[10px] font-black uppercase tracking-widest px-2 py-0">LIVE</Badge>
+                        </div>
+                        <p className="text-sm font-semibold text-muted-foreground">{customEmailStatus.email}</p>
                       </div>
                     </div>
+                    <div className="flex items-center gap-3">
+                      <Button variant="outline" size="sm" className="rounded-lg h-7 md:h-9 text-[10px] md:text-xs px-2 md:px-3 whitespace-nowrap" onClick={() => setIsEditingCustomEmail(true)}>
+                        <Pencil className="h-3 w-3 mr-1.5" /> Edit Settings
+                      </Button>
+                      <Button variant="outline" size="sm" className="rounded-lg h-7 md:h-9 text-[10px] md:text-xs px-2 md:px-3 whitespace-nowrap" onClick={() => setIsTestEmailOpen(true)}>
+                        <Mail className="h-3 w-3 mr-1.5" /> Send Test
+                      </Button>
+                      <Button variant="outline" size="sm" className="rounded-lg h-7 md:h-9 text-[10px] md:text-xs px-2 md:px-3 whitespace-nowrap" onClick={() => syncNowMutation.mutate()} disabled={syncNowMutation.isPending}>
+                        <RefreshCw className={cn("h-3 w-3 mr-1.5", syncNowMutation.isPending && "animate-spin")} /> {syncNowMutation.isPending ? 'Syncing...' : 'Sync Now'}
+                      </Button>
+                      <Button variant="ghost" size="sm" className="rounded-lg h-7 md:h-9 text-[10px] md:text-xs px-2 md:px-3 whitespace-nowrap text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => confirmDisconnect('custom_email')}>
+                        <Unplug className="h-3 w-3 mr-1.5" /> Disconnect
+                      </Button>
+                    </div>
+                  </div>
 
-                    <div className={cn(
-                      "p-3 rounded-xl border text-[10px] leading-tight font-medium",
-                      parseFloat(calculateReputation()) > 90
-                        ? "bg-primary/5 border-primary/10 text-muted-foreground"
-                        : "bg-red-500/5 border-red-500/10 text-red-400"
-                    )}>
-                      {parseFloat(calculateReputation()) > 90
-                        ? "Your domain parameters are within safe limits. AI is managing 1-by-1 sending autonomously."
-                        : "Warning: Low reputation detected. Engine will auto-pause if bounce rate exceeds 10%."}
+                  <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="flex items-center justify-around p-6 rounded-2xl bg-muted/20 border border-border/40 relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 w-32 h-32 blur-[60px] opacity-10 bg-primary rounded-full" />
+                      <CircularProgress
+                        value={stats?.messagesToday ? (stats.messagesToday / getDailyLimit()) * 100 : 0}
+                        label={stats?.messagesToday || "0"}
+                        sublabel="Sent Today"
+                      />
+                      <CircularProgress
+                        value={stats?.messagesYesterday ? (stats.messagesYesterday / getDailyLimit()) * 100 : 0}
+                        label={stats?.messagesYesterday || "0"}
+                        sublabel="Sent Yesterday"
+                        color="secondary"
+                      />
+                      <div className="absolute bottom-3 right-4 flex items-center gap-1.5">
+                        <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-[9px] font-black text-emerald-500/80 uppercase tracking-widest">Real-time Feed</span>
+                      </div>
                     </div>
 
-                    {stats?.domainVerifications?.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-[9px] font-bold text-muted-foreground/60 uppercase">Recent Checks</p>
-                        <div className="space-y-1.5">
-                          {stats.domainVerifications.map((v: any, idx: number) => (
-                            <div key={idx} className="flex items-center justify-between text-[10px] bg-white/5 p-2 rounded-lg">
-                              <span className="text-white/60">{v.domain}</span>
-                              <Badge className={cn(
-                                "text-[8px] h-4 py-0",
-                                v.verification_result === 'pass' ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"
-                              )}>
-                                {v.verification_result}
-                              </Badge>
-                            </div>
-                          ))}
+                    <div className="p-6 rounded-2xl bg-muted/20 border border-border/40 space-y-6">
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-1">
+                          <h3 className="text-sm font-bold uppercase tracking-widest text-foreground flex items-center gap-2">
+                            <ShieldCheck className="w-4 h-4 text-primary" />
+                            Domain Health Monitor
+                          </h3>
+                          <p className="text-[10px] text-muted-foreground font-medium uppercase">
+                            Folders: {folderData?.isDiscovering ? 'Discovering...' : `${folderData?.inbox?.length || 0} Inbox, ${folderData?.sent?.length || 0} Sent`}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6 rounded-full hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                            onClick={() => {
+                              const domain = getDomainFromEmail(customEmailStatus.email);
+                              if (domain) verifyDomainMutation.mutate(domain);
+                            }}
+                            disabled={verifyDomainMutation.isPending}
+                          >
+                            <RefreshCw className={cn("h-3 w-3", verifyDomainMutation.isPending && "animate-spin")} />
+                          </Button>
+                          <Badge className={cn(
+                            "text-[9px] font-black border-0 uppercase tracking-tighter",
+                            parseFloat(calculateReputation()) > 90 ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"
+                          )}>
+                            {parseFloat(calculateReputation()) > 90 ? "Healthy" : "Attention Required"}
+                          </Badge>
                         </div>
                       </div>
-                    )}
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-0.5">
+                          <p className="text-[9px] font-bold text-muted-foreground/60 uppercase">Domain Grade</p>
+                          <p className="text-3xl font-black tracking-tighter text-foreground">{calculateReputation()}%</p>
+                        </div>
+                        <div className="space-y-0.5">
+                          <p className="text-[9px] font-bold text-muted-foreground/60 uppercase">Engine Status</p>
+                          <p className={cn(
+                            "text-xs font-black uppercase tracking-widest pt-2",
+                            parseFloat(calculateReputation()) > 90 ? "text-emerald-500" : "text-amber-500"
+                          )}>
+                            {parseFloat(calculateReputation()) > 95 ? "Autonomous" : "User Oversight Recommended"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className={cn(
+                        "p-3 rounded-xl border text-[10px] leading-tight font-medium",
+                        parseFloat(calculateReputation()) > 90
+                          ? "bg-primary/5 border-primary/10 text-muted-foreground"
+                          : "bg-red-500/5 border-red-500/10 text-red-400"
+                      )}>
+                        {parseFloat(calculateReputation()) > 90
+                          ? "Your domain parameters are within safe limits. AI is managing 1-by-1 sending autonomously."
+                          : "Warning: Low reputation detected. Engine will auto-pause if bounce rate exceeds 10%."}
+                      </div>
+
+                      {stats?.domainVerifications?.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-[9px] font-bold text-muted-foreground/60 uppercase">Recent DNS Checks</p>
+                          <div className="space-y-1.5">
+                            {stats.domainVerifications.map((v: any, idx: number) => (
+                              <div key={idx} className="flex flex-col gap-1.5 bg-white/5 p-3 rounded-xl border border-border/50">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[10px] font-bold text-foreground/80">{v.domain}</span>
+                                  <Badge className={cn(
+                                    "text-[8px] h-4 py-0 uppercase font-black",
+                                    v.result?.overallStatus === 'excellent' || v.result?.overallStatus === 'good' ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"
+                                  )}>
+                                    {v.result?.overallStatus || 'unknown'}
+                                  </Badge>
+                                </div>
+                                {v.result && (
+                                  <div className="grid grid-cols-4 gap-1">
+                                    {['SPF', 'DKIM', 'DMARC', 'MX'].map(record => {
+                                      const key = record.toLowerCase();
+                                      const isFound = v.result[key]?.found;
+                                      const isValid = v.result[key]?.valid ?? true;
+                                      return (
+                                        <div key={record} className="flex flex-col items-center gap-1 p-1 rounded bg-black/20">
+                                          <span className="text-[7px] font-bold text-muted-foreground uppercase">{record}</span>
+                                          <div className={cn(
+                                            "h-1 w-full rounded-full",
+                                            isFound && isValid ? "bg-emerald-500" : isFound ? "bg-amber-500" : "bg-red-500"
+                                          )} />
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              )}
-
-              {(!isCustomEmailConnected || isEditingCustomEmail) && (
-                <div className="space-y-6">
+              ) : (!isCustomEmailConnected || isEditingCustomEmail) && (
+                <div className="p-8 space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1.5 md:col-span-2">
                       <Label className="text-xs font-semibold text-muted-foreground ml-1">From Name (Displayed to recipients)</Label>

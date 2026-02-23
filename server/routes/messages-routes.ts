@@ -72,9 +72,21 @@ router.post("/:leadId", requireAuth, async (req: Request, res: Response): Promis
           res.status(400).json({ error: "Lead has no email address" });
           return;
         }
-        // Use provided subject or fall back to standard Re: format
-        const emailSubject = subject || `Re: ${lead.name || 'Conversation'}`;
-        await sendEmail(userId, lead.email, messageBody, emailSubject, { isRaw: true });
+        // Use provided subject exactly as is
+        const emailSubject = subject || `Conversation with ${lead.name || lead.email}`;
+        
+        // Generate random tracking ID for the outreach tracking system
+        const trackingId = Math.random().toString(36).substring(2, 11);
+
+        await sendEmail(userId, lead.email, messageBody, emailSubject, { 
+          isRaw: true,
+          isHtml: true, // Force HTML for tracking
+          trackingId,
+          leadId: lead.id
+        });
+        
+        // metadata should include trackingId for consistency if storage doesn't auto-handle it
+        // and we will update the message record created below
       } else if (selectedChannel === 'instagram') {
         const leadMeta = lead.metadata as any;
         const igId = leadMeta?.instagram_id || leadMeta?.psid || lead.externalId;
@@ -114,7 +126,12 @@ router.post("/:leadId", requireAuth, async (req: Request, res: Response): Promis
       body: messageBody,
       subject: subject || undefined, // Store subject if provided
       audioUrl: null,
-      metadata: { manual: true, sentAt: new Date() },
+      trackingId: selectedChannel === 'email' ? trackingId : undefined,
+      metadata: { 
+        manual: true, 
+        sentAt: new Date(),
+        ...(trackingId ? { trackingId } : {})
+      },
     });
 
     // Update lead last message time

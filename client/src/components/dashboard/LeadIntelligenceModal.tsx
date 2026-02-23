@@ -60,11 +60,12 @@ interface IntelligenceData {
         calendarLink?: string;
         ctaLink?: string;
     };
-    socialProfiles?: {
-        platform: "linkedin" | "twitter" | "instagram" | "github" | "other";
-        url: string;
-        handle?: string;
-    }[];
+    stats?: {
+        totalInbound: number;
+        totalOutbound: number;
+        lastInteractionDays: number;
+        hasReplied: boolean;
+    };
 }
 
 
@@ -228,19 +229,42 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                             </Card>
 
                             {/* Churn / Risk */}
-                            <Card className="bg-card/50 border-border/60">
-                                <CardContent className="p-4 pt-6 text-center space-y-2">
-                                    <Badge variant="outline" className={`mx-auto mb-2 px-3 py-1 text-sm uppercase ${getRiskColor(intelligence.churnRisk.churnRiskLevel)}`}>
-                                        {intelligence.churnRisk.churnRiskLevel} Risk
-                                    </Badge>
-                                    <div className="text-sm font-medium pt-2">Retention Analysis</div>
-                                    <div className="flex flex-wrap gap-1 justify-center mt-2">
-                                        {intelligence.churnRisk.indicators.length ? intelligence.churnRisk.indicators.map((r, i) => (
-                                            <span key={i} className="text-[10px] bg-muted/50 px-1.5 py-0.5 rounded border border-border/50 text-muted-foreground">{r}</span>
-                                        )) : <span className="text-xs text-muted-foreground">No risk factors detected</span>}
+                            <Card className="bg-card/40 backdrop-blur-xl border-border/40 rounded-[2rem] overflow-hidden group">
+                                <CardContent className="p-4 pt-8 text-center space-y-4">
+                                    <div className="mx-auto">
+                                        <Badge variant="outline" className={`px-3 py-1 text-sm uppercase ${getRiskColor(intelligence.churnRisk.churnRiskLevel)}`}>
+                                            {intelligence.churnRisk.churnRiskLevel} Risk
+                                        </Badge>
                                     </div>
+                                    <div className="space-y-1">
+                                        <p className="text-xl font-black text-foreground">{intelligence.stats?.totalInbound || 0} Replies</p>
+                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Engagement History</p>
+                                    </div>
+                                    <p className="text-xs font-bold text-muted-foreground/30 italic">
+                                        Retention Analysis
+                                    </p>
                                 </CardContent>
                             </Card>
+                        </div>
+
+                        {/* Mobile Optimized Grid for Stats */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div className="bg-background/40 border border-border/20 rounded-2xl p-3 text-center">
+                                <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-widest mb-1">Inbound</p>
+                                <p className="text-lg font-black text-foreground">{intelligence.stats?.totalInbound || 0}</p>
+                            </div>
+                            <div className="bg-background/40 border border-border/20 rounded-2xl p-3 text-center">
+                                <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-widest mb-1">Outbound</p>
+                                <p className="text-lg font-black text-foreground">{intelligence.stats?.totalOutbound || 0}</p>
+                            </div>
+                            <div className="bg-background/40 border border-border/20 rounded-2xl p-3 text-center">
+                                <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-widest mb-1">Recency</p>
+                                <p className="text-lg font-black text-foreground">{intelligence.stats?.lastInteractionDays || 0}d</p>
+                            </div>
+                            <div className="bg-background/40 border border-border/20 rounded-2xl p-3 text-center">
+                                <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-widest mb-1">Replied</p>
+                                <p className="text-lg font-black text-emerald-500">{intelligence.stats?.hasReplied ? "YES" : "NO"}</p>
+                            </div>
                         </div>
 
                         {/* Email & Reputation */}
@@ -350,17 +374,20 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                                     </p>
                                     <Button
                                         onClick={() => {
-                                            const link = intelligence.actionContext?.calendarLink || intelligence.actionContext?.ctaLink;
-                                            if (link) {
-                                                window.open(link.startsWith('http') ? link : `https://${link}`, '_blank');
-                                            } else {
-                                                // Fallback to settings if no link set
-                                                window.location.href = '/dashboard/settings';
+                                            if (intelligence.intent.intentLevel === 'high') {
+                                                const link = intelligence.actionContext?.calendarLink || intelligence.actionContext?.ctaLink;
+                                                if (link) {
+                                                    window.open(link.startsWith('http') ? link : `https://${link}`, '_blank');
+                                                    return;
+                                                }
                                             }
+                                            // Adaptive: Open the inbox for this lead to reply
+                                            window.location.href = `/dashboard/inbox/${lead.id}`;
                                         }}
                                         className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
                                     >
-                                        Execute Action <ArrowRight className="ml-2 h-4 w-4" />
+                                        {intelligence.intent.intentLevel === 'high' ? "Send Booking Link" : "Open Lead Campaign"} 
+                                        <ArrowRight className="ml-2 h-4 w-4" />
                                     </Button>
                                 </div>
                             </div>

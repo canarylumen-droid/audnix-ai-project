@@ -216,6 +216,7 @@ export class OutreachEngine {
     // We check readiness per lead
 
     // Get leads with status 'new', channel 'email', and AI explicitly enabled
+    // Autonomous outreach MUST NOT start automatically just because a lead is 'new'
     const userLeads = await db
         .select()
         .from(leads)
@@ -224,7 +225,9 @@ export class OutreachEngine {
             eq(leads.userId, userId),
             eq(leads.status, 'new'),
             or(eq(leads.channel, 'email'), eq(leads.channel, 'instagram')),
-            eq(leads.aiPaused, false)
+            eq(leads.aiPaused, false),
+            // Only process leads where metadata specifically allows autonomous cold outreach
+            sql`(${leads.metadata}->>'autonomousEnabled')::boolean = true`
           )
         )
         .limit(10); // Check a few
@@ -301,8 +304,8 @@ export class OutreachEngine {
             const config = (userResult[0].config as any) || {};
             dailyLimit = config.dailyLimit || 50;
             
-            // Global Autonomous Engine Toggle
-            const isAutonomousMode = config.autonomousMode !== false;
+            // Global Autonomous Engine Toggle - DEFAULT TO FALSE for safety
+            const isAutonomousMode = config.autonomousMode === true;
             const isManualCampaign = campaign?.config?.isManual === true;
 
             if (!isAutonomousMode && !isManualCampaign) {
@@ -368,10 +371,12 @@ export class OutreachEngine {
       .replace(/{{firstName}}/g, firstName)
       .replace(/{{lead_name}}/g, lead.name?.trim() || firstName);
 
-    // Send the email (ensure plain text)
+    // Generate a proper trackingId if not already present
     const trackingId = Math.random().toString(36).substring(2, 11);
+    
     await sendEmail(userId, lead.email, body, subject, { 
-        isRaw: true, // Plain text for deliverability
+        isRaw: true, 
+        isHtml: true, // Force HTML for tracking pixel/links
         trackingId: campaign.config?.isManual ? undefined : trackingId,
         campaignId: campaign.id,
         leadId: lead.id
@@ -443,11 +448,12 @@ export class OutreachEngine {
     const user = await storage.getUserById(userId);
     const businessName = user?.company || user?.businessName || 'Our Team';
 
-    const aiContent = await generateExpertOutreach(lead, userId);
+    const trackingId = Math.random().toString(36).substring(2, 11);
     
     await sendEmail(userId, lead.email, aiContent.body, aiContent.subject, {
         isRaw: true,
-        trackingId: undefined,
+        isHtml: true, // Force HTML for tracking
+        trackingId,
         leadId: lead.id
     });
 
@@ -458,6 +464,7 @@ export class OutreachEngine {
         direction: 'outbound',
         subject: aiContent.subject,
         body: aiContent.body,
+        trackingId, // Save the tracking ID
         metadata: { autonomous: true }
     });
 

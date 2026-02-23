@@ -13,6 +13,7 @@ import { storage } from '../../storage.js';
 import { wsSync } from '../websocket-sync.js';
 import { sendEmail } from '../channels/email.js';
 import { workerHealthMonitor } from '../monitoring/worker-health.js';
+import { createTrackedEmail } from '../email/email-tracking.js';
 /**
  * Generate AI-powered cold outreach email based on lead metadata
  * Uses curiosity, FOMO, trust, and punchy triggers
@@ -335,16 +336,44 @@ export class AutonomousOutreachWorker {
     // Generate AI-powered cold email
     const emailContent = await generateColdOutreachEmail(lead, businessName);
 
+    // Generate tracking token
+    const { token } = await createTrackedEmail({
+      userId,
+      leadId: lead.id,
+      recipientEmail: lead.email,
+      subject: emailContent.subject,
+      sentAt: new Date(),
+      messageId: `auto_${Date.now()}` // Temporary placeholder
+    });
+
     // Send the email
     await sendEmail(
       userId,
       lead.email,
       emailContent.body,
       emailContent.subject,
-      { isHtml: false }
+      { 
+        isHtml: true, // Enable HTML for tracking pixel
+        trackingId: token,
+        leadId: lead.id
+      }
     );
 
     console.log(`[AutoOutreach] ✅ Email sent to ${lead.email}: "${emailContent.subject}"`);
+
+    // Record last outreach activity in user metadata for the dashboard
+    try {
+      const user = await storage.getUserById(userId);
+      const metadata = user?.metadata || {};
+      await storage.updateUser(userId, {
+        metadata: {
+          ...metadata,
+          last_outreach_activity: new Date().toISOString()
+        }
+      });
+    } catch (metaErr) {
+      console.warn(`[AutoOutreach] Failed to update user last_outreach_activity:`, metaErr);
+    }
 
     // Save message to database
     await storage.createMessage({
@@ -405,6 +434,8 @@ export class AutonomousOutreachWorker {
     wsSync.notifyLeadsUpdated(userId, { leadId: lead.id, action: 'outreach_sent' });
     wsSync.notifyMessagesUpdated(userId, { leadId: lead.id });
     wsSync.notifyActivityUpdated(userId, { type: 'outreach_sent', leadName: lead.name });
+    // Also notify stats update for real-time dashboard KPIs
+    wsSync.broadcastToUser(userId, { type: 'stats_updated', payload: { source: 'outreach_worker' } });
   }
 }
 

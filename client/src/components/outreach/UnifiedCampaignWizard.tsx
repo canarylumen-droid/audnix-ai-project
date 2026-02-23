@@ -254,9 +254,9 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl w-[98vw] md:w-[95vw] lg:w-[90vw] h-[100dvh] md:h-[90vh] p-0 flex flex-col border-border/40 bg-card/95 backdrop-blur-2xl md:rounded-[2.5rem] overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)]">
+      <DialogContent className="max-w-[98vw] w-[98vw] h-[98vh] p-0 flex flex-col border-border/40 bg-card/95 backdrop-blur-2xl md:rounded-3xl overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)]">
         {/* Header */}
-        <div className="p-4 md:p-8 md:pb-6 border-b border-border/20 flex items-center justify-between shrink-0">
+        <div className="p-4 md:p-6 border-b border-border/20 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3 md:gap-4">
             <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
               <Send className="h-5 w-5 md:h-6 md:w-6 text-primary" />
@@ -279,7 +279,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
 
         <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-2 relative">
           {/* Main Workspace */}
-          <div className={cn("flex flex-col h-full bg-background/50 overflow-y-auto lg:overflow-hidden", viewMode === 'preview' && 'hidden lg:flex')}>
+          <div className={cn("flex flex-col h-full bg-background/50 overflow-y-auto lg:overflow-hidden border-r border-border/10", viewMode === 'preview' && 'hidden lg:flex')}>
             <ScrollArea className="flex-1 p-4 md:p-8">
               <AnimatePresence mode="wait">
                 {step === 1 && (
@@ -333,12 +333,12 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                             "p-4 rounded-2xl border-2 transition-all text-left",
                             sourceType === 'database' 
                               ? "border-primary bg-primary/5 shadow-[0_0_20px_rgba(var(--primary),0.1)]" 
-                              : "border-white/5 bg-white/5 hover:border-white/10"
+                              : "border-border/40 bg-card hover:border-border"
                           )}
                         >
-                          <Inbox className={cn("w-6 h-6 mb-2", sourceType === 'database' ? "text-primary" : "text-white/40")} />
+                          <Inbox className={cn("w-6 h-6 mb-2", sourceType === 'database' ? "text-primary" : "text-muted-foreground/40")} />
                           <p className="text-sm font-bold">Imported Leads</p>
-                          <p className="text-[10px] text-white/40 uppercase tracking-widest mt-1">From Database</p>
+                          <p className="text-[10px] text-muted-foreground/40 uppercase tracking-widest mt-1">From Database</p>
                         </button>
                         <button
                           onClick={() => setSourceType('upload')}
@@ -346,12 +346,12 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                             "p-4 rounded-2xl border-2 transition-all text-left",
                             sourceType === 'upload' 
                               ? "border-primary bg-primary/5 shadow-[0_0_20px_rgba(var(--primary),0.1)]" 
-                              : "border-white/5 bg-white/5 hover:border-white/10"
+                              : "border-border/40 bg-card hover:border-border"
                           )}
                         >
-                          <Upload className={cn("w-6 h-6 mb-2", sourceType === 'upload' ? "text-primary" : "text-white/40")} />
+                          <Upload className={cn("w-6 h-6 mb-2", sourceType === 'upload' ? "text-primary" : "text-muted-foreground/40")} />
                           <p className="text-sm font-bold">New CSV/Excel</p>
-                          <p className="text-[10px] text-white/40 uppercase tracking-widest mt-1">Fresh Upload</p>
+                          <p className="text-[10px] text-muted-foreground/40 uppercase tracking-widest mt-1">Fresh Upload</p>
                         </button>
                       </div>
                     </div>
@@ -366,42 +366,49 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                         <div className="text-[10px] uppercase font-black tracking-widest text-muted-foreground mt-1 opacity-50">CSV • EXCEL • PDF</div>
                       </label>
                     ) : (
-                      <div className="p-6 rounded-3xl bg-card border border-border/40 space-y-4">
+                      <div className="p-6 rounded-3xl bg-card border border-border/40 space-y-4 shadow-sm">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <Users className="h-5 w-5 text-primary" />
-                            <div className="font-bold">Available Leads</div>
+                            <div className="font-bold text-base">Available Leads</div>
                           </div>
-                          <Badge variant="secondary">{leads.length > 0 ? leads.length : (initialLeads?.length || 0)}</Badge>
+                          <Badge variant="secondary" className="px-3 py-1 font-bold text-sm">{leads.length > 0 ? leads.length : (initialLeads?.length || 0)}</Badge>
                         </div>
-                        <p className="text-xs text-muted-foreground">Select leads from your inbox to start a campaign.</p>
+                        <p className="text-sm text-muted-foreground/60 leading-relaxed">
+                          {leads.length > 0 
+                            ? "Review the leads below or proceed to the next step."
+                            : "Your database repository is ready. Click below to synchronize your active leads."}
+                        </p>
 
-                        {(leads.length === 0 && (!initialLeads || initialLeads.length === 0)) ? (
-                          <Button 
-                            onClick={handleFetchLeads}
-                            disabled={isLoadingLeads}
-                            variant="secondary"
-                            className="w-full h-12 rounded-xl text-xs font-black uppercase tracking-widest gap-2"
-                          >
-                           {isLoadingLeads ? <Loader2 className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
-                           Fetch from Database
-                          </Button>
-                        ) : (
-                          <Button 
-                            onClick={() => {
-                              if (leads.length > 0) {
-                                setStep(2);
-                              } else if (initialLeads?.length) {
-                                setLeads(initialLeads);
-                                setStep(2);
-                              }
-                            }}
-                            className="w-full h-12 rounded-xl text-xs font-black uppercase tracking-widest"
-                            disabled={leads.length === 0 && !initialLeads?.length}
-                          >
-                            Use {leads.length || initialLeads?.length || 0} Leads
-                          </Button>
-                        )}
+                        <div className="pt-2">
+                          {leads.length === 0 ? (
+                            <Button 
+                              onClick={handleFetchLeads}
+                              disabled={isLoadingLeads}
+                              variant="default"
+                              className="w-full h-12 rounded-xl text-xs font-black uppercase tracking-[0.2em] gap-3 bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                            >
+                             {isLoadingLeads ? <Loader2 className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
+                             Fetch leads from Database
+                            </Button>
+                          ) : (
+                            <div className="space-y-3">
+                              <Button 
+                                onClick={() => setStep(2)}
+                                className="w-full h-12 rounded-xl text-xs font-black uppercase tracking-[0.2em] shadow-lg shadow-primary/20"
+                              >
+                                Use {leads.length} Leads & Continue
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                onClick={handleFetchLeads}
+                                className="w-full text-[10px] font-black uppercase tracking-widest text-muted-foreground"
+                              >
+                                Refresh Lead Pool
+                              </Button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
 
@@ -421,71 +428,40 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                           <h2 className="text-3xl font-black tracking-tighter">CAMPAIGN DESIGN</h2>
                           <p className="text-muted-foreground text-sm font-medium">Construct your outreach sequence with AI assistance.</p>
                         </div>
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button variant="outline" size="sm" className="h-9 px-4 rounded-xl border-primary/20 text-[10px] font-black uppercase tracking-[0.2em] text-primary hover:bg-primary/5 hover:text-primary transition-all">
-                              <Sparkles className="w-3.5 h-3.5 mr-2" /> View Syntax Guide
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-md bg-card border-border/40 rounded-[2.5rem] p-8">
-                            <div className="space-y-4">
-                              <h3 className="text-lg font-black uppercase tracking-widest">Personalization Syntax</h3>
-                              <p className="text-xs text-muted-foreground leading-relaxed">Use these tags to dynamically inject lead data into your messages. The AI will automatically clean and humanize these values.</p>
-                            </div>
-                            <div className="space-y-4 mt-4">
-                              <div className="grid grid-cols-2 gap-3">
-                                {[
-                                  { tag: "{{firstName}}", desc: "Lead's first name" },
-                                  { tag: "{{company}}", desc: "Target company name" },
-                                  { tag: "{{name}}", desc: "Lead's full name" },
-                                  { tag: "{{industry}}", desc: "Detected niche" }
-                                ].map(item => (
-                                  <div key={item.tag} className="p-3 bg-muted/30 rounded-xl border border-border/10">
-                                    <code className="text-primary font-bold text-xs">{item.tag}</code>
-                                    <p className="text-[10px] text-muted-foreground mt-1 uppercase font-black opacity-50">{item.desc}</p>
-                                  </div>
-                                ))}
-                              </div>
-                              <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
-                                <p className="text-[11px] leading-relaxed">
-                                  <span className="font-bold text-primary">Pro Tip:</span> Always include a fallback like "Hi {"{{firstName || 'there'}}"}" for the most human feel.
-                                </p>
-                              </div>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
                       </div>
 
                     <div className="space-y-6">
                       <div className="p-6 bg-card rounded-3xl border border-border/40 space-y-4">
                         <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground/60">Sequence Logic</Label>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                          <div className="space-y-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                          <div className="space-y-4">
                             <div className="flex justify-between text-[11px] font-bold">
                               <span>DAILY VOLUME</span>
-                              <Badge variant="secondary" className="font-mono">{dailyLimit}/day</Badge>
+                              <Badge variant="secondary" className="font-mono text-primary">{dailyLimit}/day</Badge>
                             </div>
                             <Slider value={[dailyLimit]} onValueChange={v => setDailyLimit(v[0])} min={10} max={500} step={10} className="py-2" />
+                            <p className="text-[10px] text-muted-foreground uppercase font-medium leading-relaxed">Limits safety prevents account flags.</p>
                           </div>
-                          <div className="space-y-3">
+                          <div className="space-y-4">
                             <span className="text-[11px] font-bold uppercase block tracking-widest">FOLLOW-UP DELAY</span>
                             <Select value={followUpDays} onValueChange={setFollowUpDays}>
-                              <SelectTrigger className="h-10 bg-muted/30 border-0 rounded-xl focus:ring-0">
+                              <SelectTrigger className="h-12 bg-muted/30 border- border-border/20 rounded-xl focus:ring-0 px-4">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
                                 {[1, 2, 3, 5, 7, 10].map(d => <SelectItem key={d} value={d.toString()}>{d} {d === 1 ? 'Day' : 'Days'}</SelectItem>)}
                               </SelectContent>
                             </Select>
+                            <p className="text-[10px] text-muted-foreground uppercase font-medium leading-relaxed">Wait time between sequences.</p>
                           </div>
                         </div>
                       </div>
 
                       <Tabs defaultValue="initial" className="w-full" key={step}>
-                        <TabsList className="h-10 w-full bg-muted/40 p-1.5 rounded-2xl border border-border/10 mb-6 flex gap-1">
-                          <TabsTrigger value="initial" className="flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all h-full">Step 1</TabsTrigger>
-                          <TabsTrigger value="followup" className="flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all h-full">Step 2</TabsTrigger>
-                          <TabsTrigger value="followup2" className="flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all h-full">Step 3</TabsTrigger>
+                        <TabsList className="h-12 w-full bg-muted/40 p-1.5 rounded-2xl border border-border/10 mb-6 flex gap-2">
+                          <TabsTrigger value="initial" className="flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-md transition-all h-full">Sequene 01</TabsTrigger>
+                          <TabsTrigger value="followup" className="flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-md transition-all h-full">Sequene 02</TabsTrigger>
+                          <TabsTrigger value="followup2" className="flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-md transition-all h-full">Sequene 03</TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="initial" className="space-y-4 animate-in fade-in duration-300">
@@ -498,7 +474,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                           <Textarea
                             value={body}
                             onChange={e => setBody(e.target.value)}
-                            className="min-h-[250px] bg-muted/10 border-0 rounded-2xl p-6 text-sm leading-relaxed resize-none focus-visible:ring-1 focus-visible:ring-primary/10"
+                            className="min-h-[300px] bg-muted/10 border-0 rounded-2xl p-6 text-sm leading-relaxed resize-none focus-visible:ring-1 focus-visible:ring-primary/10"
                             placeholder="WRITE YOUR PROPOSAL..."
                           />
                         </TabsContent>
@@ -513,7 +489,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                           <Textarea
                             value={followUpBody}
                             onChange={e => setFollowUpBody(e.target.value)}
-                            className="min-h-[250px] bg-muted/10 border-0 rounded-2xl p-6 text-sm leading-relaxed resize-none"
+                            className="min-h-[300px] bg-muted/10 border-0 rounded-2xl p-6 text-sm leading-relaxed resize-none"
                             placeholder="AUTOMATIC REENGAGEMENT COPY..."
                           />
                         </TabsContent>
@@ -528,7 +504,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                           <Textarea
                             value={followUpBody2}
                             onChange={e => setFollowUpBody2(e.target.value)}
-                            className="min-h-[250px] bg-muted/10 border-0 rounded-2xl p-6 text-sm leading-relaxed resize-none"
+                            className="min-h-[300px] bg-muted/10 border-0 rounded-2xl p-6 text-sm leading-relaxed resize-none"
                             placeholder="FINAL CHANCE COPY..."
                           />
                         </TabsContent>
@@ -540,64 +516,69 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                 {step === 3 && (
                   <motion.div key="step3" initial="enter" animate="center" exit="exit" variants={variants} className="space-y-8 pb-10">
                     <div className="space-y-2">
-                      <h2 className="text-3xl font-black tracking-tighter text-emerald-500">READY FOR DEPLOYMENT</h2>
+                      <h2 className="text-3xl font-black tracking-tighter text-emerald-500 uppercase">Deployment Core</h2>
                       <p className="text-muted-foreground text-sm font-medium">Review the campaign parameters and initiate the sending core.</p>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-6">
-                      <div className="p-8 bg-emerald-500/10 border border-emerald-500/20 rounded-[2.5rem] space-y-6">
+                    <div className="grid grid-cols-1 gap-8">
+                      <div className="p-8 bg-emerald-500/5 border border-emerald-500/20 rounded-[2.5rem] space-y-8 shadow-sm">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-black uppercase tracking-[0.2em] text-emerald-600/60">Campaign Summary</span>
-                          <Badge className="bg-emerald-500 hover:bg-emerald-600 uppercase tracking-widest text-[10px] px-3">verified</Badge>
+                          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-600/60">Campaign Summary</span>
+                          <Badge className="bg-emerald-500 hover:bg-emerald-600 uppercase tracking-widest text-[9px] px-3 font-black">verified</Badge>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-8">
-                          <div>
-                            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1">Target List</div>
-                            <div className="text-2xl font-black">{leads.length} Leads</div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
+                          <div className="space-y-1">
+                            <div className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-1">Target List</div>
+                            <div className="text-3xl font-black tracking-tighter italic">{leads.length} <span className="text-xs uppercase not-italic font-bold text-muted-foreground/40 ml-1">Leads</span></div>
                           </div>
-                          <div>
-                            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1">Send Speed</div>
-                            <div className="text-2xl font-black">{dailyLimit}/day</div>
+                          <div className="space-y-1">
+                            <div className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-1">Volume Rate</div>
+                            <div className="text-3xl font-black tracking-tighter italic">{dailyLimit} <span className="text-xs uppercase not-italic font-bold text-muted-foreground/40 ml-1">/day</span></div>
+                          </div>
+                          <div className="space-y-1 hidden md:block">
+                            <div className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-1">Sequence</div>
+                            <div className="text-3xl font-black tracking-tighter italic">3 <span className="text-xs uppercase not-italic font-bold text-muted-foreground/40 ml-1">Steps</span></div>
                           </div>
                         </div>
 
-                        <div className="pt-6 border-t border-emerald-500/20 space-y-4">
-                          <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
-                            <div className="flex items-center gap-3 mb-2">
-                              <Sparkles className="w-4 h-4 text-primary" />
-                              <p className="text-[10px] font-black uppercase tracking-widest">Automation Protocol</p>
-                            </div>
-                            <p className="text-[11px] text-muted-foreground leading-relaxed">
-                              Campaign will drip-send to selected leads based on your daily limit. 
-                              The system will pick leads sequentially from your import list.
-                              Replies will automatically sync back to your <span className="text-primary font-bold">Inbox</span> for manual or AI follow-up.
-                            </p>
-                          </div>
-                          <div className="flex items-center justify-between p-4 bg-background/40 rounded-2xl border border-emerald-500/10">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2 bg-emerald-500/20 rounded-lg"><Sparkles className="h-4 w-4 text-emerald-600" /></div>
-                              <div className="text-xs font-bold uppercase tracking-widest">Neural Filter Active</div>
+                        <div className="pt-8 border-t border-emerald-500/10 grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="flex items-center justify-between p-5 bg-background/60 rounded-2xl border border-border/10">
+                            <div className="flex items-center gap-4">
+                              <div className="p-2.5 bg-emerald-500/10 rounded-xl"><Sparkles className="h-5 w-5 text-emerald-500" /></div>
+                              <div>
+                                <div className="text-[10px] font-black uppercase tracking-widest mb-0.5">Neural Filter</div>
+                                <div className="text-[9px] text-muted-foreground font-bold italic">AI intent detection</div>
+                              </div>
                             </div>
                             <Switch checked={true} disabled className="data-[state=checked]:bg-emerald-500" />
                           </div>
-                          <div className="flex items-center justify-between p-4 bg-background/40 rounded-2xl border border-emerald-500/10">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2 bg-emerald-500/20 rounded-lg"><Inbox className="h-4 w-4 text-emerald-600" /></div>
-                              <div className="text-xs font-bold uppercase tracking-widest">Autonomous Replies</div>
+                          <div className="flex items-center justify-between p-5 bg-background/60 rounded-2xl border border-border/10">
+                            <div className="flex items-center gap-4">
+                              <div className="p-2.5 bg-emerald-500/10 rounded-xl"><Inbox className="h-5 w-5 text-emerald-500" /></div>
+                              <div>
+                                <div className="text-[10px] font-black uppercase tracking-widest mb-0.5">Auto-Pilot</div>
+                                <div className="text-[9px] text-muted-foreground font-bold italic">Handle replies</div>
+                              </div>
                             </div>
                             <Switch checked={!aiPaused} onCheckedChange={(v) => setAiPaused(!v)} className="data-[state=checked]:bg-emerald-500" />
                           </div>
                         </div>
+
+                        <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                          <p className="text-[10px] text-muted-foreground/60 leading-relaxed italic">
+                            The campaign will initiate sequentially. Leads will be engaged based on your volume limit to ensure maximum deliverability.
+                          </p>
+                        </div>
                       </div>
 
-                      <div className="p-6 bg-muted/10 border border-border/20 rounded-3xl space-y-4">
-                        <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Deployment Alias</Label>
+                      <div className="p-8 bg-card border border-border/20 rounded-[2.5rem] space-y-4">
+                        <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60">Campaign Deployment Alias</Label>
                         <Input
                           value={campaignName}
                           onChange={e => setCampaignName(e.target.value)}
                           placeholder="e.g. Enterprise Expansion Q1"
-                          className="h-12 bg-background border-0 font-bold rounded-xl px-4"
+                          className="h-14 bg-muted/20 border-0 font-bold text-lg rounded-2xl px-6 focus-visible:ring-1 focus-visible:ring-primary/20"
                         />
                       </div>
                     </div>
@@ -607,31 +588,31 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
             </ScrollArea>
 
             {/* Footer Navigation */}
-            <div className="p-8 border-t border-border/20 bg-card/10 backdrop-blur-sm flex items-center justify-between">
+            <div className="p-6 md:p-8 border-t border-border/20 bg-card flex items-center justify-between shrink-0">
               <Button
                 variant="ghost"
                 onClick={() => step > 1 ? setStep(step - 1) : onClose()}
-                className="h-14 px-8 rounded-2xl font-bold gap-2 text-muted-foreground hover:text-foreground transition-all"
+                className="h-14 px-8 rounded-2xl font-bold gap-2 text-muted-foreground hover:text-foreground transition-all uppercase tracking-widest text-[10px]"
               >
-                <ChevronLeft className="h-4 w-4" /> {step === 1 ? 'Cancel mission' : 'Previous Module'}
+                <ChevronLeft className="h-4 w-4" /> {step === 1 ? 'Discard' : 'Go Back'}
               </Button>
 
               {step < 3 ? (
                 <Button
                   disabled={step === 1 && leads.length === 0}
                   onClick={() => setStep(step + 1)}
-                  className="h-14 px-10 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/20 bg-primary hover:bg-primary/90 transition-all gap-3"
+                  className="h-14 px-12 rounded-2xl font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 bg-primary hover:bg-primary/90 transition-all gap-3 text-xs"
                 >
-                  Continue <ChevronRight className="h-5 w-5" />
+                  Save & Continue <ChevronRight className="h-5 w-5" />
                 </Button>
               ) : (
                 <Button
                   onClick={handleLaunch}
                   disabled={isLoading}
-                  className="h-14 px-12 rounded-2xl font-black uppercase tracking-[0.2em] shadow-2xl shadow-emerald-500/20 bg-emerald-500 hover:bg-emerald-600 text-white transition-all gap-4"
+                  className="h-14 px-14 rounded-2xl font-black uppercase tracking-[0.3em] shadow-2xl shadow-emerald-500/20 bg-emerald-500 hover:bg-emerald-600 text-white transition-all gap-4 text-xs"
                 >
                   {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Plus className="h-5 w-5" />}
-                  DEPLOY CAMPAIGN
+                  INITIATE DEPLOYMENT
                 </Button>
               )}
             </div>

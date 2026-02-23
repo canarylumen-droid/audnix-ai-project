@@ -72,6 +72,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
+import { getPlanCapabilities } from "@shared/plan-utils";
 
 interface NavItem {
   label: string;
@@ -154,6 +155,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
     "Tools": true,
     "Reports": true
   });
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const toggleAutonomousMode = useMutation({
     mutationFn: async (enabled: boolean) => {
@@ -469,12 +471,12 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-[0.1em] text-muted-foreground/80">
                         <span>Leads Processed</span>
-                        <span>{dashboardStats?.totalLeads || 0} / {user?.plan === 'trial' ? 500 : 2500}</span>
+                        <span>{dashboardStats?.totalLeads || 0} / {getPlanCapabilities(user?.plan || 'trial').leadsLimit.toLocaleString()}</span>
                       </div>
                       <div className="h-1 w-full bg-muted/50 rounded-full overflow-hidden">
                         <motion.div
                           initial={{ width: 0 }}
-                          animate={{ width: `${Math.min(((dashboardStats?.totalLeads || 0) / (user?.plan === 'trial' ? 500 : 2500)) * 100, 100)}%` }}
+                          animate={{ width: `${Math.min(((dashboardStats?.totalLeads || 0) / getPlanCapabilities(user?.plan || 'trial').leadsLimit) * 100, 100)}%` }}
                           className="h-full bg-primary"
                         />
                       </div>
@@ -595,7 +597,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
             )}
             <ThemeSwitcher />
 
-            <Sheet>
+            <Sheet open={notificationsOpen} onOpenChange={setNotificationsOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground rounded-xl hover:bg-muted/50 transition-all hover:scale-105 active:scale-95">
                   <Bell className="h-5 w-5" />
@@ -695,35 +697,27 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                           <div
                             key={notification.id}
                             className={cn(
-                              "grid grid-cols-[auto_1fr_auto] p-4 hover:bg-muted/30 transition-all cursor-pointer gap-4 relative group border-b border-border/5",
-                              !notification.isRead && "bg-primary/5"
+                              "p-6 border-b border-border/10 transition-all hover:bg-muted/30 group relative",
+                              !notification.isRead && "bg-primary/5 border-l-2 border-l-primary"
                             )}
                           >
-                            {!notification.isRead && (
-                              <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
-                            )}
-                            
-                            <div className={cn(
-                              "h-10 w-10 rounded-2xl flex items-center justify-center shrink-0 transition-all group-hover:scale-105 border border-transparent",
-                              !notification.isRead 
-                                ? "bg-primary/10 text-primary border-primary/20" 
-                                : "bg-muted/50 text-muted-foreground/40 border-border/10"
-                            )}>
-                              {notification.type === 'billing' ? <DollarSign className="h-4 w-4" /> : 
-                               notification.type === 'lead' ? <Users className="h-4 w-4" /> : 
-                               <Bell className="h-4 w-4" />}
-                            </div>
-
-                            <div className="space-y-1 min-w-0">
-                              <p className={cn("text-sm tracking-tight leading-tight truncate", !notification.isRead ? "font-black" : "font-bold text-muted-foreground/80")}>
-                                {notification.title}
-                              </p>
-                              <p className="text-xs text-muted-foreground/60 leading-tight line-clamp-2">
-                                {notification.message || notification.description || "No details provided."}
-                              </p>
+                            <div className="flex justify-between items-start gap-4 pr-12">
+                              <div>
+                                <h5 className="text-[10px] font-black uppercase tracking-widest text-primary mb-2">
+                                  {notification.type} 
+                                  {!notification.isRead && <span className="ml-2 inline-block w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />}
+                                </h5>
+                                <p className="text-sm font-bold leading-relaxed">{notification.message || notification.description || notification.title}</p>
+                                <p className="text-[10px] text-muted-foreground mt-3 font-medium flex items-center gap-1.5">
+                                  <Activity className="w-3 h-3" />
+                                  {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                                </p>
+                              </div>
                               {!notification.isRead && (
-                                <button
-                                  className="text-[9px] font-black uppercase tracking-widest text-primary hover:text-primary/80 transition-colors mt-2"
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="absolute top-6 right-6 h-8 w-8 rounded-xl opacity-0 group-hover:opacity-100 transition-all bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
                                   onClick={async (e) => {
                                     e.stopPropagation();
                                     try {
@@ -734,32 +728,20 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                                     }
                                   }}
                                 >
-                                  Mark Read
-                                </button>
+                                  <Check className="h-4 w-4" />
+                                </Button>
                               )}
-                            </div>
-
-                            <div className="text-right">
-                              <span className="text-[10px] font-black text-muted-foreground/30 uppercase whitespace-nowrap">
-                                {(() => {
-                                  try {
-                                    return formatDistanceToNow(new Date(notification.createdAt), { addSuffix: false });
-                                  } catch (e) {
-                                    return 'now';
-                                  }
-                                })()}
-                              </span>
                             </div>
                           </div>
                         ))}
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center h-[400px] p-8 text-center text-muted-foreground/20">
-                      <div className="w-20 h-20 rounded-full bg-muted/10 flex items-center justify-center mb-6">
+                    <div className="flex flex-col items-center justify-center h-[400px] p-8 text-center">
+                      <div className="w-20 h-20 rounded-full bg-muted/10 flex items-center justify-center mb-6 text-muted-foreground/20">
                         <Inbox className="h-10 w-10" />
                       </div>
-                      <p className="text-sm font-black uppercase tracking-[0.2em]">Silence is golden</p>
-                      <p className="text-xs font-medium mt-2">No active alerts at this moment.</p>
+                      <p className="text-sm font-black uppercase tracking-[0.2em] text-foreground dark:text-white">Silence is golden</p>
+                      <p className="text-xs font-medium mt-2 text-muted-foreground">No active alerts at this moment.</p>
                     </div>
                   )}
                 </ScrollArea>
@@ -768,7 +750,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                   <Button
                     variant="ghost"
                     className="w-full h-10 rounded-2xl font-bold uppercase tracking-widest text-[10px] text-muted-foreground hover:bg-muted/20"
-                    onClick={() => setMobileMenuOpen(false)}
+                    onClick={() => setNotificationsOpen(false)}
                   >
                     Close
                   </Button>
