@@ -685,7 +685,6 @@ export default function IntegrationsPage() {
 
                 </div>
               )}
-            </CardContent>
           </Card>
 
           {/* Social and SaaS Integrations */}
@@ -737,6 +736,7 @@ export default function IntegrationsPage() {
                 </Card>
               )
             })}
+          </div>
           </div>
         </TabsContent>
 
