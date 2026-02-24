@@ -1284,9 +1284,44 @@ return { deletedUsers: deletedCount };
       }).length,
       pipelineValue: explicitDealValue + predictedDealValue,
       closedRevenue: deals.filter(d => d.status === 'converted' || d.status === 'closed_won').reduce((sum, d) => sum + (Number(d.value) || 0), 0),
-      openRate: 0,
-      responseRate: 0,
+      openRate: messages.filter(m => m.direction === 'outbound' && m.openedAt).length / (messages.filter(m => m.direction === 'outbound').length || 1) * 100,
+      responseRate: leads.length > 0 ? (leads.filter(l => l.status === 'replied' || l.status === 'converted').length / leads.length) * 100 : 0,
+      averageResponseTime: this.calculateAverageResponseTime(userId, messages),
     };
+  }
+
+  private calculateAverageResponseTime(userId: string, userMessages: Message[]): string {
+    const threadResponses: number[] = [];
+    const messagesByThread = new Map<string, Message[]>();
+
+    userMessages.forEach(m => {
+      const tid = m.threadId || 'default';
+      if (!messagesByThread.has(tid)) messagesByThread.set(tid, []);
+      messagesByThread.get(tid)!.push(m);
+    });
+
+    messagesByThread.forEach(msgs => {
+      const sorted = msgs.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      const firstOutbound = sorted.find(m => m.direction === 'outbound');
+      const firstInboundAfterOutbound = firstOutbound 
+        ? sorted.find(m => m.direction === 'inbound' && new Date(m.createdAt) > new Date(firstOutbound.createdAt))
+        : null;
+
+      if (firstOutbound && firstInboundAfterOutbound) {
+        const diff = new Date(firstInboundAfterOutbound.createdAt).getTime() - new Date(firstOutbound.createdAt).getTime();
+        threadResponses.push(diff);
+      }
+    });
+
+    if (threadResponses.length === 0) return '—';
+    const avgMs = threadResponses.reduce((a, b) => a + b, 0) / threadResponses.length;
+    const hours = avgMs / (1000 * 60 * 60);
+    
+    if (hours < 1) {
+      const mins = Math.round(hours * 60);
+      return `${mins}m`;
+    }
+    return `${hours.toFixed(1)}h`;
   }
 
   async getAnalyticsFull(userId: string, days: number): Promise < {
@@ -1352,7 +1387,10 @@ return {
     leadsFiltered: user?.filteredLeadsCount || 0,
     conversionRate: leads.length > 0 ? Math.round((conversions / leads.length) * 100) : 0,
     responseRate: leads.length > 0 ? Math.round((replied / leads.length) * 100) : 0,
-    openRate: sent > 0 ? Math.round((opened / sent) * 100) : 0
+    openRate: sent > 0 ? Math.round((opened / sent) * 100) : 0,
+    closedRevenue: deals.filter(d => d.status === 'converted' || d.status === 'closed_won').reduce((sum, d) => sum + (Number(d.value) || 0), 0),
+    pipelineValue: deals.reduce((sum, d) => sum + (Number(d.value) || 0), 0),
+    averageResponseTime: this.calculateAverageResponseTime(userId, allMessages),
   },
   timeSeries,
   channelPerformance: [

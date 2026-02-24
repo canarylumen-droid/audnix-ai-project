@@ -226,8 +226,8 @@ export class OutreachEngine {
             eq(leads.status, 'new'),
             or(eq(leads.channel, 'email'), eq(leads.channel, 'instagram')),
             eq(leads.aiPaused, false),
-            // Only process leads where metadata specifically allows autonomous cold outreach
-            sql`(${leads.metadata}->>'autonomousEnabled')::boolean = true`
+            // Strictly honor AI Outreach Consent - Leads must explicitly opt-in
+            sql`(${leads.metadata}->>'ai_outreach_consent')::boolean = true`
           )
         )
         .limit(10); // Check a few

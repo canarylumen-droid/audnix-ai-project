@@ -491,7 +491,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0b] p-4 font-sans text-white overflow-hidden relative dark">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 font-sans text-foreground overflow-hidden relative">
       {/* Dynamic Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0b] via-[#0f172a] to-[#0a0a0b] pointer-events-none" />
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-cyan-500/10 blur-[120px] rounded-full pointer-events-none" />
@@ -517,7 +517,7 @@ export default function AuthPage() {
           </p>
         </div>
 
-        <Card className="bg-white/5 border-white/10 backdrop-blur-xl shadow-2xl relative overflow-hidden group">
+        <Card className="bg-card/50 border-border backdrop-blur-xl shadow-2xl relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
 
           <CardHeader className="pb-4">
@@ -537,7 +537,7 @@ export default function AuthPage() {
             </div>
           </CardHeader>
 
-          <CardContent>
+          <CardContent className="text-card-foreground">
             <AnimatePresence mode="wait">
               {isLogin ? (
                 <motion.div

@@ -121,23 +121,38 @@ export async function recordEmailEvent(event: EmailEvent): Promise<void> {
 
     // Real-time Notification
     if (trackingInfo) {
+      const { wsSync } = await import('../websocket-sync.js');
+      
       // Update lead metadata for filtering
-      if (trackingInfo.lead_id && event.type === 'open') {
+      if (trackingInfo.lead_id) {
         try {
-          await db.execute(sql`
-            UPDATE leads 
-            SET metadata = jsonb_set(COALESCE(metadata, '{}'::jsonb), '{isOpened}', 'true'::jsonb),
-                status = CASE WHEN status = 'new' THEN 'open'::lead_status ELSE status END,
-                updated_at = NOW()
-            WHERE id = ${trackingInfo.lead_id}
-          `);
+          if (event.type === 'open') {
+             await db.execute(sql`
+              UPDATE leads 
+              SET metadata = jsonb_set(COALESCE(metadata, '{}'::jsonb), '{isOpened}', 'true'::jsonb),
+                  status = CASE WHEN status = 'new' THEN 'open'::lead_status ELSE status END,
+                  updated_at = NOW()
+              WHERE id = ${trackingInfo.lead_id}
+            `);
+          } else if (event.type === 'click') {
+             await db.execute(sql`
+              UPDATE leads 
+              SET metadata = jsonb_set(COALESCE(metadata, '{}'::jsonb), '{isClicked}', 'true'::jsonb),
+                  updated_at = NOW()
+              WHERE id = ${trackingInfo.lead_id}
+            `);
+          }
+          
+          // Notify lead update to refresh counts/badges
+          wsSync.notifyLeadsUpdated(trackingInfo.user_id, { 
+            leadId: trackingInfo.lead_id, 
+            action: event.type === 'open' ? 'email_opened' : 'email_clicked' 
+          });
         } catch (err) {
-          console.error('Failed to update lead metadata for open event:', err);
+          console.error('Failed to update lead metadata for tracking event:', err);
         }
       }
 
-      const { wsSync } = await import('../websocket-sync.js');
-      
       // Notify activity feed
       wsSync.notifyActivityUpdated(trackingInfo.user_id, {
         type: event.type === 'open' ? 'email_opened' : 'email_clicked',

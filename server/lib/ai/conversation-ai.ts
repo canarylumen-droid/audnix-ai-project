@@ -586,6 +586,7 @@ export async function generateVoiceScript(
       : "You can use their name once if it feels natural, but keep it minimal";
 
   const prompt = `Generate a brief, natural-sounding voice note script (10-20 seconds when spoken) for ${lead.name}.
+    Important: This is a VOICE NOTE, not a commercial. Talk like you're walking and just had a quick thought.
 
 Lead Status: ${isWarm ? 'WARM - engaged and interested' : 'COLD - new or minimal engagement'}
 First Voice Note: ${isFirstVoiceNote ? 'Yes' : 'No'}
@@ -595,14 +596,15 @@ ${lastMessages}
 
 Requirements:
 - Brief and conversational (2-4 sentences maximum)
-- 10-20 seconds when spoken out loud (aim for 40-80 words)
-- Sound like a confident, knowledgeable salesman who builds genuine connections
+- 10-20 seconds when spoken out loud (aim for 35-65 words - keep it punchy)
+- Sound like a confident but CHILL salesman. No "radio voice".
+- Use natural filler words sparingly (uh, so, actually, listen) to sound real
 - ${nameUsageGuideline}
 - Suggest booking a call/meeting or ask about their interest
 - End with a clear question or call-to-action
-- Be warm, personable, and solution-focused
-- Show you understand their needs and can help
 - Speak with energy and enthusiasm without being pushy
+- NO formal introductions like "My name is... and I'm calling from..."
+- Start with a hook related to their last message if possible.
 
 Script:`;
 

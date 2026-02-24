@@ -254,7 +254,10 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[98vw] w-[98vw] h-[98vh] p-0 flex flex-col border-border/40 bg-card/95 backdrop-blur-2xl md:rounded-3xl overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)]">
+      <DialogContent className={cn(
+        "max-w-[100vw] w-screen h-screen m-0 rounded-none p-0 border-0 flex flex-col", 
+        viewMode === 'preview' ? 'grid grid-cols-3' : 'grid grid-cols-1 lg:grid-cols-3'
+      )}>
         {/* Header */}
         <div className="p-4 md:p-6 border-b border-border/20 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3 md:gap-4">

@@ -448,12 +448,14 @@ async function runMigrations() {
       }
     };
 
+    // START WORKERS: Follow-up and Outreach engines
     startWorker("Follow-up", () => followUpWorker.start());
+    startWorker("Outreach", () => outreachEngine.start());
+
     startWorker("Video comment", () => startVideoCommentMonitoring());
     startWorker("Email sync", () => emailSyncWorker.start());
     startWorker("Payment approval", () => paymentAutoApprovalWorker.start());
     startWorker("Email warmup", () => emailWarmupWorker.start());
-    startWorker("Outreach", () => outreachEngine.start());
     startWorker("Lead Expiry", () => leadExpiryWorker.start());
     
     // Real-time IMAP IDLE Manager

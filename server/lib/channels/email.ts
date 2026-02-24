@@ -493,6 +493,10 @@ export async function sendEmail(
 ): Promise<{ messageId: string }> {
   const customEmailIntegration = await storage.getIntegration(userId, 'custom_email');
 
+  // Tracking Setup: Ensure we have a tracking ID if none provided
+  const trackingId = options.trackingId || (await (await import('../email/email-tracking.js')).generateTrackingToken());
+  const baseUrl = process.env.BASE_URL || 'https://audnixai.com';
+
   if (customEmailIntegration?.connected) {
     const { decrypt } = await import('../crypto/encryption.js');
     if (!customEmailIntegration.encryptedMeta) {
@@ -520,7 +524,21 @@ export async function sendEmail(
       }
     }
 
-    const result = await sendCustomSMTP(userId, credentials, recipientEmail, subject, emailBody, true, options.trackingId);
+    // Apply tracking pixel and link wrapping
+    const { injectTrackingIntoEmail, createTrackedEmail } = await import('../email/email-tracking.js');
+    emailBody = injectTrackingIntoEmail(emailBody, trackingId);
+
+    // Create the tracking record for manual emails if it doesn't exist
+    await createTrackedEmail({
+      userId,
+      leadId: options.leadId || undefined,
+      recipientEmail,
+      subject,
+      sentAt: new Date(),
+      messageId: trackingId // using trackingId as the initial key or token
+    });
+
+    const result = await sendCustomSMTP(userId, credentials, recipientEmail, subject, emailBody, true, trackingId);
     if (result && result.messageId) {
       await storage.createEmailMessage({
         userId,
@@ -534,7 +552,7 @@ export async function sendEmail(
         direction: 'outbound',
         provider: 'custom_email',
         sentAt: new Date(),
-        metadata: { trackingId: options.trackingId }
+        metadata: { trackingId: trackingId }
       });
     }
     console.log(`📧 Email sent via user's SMTP: ${credentials.smtp_user} -> ${recipientEmail}`);
@@ -584,22 +602,22 @@ export async function sendEmail(
       options.isHtml = true;
     }
   } else {
-    // If raw, ensure we still treat as HTML if it contains tags, or plain text
-    // The send functions take `isHtml` flag. If raw, we should probably auto-detect or rely on sender?
-    // For now, let's assume raw input from manual replies is plaintext or basic HTML
-    options.isHtml = true; // Manual messages usually have simple formatting
+    options.isHtml = true; 
   }
 
-  // Assuming credentials are stored in encryptedMeta like other integrations, or if they are in JSON
-  // Note: Standard OAuth integrations usually store refresh tokens. 
-  // We need to fetch the access token logic if it's not directly in credentials.
-  // The original code accessed 'credentials' column. In Neon schema 'encryptedMeta' is the column.
-  // Gmail/Outlook auth likely uses `oauth.ts` or similar helpers to get VALID token.
-  // We should prob use the helper functions from those files if available.
+  // Apply tracking pixel and link wrapping for OAuth providers
+  const { injectTrackingIntoEmail, createTrackedEmail } = await import('../email/email-tracking.js');
+  emailBody = injectTrackingIntoEmail(emailBody, trackingId);
 
-  // Actually, I should check how Gmail/Outlook tokens are stored.
-  // `oauth.ts` stores them. `storage.ts` has `getOAuthAccount`.
-  // Using `storage.getOAuthAccount` is safer for token retrieval (handles refresh).
+  // Create the tracking record
+  await createTrackedEmail({
+    userId,
+    leadId: options.leadId || undefined,
+    recipientEmail,
+    subject: emailSubject,
+    sentAt: new Date(),
+    messageId: trackingId
+  });
 
   const { GmailOAuth } = await import('../oauth/gmail.js');
   const { OutlookOAuth } = await import('../oauth/outlook.js');
@@ -610,7 +628,6 @@ export async function sendEmail(
   if (emailIntegration.provider === 'gmail') {
     const gmailOAuth = new GmailOAuth();
     accessToken = await gmailOAuth.getValidToken(userId);
-    // Need email address too. Usually stored in integration.accountType or metadata
     fromEmail = emailIntegration.accountType || undefined;
   } else if (emailIntegration.provider === 'outlook') {
     const outlookOAuth = new OutlookOAuth();
@@ -622,7 +639,6 @@ export async function sendEmail(
     throw new Error('Invalid email credentials or token expired');
   }
 
-  // Stub credentials object for compatibility with helper functions
   const credentials = {
     accessToken,
     email: fromEmail || ''
@@ -635,7 +651,7 @@ export async function sendEmail(
       emailSubject,
       emailBody,
       options.isHtml,
-      options.trackingId
+      trackingId
     );
     if (result && result.messageId) {
       await storage.createEmailMessage({
@@ -650,7 +666,7 @@ export async function sendEmail(
         direction: 'outbound',
         provider: 'gmail',
         sentAt: new Date(),
-        metadata: { trackingId: options.trackingId }
+        metadata: { trackingId: trackingId }
       });
     }
     return result;
@@ -661,7 +677,7 @@ export async function sendEmail(
       emailSubject,
       emailBody,
       options.isHtml,
-      options.trackingId
+      trackingId
     );
     if (result && result.messageId) {
       await storage.createEmailMessage({
@@ -676,7 +692,7 @@ export async function sendEmail(
         direction: 'outbound',
         provider: 'outlook',
         sentAt: new Date(),
-        metadata: { trackingId: options.trackingId }
+        metadata: { trackingId: trackingId }
       });
     }
     return result;

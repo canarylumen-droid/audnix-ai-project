@@ -75,12 +75,13 @@ router.post("/:leadId", requireAuth, async (req: Request, res: Response): Promis
         // Use provided subject exactly as is
         const emailSubject = subject || `Conversation with ${lead.name || lead.email}`;
         
-        // Generate random tracking ID for the outreach tracking system
-        const trackingId = Math.random().toString(36).substring(2, 11);
+        // Generate professional tracking ID
+        const { generateTrackingToken } = await import('../lib/email/email-tracking.js');
+        const trackingId = generateTrackingToken();
 
         await sendEmail(userId, lead.email, messageBody, emailSubject, { 
           isRaw: true,
-          isHtml: true, // Force HTML for tracking
+          isHtml: true, // Force HTML for tracking pixel
           trackingId,
           leadId: lead.id
         });

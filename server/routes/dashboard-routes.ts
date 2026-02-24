@@ -68,7 +68,7 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
     res.json({
       ...stats,
       conversionRate: stats.totalLeads > 0 ? ((stats.convertedLeads / stats.totalLeads) * 100).toFixed(1) : "0.0",
-      averageResponseTime: '2.5h', 
+      averageResponseTime: stats.averageResponseTime, 
       plan: user?.plan || 'trial',
       trialDaysLeft: user?.trialExpiresAt ? Math.ceil((new Date(user.trialExpiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 0,
       lastSync: lastSyncTimestamp > 0 ? new Date(lastSyncTimestamp).toISOString() : null,

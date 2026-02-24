@@ -155,32 +155,19 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
     "Tools": true,
     "Reports": true
   });
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const isAutonomousMode = (user as any)?.config?.autonomousMode !== false;
 
-  const toggleAutonomousMode = useMutation({
-    mutationFn: async (enabled: boolean) => {
-      const currentConfig = (user as any)?.config || {};
-      return apiRequest('PUT', '/api/user/profile', {
-        config: { ...currentConfig, autonomousMode: enabled }
-      });
+  const deleteNotification = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest('DELETE', `/api/notifications/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
       toast({
-        title: "Engine Updated",
-        description: `Autonomous AI mode has been ${((user as any)?.config?.autonomousMode === false) ? 'enabled' : 'disabled'}.`,
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Update Failed",
-        description: error.message || "Failed to update engine settings.",
-        variant: "destructive"
+        title: "Notification Deleted",
       });
     }
   });
-
-  const isAutonomousMode = (user as any)?.config?.autonomousMode !== false;
 
   const [currentAlert, setCurrentAlert] = useState<{ title: string; message: string; type: string } | null>(null);
 
@@ -713,24 +700,37 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                                   {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                                 </p>
                               </div>
-                              {!notification.isRead && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="absolute top-6 right-6 h-8 w-8 rounded-xl opacity-0 group-hover:opacity-100 transition-all bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
-                                  onClick={async (e) => {
-                                    e.stopPropagation();
-                                    try {
-                                      await apiRequest('PATCH', `/api/notifications/${notification.id}/read`, {});
-                                      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
-                                    } catch (err) {
-                                      console.error("Failed to mark notification as read", err);
-                                    }
-                                  }}
-                                >
-                                  <Check className="h-4 w-4" />
-                                </Button>
-                              )}
+                                  <div className="flex gap-1 absolute top-6 right-6">
+  {!notification.isRead && (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="h-8 w-8 rounded-xl opacity-0 group-hover:opacity-100 transition-all bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
+      onClick={async (e) => {
+        e.stopPropagation();
+        try {
+          await apiRequest('PATCH', `/api/notifications/${notification.id}/read`, {});
+          queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+        } catch (err) {
+          console.error("Failed to mark notification as read", err);
+        }
+      }}
+    >
+      <Check className="h-4 w-4" />
+    </Button>
+  )}
+  <Button
+    variant="ghost"
+    size="icon"
+    className="h-8 w-8 rounded-xl opacity-0 group-hover:opacity-100 transition-all bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/20"
+    onClick={async (e) => {
+      e.stopPropagation();
+      deleteNotification.mutate(notification.id);
+    }}
+  >
+    <Trash2 className="h-4 w-4" />
+  </Button>
+</div>
                             </div>
                           </div>
                         ))}

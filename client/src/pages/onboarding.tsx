@@ -29,7 +29,7 @@ export function OnboardingPage() {
   }, [user, isLoading, error, setLocation]);
 
   return (
-    <div className="min-h-screen bg-auth-gradient flex items-center justify-center p-6 dark">
+    <div className="min-h-screen bg-background flex items-center justify-center p-6">
       <div className="text-center space-y-6">
         <div className="relative w-16 h-16 mx-auto">
           <div className="absolute inset-0 rounded-full border-t-2 border-primary animate-spin"></div>

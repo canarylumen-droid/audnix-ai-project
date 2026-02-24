@@ -822,38 +822,28 @@ Generate a natural follow-up message:`;
   ): Promise<void> {
     if (!db) return;
 
-    // Don't schedule if already followed up 5+ times
+    // Standard sequence relative to lead creation: Day 3, Day 7
     const followUpCount = (lead.metadata as Record<string, unknown>)?.follow_up_count as number || 0;
-    if (followUpCount >= 5) {
-      return;
-    }
-
-    // Don't schedule if lead is converted or not interested
-    if (['converted', 'not_interested', 'uninterested'].includes(lead.status)) {
-      return;
-    }
-
-    // Standard sequence relative to lead creation (Day 3, Day 7, Day 14)
-    const creationTime = lead.createdAt?.getTime() || Date.now();
-    let scheduledAt: Date;
-
-    if (followUpCount === 0) {
-      // First follow-up at Day 3
-      scheduledAt = new Date(creationTime + 3 * 24 * 60 * 60 * 1000);
-    } else if (followUpCount === 1) {
-      // Second follow-up at Day 7
-      scheduledAt = new Date(creationTime + 7 * 24 * 60 * 60 * 1000);
+    
+    let nextDayMarker = 0;
+    if (followUpCount === 1) {
+      nextDayMarker = 7; // Previously sent Day 3, next is Day 7
+    } else if (followUpCount >= 2) {
+      console.log(`[FOLLOW_UP] Lead ${lead.name} has finished 3/7 sequence. No more automated follow-ups.`);
+      return; 
     } else {
-      // Subsequent at +7 days from now (approx Day 14, 21, etc)
-      scheduledAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      nextDayMarker = 3;
     }
+
+    const creationTime = lead.createdAt?.getTime() || Date.now();
+    let scheduledAt = new Date(creationTime + nextDayMarker * 24 * 60 * 60 * 1000);
 
     // Safety: ensure we don't schedule in the past
     if (scheduledAt.getTime() < Date.now()) {
-      scheduledAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 1 day from now if already past
+      scheduledAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now if already past
     }
 
-    console.log(`📅 Scheduling follow-up ${followUpCount + 1} for lead ${lead.name} at ${scheduledAt.toISOString()}`);
+    console.log(`📅 Scheduling follow-up ${followUpCount + 1} for lead ${lead.name} at ${scheduledAt.toISOString()} (Day ${nextDayMarker})`);
 
     await db.insert(followUpQueue).values({
       userId,
@@ -862,7 +852,8 @@ Generate a natural follow-up message:`;
       scheduledAt: scheduledAt,
       context: {
         follow_up_number: followUpCount + 1,
-        campaign_day: Math.floor((scheduledAt.getTime() - creationTime) / (1000 * 60 * 60 * 24))
+        campaign_day: nextDayMarker,
+        scheduled_relative_to: 'creation'
       }
     });
   }
@@ -958,36 +949,40 @@ export async function scheduleInitialFollowUp(
   leadId: string,
   channel: 'email' | 'instagram' | 'linkedin' | 'voice' | 'sms' | 'whatsapp' | 'manual'
 ): Promise<boolean> {
-  if (!db) {
-    console.warn('Database not available for follow-up scheduling');
-    return false;
-  }
+  if (!db) return false;
 
   try {
-    // Map channel to proper follow-up channel
     const followUpChannel = channel === 'manual' ? 'email' : channel;
 
-    // Initial outreach for "import" leads now waits 3 days by default (Day 3 rule) 
-    // unless user explicitly starts a campaign.
-    const initialDelay = 3 * 24 * 60 * 60 * 1000; 
-    const scheduledTime = new Date(Date.now() + initialDelay);
+    // Strictly Day 3 Relative to Lead Creation
+    const [lead] = await db.select().from(leads).where(eq(leads.id, leadId)).limit(1);
+    const creationTime = lead?.createdAt?.getTime() || Date.now();
+    
+    // Day 3 = 72 hours
+    const scheduledAt = new Date(creationTime + 3 * 24 * 60 * 60 * 1000);
+
+    // If Day 3 is already past, wait 1 hour for safety
+    if (scheduledAt.getTime() < Date.now()) {
+      scheduledAt.setTime(Date.now() + 60 * 60 * 1000);
+    }
 
     await db.insert(followUpQueue).values({
       userId,
       leadId,
       channel: followUpChannel,
-      scheduledAt: scheduledTime,
+      scheduledAt: scheduledAt,
       context: {
         follow_up_number: 1,
         source: 'import',
-        temperature: 'warm', // Default to warm for imported leads
+        temperature: 'warm',
         campaign_day: 3,
         sequence_number: 1,
-        initial_outreach: true
+        initial_outreach: true,
+        scheduled_relative_to: 'creation'
       }
     });
 
-    console.log(`📅 Scheduled initial follow-up for imported lead ${leadId} at ${scheduledTime.toISOString()}`);
+    console.log(`📅 Scheduled initial Day 3 follow-up for lead ${leadId} at ${scheduledAt.toISOString()}`);
     return true;
   } catch (error) {
     console.error('Error scheduling initial follow-up:', error);

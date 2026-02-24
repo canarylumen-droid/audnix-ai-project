@@ -205,25 +205,59 @@ async function processEmailForLead(
       // Ignore duplicates
     }
 
+    // DETECT BOUNCES: Using isTransactionalEmail + subject check
+    if (direction === 'inbound' && isTransactionalEmail(email)) {
+      const subject = (email.subject || '').toLowerCase();
+      const isBounce = subject.includes('undeliverable') || 
+                       subject.includes('bounced') || 
+                       subject.includes('delivery failure') ||
+                       subject.includes('failure notice');
+      
+      if (isBounce) {
+        try {
+          const { bounceHandler } = await import('../email/bounce-handler.js');
+          await bounceHandler.recordBounce({
+            userId,
+            leadId: lead.id,
+            email: email.from || lead.email,
+            bounceType: subject.includes('permanent') ? 'hard' : 'soft',
+            reason: email.text?.substring(0, 500) || 'Delivery failure'
+          });
+          console.log(`[EMAIL_IMPORT] Recorded bounce for lead ${lead.id} (${lead.email})`);
+        } catch (bounceErr) {
+          console.error('[EMAIL_IMPORT] Failed to record bounce:', bounceErr);
+        }
+      }
+    }
+
     // Notify UI of new message and potentially lead status change
     try {
       const { wsSync } = await import('../websocket-sync.js');
+      
+      // Notify broad updates for real-time feel
       wsSync.notifyMessagesUpdated(userId, {
         type: 'INSERT',
         messageId: (newMessage as any).id,
         direction
       });
 
-      // Crucial: Also notify lead update to refresh Inbox list immediately
+      // Always notify leads updated to refresh counts/badges
+      wsSync.notifyLeadsUpdated(userId, { 
+        leadId: lead.id, 
+        action: direction === 'inbound' ? 'message_received' : 'message_sent' 
+      });
+      
       if (direction === 'inbound') {
-        wsSync.notifyLeadsUpdated(userId, { 
-          leadId: lead.id, 
-          action: 'message_received' 
-        });
-        
-        // Also fire an activity update for toasts/analytics
+        // Fire activity update for toasts and analytics
         wsSync.notifyActivityUpdated(userId, {
           type: 'email_received',
+          leadId: lead.id,
+          messageId: (newMessage as any).id
+        });
+      } else {
+        // Also notify activity for sent emails
+        wsSync.notifyActivityUpdated(userId, {
+          type: 'email_sent',
           leadId: lead.id,
           messageId: (newMessage as any).id
         });
@@ -283,6 +317,14 @@ async function processEmailForLead(
                 updatedAt: new Date()
               })
               .where(eq(outreachCampaigns.id, entry.campaignId));
+
+            // UNIFIED TRACKING: Record reply in tracking engine for global KPIs
+            try {
+              const { TrackingEngine } = await import('../email/tracking-engine.js');
+              await TrackingEngine.recordReply(lead.id, email.text || email.html || '');
+            } catch (trackErr) {
+              console.error('[EMAIL_IMPORT] Failed to record reply in TrackingEngine:', trackErr);
+            }
 
             // Real-time notification and audit log
             try {

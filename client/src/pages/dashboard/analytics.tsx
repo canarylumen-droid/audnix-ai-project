@@ -178,10 +178,10 @@ export default function AnalyticsPage() {
                         />
                         <StatCard
                             label="Revenue"
-                            value={`$${(filteredMetrics?.booked || 0) * 1500}`} // Estimated LTV
+                            value={`$${(filteredMetrics?.closedRevenue || 0).toLocaleString()}`}
                             icon={DollarSign}
-                            trend={calculatePercentageChange((filteredMetrics?.booked || 0) * 1500, (previousStats?.closedRevenue || 0)).percentage}
-                            isUp={calculatePercentageChange((filteredMetrics?.booked || 0) * 1500, (previousStats?.closedRevenue || 0)).isUp}
+                            trend={calculatePercentageChange((filteredMetrics?.closedRevenue || 0), (previousStats?.closedRevenue || 0)).percentage}
+                            isUp={calculatePercentageChange((filteredMetrics?.closedRevenue || 0), (previousStats?.closedRevenue || 0)).isUp}
                             color="text-emerald-500"
                             index={3}
                         />
@@ -436,7 +436,7 @@ export default function AnalyticsPage() {
                                             <Pie
                                                 data={[
                                                     { name: 'Warm', value: analytics.metrics.replied, color: '#3b82f6' },
-                                                    { name: 'Cold', value: analytics.metrics.sent - analytics.metrics.replied, color: '#d946ef' },
+                                                    { name: 'Sent', value: analytics.metrics.sent - analytics.metrics.replied, color: '#d946ef' },
                                                     { name: 'Converted', value: analytics.metrics.booked, color: '#10b981' }
                                                 ]}
                                                 cx="50%"
@@ -464,7 +464,7 @@ export default function AnalyticsPage() {
                         <div className="flex flex-col gap-3 justify-center pr-10">
                             {[
                                 { label: 'Warm', color: 'bg-blue-500' },
-                                { label: 'Cold', color: 'bg-fuchsia-500' },
+                                { label: 'Sent', color: 'bg-fuchsia-500' },
                                 { label: 'Converted', color: 'bg-emerald-500' }
                             ].map(item => (
                                 <div key={item.label} className="flex items-center gap-3">
@@ -530,7 +530,7 @@ export default function AnalyticsPage() {
                                     { label: "Email Open Rate", current: `${filteredMetrics?.openRate || 0}%`, previous: `${previousStats?.openRate || 0}%`, currentVal: filteredMetrics?.openRate, previousVal: previousStats?.openRate },
                                     { label: "Engagement Rate", current: `${filteredMetrics?.responseRate || 0}%`, previous: `${previousStats?.responseRate || 0}%`, currentVal: filteredMetrics?.responseRate, previousVal: previousStats?.responseRate },
                                     { label: "Total Bookings", currentVal: filteredMetrics?.booked, previousVal: previousStats?.convertedLeads },
-                                    { label: "Gross Revenue", current: `$${((filteredMetrics?.booked || 0) * 1500).toLocaleString()}`, previous: `$${(previousStats?.closedRevenue || 0).toLocaleString()}`, currentVal: (filteredMetrics?.booked || 0) * 1500, previousVal: previousStats?.closedRevenue },
+                                    { label: "Gross Revenue", current: `$${(filteredMetrics?.closedRevenue || 0).toLocaleString()}`, previous: `$${(previousStats?.closedRevenue || 0).toLocaleString()}`, currentVal: filteredMetrics?.closedRevenue, previousVal: previousStats?.closedRevenue },
                                 ].map((row, idx) => {
                                     const { percentage, isUp, isNeutral } = calculatePercentageChange(
                                         Number(row.currentVal || 0),
