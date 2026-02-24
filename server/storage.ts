@@ -199,6 +199,7 @@ export interface IStorage {
     closedRevenue: number;
     openRate: number;
     responseRate: number;
+    averageResponseTime: string;
   }>;
 
   getAnalyticsFull(userId: string, days: number): Promise<{
@@ -211,6 +212,7 @@ export interface IStorage {
       conversionRate: number;
       responseRate: number;
       openRate: number;
+      closedRevenue: number;
     };
     timeSeries: Array<{
       name: string;
@@ -1232,7 +1234,7 @@ return { deletedUsers: deletedCount };
     return true;
   });
 
-  const deals = Array.from(this.deals.values()).filter(d => {
+  const deals = Array.from(this.deals.values()).filter((d: any) => {
     const matchUserId = d.userId === userId;
     if (!matchUserId) return false;
     if (overrideDates) {
@@ -1257,15 +1259,15 @@ return { deletedUsers: deletedCount };
     }).length;
 
     // Calculate pipeline value including AI-predicted amounts for leads without explicit deals
-    const explicitDealValue = deals.reduce((sum, d) => sum + (Number(d.value) || 0), 0);
+    const explicitDealValue = deals.reduce((sum: number, d: any) => sum + (Number(d.value) || 0), 0);
     const predictedDealValue = leads
-      .filter(l => {
+      .filter((l: any) => {
         // Only include predicted value if there's no explicit deal for this lead
-        const hasNoDeal = !deals.some(d => d.leadId === l.id);
+        const hasNoDeal = !deals.some((d: any) => d.leadId === l.id);
         const prediction = (l.metadata as any)?.intelligence?.predictions?.predictedAmount;
         return hasNoDeal && prediction && prediction > 0;
       })
-      .reduce((sum, l) => sum + (Number((l.metadata as any).intelligence.predictions.predictedAmount) || 0), 0);
+      .reduce((sum: number, l: any) => sum + (Number((l.metadata as any).intelligence.predictions.predictedAmount) || 0), 0);
 
     return {
       totalLeads: leads.length,

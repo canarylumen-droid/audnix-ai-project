@@ -64,6 +64,13 @@ router.post("/:leadId", requireAuth, async (req: Request, res: Response): Promis
 
     const selectedChannel = channel || lead.channel;
     const messageBody = content.trim();
+    
+    // Generate tracking ID for email (upfront so it can be used in metadata)
+    let trackingId: string | undefined;
+    if (selectedChannel === 'email') {
+      const { generateTrackingToken } = await import('../lib/email/email-tracking.js');
+      trackingId = generateTrackingToken();
+    }
 
     // Actual sending logic
     try {
@@ -74,10 +81,6 @@ router.post("/:leadId", requireAuth, async (req: Request, res: Response): Promis
         }
         // Use provided subject exactly as is
         const emailSubject = subject || `Conversation with ${lead.name || lead.email}`;
-        
-        // Generate professional tracking ID
-        const { generateTrackingToken } = await import('../lib/email/email-tracking.js');
-        const trackingId = generateTrackingToken();
 
         await sendEmail(userId, lead.email, messageBody, emailSubject, { 
           isRaw: true,

@@ -63,13 +63,13 @@ export class LeadExpiryWorker {
         console.log(`🕒 Expiring 'new' status for ${expiredLeads.length} leads...`);
 
         // Batch update status to 'open'
-        const leadIds = expiredLeads.map(l => l.id);
+        const leadIds = expiredLeads.map((l: any) => l.id);
         await db.update(leads)
           .set({ status: 'open', updatedAt: new Date() })
           .where(sql`id IN (${sql.join(leadIds, sql`, `)})`);
 
         // Notify users via WebSocket
-        const uniqueUserIds = [...new Set(expiredLeads.map(l => l.userId))];
+        const uniqueUserIds = [...new Set(expiredLeads.map((l: any) => l.userId))];
         for (const userId of uniqueUserIds) {
           wsSync.notifyLeadsUpdated(userId, { action: 'status_expired' });
         }

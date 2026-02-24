@@ -450,6 +450,9 @@ export class OutreachEngine {
 
     const trackingId = Math.random().toString(36).substring(2, 11);
     
+    // Generate AI content for the outreach
+    const aiContent = await generateExpertOutreach(userId, lead, { businessName });
+    
     await sendEmail(userId, lead.email, aiContent.body, aiContent.subject, {
         isRaw: true,
         isHtml: true, // Force HTML for tracking
