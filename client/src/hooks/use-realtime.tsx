@@ -274,6 +274,26 @@ export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
     });
 
+    // STATS UPDATES - Real-time dashboard metrics
+    socketInstance.on('stats_updated', (payload: any) => {
+      console.log('Stats update received:', payload);
+      // Invalidate dashboard stats for immediate UI refresh
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+      
+      // Show subtle notification for major changes
+      if (payload.stats?.convertedLeads) {
+        const notifKey = `stats-update-${Date.now()}`;
+        // Don't overwhelm with notifications, just sync the data
+      }
+    });
+
+    // ANALYTICS UPDATES - Real-time analytics and charts
+    socketInstance.on('analytics_updated', (payload: any) => {
+      console.log('Analytics update received:', payload);
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/analytics/outreach'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/analytics/full'] });
+    });
+
     // FORCE DISCONNECT/LOGOUT
     socketInstance.on('TERMINATE_SESSION', () => {
       console.warn('Session terminated by server');

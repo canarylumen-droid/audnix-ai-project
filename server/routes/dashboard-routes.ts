@@ -4,6 +4,7 @@ import { requireAuth } from '../middleware/auth.js';
 import type { Lead, Message } from '../../shared/schema.js';
 import { InstagramOAuth } from '../lib/oauth/instagram.js';
 import { decrypt } from '../lib/crypto/encryption.js';
+import { wsSync } from '../lib/websocket-sync.js';
 
 const router = Router();
 
@@ -65,7 +66,7 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
     const verificationPenalty = unverifiedDomains * 15;
     const domainHealth = Math.max(0, reputationScore - verificationPenalty);
 
-    res.json({
+    const responseData = {
       ...stats,
       conversionRate: stats.totalLeads > 0 ? ((stats.convertedLeads / stats.totalLeads) * 100).toFixed(1) : "0.0",
       averageResponseTime: stats.averageResponseTime, 
@@ -80,7 +81,12 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
         result: v.verification_result as any,
         createdAt: v.created_at
       }))
-    });
+    };
+
+    // Broadcast stats update to user's WebSocket connections for real-time dashboard sync
+    wsSync.notifyStatsUpdated(userId, { stats: responseData, timestamp: new Date().toISOString() });
+
+    res.json(responseData);
   } catch (error) {
     console.error('Dashboard stats error:', error);
     res.status(500).json({ error: 'Failed to fetch stats' });
@@ -450,14 +456,19 @@ router.get('/analytics/outreach', requireAuth, async (req: Request, res: Respons
       return acc;
     }, []);
 
-    res.json({
+    const analyticsData = {
       success: true,
       data: formattedData,
       summary: {
         totalSent: formattedData.reduce((sum: number, d: any) => sum + d.sent, 0),
         totalReceived: formattedData.reduce((sum: number, d: any) => sum + d.received, 0),
       }
-    });
+    };
+
+    // Broadcast analytics update to user's WebSocket for real-time chart updates
+    wsSync.notifyAnalyticsUpdated(userId, analyticsData);
+
+    res.json(analyticsData);
   } catch (error) {
     console.error('Analytics error:', error);
     res.status(500).json({ error: 'Failed to fetch analytics' });
@@ -480,10 +491,15 @@ router.get('/analytics/full', requireAuth, async (req: Request, res: Response): 
     const customEmail = await storage.getIntegration(userId, 'custom_email');
     const isAnyConnected = integrations.some(i => i.connected) || !!customEmail?.connected;
 
-    res.json({
+    const fullAnalyticsData = {
       ...analytics,
       isAnyConnected
-    });
+    };
+
+    // Broadcast full analytics update for real-time dashboard synchronization
+    wsSync.notifyAnalyticsUpdated(userId, fullAnalyticsData);
+
+    res.json(fullAnalyticsData);
   } catch (error) {
     console.error('Full analytics error:', error);
     res.status(500).json({ error: 'Failed to synchronize neural analytics' });

@@ -1,7 +1,7 @@
 import { Server, Socket } from 'socket.io';
 import http from 'http';
 
-type MessageType = 'leads_updated' | 'messages_updated' | 'deals_updated' | 'settings_updated' | 'ping' | 'pong' | 'PROSPECTING_LOG' | 'PROSPECT_FOUND' | 'PROSPECT_UPDATED' | 'notification' | 'calendar_updated' | 'TERMINATE_SESSION' | 'insights_updated' | 'activity_updated' | 'stats_updated';
+type MessageType = 'leads_updated' | 'messages_updated' | 'deals_updated' | 'settings_updated' | 'ping' | 'pong' | 'PROSPECTING_LOG' | 'PROSPECT_FOUND' | 'PROSPECT_UPDATED' | 'notification' | 'calendar_updated' | 'TERMINATE_SESSION' | 'insights_updated' | 'activity_updated' | 'stats_updated' | 'analytics_updated';
 
 interface SyncMessage {
   type: MessageType;
@@ -98,6 +98,14 @@ class WebSocketSyncServer {
 
   notifyActivityUpdated(userId: string, data?: any) {
     this.emitToUser(userId, 'activity_updated', data);
+  }
+
+  notifyStatsUpdated(userId: string, data?: any) {
+    this.emitToUser(userId, 'stats_updated', data);
+  }
+
+  notifyAnalyticsUpdated(userId: string, data?: any) {
+    this.emitToUser(userId, 'analytics_updated', data);
   }
 
   notifyNotification(userId: string, data: any) {
