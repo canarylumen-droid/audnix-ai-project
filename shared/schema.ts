@@ -466,6 +466,17 @@ export const bounceTracker = pgTable("bounce_tracker", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const messageDrafts = pgTable("message_drafts", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  subject: text("subject"),
+  channel: text("channel", { enum: ["email", "instagram", "sms", "whatsapp"] }).notNull(),
+  savedAt: timestamp("saved_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const insights = pgTable("insights", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -918,6 +929,11 @@ export type Lead = typeof leads.$inferSelect;
 export type InsertLead = typeof leads.$inferInsert;
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = typeof messages.$inferInsert;
+
+export const messageDraftsSelect = createSelectSchema(messageDrafts);
+export const messageDraftsInsert = createInsertSchema(messageDrafts);
+export type MessageDraft = z.infer<typeof messageDraftsSelect>;
+export type InsertMessageDraft = z.infer<typeof messageDraftsInsert>;
 export type Integration = typeof integrations.$inferSelect;
 export type InsertIntegration = typeof integrations.$inferInsert;
 export type Deal = typeof deals.$inferSelect;

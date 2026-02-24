@@ -61,6 +61,11 @@ export interface IStorage {
   getMessageByTrackingId(trackingId: string): Promise<Message | undefined>;
   getEmailMessageByMessageId(messageId: string): Promise<EmailMessage | undefined>;
 
+  // Draft methods
+  getDraftByLeadId(userId: string, leadId: string): Promise<MessageDraft | undefined>;
+  saveDraft(userId: string, leadId: string, content: string, subject?: string, channel?: string): Promise<MessageDraft>;
+  deleteDraft(userId: string, leadId: string): Promise<void>;
+
   // Thread methods
   getOrCreateThread(userId: string, leadId: string, subject: string, providerThreadId?: string): Promise<Thread>;
   getThreadsByLeadId(leadId: string): Promise<Thread[]>;

@@ -1,7 +1,7 @@
 import type { IStorage } from './storage.js';
-import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile, OtpCode, FollowUpQueue, InsertFollowUpQueue, OAuthAccount, InsertOAuthAccount, CalendarEvent, InsertCalendarEvent, AuditTrail, InsertAuditTrail, Organization, InsertOrganization, TeamMember, InsertTeamMember, Payment, InsertPayment, SmtpSettings, InsertSmtpSettings, EmailMessage, InsertEmailMessage, Notification, InsertNotification, Thread, InsertThread, LeadInsight, InsertLeadInsight } from "../shared/schema.js";
+import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile, OtpCode, FollowUpQueue, InsertFollowUpQueue, OAuthAccount, InsertOAuthAccount, CalendarEvent, InsertCalendarEvent, AuditTrail, InsertAuditTrail, Organization, InsertOrganization, TeamMember, InsertTeamMember, Payment, InsertPayment, SmtpSettings, InsertSmtpSettings, EmailMessage, InsertEmailMessage, Notification, InsertNotification, Thread, InsertThread, LeadInsight, InsertLeadInsight, MessageDraft, InsertMessageDraft } from "../shared/schema.js";
 import { db } from './db.js';
-import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes, payments, followUpQueue, oauthAccounts, calendarEvents, auditTrail, organizations, teamMembers, aiLearningPatterns, bounceTracker, smtpSettings, videoMonitors, processedComments, emailMessages, brandEmbeddings, threads, leadInsights } from "../shared/schema.js";
+import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes, payments, followUpQueue, oauthAccounts, calendarEvents, auditTrail, organizations, teamMembers, aiLearningPatterns, bounceTracker, smtpSettings, videoMonitors, processedComments, emailMessages, brandEmbeddings, threads, leadInsights, messageDrafts } from "../shared/schema.js";
 import { eq, desc, and, gte, lte, sql, not, isNull, or, like, inArray } from "drizzle-orm";
 import { isValidUUID } from './lib/utils/validation.js';
 import crypto from 'crypto';
@@ -772,6 +772,65 @@ export class DrizzleStorage implements IStorage {
     return result;
   }
 
+  // Draft methods
+  async getDraftByLeadId(userId: string, leadId: string): Promise<MessageDraft | undefined> {
+    checkDatabase();
+    if (!isValidUUID(userId) || !isValidUUID(leadId)) return undefined;
+    const [result] = await db
+      .select()
+      .from(messageDrafts)
+      .where(and(eq(messageDrafts.userId, userId), eq(messageDrafts.leadId, leadId)))
+      .limit(1);
+    return result;
+  }
+
+  async saveDraft(userId: string, leadId: string, content: string, subject?: string, channel: string = 'email'): Promise<MessageDraft> {
+    checkDatabase();
+    if (!isValidUUID(userId) || !isValidUUID(leadId)) {
+      throw new Error("Invalid user or lead ID");
+    }
+
+    const now = new Date();
+    const existing = await this.getDraftByLeadId(userId, leadId);
+
+    if (existing) {
+      // Update existing draft
+      const [updated] = await db
+        .update(messageDrafts)
+        .set({
+          content,
+          subject,
+          channel: channel as any,
+          updatedAt: now
+        })
+        .where(eq(messageDrafts.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      // Create new draft
+      const [created] = await db
+        .insert(messageDrafts)
+        .values({
+          userId,
+          leadId,
+          content,
+          subject,
+          channel: channel as any,
+          savedAt: now,
+          updatedAt: now
+        })
+        .returning();
+      return created;
+    }
+  }
+
+  async deleteDraft(userId: string, leadId: string): Promise<void> {
+    checkDatabase();
+    if (!isValidUUID(userId) || !isValidUUID(leadId)) return;
+    await db
+      .delete(messageDrafts)
+      .where(and(eq(messageDrafts.userId, userId), eq(messageDrafts.leadId, leadId)));
+  }
 
   async getIntegrations(userId: string): Promise<Integration[]> {
     checkDatabase();

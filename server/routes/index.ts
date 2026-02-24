@@ -47,6 +47,7 @@ import prospectingRoutes from "./prospecting.js";
 import { organizationRouter } from "./organization-routes.js";
 import adminMigrationsRouter from "./admin-migrations.js";
 import notificationRoutes from "./notification-routes.js";
+import draftsRoutes from "./drafts-routes.js";
 
 export async function registerRoutes(app: Express): Promise<http.Server> {
   // 1. Static Assets & Public Manifests (Served before auth/rate limiting for common assets)
@@ -110,6 +111,7 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
   app.use("/api/leads/intelligence", leadIntelligence);
   app.use("/api/leads", aiRoutes);
   app.use("/api/messages", messagesRoutes);
+  app.use("/api/drafts", draftsRoutes);
   app.use("/api/brand-pdf", adminPdfRoutes);
   app.use("/api/admin", adminPdfRoutes);
   app.use("/api/admin", adminPdfRoutesV2); // Added to support /api/admin/analyze-pdf-v2
