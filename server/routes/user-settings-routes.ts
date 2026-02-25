@@ -385,4 +385,47 @@ router.post('/sync/force', requireAuth, async (req: Request, res: Response): Pro
   }
 });
 
+// PUT endpoint for updating user config (autonomous mode, etc)
+router.put('/', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req);
+    if (!userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    const { config } = req.body;
+
+    if (!config) {
+      res.status(400).json({ error: 'Missing config data' });
+      return;
+    }
+
+    // Update user metadata with config
+    const user = await storage.getUserById(userId);
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    const updatedUser = await storage.updateUser(userId, {
+      metadata: {
+        ...(user.metadata as any),
+        config: {
+          ...((user.metadata as any)?.config || {}),
+          ...config
+        }
+      }
+    });
+
+    res.json({
+      success: true,
+      config: (updatedUser.metadata as any)?.config
+    });
+  } catch (error) {
+    console.error('Error updating user settings:', error);
+    res.status(500).json({ error: 'Failed to update settings' });
+  }
+});
+
 export default router;

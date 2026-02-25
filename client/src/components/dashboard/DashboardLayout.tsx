@@ -169,6 +169,23 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
     }
   });
 
+  const toggleAutonomousMode = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      return apiRequest('PUT', '/api/user/settings', {
+        config: {
+          autonomousMode: enabled
+        }
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
+      toast({
+        title: "Autonomous Mode Updated",
+        description: isAutonomousMode ? "Manual mode activated" : "Autonomous mode activated",
+      });
+    }
+  });
+
   const [currentAlert, setCurrentAlert] = useState<{ title: string; message: string; type: string } | null>(null);
 
   const { permission, isSubscribed, subscribe, loading: pushLoading } = usePushNotifications();
