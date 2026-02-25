@@ -1290,9 +1290,11 @@ return { deletedUsers: deletedCount };
         return d >= yesterday && d < today && m.direction === 'outbound';
       }).length,
       pipelineValue: explicitDealValue + predictedDealValue,
-      closedRevenue: deals.filter(d => d.status === 'converted' || d.status === 'closed_won').reduce((sum, d) => sum + (Number(d.value) || 0), 0),
-      openRate: messages.filter(m => m.direction === 'outbound' && m.openedAt).length / (messages.filter(m => m.direction === 'outbound').length || 1) * 100,
-      responseRate: leads.length > 0 ? (leads.filter(l => l.status === 'replied' || l.status === 'converted').length / leads.length) * 100 : 0,
+      closedRevenue: Array.from(this.deals.values())
+        .filter((d: any) => d.userId === userId && (d.status === 'converted' || d.status === 'closed_won'))
+        .reduce((sum: number, d: any) => sum + (Number(d.value) || 0), 0),
+      openRate: messages.filter((m: any) => m.direction === 'outbound' && m.openedAt).length / (messages.filter((m: any) => m.direction === 'outbound').length || 1) * 100,
+      responseRate: leads.length > 0 ? (leads.filter((l: any) => l.status === 'replied' || l.status === 'converted').length / leads.length) * 100 : 0,
       averageResponseTime: this.calculateAverageResponseTime(userId, messages),
     };
   }
@@ -1395,8 +1397,12 @@ return {
     conversionRate: leads.length > 0 ? Math.round((conversions / leads.length) * 100) : 0,
     responseRate: leads.length > 0 ? Math.round((replied / leads.length) * 100) : 0,
     openRate: sent > 0 ? Math.round((opened / sent) * 100) : 0,
-    closedRevenue: deals.filter(d => d.status === 'converted' || d.status === 'closed_won').reduce((sum, d) => sum + (Number(d.value) || 0), 0),
-    pipelineValue: deals.reduce((sum, d) => sum + (Number(d.value) || 0), 0),
+    closedRevenue: Array.from(this.deals.values())
+      .filter((d: any) => d.userId === userId && (d.status === 'converted' || d.status === 'closed_won'))
+      .reduce((sum: number, d: any) => sum + (Number(d.value) || 0), 0),
+    pipelineValue: Array.from(this.deals.values())
+      .filter((d: any) => d.userId === userId)
+      .reduce((sum: number, d: any) => sum + (Number(d.value) || 0), 0),
     averageResponseTime: this.calculateAverageResponseTime(userId, allMessages),
   },
   timeSeries,

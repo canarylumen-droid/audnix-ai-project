@@ -11,7 +11,7 @@ const router = Router();
 router.get("/:leadId", requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    const { leadId } = req.params;
+    const leadId = typeof req.params.leadId === 'string' ? req.params.leadId : req.params.leadId[0];
 
     const lead = await storage.getLeadById(leadId);
     if (!lead || lead.userId !== userId) {
@@ -34,7 +34,7 @@ router.get("/:leadId", requireAuth, async (req: Request, res: Response): Promise
 router.post("/:leadId", requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    const { leadId } = req.params;
+    const leadId = typeof req.params.leadId === 'string' ? req.params.leadId : req.params.leadId[0];
     const { content, subject, channel } = req.body;
 
     const lead = await storage.getLeadById(leadId);
@@ -63,7 +63,7 @@ router.post("/:leadId", requireAuth, async (req: Request, res: Response): Promis
 router.delete("/:leadId", requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    const { leadId } = req.params;
+    const leadId = typeof req.params.leadId === 'string' ? req.params.leadId : req.params.leadId[0];
 
     const lead = await storage.getLeadById(leadId);
     if (!lead || lead.userId !== userId) {

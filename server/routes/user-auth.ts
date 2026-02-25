@@ -8,6 +8,12 @@ import { wsSync } from '../lib/websocket-sync.js';
 
 const router = Router();
 
+// Utility to safely extract header value as string
+function getHeaderValue(value: string | string[] | undefined): string {
+  if (Array.isArray(value)) return value[0] || '';
+  return value || '';
+}
+
 /**
  * OTP_ENABLED Feature Flag
  * Set to false to temporarily disable OTP verification during signup.

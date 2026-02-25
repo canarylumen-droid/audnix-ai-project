@@ -19,6 +19,7 @@
     "target": "ES2020",
     "module": "ESNext",
     "strict": true,
+    "suppressImplicitAnyIndexErrors": true,
     "lib": [
       "ES2020",
       "dom",

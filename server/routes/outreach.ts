@@ -515,6 +515,15 @@ router.get('/track/:trackingId', async (req, res) => {
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
     return res.end(pixel);
+  } catch (error: any) {
+    console.error('Error tracking email open:', error);
+    // Still return pixel to avoid breaking email client
+    const pixel = Buffer.from(
+      'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+      'base64'
+    );
+    res.set('Content-Type', 'image/gif');
+    res.end(pixel);
   }
 });
 
