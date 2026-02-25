@@ -448,6 +448,7 @@ export class OutreachEngine {
     const user = await storage.getUserById(userId);
     const businessName = user?.company || user?.businessName || 'Our Team';
 
+    const aiContent = await generateExpertOutreach(lead, userId);
     const trackingId = Math.random().toString(36).substring(2, 11);
     
     await sendEmail(userId, lead.email, aiContent.body, aiContent.subject, {

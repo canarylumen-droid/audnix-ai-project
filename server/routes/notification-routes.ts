@@ -44,7 +44,7 @@ router.patch("/:id/read", requireAuth, async (req, res) => {
             return res.status(401).json({ error: "Unauthorized" });
         }
 
-        await storage.markNotificationAsRead(notificationId, userId);
+        await storage.markNotificationAsRead(notificationId as string, userId);
 
         // Notify client to update UI immediately
         wsSync.notifyNotification(userId, { type: 'update', action: 'read', id: notificationId });
@@ -106,7 +106,7 @@ router.delete("/:id", requireAuth, async (req, res) => {
             return res.status(401).json({ error: "Unauthorized" });
         }
 
-        await storage.deleteNotification(notificationId, userId);
+        await storage.deleteNotification(notificationId as string, userId);
         
         // Notify client
         wsSync.notifyNotification(userId, { type: 'update', action: 'delete', id: notificationId });

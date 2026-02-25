@@ -19,7 +19,7 @@ async function updateToEnterprise() {
       .returning();
     
     console.log("Update successful!");
-    console.log(result.map(u => ({ id: u.id, email: u.email, plan: u.plan })));
+    console.log(result.map((u: any) => ({ id: u.id, email: u.email, plan: u.plan })));
   } catch (error) {
     console.error("Failed to update users:", error);
   } finally {

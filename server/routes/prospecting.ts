@@ -73,7 +73,7 @@ router.post('/verify/:id', requireAuth, async (req: Request, res: Response) => {
         // Verify ownership
         const [prospect] = await db.select()
             .from(prospects)
-            .where(eq(prospects.id, id))
+            .where(eq(prospects.id, id as string))
             .limit(1);
 
         if (!prospect || prospect.userId !== userId) {
@@ -82,7 +82,7 @@ router.post('/verify/:id', requireAuth, async (req: Request, res: Response) => {
 
         // Run real SMTP verification
         const ingestor = new AudnixIngestor(userId.toString());
-        ingestor.verifyLead(id).catch(error => {
+        ingestor.verifyLead(id as string).catch(error => {
             console.error('Verification error:', error);
         });
 

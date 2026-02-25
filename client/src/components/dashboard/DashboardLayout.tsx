@@ -155,7 +155,20 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
     "Tools": true,
     "Reports": true
   });
+  const [showNotificationsPanel, setShowNotificationsPanel] = useState(false);
   const isAutonomousMode = (user as any)?.config?.autonomousMode !== false;
+
+  const toggleAutonomousMode = useMutation({
+    mutationFn: async (autonomousMode: boolean) => {
+      return apiRequest('PATCH', '/api/user/config', { autonomousMode });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
+      toast({
+        title: `AI Engine ${isAutonomousMode ? 'Paused' : 'Activated'}`,
+      });
+    }
+  });
 
   const deleteNotification = useMutation({
     mutationFn: async (id: string) => {
@@ -584,7 +597,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
             )}
             <ThemeSwitcher />
 
-            <Sheet open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+            <Sheet open={showNotificationsPanel} onOpenChange={setShowNotificationsPanel}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground rounded-xl hover:bg-muted/50 transition-all hover:scale-105 active:scale-95">
                   <Bell className="h-5 w-5" />
@@ -750,7 +763,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                   <Button
                     variant="ghost"
                     className="w-full h-10 rounded-2xl font-bold uppercase tracking-widest text-[10px] text-muted-foreground hover:bg-muted/20"
-                    onClick={() => setNotificationsOpen(false)}
+                    onClick={() => setShowNotificationsPanel(false)}
                   >
                     Close
                   </Button>

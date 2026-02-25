@@ -113,7 +113,7 @@ router.put('/rules/:id', requireAuth, async (req: Request, res: Response): Promi
     const [rule] = await db
       .update(automationRules)
       .set({ ...updates, updatedAt: new Date() })
-      .where(and(eq(automationRules.id, id), eq(automationRules.userId, userId)))
+      .where(and(eq(automationRules.id, id as string), eq(automationRules.userId, userId)))
       .returning();
     
     if (!rule) {
@@ -135,7 +135,7 @@ router.delete('/rules/:id', requireAuth, async (req: Request, res: Response): Pr
     
     await db
       .delete(automationRules)
-      .where(and(eq(automationRules.id, id), eq(automationRules.userId, userId)));
+      .where(and(eq(automationRules.id, id as string), eq(automationRules.userId, userId)));
     
     res.json({ success: true });
   } catch (error: any) {
@@ -245,7 +245,7 @@ router.put('/content/:id', requireAuth, async (req: Request, res: Response): Pro
     const [item] = await db
       .update(contentLibrary)
       .set({ ...updates, updatedAt: new Date() })
-      .where(and(eq(contentLibrary.id, id), eq(contentLibrary.userId, userId)))
+      .where(and(eq(contentLibrary.id, id as string), eq(contentLibrary.userId, userId)))
       .returning();
     
     if (!item) {
@@ -267,7 +267,7 @@ router.delete('/content/:id', requireAuth, async (req: Request, res: Response): 
     
     await db
       .delete(contentLibrary)
-      .where(and(eq(contentLibrary.id, id), eq(contentLibrary.userId, userId)));
+      .where(and(eq(contentLibrary.id, id as string), eq(contentLibrary.userId, userId)));
     
     res.json({ success: true });
   } catch (error: any) {

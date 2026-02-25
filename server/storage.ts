@@ -1,8 +1,10 @@
 import { drizzleStorage } from "./drizzle-storage.js";
-import { type User, type InsertUser, type Lead, type InsertLead, type Message, type InsertMessage, type Integration, type InsertIntegration, type FollowUpQueue, type InsertFollowUpQueue, type OAuthAccount, type InsertOAuthAccount, type CalendarEvent, type InsertCalendarEvent, type AuditTrail, type InsertAuditTrail, type Organization, type InsertOrganization, type TeamMember, type InsertTeamMember, type Payment, type InsertPayment, type AiLearningPattern, type InsertAiLearningPattern, type SmtpSettings, type InsertSmtpSettings, type EmailMessage, type InsertEmailMessage, type Notification, type InsertNotification, type Thread, type InsertThread, type LeadInsight, type InsertLeadInsight, smtpSettings, users, leads, messages, integrations, followUpQueue, aiLearningPatterns, notifications, threads, leadInsights } from "../shared/schema.js";
+import { type User, type InsertUser, type Lead, type InsertLead, type Message, type InsertMessage, type Integration, type InsertIntegration, type Deal, type InsertDeal, type FollowUpQueue, type InsertFollowUpQueue, type OAuthAccount, type InsertOAuthAccount, type CalendarEvent, type InsertCalendarEvent, type AuditTrail, type InsertAuditTrail, type Organization, type InsertOrganization, type TeamMember, type InsertTeamMember, type Payment, type InsertPayment, type AiLearningPattern, type InsertAiLearningPattern, type SmtpSettings, type InsertSmtpSettings, type EmailMessage, type InsertEmailMessage, type Notification, type InsertNotification, type Thread, type InsertThread, type LeadInsight, type InsertLeadInsight, smtpSettings, users, leads, messages, integrations, deals, followUpQueue, aiLearningPatterns, notifications, threads, leadInsights } from "../shared/schema.js";
 import { randomUUID } from "crypto";
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "./db.js";
+
+export type MessageDraft = Partial<InsertMessage> & { leadId: string; userId: string; body: string };
 
 export interface IStorage {
   // User methods
@@ -199,6 +201,9 @@ export interface IStorage {
     closedRevenue: number;
     openRate: number;
     responseRate: number;
+    averageResponseTime: string;
+    queuedLeads: number;
+    undeliveredLeads: number;
   }>;
 
   getAnalyticsFull(userId: string, days: number): Promise<{
@@ -211,6 +216,9 @@ export interface IStorage {
       conversionRate: number;
       responseRate: number;
       openRate: number;
+      closedRevenue: number;
+      pipelineValue: number;
+      averageResponseTime: string;
     };
     timeSeries: Array<{
       name: string;
@@ -1196,22 +1204,25 @@ return { deletedUsers: deletedCount };
 }
 
   async getDashboardStats(userId: string, overrideDates ?: { start: Date; end: Date }): Promise < {
-  totalLeads: number;
-  newLeads: number;
-  activeLeads: number;
-  convertedLeads: number;
-  hardenedLeads: number;
-  bouncyLeads: number;
-  recoveredLeads: number;
-  positiveIntents: number;
-  totalMessages: number;
-  messagesToday: number;
-  messagesYesterday: number;
-  pipelineValue: number;
-  closedRevenue: number;
-  openRate: number;
-  responseRate: number;
-} > {
+    totalLeads: number;
+    newLeads: number;
+    activeLeads: number;
+    convertedLeads: number;
+    hardenedLeads: number;
+    bouncyLeads: number;
+    recoveredLeads: number;
+    positiveIntents: number;
+    totalMessages: number;
+    messagesToday: number;
+    messagesYesterday: number;
+    pipelineValue: number;
+    closedRevenue: number;
+    openRate: number;
+    responseRate: number;
+    averageResponseTime: string;
+    queuedLeads: number;
+    undeliveredLeads: number;
+  } > {
   const leads = Array.from(this.leads.values()).filter(l => {
     const matchUserId = l.userId === userId;
     if (!matchUserId) return false;
@@ -1287,6 +1298,8 @@ return { deletedUsers: deletedCount };
       openRate: messages.filter(m => m.direction === 'outbound' && m.openedAt).length / (messages.filter(m => m.direction === 'outbound').length || 1) * 100,
       responseRate: leads.length > 0 ? (leads.filter(l => l.status === 'replied' || l.status === 'converted').length / leads.length) * 100 : 0,
       averageResponseTime: this.calculateAverageResponseTime(userId, messages),
+      queuedLeads: leads.filter(l => l.status === 'new' && !l.aiPaused).length,
+      undeliveredLeads: leads.filter(l => l.status === 'bouncy').length,
     };
   }
 
@@ -1325,16 +1338,19 @@ return { deletedUsers: deletedCount };
   }
 
   async getAnalyticsFull(userId: string, days: number): Promise < {
-  metrics: {
-    sent: number;
-    opened: number;
-    replied: number;
-    booked: number;
-    leadsFiltered: number;
-    conversionRate: number;
-    responseRate: number;
-    openRate: number;
-  };
+    metrics: {
+      sent: number;
+      opened: number;
+      replied: number;
+      booked: number;
+      leadsFiltered: number;
+      conversionRate: number;
+      responseRate: number;
+      openRate: number;
+      closedRevenue: number;
+      pipelineValue: number;
+      averageResponseTime: string;
+    };
   timeSeries: Array<{
     name: string;
     sent_email: number;
@@ -1349,6 +1365,7 @@ return { deletedUsers: deletedCount };
 } > {
   const leads = Array.from(this.leads.values()).filter(l => l.userId === userId);
   const allMessages = Array.from(this.messages.values()).filter(m => m.userId === userId);
+  const deals = Array.from(this.deals.values()).filter(d => d.userId === userId);
   const user = Array.from(this.users.values()).find(u => u.id === userId);
 
   const conversions = leads.filter(l => l.status === 'converted').length;
@@ -1388,8 +1405,10 @@ return {
     conversionRate: leads.length > 0 ? Math.round((conversions / leads.length) * 100) : 0,
     responseRate: leads.length > 0 ? Math.round((replied / leads.length) * 100) : 0,
     openRate: sent > 0 ? Math.round((opened / sent) * 100) : 0,
-    closedRevenue: deals.filter(d => d.status === 'converted' || d.status === 'closed_won').reduce((sum, d) => sum + (Number(d.value) || 0), 0),
-    pipelineValue: deals.reduce((sum, d) => sum + (Number(d.value) || 0), 0),
+      closedRevenue: deals.filter((d: Deal) => d.status === 'closed_won').reduce((sum: number, d: Deal) => sum + (Number(d.value) || 0), 0),
+      pipelineValue: deals.reduce((sum: number, d: Deal) => sum + (Number(d.value) || 0), 0) + leads
+        .filter(l => !deals.some(d => d.leadId === l.id))
+        .reduce((sum, l) => sum + (Number((l.metadata as any)?.intelligence?.predictions?.predictedAmount) || 0), 0),
     averageResponseTime: this.calculateAverageResponseTime(userId, allMessages),
   },
   timeSeries,

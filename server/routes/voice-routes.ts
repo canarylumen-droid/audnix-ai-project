@@ -59,7 +59,7 @@ router.post('/send/:leadId', requireAuth, async (req: Request, res: Response): P
     const userId = user.id;
     const { leadId } = req.params;
 
-    const result = await voiceAI.generateAndSendVoiceNote(userId, leadId);
+    const result = await voiceAI.generateAndSendVoiceNote(userId, leadId as string);
 
     if (!result.success) {
       res.status(400).json({ error: result.error || 'Failed to send voice note' });

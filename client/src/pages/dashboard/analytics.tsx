@@ -60,6 +60,8 @@ interface AnalyticsData {
         conversionRate: number;
         responseRate: number;
         openRate: number;
+        closedRevenue: number;
+        pipelineValue: number;
     };
     timeSeries: Array<{
         name: string;

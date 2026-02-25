@@ -79,7 +79,7 @@ router.patch('/:id', requireAuth, async (req: Request, res: Response): Promise<v
       return;
     }
 
-    const deal = await storage.updateDeal(req.params.id, userId, req.body);
+    const deal = await storage.updateDeal(req.params.id as string, userId, req.body);
     if (!deal) {
       res.status(404).json({ error: 'Deal not found' });
       return;

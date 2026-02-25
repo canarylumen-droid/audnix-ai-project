@@ -1552,6 +1552,7 @@ export class DrizzleStorage implements IStorage {
     closedRevenue: number;
     openRate: number;
     responseRate: number;
+    averageResponseTime: string;
     queuedLeads: number;
     undeliveredLeads: number;
   }> {
@@ -1606,6 +1607,17 @@ export class DrizzleStorage implements IStorage {
       .from(deals)
       .where(dealsBaseWhere);
 
+    // Calculate predicted deal value from leads without explicit deals
+    const [predictedStats] = await db.select({
+      value: sql<number>`coalesce(sum(cast(metadata->'intelligence'->'predictions'->>'predictedAmount' as numeric)), 0)`
+    })
+      .from(leads)
+      .where(and(
+        leadsBaseWhere,
+        sql`metadata->'intelligence'->'predictions'->>'predictedAmount' is not null`,
+        sql`not exists (select 1 from deals where deals.lead_id = leads.id)`
+      ));
+
     const totalSent = Number(messagesStats?.totalSent || 0);
     const totalLeads = Number(leadsStats?.totalLeads || 0);
     const opened = Number(messagesStats?.opened || 0);
@@ -1623,16 +1635,17 @@ export class DrizzleStorage implements IStorage {
       totalMessages: totalSent,
       messagesToday: Number(messagesStats?.messagesToday || 0),
       messagesYesterday: Number(messagesStats?.messagesYesterday || 0),
-      pipelineValue: Number(dealsStats?.pipelineValue || 0),
+      pipelineValue: Number(dealsStats?.pipelineValue || 0) + Number(predictedStats?.value || 0),
       closedRevenue: Number(dealsStats?.closedRevenue || 0),
       openRate: totalSent > 0 ? Math.round((opened / totalSent) * 100) : 0,
       responseRate: totalLeads > 0 ? Math.round((replied / totalLeads) * 100) : 0,
+      averageResponseTime: '—', // TODO: Implement calculation for Drizzle
       queuedLeads: Number(leadsStats?.queuedLeads || 0),
       undeliveredLeads: Number(leadsStats?.bouncyLeads || 0),
     };
   }
 
-  async getAnalyticsFull(userId: string, days: number): Promise<{
+  async getAnalyticsFull(userId: string, days: number): Promise < {
     metrics: {
       sent: number;
       opened: number;
@@ -1642,6 +1655,9 @@ export class DrizzleStorage implements IStorage {
       conversionRate: number;
       responseRate: number;
       openRate: number;
+      closedRevenue: number;
+      pipelineValue: number;
+      averageResponseTime: string;
     };
     timeSeries: Array<{
       name: string;
@@ -1668,6 +1684,21 @@ export class DrizzleStorage implements IStorage {
       sent: sql<number>`count(*) filter (where direction = 'outbound')`,
       opened: sql<number>`count(*) filter (where direction = 'outbound' and opened_at is not null)`,
     }).from(messages).where(eq(messages.userId, userId));
+    
+    const [dealsStats] = await db.select({
+      pipelineValue: sql<number>`coalesce(sum(value), 0)`,
+      closedRevenue: sql<number>`coalesce(sum(case when status = 'closed_won' then value else 0 end), 0)`,
+    }).from(deals).where(eq(deals.userId, userId));
+
+    const [predictedStats] = await db.select({
+      value: sql<number>`coalesce(sum(cast(metadata->'intelligence'->'predictions'->>'predictedAmount' as numeric)), 0)`
+    })
+      .from(leads)
+      .where(and(
+        eq(leads.userId, userId),
+        sql`metadata->'intelligence'->'predictions'->>'predictedAmount' is not null`,
+        sql`not exists (select 1 from deals where deals.lead_id = leads.id)`
+      ));
 
     const [user] = await db.select({
       filteredLeadsCount: users.filteredLeadsCount
@@ -1742,7 +1773,10 @@ export class DrizzleStorage implements IStorage {
         leadsFiltered: user?.filteredLeadsCount || 0,
         conversionRate: totalLeads > 0 ? Math.round((conversions / totalLeads) * 100) : 0,
         responseRate: totalLeads > 0 ? Math.round((replied / totalLeads) * 100) : 0,
-        openRate: sent > 0 ? Math.round((opened / sent) * 100) : 0
+        openRate: sent > 0 ? Math.round((opened / sent) * 100) : 0,
+        closedRevenue: Number(dealsStats?.closedRevenue || 0),
+        pipelineValue: Number(dealsStats?.pipelineValue || 0) + Number(predictedStats?.value || 0),
+        averageResponseTime: '—' 
       },
       timeSeries,
       channelPerformance: channelStats.map((s: any) => ({ channel: s.channel || 'Unknown', value: Number(s.value) })),

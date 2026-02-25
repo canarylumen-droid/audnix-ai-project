@@ -93,7 +93,7 @@ router.post("/approve/:userId", requireAuth, async (req: Request, res: Response)
     }
 
     // Get user
-    const user = await storage.getUserById(userId);
+    const user = await storage.getUserById(userId as string);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
@@ -105,7 +105,7 @@ router.post("/approve/:userId", requireAuth, async (req: Request, res: Response)
     const plan = user.pendingPaymentPlan as any;
 
     // Upgrade user - store in database only
-    await storage.updateUser(userId, {
+    await storage.updateUser(userId as string, {
       plan,
       paymentStatus: "approved",
       pendingPaymentPlan: null,
@@ -115,7 +115,7 @@ router.post("/approve/:userId", requireAuth, async (req: Request, res: Response)
     });
 
     // Update formal payment records if they exist
-    const userPayments = await storage.getPayments(userId);
+    const userPayments = await storage.getPayments(userId as string);
     const pendingPayment = userPayments.find(p => p.status === "pending");
     if (pendingPayment) {
       await storage.updatePayment(pendingPayment.id, {
@@ -158,13 +158,13 @@ router.post("/reject/:userId", requireAuth, async (req: Request, res: Response) 
     }
 
     // Get user
-    const user = await storage.getUserById(userId);
+    const user = await storage.getUserById(userId as string);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
     // Mark as rejected (stays in trial)
-    await storage.updateUser(userId, {
+    await storage.updateUser(userId as string, {
       paymentStatus: "rejected",
       pendingPaymentPlan: null,
       pendingPaymentAmount: null,

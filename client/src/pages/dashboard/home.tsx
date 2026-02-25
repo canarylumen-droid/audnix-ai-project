@@ -71,6 +71,7 @@ interface DashboardStats {
   queuedLeads?: number;
   undeliveredLeads?: number;
   lastOutreachActivity?: string | null;
+  domainHealth?: number;
 }
 
 interface PreviousDashboardStats {
@@ -80,6 +81,9 @@ interface PreviousDashboardStats {
   conversions: number;
   totalLeads?: number;
   convertedLeads?: number;
+  openRate?: number;
+  responseRate?: number;
+  closedRevenue?: number;
 }
 
 interface ActivityItem {

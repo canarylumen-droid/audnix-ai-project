@@ -51,12 +51,12 @@ router.get("/:orgId/members", requireAuth, async (req: Request, res: Response) =
         const { orgId } = req.params;
 
         // Verify user belongs to org
-        const membership = await storage.getTeamMember(orgId, userId!);
+        const membership = await storage.getTeamMember(orgId as string, userId!);
         if (!membership) {
             return res.status(403).json({ error: "Access denied" });
         }
 
-        const members = await storage.getOrganizationMembers(orgId);
+        const members = await storage.getOrganizationMembers(orgId as string);
         res.json(members);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
@@ -71,7 +71,7 @@ router.post("/:orgId/members", requireAuth, async (req: Request, res: Response) 
         const { email, role } = req.body;
 
         // Verify current user is admin of the org
-        const membership = await storage.getTeamMember(orgId, adminId!);
+        const membership = await storage.getTeamMember(orgId as string, adminId!);
         if (!membership || membership.role !== "admin") {
             return res.status(403).json({ error: "Only admins can add members" });
         }
@@ -83,13 +83,13 @@ router.post("/:orgId/members", requireAuth, async (req: Request, res: Response) 
         }
 
         // Check if already a member
-        const existing = await storage.getTeamMember(orgId, userToInvite.id);
+        const existing = await storage.getTeamMember(orgId as string, userToInvite.id);
         if (existing) {
             return res.status(400).json({ error: "User is already a member" });
         }
 
         const newMember = await storage.addTeamMember({
-            organizationId: orgId,
+            organizationId: orgId as string,
             userId: userToInvite.id,
             role: role || "member",
             invitedBy: adminId

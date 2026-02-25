@@ -66,6 +66,10 @@ interface IntelligenceData {
         lastInteractionDays: number;
         hasReplied: boolean;
     };
+    socialProfiles?: Array<{
+        platform: string;
+        url: string;
+    }>;
 }
 
 
@@ -283,7 +287,7 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                                     </div>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
-                                    {intelligence.socialProfiles?.map((profile, i) => {
+                                    {intelligence.socialProfiles?.map((profile: { platform: string; url: string }, i: number) => {
                                         const Icon = profile.platform === 'linkedin' ? Linkedin :
                                             profile.platform === 'twitter' ? Twitter : Globe;
                                         return (

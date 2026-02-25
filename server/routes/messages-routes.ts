@@ -17,13 +17,13 @@ router.get("/:leadId", requireAuth, async (req: Request, res: Response): Promise
     const { leadId } = req.params;
     const { limit = "100", offset = "0" } = req.query;
 
-    const lead = await storage.getLeadById(leadId);
+    const lead = await storage.getLeadById(leadId as string);
     if (!lead || lead.userId !== userId) {
       res.status(404).json({ error: "Lead not found" });
       return;
     }
 
-    const messages = await storage.getMessagesByLeadId(leadId);
+    const messages = await storage.getMessagesByLeadId(leadId as string);
 
     // Apply pagination
     const offsetNum = parseInt(offset as string) || 0;
@@ -56,7 +56,7 @@ router.post("/:leadId", requireAuth, async (req: Request, res: Response): Promis
       return;
     }
 
-    const lead = await storage.getLeadById(leadId);
+    const lead = await storage.getLeadById(leadId as string);
     if (!lead || lead.userId !== userId) {
       res.status(404).json({ error: "Lead not found" });
       return;
@@ -64,6 +64,8 @@ router.post("/:leadId", requireAuth, async (req: Request, res: Response): Promis
 
     const selectedChannel = channel || lead.channel;
     const messageBody = content.trim();
+
+    let trackingId: string | undefined = undefined;
 
     // Actual sending logic
     try {
@@ -77,7 +79,7 @@ router.post("/:leadId", requireAuth, async (req: Request, res: Response): Promis
         
         // Generate professional tracking ID
         const { generateTrackingToken } = await import('../lib/email/email-tracking.js');
-        const trackingId = generateTrackingToken();
+        trackingId = generateTrackingToken();
 
         await sendEmail(userId, lead.email, messageBody, emailSubject, { 
           isRaw: true,
@@ -120,7 +122,7 @@ router.post("/:leadId", requireAuth, async (req: Request, res: Response): Promis
     }
 
     const message = await storage.createMessage({
-      leadId,
+      leadId: leadId as string,
       userId,
       provider: selectedChannel,
       direction: "outbound",
@@ -136,7 +138,7 @@ router.post("/:leadId", requireAuth, async (req: Request, res: Response): Promis
     });
 
     // Update lead last message time
-    const updatedLead = await storage.updateLead(leadId, {
+    const updatedLead = await storage.updateLead(leadId as string, {
       lastMessageAt: new Date(),
       status: lead.status === "new" ? "open" : lead.status,
     });
@@ -148,7 +150,7 @@ router.post("/:leadId", requireAuth, async (req: Request, res: Response): Promis
 
     // Notify via WebSocket
     const { wsSync } = await import('../lib/websocket-sync.js');
-    wsSync.notifyMessagesUpdated(userId, { leadId, message });
+    wsSync.notifyMessagesUpdated(userId, { leadId: leadId as string, message });
     wsSync.notifyLeadsUpdated(userId, { type: 'lead_updated', lead: updatedLead });
 
     res.json({
@@ -170,7 +172,7 @@ router.post("/:leadId/read", requireAuth, async (req: Request, res: Response): P
     const userId = getCurrentUserId(req)!;
     const { leadId } = req.params;
 
-    const lead = await storage.getLeadById(leadId);
+    const lead = await storage.getLeadById(leadId as string);
     if (!lead || lead.userId !== userId) {
       res.status(404).json({ error: "Lead not found" });
       return;

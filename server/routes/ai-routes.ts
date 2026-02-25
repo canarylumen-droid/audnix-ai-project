@@ -98,8 +98,9 @@ router.get("/insights", requireAuth, async (req: Request, res: Response): Promis
   try {
     const userId = getCurrentUserId(req)!;
     const { period = '30d' } = req.query;
+    const periodStr = period as string;
 
-    const insights = await generateAnalyticsInsights(userId, period as string);
+    const insights = await generateAnalyticsInsights(userId, periodStr);
 
     // Template-based summarization fallback (works without AI)
     const summary = generateTemplateSummary(insights, period as string);
@@ -161,8 +162,9 @@ router.get("/analytics", requireAuth, async (req: Request, res: Response): Promi
   try {
     const userId = getCurrentUserId(req)!;
     const { period = '30d' } = req.query;
+    const periodStr = period as string;
 
-    const daysBack = period === '7d' ? 7 : period === '30d' ? 30 : 90;
+    const daysBack = periodStr === '7d' ? 7 : periodStr === '30d' ? 30 : 90;
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - daysBack);
     startDate.setHours(0, 0, 0, 0);
@@ -462,7 +464,7 @@ router.patch("/:leadId", requireAuth, async (req: Request, res: Response): Promi
     const { leadId } = req.params;
     const updates = req.body;
 
-    const lead = await storage.getLeadById(leadId);
+    const lead = await storage.getLeadById(leadId as string);
     if (!lead || lead.userId !== userId) {
       res.status(404).json({ error: "Lead not found" });
       return;
@@ -506,7 +508,7 @@ router.get("/:leadId", requireAuth, async (req: Request, res: Response): Promise
     const userId = getCurrentUserId(req)!;
     const { leadId } = req.params;
 
-    const lead = await storage.getLeadById(leadId);
+    const lead = await storage.getLeadById(leadId as string);
     if (!lead || lead.userId !== userId) {
       res.status(404).json({ error: "Lead not found" });
       return;
@@ -530,7 +532,7 @@ router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response): 
     const { manualMessage } = req.body;
     const userId = getCurrentUserId(req)!;
 
-    const lead = await storage.getLeadById(leadId);
+    const lead = await storage.getLeadById(leadId as string);
     if (!lead) {
       console.warn(`[AI-Reply] Lead not found: ${leadId}`);
       res.status(404).json({ error: "Lead not found" });
@@ -581,7 +583,7 @@ router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response): 
     const messageBody = manualMessage || aiResponse.text;
 
     const message = await storage.createMessage({
-      leadId,
+      leadId: leadId as string,
       userId,
       provider: lead.channel as ProviderType,
       direction: "outbound",
@@ -598,14 +600,14 @@ router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response): 
     const oldStatus = lead.status;
     const newStatus = statusDetection.status;
 
-    const updatedLead = await storage.updateLead(leadId, {
+    const updatedLead = await storage.updateLead(leadId as string, {
       status: newStatus,
       lastMessageAt: new Date()
     });
 
     // Notify via WebSocket
     const { wsSync } = await import('../lib/websocket-sync.js');
-    wsSync.notifyMessagesUpdated(userId, { leadId, message });
+    wsSync.notifyMessagesUpdated(userId, { leadId: leadId as string, message });
     wsSync.notifyLeadsUpdated(userId, { type: 'lead_updated', lead: updatedLead });
 
     if (oldStatus !== newStatus) {
@@ -636,7 +638,7 @@ router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response): 
           title: notificationTitle,
           message: notificationMessage,
           metadata: {
-            leadId,
+            leadId: leadId as string,
             leadName: lead.name,
             oldStatus,
             newStatus,
@@ -652,7 +654,7 @@ router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response): 
     await saveConversationToMemory(userId, lead, updatedMessages);
 
     if (statusDetection.status !== 'converted' && statusDetection.status !== 'not_interested') {
-      const followUpTime = await scheduleFollowUp(userId, leadId, lead.channel, 'followup');
+      const followUpTime = await scheduleFollowUp(userId, leadId as string, lead.channel, 'followup');
 
       res.json({
         message,
@@ -1024,7 +1026,7 @@ router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response
 
     if (sendMessage) {
       const message = await storage.createMessage({
-        leadId,
+        leadId: leadId as string,
         userId,
         provider: lead.channel as ProviderType,
         direction: "outbound",
@@ -1081,7 +1083,7 @@ router.get("/smart-replies/:leadId", requireAuth, async (req: Request, res: Resp
       return;
     }
 
-    const smartReplies = await generateSmartReplies(leadId, lastMessage);
+    const smartReplies = await generateSmartReplies(leadId as string, lastMessage);
 
     res.json({
       leadId,
@@ -1111,7 +1113,7 @@ router.get("/score/:leadId", requireAuth, async (req: Request, res: Response): P
       return;
     }
 
-    const scoreData = await calculateLeadScore(leadId);
+    const scoreData = await calculateLeadScore(leadId as string);
 
     res.json({
       leadId,

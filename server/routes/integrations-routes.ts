@@ -73,7 +73,7 @@ router.post('/:provider/disconnect', requireAuth, async (req: Request, res: Resp
 
     const { provider } = req.params;
     
-    await storage.disconnectIntegration(userId, provider);
+    await storage.disconnectIntegration(userId, provider as string);
 
     res.json({ message: `${provider} disconnected` });
   } catch (error) {

@@ -497,7 +497,7 @@ export default function IntegrationsPage() {
                           <h3 className="text-lg font-bold text-foreground">Active Connection</h3>
                           <Badge className="bg-emerald-500/10 text-emerald-500 border-0 text-[10px] font-black uppercase tracking-widest px-2 py-0">LIVE</Badge>
                         </div>
-                        <p className="text-sm font-semibold text-muted-foreground">{customEmailStatus.email}</p>
+                        <p className="text-sm font-semibold text-muted-foreground">{customEmailStatus?.email}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -553,7 +553,7 @@ export default function IntegrationsPage() {
                             size="icon" 
                             className="h-6 w-6 rounded-full hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
                             onClick={() => {
-                              const domain = getDomainFromEmail(customEmailStatus.email);
+                              const domain = getDomainFromEmail(customEmailStatus?.email || null);
                               if (domain) verifyDomainMutation.mutate(domain);
                             }}
                             disabled={verifyDomainMutation.isPending}

@@ -247,7 +247,7 @@ router.patch('/monitors/:id', requireAuth, async (req: Request, res: Response): 
       }
     }
 
-    const monitor = await storage.updateVideoMonitor(id, userId, updates);
+    const monitor = await storage.updateVideoMonitor(id as string, userId, updates);
 
     if (!monitor) {
       res.status(404).json({ error: 'Monitor not found' });
@@ -287,7 +287,7 @@ router.delete('/monitors/:id', requireAuth, async (req: Request, res: Response):
       return;
     }
 
-    await storage.deleteVideoMonitor(id, userId);
+    await storage.deleteVideoMonitor(id as string, userId);
     res.json({ success: true, message: 'Monitor deleted' });
   } catch (error) {
     console.error('Error deleting monitor:', error);
@@ -426,7 +426,7 @@ router.patch('/assets/:id', requireAuth, async (req: Request, res: Response): Pr
         ...(enabled !== undefined && { enabled }),
         updatedAt: new Date(),
       })
-      .where(and(eq(videoAssets.id, id), eq(videoAssets.userId, userId)))
+      .where(and(eq(videoAssets.id, id as string), eq(videoAssets.userId, userId)))
       .returning();
 
     if (!updated) {
@@ -453,7 +453,7 @@ router.get('/assets/:id', requireAuth, async (req: Request, res: Response): Prom
     const [asset] = await db
       .select()
       .from(videoAssets)
-      .where(and(eq(videoAssets.id, id), eq(videoAssets.userId, userId)))
+      .where(and(eq(videoAssets.id, id as string), eq(videoAssets.userId, userId)))
       .limit(1);
 
     if (!asset) {

@@ -116,7 +116,7 @@ router.get('/:id', requireAuth, async (req: Request, res: Response): Promise<voi
         intent_tags, objection_tags, channel_restriction,
         usage_count, success_rate
       FROM content_library
-      WHERE id = ${id}
+      WHERE id = ${id as string}
         AND type = 'objection'
         AND (user_id = ${userId} OR user_id IS NULL)
     `);
@@ -198,7 +198,7 @@ router.post('/:id/copy', requireAuth, async (req: Request, res: Response): Promi
     await db.execute(sql`
       UPDATE content_library
       SET usage_count = usage_count + 1, updated_at = NOW()
-      WHERE id = ${id}
+      WHERE id = ${id as string}
     `);
 
     res.json({ success: true, message: 'Copy tracked' });
