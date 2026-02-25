@@ -61,11 +61,6 @@ export interface IStorage {
   getMessageByTrackingId(trackingId: string): Promise<Message | undefined>;
   getEmailMessageByMessageId(messageId: string): Promise<EmailMessage | undefined>;
 
-  // Draft methods
-  getDraftByLeadId(userId: string, leadId: string): Promise<MessageDraft | undefined>;
-  saveDraft(userId: string, leadId: string, content: string, subject?: string, channel?: string): Promise<MessageDraft>;
-  deleteDraft(userId: string, leadId: string): Promise<void>;
-
   // Thread methods
   getOrCreateThread(userId: string, leadId: string, subject: string, providerThreadId?: string): Promise<Thread>;
   getThreadsByLeadId(leadId: string): Promise<Thread[]>;
@@ -201,10 +196,8 @@ export interface IStorage {
     messagesToday: number;
     messagesYesterday: number;
     pipelineValue: number;
-    closedRevenue: number;
     openRate: number;
     responseRate: number;
-    averageResponseTime: string;
   }>;
 
   getAnalyticsFull(userId: string, days: number): Promise<{
@@ -217,7 +210,6 @@ export interface IStorage {
       conversionRate: number;
       responseRate: number;
       openRate: number;
-      closedRevenue: number;
     };
     timeSeries: Array<{
       name: string;
@@ -1290,12 +1282,8 @@ return { deletedUsers: deletedCount };
         return d >= yesterday && d < today && m.direction === 'outbound';
       }).length,
       pipelineValue: explicitDealValue + predictedDealValue,
-      closedRevenue: Array.from(this.deals.values())
-        .filter((d: any) => d.userId === userId && (d.status === 'converted' || d.status === 'closed_won'))
-        .reduce((sum: number, d: any) => sum + (Number(d.value) || 0), 0),
       openRate: messages.filter((m: any) => m.direction === 'outbound' && m.openedAt).length / (messages.filter((m: any) => m.direction === 'outbound').length || 1) * 100,
       responseRate: leads.length > 0 ? (leads.filter((l: any) => l.status === 'replied' || l.status === 'converted').length / leads.length) * 100 : 0,
-      averageResponseTime: this.calculateAverageResponseTime(userId, messages),
     };
   }
 
@@ -1397,13 +1385,6 @@ return {
     conversionRate: leads.length > 0 ? Math.round((conversions / leads.length) * 100) : 0,
     responseRate: leads.length > 0 ? Math.round((replied / leads.length) * 100) : 0,
     openRate: sent > 0 ? Math.round((opened / sent) * 100) : 0,
-    closedRevenue: Array.from(this.deals.values())
-      .filter((d: any) => d.userId === userId && (d.status === 'converted' || d.status === 'closed_won'))
-      .reduce((sum: number, d: any) => sum + (Number(d.value) || 0), 0),
-    pipelineValue: Array.from(this.deals.values())
-      .filter((d: any) => d.userId === userId)
-      .reduce((sum: number, d: any) => sum + (Number(d.value) || 0), 0),
-    averageResponseTime: this.calculateAverageResponseTime(userId, allMessages),
   },
   timeSeries,
   channelPerformance: [

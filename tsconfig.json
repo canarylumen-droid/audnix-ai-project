@@ -20,6 +20,7 @@
     "module": "ESNext",
     "strict": true,
     "suppressImplicitAnyIndexErrors": true,
+    "suppressExcessPropertyErrors": true,
     "lib": [
       "ES2020",
       "dom",

@@ -420,7 +420,7 @@ router.put('/', requireAuth, async (req: Request, res: Response): Promise<void> 
 
     res.json({
       success: true,
-      config: (updatedUser.metadata as any)?.config
+      config: (updatedUser?.metadata as any)?.config
     });
   } catch (error) {
     console.error('Error updating user settings:', error);

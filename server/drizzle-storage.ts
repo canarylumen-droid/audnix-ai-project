@@ -1608,11 +1608,8 @@ export class DrizzleStorage implements IStorage {
     messagesToday: number;
     messagesYesterday: number;
     pipelineValue: number;
-    closedRevenue: number;
     openRate: number;
     responseRate: number;
-    queuedLeads: number;
-    undeliveredLeads: number;
   }> {
     checkDatabase();
     const sevenDaysAgo = new Date();

@@ -69,7 +69,7 @@ export class LeadExpiryWorker {
           .where(sql`id IN (${sql.join(leadIds, sql`, `)})`);
 
         // Notify users via WebSocket
-        const uniqueUserIds = [...new Set(expiredLeads.map((l: any) => l.userId))];
+        const uniqueUserIds = [...new Set(expiredLeads.map((l: any) => l.userId))] as string[];
         for (const userId of uniqueUserIds) {
           wsSync.notifyLeadsUpdated(userId, { action: 'status_expired' });
         }
