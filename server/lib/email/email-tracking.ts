@@ -43,6 +43,20 @@ export function wrapLinksWithTracking(html: string, baseUrl: string, messageToke
   });
 }
 
+export function wrapPlainTextLinksWithTracking(text: string, baseUrl: string, messageToken: string): string {
+  // Simple regex for HTTP/HTTPS URLs
+  const urlRegex = /(?<!["'])(https?:\/\/[^\s<]+)/gi;
+  
+  return text.replace(urlRegex, (url) => {
+    if (url.includes('/api/email-tracking/track/')) {
+      return url;
+    }
+    
+    const encodedUrl = encodeURIComponent(url);
+    return `${baseUrl}/api/email-tracking/track/click/${messageToken}?url=${encodedUrl}`;
+  });
+}
+
 export async function createTrackedEmail(data: EmailTrackingData): Promise<{ token: string; pixelHtml: string }> {
   const token = generateTrackingToken();
   const baseUrl = process.env.BASE_URL || 'https://audnixai.com';
@@ -123,35 +137,66 @@ export async function recordEmailEvent(event: EmailEvent): Promise<void> {
     if (trackingInfo) {
       const { wsSync } = await import('../websocket-sync.js');
       
-      // Update lead metadata for filtering
-      if (trackingInfo.lead_id) {
-        try {
-          if (event.type === 'open') {
-             await db.execute(sql`
-              UPDATE leads 
-              SET metadata = jsonb_set(COALESCE(metadata, '{}'::jsonb), '{isOpened}', 'true'::jsonb),
-                  status = CASE WHEN status = 'new' THEN 'open'::lead_status ELSE status END,
-                  updated_at = NOW()
-              WHERE id = ${trackingInfo.lead_id}
-            `);
-          } else if (event.type === 'click') {
-             await db.execute(sql`
-              UPDATE leads 
-              SET metadata = jsonb_set(COALESCE(metadata, '{}'::jsonb), '{isClicked}', 'true'::jsonb),
-                  updated_at = NOW()
-              WHERE id = ${trackingInfo.lead_id}
-            `);
+          // Update lead metadata for filtering
+          if (trackingInfo.lead_id) {
+            try {
+              if (event.type === 'open') {
+                 await db.execute(sql`
+                  UPDATE leads 
+                  SET metadata = jsonb_set(COALESCE(metadata, '{}'::jsonb), '{isOpened}', 'true'::jsonb),
+                      status = CASE WHEN status = 'new' THEN 'open'::text ELSE status END,
+                      updated_at = NOW()
+                  WHERE id = ${trackingInfo.lead_id}
+                `);
+
+                // Update messages table
+                await db.execute(sql`
+                  UPDATE messages
+                  SET opened_at = COALESCE(opened_at, ${event.timestamp.toISOString()}),
+                      is_read = true
+                  WHERE tracking_id = ${event.messageId}
+                `);
+
+                // Update campaign_emails table
+                await db.execute(sql`
+                  UPDATE campaign_emails
+                  SET opened_at = COALESCE(opened_at, ${event.timestamp.toISOString()}),
+                      status = 'opened'
+                  WHERE message_id = ${event.messageId}
+                `);
+              } else if (event.type === 'click') {
+                 await db.execute(sql`
+                  UPDATE leads 
+                  SET metadata = jsonb_set(COALESCE(metadata, '{}'::jsonb), '{isClicked}', 'true'::jsonb),
+                      updated_at = NOW()
+                  WHERE id = ${trackingInfo.lead_id}
+                `);
+
+                // Update messages table
+                await db.execute(sql`
+                  UPDATE messages
+                  SET clicked_at = COALESCE(clicked_at, ${event.timestamp.toISOString()})
+                  WHERE tracking_id = ${event.messageId}
+                `);
+
+                // Update campaign_emails table
+                await db.execute(sql`
+                  UPDATE campaign_emails
+                  SET clicked_at = COALESCE(clicked_at, ${event.timestamp.toISOString()}),
+                      status = 'clicked'
+                  WHERE message_id = ${event.messageId}
+                `);
+              }
+              
+              // Notify lead update to refresh counts/badges
+              wsSync.notifyLeadsUpdated(trackingInfo.user_id, { 
+                leadId: trackingInfo.lead_id, 
+                action: event.type === 'open' ? 'email_opened' : 'email_clicked' 
+              });
+            } catch (err) {
+              console.error('Failed to update lead/message metadata for tracking event:', err);
+            }
           }
-          
-          // Notify lead update to refresh counts/badges
-          wsSync.notifyLeadsUpdated(trackingInfo.user_id, { 
-            leadId: trackingInfo.lead_id, 
-            action: event.type === 'open' ? 'email_opened' : 'email_clicked' 
-          });
-        } catch (err) {
-          console.error('Failed to update lead metadata for tracking event:', err);
-        }
-      }
 
       // Notify activity feed
       wsSync.notifyActivityUpdated(trackingInfo.user_id, {

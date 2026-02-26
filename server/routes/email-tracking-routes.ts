@@ -56,25 +56,20 @@ router.get('/track/click/:token', async (req: Request, res: Response): Promise<v
 
     const decodedUrl = decodeURIComponent(url);
     let isSafe = false;
-
     try {
       if (decodedUrl.startsWith('//')) {
         isSafe = false;
-      } else if (decodedUrl.startsWith('/')) {
+      } else if (decodedUrl.startsWith('/') || decodedUrl.startsWith('http')) {
         isSafe = true;
       } else {
-        const parsed = new URL(decodedUrl);
-        const safeHostnames = ['www.audnixai.com', 'audnixai.com', 'localhost'];
-        isSafe = safeHostnames.includes(parsed.hostname) ||
-          parsed.hostname.endsWith('.vercel.app') ||
-          parsed.hostname.endsWith('.replit.dev');
+        isSafe = false;
       }
     } catch (e) {
       isSafe = false;
     }
 
     if (!isSafe) {
-      res.status(400).send('Invalid redirect URL (External domains not allowed)');
+      res.status(400).send('Invalid redirect URL');
       return;
     }
 

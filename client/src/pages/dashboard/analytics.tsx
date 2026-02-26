@@ -22,7 +22,8 @@ import {
     Send,
     MessageCircle,
     Eye,
-    DollarSign
+    DollarSign,
+    Clock
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
@@ -62,6 +63,7 @@ interface AnalyticsData {
         openRate: number;
         closedRevenue: number;
         pipelineValue: number;
+        averageResponseTime: string;
     };
     timeSeries: Array<{
         name: string;
@@ -186,6 +188,15 @@ export default function AnalyticsPage() {
                             isUp={calculatePercentageChange((filteredMetrics?.closedRevenue || 0), (previousStats?.closedRevenue || 0)).isUp}
                             color="text-emerald-500"
                             index={3}
+                        />
+                        <StatCard
+                            label="Avg Response"
+                            value={filteredMetrics?.averageResponseTime || "—"}
+                            icon={Clock}
+                            trend=""
+                            isUp={true}
+                            color="text-indigo-500"
+                            index={4}
                         />
                     </>
                 ) : (

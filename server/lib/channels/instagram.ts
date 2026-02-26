@@ -9,6 +9,7 @@ import FormData from 'form-data';
 import { Readable } from 'stream';
 import { storage } from '../../storage.js';
 import { decrypt } from '../crypto/encryption.js';
+import { wrapPlainTextLinksWithTracking, createTrackedEmail } from '../email/email-tracking.js';
 
 interface InstagramMessage {
   id: string;
@@ -329,11 +330,26 @@ export async function sendInstagramOutreach(
       throw new Error('Missing Instagram access token or business account ID');
     }
 
+    // Tracking Setup
+    const baseUrl = process.env.BASE_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://audnixai.com';
+    const trackingToken = Math.random().toString(36).substring(2, 11);
+    
+    // Wrap links if any
+    const trackedMessage = wrapPlainTextLinksWithTracking(message, baseUrl, trackingToken);
+
+    await createTrackedEmail({
+      userId,
+      recipientEmail: recipientId, // Using ID as "email" for tracking consistency
+      subject: 'Instagram Message',
+      sentAt: new Date(),
+      messageId: trackingToken
+    });
+
     await sendInstagramMessage(
       accessToken,
       instagramBusinessAccountId,
       recipientId,
-      message
+      trackedMessage
     );
   } catch (error: any) {
     console.error(`[IG_OUTREACH] Failed for user ${userId}:`, error.message);

@@ -84,7 +84,8 @@ const statusStyles = {
   open: "bg-primary/10 text-primary border-primary/10",
   replied: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
   booked: "bg-sky-500/10 text-sky-500 border-sky-500/20",
-  converted: "bg-purple-500/10 text-purple-500 border-purple-500/20",
+  converted: "bg-sky-500/10 text-sky-500 border-sky-500/20",
+  warm: "bg-orange-500/10 text-orange-500 border-orange-500/20",
   not_interested: "bg-muted text-muted-foreground border-muted",
   cold: "bg-muted text-muted-foreground border-muted",
 };
@@ -499,10 +500,9 @@ export default function InboxPage() {
                     <DropdownMenuItem onClick={() => setFilterStatus("read")} className="cursor-pointer font-medium">Read</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setFilterStatus("opened")} className="cursor-pointer font-medium">Opened (Tracking)</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setFilterStatus("replied")} className="cursor-pointer font-medium text-emerald-500">Replied</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setFilterStatus("warm")} className="cursor-pointer font-medium text-orange-500">Warm (Engaged)</DropdownMenuItem>
+                     <DropdownMenuItem onClick={() => setFilterStatus("warm")} className="cursor-pointer font-medium text-orange-500">Warm (Engaged)</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setFilterStatus("cold")} className="cursor-pointer font-medium text-muted-foreground">Cold (No Reply)</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setFilterStatus("booked")} className="cursor-pointer font-medium text-sky-500">Booked</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setFilterStatus("converted")} className="cursor-pointer font-medium text-purple-500">Converted</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setFilterStatus("booked")} className="cursor-pointer font-medium text-sky-500">Booked / Converted</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setFilterStatus("not_interested")} className="cursor-pointer font-medium text-destructive/70">Not Interested</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -1018,8 +1018,12 @@ export default function InboxPage() {
                         <div className="text-[10px] mt-2 opacity-50 flex items-center gap-1.5 justify-end font-medium">
                           {msg.direction === 'outbound' && (
                             <div className="flex items-center gap-1 mr-auto">
-                              {msg.openedAt ? (
-                                <Badge variant="outline" className="text-[8px] h-3.5 px-1 bg-primary-foreground/10 text-primary-foreground border-none">
+                              {msg.clickedAt ? (
+                                <Badge variant="outline" className="text-[8px] h-3.5 px-1 bg-emerald-500/20 text-emerald-200 border-none shadow-[0_0_8px_rgba(16,185,129,0.3)]">
+                                  <ExternalLink className="h-2 w-2 mr-1" /> CLICKED
+                                </Badge>
+                              ) : msg.openedAt ? (
+                                <Badge variant="outline" className="text-[8px] h-3.5 px-1 bg-sky-500/20 text-sky-100 border-none shadow-[0_0_8px_rgba(14,165,233,0.3)]">
                                   <Activity className="h-2 w-2 mr-1" /> OPENED
                                 </Badge>
                               ) : (

@@ -90,15 +90,22 @@ export function NotificationBell() {
     };
   }, [socket, queryClient]);
 
+  // Handle mark all as read
+  const handleMarkAllRead = async () => {
+    try {
+      await apiRequest("POST", "/api/notifications/mark-all-read");
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      toast({ title: "All notifications marked as read" });
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to mark all as read", variant: "destructive" });
+    }
+  };
+
   // Handle clear all
   const handleClearAll = async () => {
     try {
       await apiRequest("POST", "/api/notifications/clear-all");
-      queryClient.setQueryData(["/api/notifications"], (old: any) => ({
-        ...old,
-        unreadCount: 0,
-        notifications: []
-      }));
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
       setShowDropdown(false);
       toast({ title: "Notifications cleared" });
     } catch (err) {
@@ -149,14 +156,22 @@ export function NotificationBell() {
               <div className="p-4 border-b flex items-center justify-between bg-muted/30">
                 <h3 className="font-bold text-sm">Notifications</h3>
                 {notifications?.notifications?.length ? (
-                  <button 
-                    onClick={() => {
-                      if (window.confirm("Clear all notifications? This cannot be undone.")) handleClearAll();
-                    }}
-                    className="text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/80 transition-colors bg-primary/5 px-3 py-1.5 rounded-lg border border-primary/10"
-                  >
-                    Clear All
-                  </button>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={handleMarkAllRead}
+                      className="text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/80 transition-colors bg-primary/5 px-2 py-1 rounded-md"
+                    >
+                      Mark All Read
+                    </button>
+                    <button 
+                      onClick={() => {
+                        if (window.confirm("Clear all notifications?")) handleClearAll();
+                      }}
+                      className="text-[10px] font-black uppercase tracking-widest text-destructive hover:text-destructive/80 transition-colors bg-destructive/5 px-2 py-1 rounded-md"
+                    >
+                      Clear
+                    </button>
+                  </div>
                 ) : null}
               </div>
               <div className="max-h-[400px] overflow-y-auto">

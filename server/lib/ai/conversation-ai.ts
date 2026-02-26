@@ -121,7 +121,7 @@ export async function autoUpdateLeadStatus(
     const oldStatus = lead.status;
     const newStatus = statusDetection.status;
 
-    if (oldStatus === 'converted' && newStatus !== 'converted') {
+    if (oldStatus === 'booked' && newStatus !== 'booked') {
       return;
     }
 
@@ -148,7 +148,7 @@ export async function autoUpdateLeadStatus(
 }
 
 export interface ConversationStatusResult {
-  status: "new" | "open" | "replied" | "converted" | "not_interested" | "cold";
+  status: "new" | "open" | "replied" | "booked" | "not_interested" | "cold" | "warm";
   confidence: number;
   reason?: string;
   shouldUseVoice?: boolean;
@@ -197,15 +197,11 @@ export function detectConversationStatus(messages: Message[]): ConversationStatu
   }
 
   if (hasConversionSignal && hasEngagement) {
-    return { status: 'converted', confidence: 0.85, reason: 'Lead showed strong buying intent', shouldUseVoice: true };
+    return { status: 'booked', confidence: 0.85, reason: 'Lead showed strong buying intent', shouldUseVoice: true };
   }
 
-  if (recentEngagement) {
-    return { status: 'replied', confidence: 0.8, reason: 'Lead actively responding', shouldUseVoice: true };
-  }
-
-  if (hasEngagement) {
-    return { status: 'open', confidence: 0.7, reason: 'Lead engaged in conversation', shouldUseVoice: false };
+  if (recentEngagement || hasEngagement) {
+    return { status: 'warm', confidence: 0.8, reason: 'Lead actively responding', shouldUseVoice: true };
   }
 
   const lastInbound = messages.filter(m => m.direction === 'inbound').pop();

@@ -123,9 +123,22 @@ Return ONLY valid JSON, no explanation.`;
     // Neural Tagging Integration
     const tags = await suggestLeadTags(lead, message, analysis);
 
-    // Store analysis and tags via Drizzle storage
+    // Determine new status based on intent
+    let newStatus = lead.status;
+    if (analysis.wantsToSchedule || analysis.readyToBuy) {
+      newStatus = 'booked';
+    } else if (analysis.isInterested) {
+      newStatus = 'warm';
+    } else if (analysis.isNegative) {
+      newStatus = 'not_interested';
+    } else {
+      newStatus = 'replied';
+    }
+
+    // Store analysis, tags, and update status via Drizzle storage
     await storage.updateLead(lead.id.toString(), {
       tags: tags,
+      status: newStatus,
       metadata: {
         ...(lead as any).metadata,
         lastIntensity: analysis.confidence,

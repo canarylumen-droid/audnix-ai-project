@@ -112,9 +112,9 @@ export async function analyzeInboundMessage(
   // Status mapping based on deep AI intent
   let finalStatus = lead.status;
   if (deepIntent) {
-    if (deepIntent.intentLevel === "high" && !["converted", "booked"].includes(lead.status)) {
-      finalStatus = "open";
-    } else if (deepIntent.intentLevel === "not_interested" && lead.status !== "converted") {
+    if (deepIntent.intentLevel === "high" && !["booked"].includes(lead.status)) {
+      finalStatus = "warm";
+    } else if (deepIntent.intentLevel === "not_interested" && lead.status !== "booked") {
       finalStatus = "not_interested";
     }
   }

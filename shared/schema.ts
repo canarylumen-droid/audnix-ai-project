@@ -114,7 +114,7 @@ export const leads = pgTable("leads", {
   email: text("email"),
   replyEmail: text("reply_email"),
   phone: text("phone"),
-  status: text("status", { enum: ["new", "open", "replied", "converted", "not_interested", "cold", "hardened", "recovered", "bouncy", "booked"] }).notNull().default("new"),
+  status: text("status", { enum: ["new", "open", "replied", "converted", "not_interested", "cold", "hardened", "recovered", "bouncy", "booked", "warm"] }).notNull().default("new"),
   verified: boolean("verified").notNull().default(false),
   verifiedAt: timestamp("verified_at"),
   score: integer("score").notNull().default(0),

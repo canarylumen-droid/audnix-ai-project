@@ -463,11 +463,11 @@ export default function DashboardHome() {
                     </div>
                     <div className="space-y-2 max-w-sm px-4">
                       <p className="font-black text-2xl tracking-tighter text-foreground uppercase">
-                        {isSmtpConnected ? "Neural Engine Active" : "Ready to launch?"}
+                        {isSmtpConnected ? "Activity Stream" : "Ready to launch?"}
                       </p>
                       <p className="text-sm text-muted-foreground/60 leading-relaxed">
                         {isSmtpConnected 
-                          ? "Waiting for incoming lead activities. Your outreach engine is warm and ready to track intent."
+                          ? "Waiting for incoming lead engagement. All real-time activities will appear here."
                           : "Connect your email or Instagram channels to start tracking real-time lead intent and automated outreach."}
                       </p>
                     </div>
