@@ -19,6 +19,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { useParams, useLocation } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -53,6 +58,8 @@ import {
   User,
   Phone,
   Plug,
+  Facebook,
+  MapPin,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -120,25 +127,38 @@ export default function InboxPage() {
   useEffect(() => {
     if (!socket) return;
 
+    let messagesTimeout: NodeJS.Timeout;
     const handleMessagesUpdated = () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
-      if (leadId) {
-        queryClient.invalidateQueries({ queryKey: ["/api/messages", leadId] });
-      }
+      clearTimeout(messagesTimeout);
+      messagesTimeout = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+        if (leadId) {
+          queryClient.invalidateQueries({ queryKey: ["/api/messages", leadId] });
+        }
+      }, 1500);
     };
 
+    let leadsTimeout: NodeJS.Timeout;
     const handleLeadsUpdated = (data: any) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      clearTimeout(leadsTimeout);
+      leadsTimeout = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      }, 1500);
+      
       if (data?.type === 'lead_updated' && data?.lead) {
         setAllLeads(prev => prev.map(l => l.id === data.lead.id ? data.lead : l));
       }
     };
 
+    let notifTimeout: NodeJS.Timeout;
     const handleNotification = (data: any) => {
       if (data?.type === 'lead_import') {
-        queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
-        toast({ title: "Leads Imported", description: "Your inbox has been updated with new leads." });
+        clearTimeout(notifTimeout);
+        notifTimeout = setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+          queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+          toast({ title: "Leads Imported", description: "Your inbox has been updated with new leads." });
+        }, 1500);
       }
     };
 
@@ -164,6 +184,9 @@ export default function InboxPage() {
       socket.off('leads_updated', handleLeadsUpdated);
       socket.off('notification', handleNotification);
       socket.off('activity_updated', handleActivityUpdated);
+      clearTimeout(messagesTimeout);
+      clearTimeout(leadsTimeout);
+      clearTimeout(notifTimeout);
     };
   }, [socket, leadId, queryClient, toast]);
 
@@ -261,8 +284,14 @@ export default function InboxPage() {
         } else if (filterStatus === "opened") {
           matchesStatus = !!lead.metadata?.isOpened;
         } else if (filterStatus === "warm") {
-          // Warm = Replied OR Score > 50 OR manually marked warm
-          matchesStatus = lead.status === 'replied' || (lead.score && lead.score > 50) || lead.metadata?.isWarm;
+          // Warm = Warm OR Booked OR Score > 50
+          matchesStatus = ['warm', 'booked'].includes(lead.status) || (lead.score && lead.score > 50) || lead.metadata?.isWarm;
+        } else if (filterStatus === "replied") {
+          matchesStatus = ['replied', 'warm', 'booked'].includes(lead.status);
+        } else if (filterStatus === "cold") {
+          matchesStatus = ['cold', 'new', 'open'].includes(lead.status);
+        } else if (filterStatus === "booked") {
+          matchesStatus = ['booked', 'converted'].includes(lead.status);
         } else {
           matchesStatus = lead.status === filterStatus;
         }
@@ -323,6 +352,26 @@ export default function InboxPage() {
       setIsGenerating(false);
     }
   };
+
+  const [metadataEditMode, setMetadataEditMode] = useState(false);
+  const [editedMetadata, setEditedMetadata] = useState<Record<string, any>>({});
+  
+  const updateLead = useMutation({
+    mutationFn: async (data: { id: string; [key: string]: any }) => {
+      const { id, ...updateData } = data;
+      const res = await apiRequest("PATCH", `/api/leads/${id}`, updateData);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/leads/${leadId}`] });
+      setMetadataEditMode(false);
+      toast({ title: "Lead updated successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to update lead", variant: "destructive" });
+    }
+  });
 
   const toggleAi = useMutation({
     mutationFn: async ({ id, paused }: { id: string; paused: boolean }) => {
@@ -829,7 +878,11 @@ export default function InboxPage() {
                                   <div className="flex items-center justify-between">
                                     <span className="text-xs font-bold text-muted-foreground">Engagement Rank</span>
                                     <span className="text-xs font-black text-foreground text-lg tracking-tighter">
-                                      #{activeLead?.id ? (String(activeLead.id).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 100 + 1) : 42} / {(leadsData?.leads?.length || 0) > 100 ? `${((leadsData?.leads?.length || 0) / 1000).toFixed(1)}k` : leadsData?.leads?.length || 0}
+                                      #{leadsData?.leads ? 
+                                          [...leadsData.leads]
+                                            .sort((a, b) => (b.score || 0) - (a.score || 0))
+                                            .findIndex(l => l.id === activeLead?.id) + 1 
+                                          : 0} / {leadsData?.leads?.length || 0}
                                     </span>
                                   </div>
                                   <div className="h-2 w-full bg-muted/30 rounded-full overflow-hidden">
@@ -883,24 +936,112 @@ export default function InboxPage() {
 
                             {/* Social Graph */}
                             <AccordionItem value="social" className="border-none space-y-2">
-                              <AccordionTrigger className="hover:no-underline py-0">
-                                <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Social Insight</h4>
-                              </AccordionTrigger>
+                              <div className="flex items-center justify-between">
+                                <AccordionTrigger className="hover:no-underline py-0">
+                                  <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Social Insight</h4>
+                                </AccordionTrigger>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-6 text-[10px] font-black uppercase"
+                                  onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (metadataEditMode) {
+                                          handleSaveMetadata();
+                                      } else {
+                                          setEditedMetadata({
+                                              instagram: activeLead?.metadata?.socialLinks?.instagram || activeLead?.socialLinks?.instagram || "",
+                                              facebook: activeLead?.metadata?.socialLinks?.facebook || activeLead?.socialLinks?.facebook || "",
+                                              googleMaps: activeLead?.metadata?.socialLinks?.googleMaps || "",
+                                              reviews: activeLead?.metadata?.socialLinks?.reviews || ""
+                                          });
+                                          setMetadataEditMode(true);
+                                      }
+                                  }}
+                                  disabled={updateLead.isPending}
+                                >
+                                  {metadataEditMode ? (updateLead.isPending ? "Saving..." : "Save") : "Edit"}
+                                </Button>
+                              </div>
                               <AccordionContent className="pt-2">
-                                <div className="grid grid-cols-2 gap-3">
-                                  {[{ name: 'LinkedIn', url: activeLead?.linkedinProfileUrl || activeLead?.socialLinks?.linkedin }, { name: 'Twitter', url: activeLead?.socialLinks?.twitter }, { name: 'Website', url: activeLead?.website || activeLead?.socialLinks?.website }, { name: 'Portfolio', url: activeLead?.socialLinks?.portfolio }].map((platform) => (
-                                    <Button
-                                      key={platform.name}
-                                      variant="outline"
-                                      className="h-12 border-border/30 bg-muted/10 hover:bg-muted/20 rounded-2xl justify-start px-3"
-                                      onClick={() => platform.url && window.open(platform.url.startsWith('http') ? platform.url : `https://${platform.url}`, '_blank')}
-                                      disabled={!platform.url}
-                                    >
-                                      <ExternalLink className={`w-3.5 h-3.5 mr-2 ${platform.url ? 'text-primary' : 'text-muted-foreground/40'}`} />
-                                      <span className={`text-[10px] font-bold ${platform.url ? 'text-foreground' : 'text-muted-foreground'}`}>{platform.name}</span>
-                                    </Button>
-                                  ))}
-                                </div>
+                                {metadataEditMode ? (
+                                    <div className="space-y-3 p-4 bg-muted/10 rounded-2xl border border-border/30">
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] uppercase font-bold text-muted-foreground">Instagram URL</label>
+                                            <Input 
+                                                className="h-8 text-xs bg-background" 
+                                                value={editedMetadata.instagram} 
+                                                onChange={(e) => setEditedMetadata({...editedMetadata, instagram: e.target.value})} 
+                                                placeholder="https://instagram.com/..."
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] uppercase font-bold text-muted-foreground">Facebook URL</label>
+                                            <Input 
+                                                className="h-8 text-xs bg-background" 
+                                                value={editedMetadata.facebook} 
+                                                onChange={(e) => setEditedMetadata({...editedMetadata, facebook: e.target.value})} 
+                                                placeholder="https://facebook.com/..."
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] uppercase font-bold text-muted-foreground">Google Maps URL</label>
+                                            <Input 
+                                                className="h-8 text-xs bg-background" 
+                                                value={editedMetadata.googleMaps} 
+                                                onChange={(e) => setEditedMetadata({...editedMetadata, googleMaps: e.target.value})} 
+                                                placeholder="https://maps.google.com/..."
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] uppercase font-bold text-muted-foreground">Reviews Page URL</label>
+                                            <Input 
+                                                className="h-8 text-xs bg-background" 
+                                                value={editedMetadata.reviews} 
+                                                onChange={(e) => setEditedMetadata({...editedMetadata, reviews: e.target.value})} 
+                                                placeholder="https://..."
+                                            />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-2 gap-3">
+                                      {[
+                                        { name: 'Instagram', url: activeLead?.metadata?.socialLinks?.instagram || activeLead?.socialLinks?.instagram, icon: Instagram },
+                                        { name: 'Facebook', url: activeLead?.metadata?.socialLinks?.facebook || activeLead?.socialLinks?.facebook, icon: Facebook },
+                                        { name: 'Google Maps', url: activeLead?.metadata?.socialLinks?.googleMaps, icon: MapPin },
+                                        { name: 'Reviews', url: activeLead?.metadata?.socialLinks?.reviews, icon: Star },
+                                        { name: 'LinkedIn', url: activeLead?.linkedinProfileUrl || activeLead?.socialLinks?.linkedin, icon: ExternalLink }, 
+                                        { name: 'Twitter', url: activeLead?.socialLinks?.twitter, icon: ExternalLink }, 
+                                        { name: 'Website', url: activeLead?.website || activeLead?.socialLinks?.website, icon: ExternalLink }
+                                      ].map((platform) => (
+                                        platform.url ? (
+                                            <Button
+                                              key={platform.name}
+                                              variant="outline"
+                                              className="h-12 border-border/30 bg-muted/10 hover:bg-muted/20 rounded-2xl justify-start px-3"
+                                              onClick={() => platform.url && window.open(platform.url.startsWith('http') ? platform.url : `https://${platform.url}`, '_blank', 'noopener,noreferrer')}
+                                            >
+                                              <platform.icon className={`w-3.5 h-3.5 mr-2 text-primary`} />
+                                              <span className={`text-[10px] font-bold text-foreground`}>{platform.name}</span>
+                                            </Button>
+                                        ) : null
+                                      ))}
+                                      {/* Show placeholder if no links exist */}
+                                      {![
+                                        activeLead?.metadata?.socialLinks?.instagram, activeLead?.socialLinks?.instagram,
+                                        activeLead?.metadata?.socialLinks?.facebook, activeLead?.socialLinks?.facebook,
+                                        activeLead?.metadata?.socialLinks?.googleMaps,
+                                        activeLead?.metadata?.socialLinks?.reviews,
+                                        activeLead?.linkedinProfileUrl, activeLead?.socialLinks?.linkedin,
+                                        activeLead?.socialLinks?.twitter,
+                                        activeLead?.website, activeLead?.socialLinks?.website
+                                      ].some(Boolean) && (
+                                        <div className="col-span-2 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 py-4">
+                                            No social links added
+                                        </div>
+                                      )}
+                                    </div>
+                                )}
                               </AccordionContent>
                             </AccordionItem>
 

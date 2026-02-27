@@ -118,22 +118,34 @@ export default function DashboardHome() {
   useEffect(() => {
     if (!socket) return;
 
+    let settingsTimeout: NodeJS.Timeout;
     const handleSettingsUpdated = () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      clearTimeout(settingsTimeout);
+      settingsTimeout = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      }, 2000);
     };
 
+    let statsTimeout: NodeJS.Timeout;
     const handleStatsUpdated = () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      clearTimeout(statsTimeout);
+      statsTimeout = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      }, 2000);
     };
 
+    let activityTimeout: NodeJS.Timeout;
     const handleActivityUpdated = () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/activity"] });
+      clearTimeout(activityTimeout);
+      activityTimeout = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/dashboard/activity"] });
+      }, 2000);
     };
 
     const handleLeadsUpdated = () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/activity"] });
+      handleStatsUpdated();
+      handleActivityUpdated();
     };
 
     socket.on('settings_updated', handleSettingsUpdated);
@@ -148,6 +160,9 @@ export default function DashboardHome() {
       socket.off('activity_updated', handleActivityUpdated);
       socket.off('leads_updated', handleLeadsUpdated);
       socket.off('notification', handleActivityUpdated);
+      clearTimeout(settingsTimeout);
+      clearTimeout(statsTimeout);
+      clearTimeout(activityTimeout);
     };
   }, [socket, queryClient]);
 
@@ -451,40 +466,9 @@ export default function DashboardHome() {
                     })}
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-24 text-center space-y-6">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full animate-pulse" />
-                      <div className="relative h-20 w-20 rounded-[2rem] bg-card border border-border/40 flex items-center justify-center shadow-xl">
-                        <Activity className="h-10 w-10 text-primary/40" />
-                      </div>
-                      <div className="absolute -bottom-2 -right-2 h-8 w-8 rounded-xl bg-background border border-border/40 flex items-center justify-center shadow-lg">
-                        <Zap className="h-4 w-4 text-amber-500" />
-                      </div>
-                    </div>
-                    <div className="space-y-2 max-w-sm px-4">
-                      <p className="font-black text-2xl tracking-tighter text-foreground uppercase">
-                        {isSmtpConnected ? "Activity Stream" : "Ready to launch?"}
-                      </p>
-                      <p className="text-sm text-muted-foreground/60 leading-relaxed">
-                        {isSmtpConnected 
-                          ? "Waiting for incoming lead engagement. All real-time activities will appear here."
-                          : "Connect your email or Instagram channels to start tracking real-time lead intent and automated outreach."}
-                      </p>
-                    </div>
-                    {!isSmtpConnected && (
-                      <Button
-                        className="rounded-2xl px-10 h-12 bg-primary text-black font-black uppercase tracking-widest text-xs hover:scale-105 transition-all shadow-lg shadow-primary/20"
-                        onClick={() => setLocation('/dashboard/integrations')}
-                      >
-                        Connect Integration <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    )}
-                    {isSmtpConnected && (
-                      <div className="flex items-center gap-2 text-primary/40 text-[10px] uppercase font-bold tracking-[0.2em] animate-pulse">
-                        <RefreshCw className="w-3 h-3 animate-spin-slow" />
-                        Listening for events...
-                      </div>
-                    )}
+                  <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground opacity-60">
+                    <Activity className="h-8 w-8 mb-3" />
+                    <p className="text-sm font-bold tracking-widest uppercase">No recent activity</p>
                   </div>
                 )}
               </CardContent>

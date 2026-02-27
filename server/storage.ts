@@ -42,7 +42,6 @@ export interface IStorage {
   getLeadsCount(userId: string): Promise<number>;
   getLeadByUsername(username: string, channel: string): Promise<Lead | undefined>;
   getLeadBySocialId(socialId: string, channel: string): Promise<Lead | undefined>;
-  getLeadRank(leadId: string, userId: string): Promise<{ rank: number; total: number }>;
   createLead(lead: Partial<InsertLead> & { userId: string; name: string; channel: string }, options?: { suppressNotification?: boolean }): Promise<Lead>;
   updateLead(id: string, updates: Partial<Lead>): Promise<Lead | undefined>;
   archiveLead(id: string, userId: string, archived: boolean): Promise<Lead | undefined>;
@@ -620,15 +619,6 @@ return leads;
     lead.channel === channel
   );
 }
-
-  async getLeadRank(leadId: string, userId: string): Promise<{ rank: number; total: number }> {
-    const userLeads = Array.from(this.leads.values())
-      .filter(l => l.userId === userId && !l.archived)
-      .sort((a, b) => (b.score || 0) - (a.score || 0));
-    
-    const rank = userLeads.findIndex(l => l.id === leadId) + 1;
-    return { rank: rank > 0 ? rank : userLeads.length, total: userLeads.length };
-  }
 
 
   async createLead(insertLead: Partial<InsertLead> & { userId: string; name: string; channel: string }, options?: { suppressNotification?: boolean }): Promise<Lead> {

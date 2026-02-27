@@ -440,46 +440,6 @@ export class DrizzleStorage implements IStorage {
     return result;
   }
 
-  async getLeadRank(leadId: string, userId: string): Promise<{ rank: number; total: number }> {
-    checkDatabase();
-    
-    // Get the target lead's score
-    const lead = await this.getLead(leadId);
-    if (!lead || lead.userId !== userId) {
-      return { rank: 0, total: 0 };
-    }
-    
-    const leadScore = lead.score || 0;
-    
-    // Count leads with higher scores
-    const [rankResult] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(leads)
-      .where(
-        and(
-          eq(leads.userId, userId),
-          eq(leads.archived, false),
-          sql`${leads.score} > ${leadScore}`
-        )
-      );
-      
-    // Count total active leads
-    const [totalResult] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(leads)
-      .where(
-        and(
-          eq(leads.userId, userId),
-          eq(leads.archived, false)
-        )
-      );
-      
-    const rank = Number(rankResult?.count || 0) + 1;
-    const total = Number(totalResult?.count || 0);
-    
-    return { rank, total };
-  }
-
 
   async createLead(insertLead: Partial<InsertLead> & { userId: string; name: string; channel: string }, options?: { suppressNotification?: boolean }): Promise<Lead> {
     checkDatabase();
@@ -1633,6 +1593,7 @@ export class DrizzleStorage implements IStorage {
     const [messagesStats] = await db.select({
       totalSent: sql<number>`count(*) filter (where direction = 'outbound')`,
       opened: sql<number>`count(*) filter (where direction = 'outbound' and opened_at is not null)`,
+      replied: sql<number>`count(*) filter (where direction = 'inbound')`,
       messagesToday: sql<number>`count(*) filter (where ${messages.createdAt} >= ${todayStart} and direction = 'outbound')`,
       messagesYesterday: sql<number>`count(*) filter (where ${messages.createdAt} >= ${yesterdayStart} and ${messages.createdAt} < ${todayStart} and direction = 'outbound')`,
       positiveIntents: sql<number>`count(*) filter (where direction = 'inbound' and (lower(body) like '%yes%' or lower(body) like '%book%' or lower(body) like '%interested%' or lower(body) like '%call%' or lower(body) like '%meeting%'))`,
@@ -1661,7 +1622,7 @@ export class DrizzleStorage implements IStorage {
     const averageResponseTime = await this.calculateAverageResponseTime(userId);
 
     return {
-      totalLeads,
+      totalLeads: Number(leadsStats?.totalLeads || 0),
       newLeads: Number(leadsStats?.newLeads || 0),
       activeLeads: Number(leadsStats?.activeLeads || 0),
       convertedLeads: Number(leadsStats?.convertedLeads || 0),
@@ -1669,13 +1630,13 @@ export class DrizzleStorage implements IStorage {
       bouncyLeads: Number(leadsStats?.bouncyLeads || 0),
       recoveredLeads: Number(leadsStats?.recoveredLeads || 0),
       positiveIntents: Number(messagesStats?.positiveIntents || 0),
-      totalMessages: totalSent,
+      totalMessages: Number(messagesStats?.totalSent || 0),
       messagesToday: Number(messagesStats?.messagesToday || 0),
       messagesYesterday: Number(messagesStats?.messagesYesterday || 0),
       pipelineValue: Number(dealsStats?.pipelineValue || 0) + Number(predictedStats?.value || 0),
       closedRevenue: Number(dealsStats?.closedRevenue || 0),
-      openRate: totalSent > 0 ? Math.round((opened / totalSent) * 100) : 0,
-      responseRate: totalLeads > 0 ? Math.round((replied / totalLeads) * 100) : 0,
+      openRate: Number(messagesStats?.totalSent || 0) > 0 ? Math.round((Number(messagesStats?.opened || 0) / Number(messagesStats?.totalSent || 0)) * 100) : 0,
+      responseRate: Number(leadsStats?.totalLeads || 0) > 0 ? Math.round((Number(messagesStats?.replied || 0) / Number(leadsStats?.totalLeads || 0)) * 100) : 0,
       averageResponseTime,
       queuedLeads: Number(leadsStats?.queuedLeads || 0),
       undeliveredLeads: Number(leadsStats?.bouncyLeads || 0),

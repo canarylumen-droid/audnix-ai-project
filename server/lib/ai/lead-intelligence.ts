@@ -23,8 +23,6 @@ if (!openai) {
   console.warn('⚠️ OpenAI API Key missing. Lead Intelligence will use basic scoring.');
 }
 
-import { storage } from "../../storage.js";
-
 export interface IntentDetectionResult {
   intentLevel: "high" | "medium" | "low" | "not_interested";
   intentScore: number;
@@ -70,10 +68,9 @@ export interface CompetitorMentionResult {
 }
 
 export interface SocialProfile {
-  platform: "linkedin" | "twitter" | "instagram" | "github" | "website" | "google_maps" | "other";
+  platform: "linkedin" | "twitter" | "instagram" | "github" | "other";
   url: string;
   handle?: string;
-  reviews?: Array<{ author: string; rating: number; text: string; date: string }>;
 }
 
 export interface LeadIntelligenceDashboard {
@@ -83,10 +80,6 @@ export interface LeadIntelligenceDashboard {
   suggestedActions: string[];
   nextBestAction: string;
   socialProfiles?: SocialProfile[];
-  engagementRank?: {
-    rank: number;
-    total: number;
-  };
   stats?: {
     totalInbound: number;
     totalOutbound: number;
@@ -525,14 +518,6 @@ export async function generateLeadIntelligenceDashboard(
   if (metadata.linkedin || metadata.linkedInUrl) socialProfiles.push({ platform: "linkedin", url: metadata.linkedin || metadata.linkedInUrl });
   if (metadata.twitter || metadata.twitterUrl) socialProfiles.push({ platform: "twitter", url: metadata.twitter || metadata.twitterUrl });
   if (metadata.instagram || metadata.instagramUrl) socialProfiles.push({ platform: "instagram", url: metadata.instagram || metadata.instagramUrl });
-  if (metadata.website || metadata.siteUrl) socialProfiles.push({ platform: "website", url: metadata.website || metadata.siteUrl });
-  if (metadata.google_maps || metadata.mapsUrl) {
-    socialProfiles.push({ 
-      platform: "google_maps", 
-      url: metadata.google_maps || metadata.mapsUrl,
-      reviews: metadata.reviews || undefined
-    });
-  }
 
   // Dynamic Engagement Rank Adjustment
   // Base rank is the intentScore
@@ -585,16 +570,12 @@ export async function generateLeadIntelligenceDashboard(
   const lastMsgAt = messages.length > 0 ? new Date(messages[messages.length - 1].createdAt).getTime() : new Date(lead.createdAt || Date.now()).getTime();
   const lastInteractionDays = Math.floor((Date.now() - lastMsgAt) / (1000 * 60 * 60 * 24));
 
-  // Fetch real rank from database
-  const engagementRankResult = await storage.getLeadRank(lead.id, lead.userId);
-
   return {
     intent,
     predictions,
     churnRisk,
     suggestedActions,
     nextBestAction,
-    engagementRank: engagementRankResult,
     socialProfiles: socialProfiles.length > 0 ? socialProfiles : undefined,
     stats: {
       totalInbound: messages.filter(m => m.direction === 'inbound').length,

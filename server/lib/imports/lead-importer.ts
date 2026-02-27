@@ -17,13 +17,7 @@ export function mapCsvToLeadMetadata(row: Record<string, any>): Record<string, a
     companySize: ['company size', 'size', 'employees', 'team size', 'headcount'],
     painPoint: ['pain point', 'challenge', 'problem', 'needs', 'pain'],
     role: ['role', 'title', 'job title', 'position'],
-    company: ['company', 'organization', 'business name', 'company name'],
-    linkedin: ['linkedin', 'linkedin url', 'linkedin profile'],
-    twitter: ['twitter', 'twitter url', 'x url', 'twitter handle'],
-    instagram: ['instagram', 'instagram url', 'instagram handle', 'ig url'],
-    website: ['website', 'site', 'url', 'web', 'domain'],
-    google_maps: ['google maps', 'maps', 'location url', 'maps url', 'gmb'],
-    reviews: ['reviews', 'ratings', 'feedback', 'testimonials']
+    company: ['company', 'organization', 'business name', 'company name']
   };
 
   for (const [key, aliases] of Object.entries(mappings)) {

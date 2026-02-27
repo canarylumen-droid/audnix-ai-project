@@ -477,6 +477,21 @@ router.get('/track/:trackingId', async (req, res) => {
 
     if (message) {
       console.log(`👁️ Email opened: trackingId=${trackingId}, userId=${message.userId}`);
+
+      // Update lead metadata so the UI filtering for 'opened' works
+      const lead = await db.query.leads.findFirst({
+        where: eq(leads.id, message.leadId),
+      });
+
+      if (lead) {
+        const metadata = (lead.metadata as Record<string, any>) || {};
+        await db.update(leads)
+          .set({
+            metadata: { ...metadata, isOpened: true, lastOpenedAt: new Date().toISOString() }
+          })
+          .where(eq(leads.id, lead.id));
+      }
+
       // Notify UI in real-time
       wsSync.notifyMessagesUpdated(message.userId, {
         type: 'UPDATE',

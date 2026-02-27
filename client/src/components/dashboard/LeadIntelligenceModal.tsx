@@ -69,12 +69,7 @@ interface IntelligenceData {
     socialProfiles?: Array<{
         platform: string;
         url: string;
-        reviews?: Array<{ author: string; rating: number; text: string; date: string }>;
     }>;
-    engagementRank?: {
-        rank: number;
-        total: number;
-    };
 }
 
 
@@ -204,20 +199,17 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                                                 strokeLinecap="round"
                                             />
                                         </svg>
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                            <span className="text-2xl font-black tracking-tighter text-orange-500">
-                                                {intelligence.engagementRank ? `#${intelligence.engagementRank.rank}` : `${intelligence.intent.intentScore}%`}
+                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/30 mb-1">Engagement Rank</div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-3xl font-black tracking-tighter text-orange-500">
+                                                {intelligence.intent.intentScore}%
                                             </span>
-                                            {intelligence.engagementRank && (
-                                                <span className="text-[8px] font-black text-muted-foreground/40 uppercase">
-                                                    of {intelligence.engagementRank.total}
-                                                </span>
-                                            )}
                                         </div>
+
                                     </div>
                                     <div className="space-y-1">
                                         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500/60">Lead Affinity</p>
-                                        <p className="text-sm font-bold text-foreground">Intelligence Rank</p>
+                                        <p className="text-sm font-bold text-foreground">Interest Level</p>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -297,13 +289,11 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                                 <div className="flex flex-wrap gap-2">
                                     {intelligence.socialProfiles?.map((profile: { platform: string; url: string }, i: number) => {
                                         const Icon = profile.platform === 'linkedin' ? Linkedin :
-                                            profile.platform === 'twitter' ? Twitter : 
-                                            profile.platform === 'instagram' ? Zap : 
-                                            profile.platform === 'google_maps' ? Target : Globe;
+                                            profile.platform === 'twitter' ? Twitter : Globe;
                                         return (
                                             <a
                                                 key={i}
-                                                href={profile.url.startsWith('http') ? profile.url : `https://${profile.url}`}
+                                                href={profile.url}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="p-2 rounded-lg bg-background border border-border/50 hover:bg-muted transition-colors text-muted-foreground hover:text-primary"
@@ -411,44 +401,6 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                             <Shield className="h-3 w-3" /> Data enriched by Audnix Engine™
                         </div>
 
-                        {/* Reviews Table if present */}
-                        {intelligence.socialProfiles?.some(p => p.reviews && p.reviews.length > 0) && (
-                            <div className="space-y-3 pt-6 border-t border-border/20">
-                                <h4 className="text-sm font-black flex items-center gap-2 text-primary uppercase tracking-widest">
-                                    <CheckCircle2 className="h-4 w-4" /> Local Reviews & Feedback
-                                </h4>
-                                <Card className="border-border/40 overflow-hidden bg-background/20 rounded-2xl">
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-xs text-left">
-                                            <thead>
-                                                <tr className="bg-muted/50 border-b border-border/20">
-                                                    <th className="p-3 font-black uppercase tracking-widest text-muted-foreground/30">Author</th>
-                                                    <th className="p-3 font-black uppercase tracking-widest text-muted-foreground/30 text-center">Rating</th>
-                                                    <th className="p-3 font-black uppercase tracking-widest text-muted-foreground/30">Review</th>
-                                                    <th className="p-3 font-black uppercase tracking-widest text-muted-foreground/30 text-right">Date</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-border/10">
-                                                {intelligence.socialProfiles.find(p => p.reviews)?.reviews?.map((review, i) => (
-                                                    <tr key={i} className="hover:bg-muted/5 transition-colors">
-                                                        <td className="p-3 font-bold text-foreground/80">{review.author}</td>
-                                                        <td className="p-3 text-center">
-                                                            <div className="flex items-center justify-center gap-0.5">
-                                                                {[...Array(5)].map((_, j) => (
-                                                                    <Target key={j} className={cn("w-2.5 h-2.5", j < review.rating ? "text-amber-500 fill-amber-500" : "text-muted-foreground/10")} />
-                                                                ))}
-                                                            </div>
-                                                        </td>
-                                                        <td className="p-3 text-muted-foreground/70 italic text-xs leading-relaxed max-w-[300px] truncate">{review.text}</td>
-                                                        <td className="p-3 text-right text-[10px] font-bold text-muted-foreground/30">{review.date}</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </Card>
-                            </div>
-                        )}
                     </div>
                 ) : (
                     <div className="py-12 text-center text-muted-foreground">
