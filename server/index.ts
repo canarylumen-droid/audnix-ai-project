@@ -457,7 +457,7 @@ async function runMigrations() {
     startWorker("Email sync", () => emailSyncWorker.start());
     startWorker("Payment approval", () => paymentAutoApprovalWorker.start());
     startWorker("Email warmup", () => emailWarmupWorker.start());
-    startWorker("Lead Expiry", () => leadExpiryWorker.start());
+    // startWorker("Lead Expiry", () => leadExpiryWorker.start());
     
     // Real-time IMAP IDLE Manager
     const { imapIdleManager } = await import("./lib/email/imap-idle-manager.js");

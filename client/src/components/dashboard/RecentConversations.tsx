@@ -58,8 +58,15 @@ export function RecentConversations() {
 
   const { data: leadsData, isLoading: leadsLoading } = useQuery({
     queryKey: ["/api/leads", { channel: selectedChannel, limit: 5 }],
-    refetchInterval: 5000,
   });
+
+  const { data: channelStatus } = useQuery<any>({
+    queryKey: ["/api/channels/all"],
+  });
+
+  const isAnyChannelConnected = 
+    channelStatus?.channels?.email?.connected || 
+    channelStatus?.channels?.instagram?.connected;
 
   const { data: messagesData, isLoading: messagesLoading } = useQuery({
     queryKey: ["/api/leads", selectedLead?.id, "messages"],
@@ -241,9 +248,15 @@ export function RecentConversations() {
               <p className="text-muted-foreground mb-2">
                 No recent {channelConfig[selectedChannel].label} conversations
               </p>
-              <p className="text-xs text-muted-foreground">
-                Connect your account to start receiving leads
-              </p>
+              {isAnyChannelConnected ? (
+                <p className="text-xs text-muted-foreground font-medium italic">
+                  Waiting for new leads to arrive...
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Connect your account to start receiving leads
+                </p>
+              )}
             </div>
           ) : (
             <div className="space-y-2">

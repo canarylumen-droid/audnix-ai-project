@@ -138,7 +138,7 @@ Return ONLY valid JSON, no explanation.`;
     // Store analysis, tags, and update status via Drizzle storage
     await storage.updateLead(lead.id.toString(), {
       tags: tags,
-      status: newStatus,
+      status: newStatus as any,
       metadata: {
         ...(lead as any).metadata,
         lastIntensity: analysis.confidence,

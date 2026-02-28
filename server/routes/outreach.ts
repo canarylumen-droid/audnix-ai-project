@@ -8,7 +8,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { isValidUUID } from '../lib/utils/validation.js';
 import { verifyDomainDns } from '../lib/email/dns-verification.js';
 import { generateExpertOutreach } from '../lib/ai/conversation-ai.js';
-import { outreachCampaigns, campaignLeads, messages, campaignEmails } from '../../shared/schema.js';
+import { outreachCampaigns, campaignLeads, messages, campaignEmails, leads as leadsTable } from '../../shared/schema.js';
 import { storage } from '../storage.js';
 import { db } from '../db.js';
 import { eq, and, desc, sql, ne } from 'drizzle-orm';
@@ -480,16 +480,16 @@ router.get('/track/:trackingId', async (req, res) => {
 
       // Update lead metadata so the UI filtering for 'opened' works
       const lead = await db.query.leads.findFirst({
-        where: eq(leads.id, message.leadId),
+        where: eq(leadsTable.id, message.leadId),
       });
 
       if (lead) {
         const metadata = (lead.metadata as Record<string, any>) || {};
-        await db.update(leads)
+        await db.update(leadsTable)
           .set({
             metadata: { ...metadata, isOpened: true, lastOpenedAt: new Date().toISOString() }
           })
-          .where(eq(leads.id, lead.id));
+          .where(eq(leadsTable.id, lead.id));
       }
 
       // Notify UI in real-time

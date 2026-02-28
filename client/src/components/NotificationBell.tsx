@@ -38,7 +38,7 @@ export function NotificationBell() {
   // Fetch notifications count
   const { data: notifications } = useQuery<NotificationResponse>({
     queryKey: ["/api/notifications"],
-    refetchInterval: 10000, // Increased interval since we have WS now
+
   });
 
   // Play notification sound

@@ -66,13 +66,13 @@ export default function DealsPage() {
   const [, setLocation] = useLocation();
   const { data: dealsData, isLoading } = useQuery<DealsApiResponse>({
     queryKey: ["/api/deals"],
-    refetchInterval: 5000,
+
     retry: false,
   });
 
   const { data: revenueAnalytics } = useQuery<RevenueAnalyticsResponse>({
     queryKey: ["/api/deals/analytics"],
-    refetchInterval: 5000,
+
     retry: false,
   });
 

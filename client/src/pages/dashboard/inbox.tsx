@@ -19,10 +19,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { useParams, useLocation } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -281,8 +277,6 @@ export default function InboxPage() {
           matchesStatus = !!lead.metadata?.isUnread;
         } else if (filterStatus === "read") {
           matchesStatus = !lead.metadata?.isUnread;
-        } else if (filterStatus === "opened") {
-          matchesStatus = !!lead.metadata?.isOpened;
         } else if (filterStatus === "warm") {
           // Warm = Warm OR Booked OR Score > 50
           matchesStatus = ['warm', 'booked'].includes(lead.status) || (lead.score && lead.score > 50) || lead.metadata?.isWarm;
@@ -461,6 +455,24 @@ export default function InboxPage() {
     }
   }, [toast, queryClient, leadId, setLocation]);
 
+  const handleSaveMetadata = async () => {
+    if (!activeLead || !leadId) return;
+    
+    // Merge new social links with existing metadata to prevent data loss
+    const currentMetadata = activeLead.metadata || {};
+    const updatedMetadata = {
+      ...currentMetadata,
+      socialLinks: {
+        ...(currentMetadata.socialLinks || {}),
+        ...editedMetadata
+      }
+    };
+
+    updateLead.mutate({ id: leadId, metadata: updatedMetadata }, {
+      onSuccess: () => setMetadataEditMode(false)
+    });
+  };
+
   const handleBulkAction = async (action: 'archive' | 'delete') => {
     if (selectedLeadIds.length === 0) return;
 
@@ -547,7 +559,6 @@ export default function InboxPage() {
                     <DropdownMenuItem onClick={() => setFilterStatus("all")} className="cursor-pointer font-medium">All Chats</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setFilterStatus("unread")} className="cursor-pointer font-medium">Unread</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setFilterStatus("read")} className="cursor-pointer font-medium">Read</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setFilterStatus("opened")} className="cursor-pointer font-medium">Opened (Tracking)</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setFilterStatus("replied")} className="cursor-pointer font-medium text-emerald-500">Replied</DropdownMenuItem>
                      <DropdownMenuItem onClick={() => setFilterStatus("warm")} className="cursor-pointer font-medium text-orange-500">Warm (Engaged)</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setFilterStatus("cold")} className="cursor-pointer font-medium text-muted-foreground">Cold (No Reply)</DropdownMenuItem>
@@ -691,7 +702,10 @@ export default function InboxPage() {
                     </div>
                     <p className="text-sm font-black uppercase tracking-widest text-foreground">No conversations found</p>
                     <p className="text-[10px] text-muted-foreground font-bold mt-2 uppercase">
-                      {searchQuery || filterStatus !== 'all' ? "Try adjusting your filters" : "Wait for new leads to arrive"}
+                      {searchQuery ? "Try adjusting your search" : 
+                       filterStatus !== 'all' ? `No ${filterStatus} conversations` : 
+                       showArchived ? "No archived conversations" :
+                       "Wait for new leads to arrive"}
                     </p>
                   </div>
                 )}
@@ -796,7 +810,7 @@ export default function InboxPage() {
         </div>
 
         {/* Message Thread Pane */}
-        <div className={cn("flex-1 flex flex-col bg-background h-full", !leadId && "hidden md:flex items-center justify-center")}>
+        <div className={cn("flex-1 flex flex-col bg-background h-full min-w-0 w-full", !leadId && "hidden md:flex items-center justify-center")}>
           {!leadId ? (
             <div className="text-center space-y-6 max-w-sm px-6">
               <div className="relative mx-auto w-24 h-24">
@@ -822,7 +836,7 @@ export default function InboxPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="shrink-0 -ml-2 text-muted-foreground hover:text-primary transition-colors"
+                      className="shrink-0 -ml-2 text-muted-foreground hover:text-primary transition-colors block md:hidden"
                       onClick={() => setLocation('/dashboard/inbox')}
                       title="Back to Inbox"
                     >
@@ -1143,14 +1157,14 @@ export default function InboxPage() {
                       <div className="flex justify-start"><Skeleton className="h-12 w-48 rounded-2xl rounded-tl-none" /></div>
                     </div>
                   ) : messagesData?.messages?.map((msg: any) => (
-                    <div key={msg.id} className={cn("flex w-full", msg.direction === 'inbound' ? "justify-start" : "justify-end")}>
+                    <div key={msg.id} className={cn("flex w-full min-w-0", msg.direction === 'inbound' ? "justify-start" : "justify-end")}>
                       <div className={cn(
-                        "max-w-[85%] md:max-w-[70%] p-4 rounded-2xl text-sm shadow-sm relative group transition-all hover:shadow-md",
+                        "max-w-[90%] md:max-w-[75%] lg:max-w-[65%] p-4 rounded-2xl text-sm shadow-sm relative group transition-all hover:shadow-md min-w-0",
                         msg.direction === 'inbound'
                           ? "bg-white text-black rounded-tl-none border border-border/50 shadow-sm"
                           : "bg-primary text-primary-foreground rounded-tr-none shadow-md shadow-primary/20"
                       )}>
-                        <div className="whitespace-pre-wrap break-words leading-relaxed">{msg.body}</div>
+                        <div className="whitespace-pre-wrap break-words break-all leading-relaxed overflow-hidden">{msg.body}</div>
                         {msg.metadata?.disclaimer && (
                           <div className="mt-3 pt-3 border-t border-current/10 text-[10px] opacity-60 italic font-medium">
                             {msg.metadata.disclaimer}
@@ -1221,7 +1235,7 @@ export default function InboxPage() {
                   </div>
                 ) : (
                   <div className="p-4 md:p-6 border-t bg-background shrink-0 shadow-[0_-4px_15px_-3px_rgba(0,0,0,0.05)] sticky bottom-0 z-20 w-full mb-[env(safe-area-inset-bottom)]">
-                    <div className="flex gap-3 items-end max-w-5xl mx-auto">
+                    <div className="flex gap-2 md:gap-3 items-end max-w-5xl mx-auto w-full">
                       <div className="flex-1 relative group">
                         <textarea
                           value={replyMessage}

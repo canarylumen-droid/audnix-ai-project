@@ -140,7 +140,7 @@ export class VoiceAIService {
     }
 
     // Check if already converted or not interested
-    if (status.status === 'converted' || status.status === 'not_interested') {
+    if ((status.status as any) === 'converted' || (status.status as any) === 'not_interested') {
       return { shouldSend: false, reason: `Lead status is ${status.status}` };
     }
 

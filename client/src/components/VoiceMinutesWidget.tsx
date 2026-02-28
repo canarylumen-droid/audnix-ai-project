@@ -22,7 +22,7 @@ export function VoiceMinutesWidget() {
   const { canAccess: canAccessVoiceNotes } = useCanAccessVoiceNotes();
   const { data: voiceBalance, isLoading } = useQuery<VoiceBalanceData>({
     queryKey: ["/api/voice/balance"],
-    refetchInterval: 10000,
+
   });
 
   const balance = voiceBalance?.balance || 0;

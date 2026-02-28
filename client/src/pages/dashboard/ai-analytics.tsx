@@ -69,7 +69,7 @@ export default function AIAnalyticsPage() {
 
   const { data: analytics, isLoading } = useQuery<AnalyticsResponse>({
     queryKey: ["/api/ai/analytics", { period }],
-    refetchInterval: 30000,
+
   });
 
   const hasData = analytics && analytics.summary.totalLeads > 0;

@@ -202,7 +202,7 @@ export default function DashboardHome() {
 
   const { data: statsData, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
-    refetchInterval: 30000,
+
     staleTime: 10000,
   });
 

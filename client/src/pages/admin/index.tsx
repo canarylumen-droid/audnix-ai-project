@@ -84,23 +84,23 @@ export default function AdminDashboard() {
 
   const { data: overview, isLoading } = useQuery<OverviewData>({
     queryKey: ["/api/admin/overview"],
-    refetchInterval: 5000, // Real-time updates
+
   });
 
   const { data: metrics } = useQuery<MetricsData>({
     queryKey: ["/api/admin/metrics"],
-    refetchInterval: 5000,
+
   });
 
   // Fetch previous period data for real-time percentages
   const { data: previousPeriod } = useQuery<PreviousPeriodData>({
     queryKey: ["/api/admin/overview/previous"],
-    refetchInterval: 10000,
+
   });
 
   const { data: onboarding } = useQuery<OnboardingStats>({
     queryKey: ["/api/admin/analytics/onboarding"],
-    refetchInterval: 30000,
+
   });
 
   if (isLoading) {

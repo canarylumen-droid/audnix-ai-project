@@ -85,7 +85,7 @@ export default function AIDecisionsPage() {
   const { data: decisions, isLoading } = useQuery<AIDecision[]>({
     queryKey: ['/api/automation/decisions'],
     retry: false,
-    refetchInterval: 5000, // Real-time feeling
+
   });
 
   const stats: DecisionStats = {

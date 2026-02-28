@@ -132,7 +132,7 @@ export default function ObjectionsLibraryPage() {
 
   const { data, isLoading } = useQuery<ObjectionsResponse>({
     queryKey: ["/api/objections", { category: selectedCategory !== "all" ? selectedCategory : undefined, channel: selectedChannel !== "all" ? selectedChannel : undefined, search: searchQuery || undefined }],
-    refetchInterval: 30000,
+
   });
 
   const filteredObjections = useMemo(() => {

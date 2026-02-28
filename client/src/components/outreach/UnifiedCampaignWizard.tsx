@@ -259,7 +259,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
         viewMode === 'preview' ? 'grid grid-cols-3' : 'grid grid-cols-1 lg:grid-cols-3'
       )}>
         {/* Header */}
-        <div className="p-4 md:p-6 border-b border-border/20 flex items-center justify-between shrink-0">
+        <div className="p-4 md:p-6 border-b border-border/20 flex items-center shrink-0">
           <div className="flex items-center gap-3 md:gap-4">
             <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
               <Send className="h-5 w-5 md:h-6 md:w-6 text-primary" />
@@ -272,11 +272,6 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                 ))}
               </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2 md:gap-3">
-            <DialogClose asChild>
-              <Button variant="ghost" size="icon" className="rounded-full hover:bg-destructive/10 hover:text-destructive h-8 w-8 md:h-10 md:w-10 text-xl font-light">×</Button>
-            </DialogClose>
           </div>
         </div>
 

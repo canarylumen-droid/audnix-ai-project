@@ -205,7 +205,7 @@ export default function IntegrationsPage() {
   });
   const { data: stats } = useQuery<any>({
     queryKey: ["/api/dashboard/stats"],
-    refetchInterval: 300000, // 5 minutes
+
   });
   const { data: userData } = useQuery<UserData>({ queryKey: ["/api/user/profile"] });
 

@@ -124,7 +124,7 @@ export default function CalendarPage() {
 
   const { data: bookingsData, isLoading: bookingsLoading } = useQuery<{ bookings: CalendarBooking[] }>({
     queryKey: ["/api/calendar/bookings"],
-    refetchInterval: 30000,
+
     retry: false,
   });
 
@@ -135,7 +135,7 @@ export default function CalendarPage() {
 
   const { data: eventsData } = useQuery({
     queryKey: ["/api/oauth/google-calendar/events"],
-    refetchInterval: 30000,
+
     retry: false,
   });
 

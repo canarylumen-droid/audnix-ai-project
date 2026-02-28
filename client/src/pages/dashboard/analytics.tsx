@@ -113,7 +113,7 @@ export default function AnalyticsPage() {
     const queryClient = useQueryClient();
     const { data: analytics, isLoading } = useQuery<AnalyticsData>({
         queryKey: ["/api/dashboard/analytics/full", { days: dateRange }],
-        refetchInterval: 10000
+
     });
 
     const { data: previousStats } = useQuery<any>({

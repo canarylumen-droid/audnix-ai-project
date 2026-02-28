@@ -601,7 +601,7 @@ router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response): 
     const newStatus = statusDetection.status;
 
     const updatedLead = await storage.updateLead(leadId as string, {
-      status: newStatus,
+      status: newStatus as any,
       lastMessageAt: new Date()
     });
 
@@ -613,9 +613,9 @@ router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response): 
     if (oldStatus !== newStatus) {
       let notificationTitle = '';
       let notificationMessage = '';
-      let notificationType: NotificationType = 'system';
+      let notificationType: any = 'system';
 
-      if (newStatus === 'converted') {
+      if ((newStatus as any) === 'converted') {
         notificationTitle = '🎉 New Conversion!';
         notificationMessage = `${lead.name} from ${lead.channel} has converted! ${statusDetection.reason || ''}`;
         notificationType = 'conversion';
@@ -653,7 +653,7 @@ router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response): 
     const updatedMessages = [...messages, message];
     await saveConversationToMemory(userId, lead, updatedMessages);
 
-    if (statusDetection.status !== 'converted' && statusDetection.status !== 'not_interested') {
+    if ((statusDetection.status as any) !== 'converted' && (statusDetection.status as any) !== 'not_interested') {
       const followUpTime = await scheduleFollowUp(userId, leadId as string, lead.channel, 'followup');
 
       res.json({
