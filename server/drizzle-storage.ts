@@ -1644,7 +1644,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   private async calculateAverageResponseTime(userId: string): Promise<string> {
-    const [responseTimeResult] = await db.execute(sql`
+    const result: any = await db.execute(sql`
       WITH response_times AS (
         SELECT 
           m2.created_at - m1.created_at as duration
@@ -1666,7 +1666,8 @@ export class DrizzleStorage implements IStorage {
       FROM response_times
     `);
 
-    const avgSeconds = Number((responseTimeResult as any)?.avg_seconds || 0);
+    const row = Array.isArray(result) ? result[0] : result?.rows?.[0];
+    const avgSeconds = Number(row?.avg_seconds || 0);
     if (avgSeconds <= 0) return '—';
     
     if (avgSeconds < 3600) {
