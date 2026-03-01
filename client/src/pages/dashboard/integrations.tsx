@@ -232,7 +232,7 @@ export default function IntegrationsPage() {
 
   const verifyDomainMutation = useMutation({
     mutationFn: async (domain: string) => {
-      const res = await apiRequest("POST", "/api/dns/verify", { domain });
+      const res = await apiRequest("POST", "/api/dns/verify", { domain, force: true });
       return res.json();
     },
     onSuccess: () => {

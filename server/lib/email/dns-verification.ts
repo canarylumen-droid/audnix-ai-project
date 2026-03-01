@@ -226,7 +226,7 @@ async function checkMx(domain: string): Promise<DnsVerificationResult['mx']> {
   }
 }
 
-export async function verifyDomainDns(domain: string, dkimSelector?: string): Promise<DnsVerificationResult> {
+export async function verifyDomainDns(domain: string, dkimSelector?: string, force = false): Promise<DnsVerificationResult> {
   let cleanDomain = domain.toLowerCase().trim();
   try {
     const url = new URL(cleanDomain.startsWith('http') ? cleanDomain : `https://${cleanDomain}`);
@@ -238,7 +238,7 @@ export async function verifyDomainDns(domain: string, dkimSelector?: string): Pr
   // Check Neural Cache First
   const cacheKey = `${cleanDomain}:${dkimSelector || 'default'}`;
   const cached = getCachedResult<DnsVerificationResult>(cacheKey);
-  if (cached) return cached;
+  if (cached && !force) return cached;
 
   const [spf, dkim, dmarc, mx] = await Promise.all([
     checkSpf(cleanDomain),

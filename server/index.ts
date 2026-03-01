@@ -293,6 +293,7 @@ app.use((req, res, next) => {
     "/api/oauth/facebook/webhook",
     "/api/messages",
     "/api/notifications",
+    "/api/dns/verify",
   ];
 
   const requestPath = req.path;
@@ -458,7 +459,7 @@ async function runMigrations() {
     startWorker("Payment approval", () => paymentAutoApprovalWorker.start());
     startWorker("Email warmup", () => emailWarmupWorker.start());
     // startWorker("Lead Expiry", () => leadExpiryWorker.start());
-    
+
     // Real-time IMAP IDLE Manager
     const { imapIdleManager } = await import("./lib/email/imap-idle-manager.js");
     startWorker("IMAP IDLE", () => imapIdleManager.start());

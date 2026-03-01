@@ -12,7 +12,7 @@ const CACHE_TTL = 5 * 60 * 1000;
 
 router.post('/verify', requireAuth, apiLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { domain, dkimSelector } = req.body;
+    const { domain, dkimSelector, force } = req.body;
 
     if (!domain || typeof domain !== 'string') {
       res.status(400).json({ error: 'Domain is required' });
@@ -30,7 +30,7 @@ router.post('/verify', requireAuth, apiLimiter, async (req: Request, res: Respon
 
     const cacheKey = `${cleanDomain}:${dkimSelector || 'default'}`;
     const cached = verificationCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    if (cached && !force && Date.now() - cached.timestamp < CACHE_TTL) {
       res.json({
         success: true,
         cached: true,
@@ -39,9 +39,11 @@ router.post('/verify', requireAuth, apiLimiter, async (req: Request, res: Respon
       return;
     }
 
-    const result = await verifyDomainDns(cleanDomain, dkimSelector);
+    const result = await verifyDomainDns(cleanDomain, dkimSelector, !!force);
 
-    verificationCache.set(cacheKey, { result, timestamp: Date.now() });
+    if (!force) {
+      verificationCache.set(cacheKey, { result, timestamp: Date.now() });
+    }
 
     const userId = getCurrentUserId(req);
     if (userId) {
