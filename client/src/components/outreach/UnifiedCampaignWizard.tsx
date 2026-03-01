@@ -633,35 +633,33 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40">Real-time engagement simulation</p>
           </div>
         </div>
-      </div >
-    </DialogContent >
+      </DialogContent>
 
-    {/* Mobile View Toggle (Floating) - Persistent and clear */ }
-  < div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[60] flex sm:hidden bg-background/90 backdrop-blur-2xl border border-primary/20 rounded-full p-1.5 shadow-2xl shadow-primary/20 scale-110" >
-    <Button
-      variant={viewMode === 'edit' ? 'default' : 'ghost'}
-      size="sm"
-      onClick={() => setViewMode('edit')}
-      className={cn(
-        "rounded-full text-[10px] font-black uppercase tracking-widest px-6 h-9 transition-all",
-        viewMode === 'edit' && "bg-primary text-primary-foreground shadow-lg"
-      )}
-    >
-      Editor
-    </Button>
-    <Button
-      variant={viewMode === 'preview' ? 'default' : 'ghost'}
-      size="sm"
-      onClick={() => setViewMode('preview')}
-      className={cn(
-        "rounded-full text-[10px] font-black uppercase tracking-widest px-6 h-9 transition-all",
-        viewMode === 'preview' && "bg-primary text-primary-foreground shadow-lg"
-      )}
-    >
-      Preview
-    </Button>
-  </div >
+      {/* Mobile View Toggle (Floating) - Persistent and clear */}
+      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[60] flex sm:hidden bg-background/90 backdrop-blur-2xl border border-primary/20 rounded-full p-1.5 shadow-2xl shadow-primary/20 scale-110">
+        <Button
+          variant={viewMode === 'edit' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setViewMode('edit')}
+          className={cn(
+            "rounded-full text-[10px] font-black uppercase tracking-widest px-6 h-9 transition-all",
+            viewMode === 'edit' && "bg-primary text-primary-foreground shadow-lg"
+          )}
+        >
+          Editor
+        </Button>
+        <Button
+          variant={viewMode === 'preview' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setViewMode('preview')}
+          className={cn(
+            "rounded-full text-[10px] font-black uppercase tracking-widest px-6 h-9 transition-all",
+            viewMode === 'preview' && "bg-primary text-primary-foreground shadow-lg"
+          )}
+        >
+          Preview
+        </Button>
+      </div>
     </Dialog >
   );
 }
-
