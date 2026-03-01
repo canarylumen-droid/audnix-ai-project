@@ -97,6 +97,7 @@ export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const lastNotificationTime = useRef<number>(0);
+  const socketRef = useRef<Socket | null>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>(

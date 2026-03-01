@@ -29,7 +29,8 @@ export class ErrorBoundary extends Component<Props, State> {
 
   private handleReset = () => {
     this.setState({ hasError: false, error: null });
-    window.location.href = '/dashboard';
+    // Use replace to avoid keeping the error page in history
+    window.location.replace('/dashboard');
   };
 
   public render() {
