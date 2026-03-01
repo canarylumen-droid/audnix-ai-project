@@ -253,11 +253,11 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[100vw] w-screen h-[100dvh] sm:h-[95dvh] sm:max-w-7xl sm:w-[98vw] sm:rounded-3xl m-0 sm:m-auto p-0 border-0 flex flex-col overflow-hidden shadow-2xl">
+    <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-[95vw] w-full h-[95vh] rounded-[2rem] p-0 overflow-hidden bg-background border-border/40 flex flex-col shadow-2xl">
         {/* Header */}
-        <div className="p-4 md:p-6 border-b border-border/20 flex items-center shrink-0">
-          <div className="flex items-center gap-3 md:gap-4">
+        <div className="flex-none p-6 md:p-8 flex items-center justify-between border-b border-border/40 bg-card/50 backdrop-blur-xl shrink-0 z-10">
+          <div className="flex items-center gap-4">
             <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
               <Send className="h-5 w-5 md:h-6 md:w-6 text-primary" />
             </div>
@@ -272,10 +272,13 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
           </div>
         </div>
 
-        <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-2 relative">
+        <div className="flex flex-1 overflow-hidden relative">
           {/* Main Workspace */}
-          <div className={cn("flex flex-col h-full bg-background/50 overflow-y-auto lg:overflow-hidden border-r border-border/10", viewMode === 'preview' && 'hidden lg:flex')}>
-            <ScrollArea className="flex-1 p-4 md:p-8">
+          <div className={cn(
+            "flex-1 overflow-y-auto w-full transition-all duration-500 ease-in-out pb-24", // Add padding bottom for footer
+            step === 2 && viewMode === 'preview' ? 'hidden md:block' : 'block'
+          )}>
+            <div className="max-w-4xl mx-auto p-6 md:p-10">
               <AnimatePresence mode="wait">
                 {step === 1 && (
                   <motion.div key="step1" initial="enter" animate="center" exit="exit" variants={variants} className="space-y-8 pb-10">
@@ -580,7 +583,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                   </motion.div>
                 )}
               </AnimatePresence>
-            </ScrollArea>
+            </div>
 
             {/* Footer Navigation */}
             <div className="p-6 md:p-8 border-t border-border/20 bg-card flex items-center justify-between shrink-0">
@@ -613,71 +616,52 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
             </div>
           </div>
 
-          {/* Preview Panel */}
-          <div className={cn(
-            "h-full overflow-hidden bg-muted/10 border-l border-border/10 flex-col lg:col-span-1",
-            viewMode === 'preview' ? 'flex' : 'hidden lg:flex'
-          )}>
-            <div className="p-4 border-b border-border/10 flex justify-center gap-3 shrink-0">
-              {['ios', 'android'].map(d => (
-                <Button
-                  key={d}
-                  variant={previewDevice === d ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setPreviewDevice(d as any)}
-                  className="h-8 text-[9px] font-black uppercase tracking-[0.2em] rounded-full px-6 transition-all"
-                >
-                  {d}
-                </Button>
-              ))}
-            </div>
+          <div className="flex-1 relative overflow-hidden bg-gradient-to-b from-transparent to-primary/5">
+            <Tabs key={viewMode} defaultValue="p1" className="h-full">
+              <TabsList className="absolute top-6 left-1/2 -translate-x-1/2 z-30 shadow-2xl rounded-full p-1.5 bg-background/80 backdrop-blur border border-border/20 flex gap-2 h-auto md:scale-110 lg:scale-125">
+                <TabsTrigger value="p1" className="h-8 md:h-10 text-[9px] md:text-[10px] font-black uppercase px-5 md:px-8 rounded-full transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">S1</TabsTrigger>
+                <TabsTrigger value="p2" className="h-8 md:h-10 text-[9px] md:text-[10px] font-black uppercase px-5 md:px-8 rounded-full transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">S2</TabsTrigger>
+                <TabsTrigger value="p3" className="h-8 md:h-10 text-[9px] md:text-[10px] font-black uppercase px-5 md:px-8 rounded-full transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">S3</TabsTrigger>
+              </TabsList>
+              <TabsContent value="p1" className="h-full m-0 pt-16 md:pt-0">{renderPreview(subject, body)}</TabsContent>
+              <TabsContent value="p2" className="h-full m-0 pt-16 md:pt-0">{renderPreview(followUpSubject, followUpBody)}</TabsContent>
+              <TabsContent value="p3" className="h-full m-0 pt-16 md:pt-0">{renderPreview(followUpSubject2, followUpBody2)}</TabsContent>
+            </Tabs>
+          </div>
 
-            <div className="flex-1 relative overflow-hidden bg-gradient-to-b from-transparent to-primary/5">
-              <Tabs key={viewMode} defaultValue="p1" className="h-full">
-                <TabsList className="absolute top-6 left-1/2 -translate-x-1/2 z-30 shadow-2xl rounded-full p-1.5 bg-background/80 backdrop-blur border border-border/20 flex gap-2 h-auto md:scale-110 lg:scale-125">
-                  <TabsTrigger value="p1" className="h-8 md:h-10 text-[9px] md:text-[10px] font-black uppercase px-5 md:px-8 rounded-full transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">S1</TabsTrigger>
-                  <TabsTrigger value="p2" className="h-8 md:h-10 text-[9px] md:text-[10px] font-black uppercase px-5 md:px-8 rounded-full transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">S2</TabsTrigger>
-                  <TabsTrigger value="p3" className="h-8 md:h-10 text-[9px] md:text-[10px] font-black uppercase px-5 md:px-8 rounded-full transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">S3</TabsTrigger>
-                </TabsList>
-                <TabsContent value="p1" className="h-full m-0 pt-16 md:pt-0">{renderPreview(subject, body)}</TabsContent>
-                <TabsContent value="p2" className="h-full m-0 pt-16 md:pt-0">{renderPreview(followUpSubject, followUpBody)}</TabsContent>
-                <TabsContent value="p3" className="h-full m-0 pt-16 md:pt-0">{renderPreview(followUpSubject2, followUpBody2)}</TabsContent>
-              </Tabs>
-            </div>
-
-            <div className="p-6 border-t border-border/10 text-center">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40">Real-time engagement simulation</p>
-            </div>
+          <div className="p-6 border-t border-border/10 text-center">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40">Real-time engagement simulation</p>
           </div>
         </div>
-      </DialogContent>
+      </div >
+    </DialogContent >
 
-      {/* Mobile View Toggle (Floating) - Persistent and clear */}
-      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[60] flex sm:hidden bg-background/90 backdrop-blur-2xl border border-primary/20 rounded-full p-1.5 shadow-2xl shadow-primary/20 scale-110">
-        <Button
-          variant={viewMode === 'edit' ? 'default' : 'ghost'}
-          size="sm"
-          onClick={() => setViewMode('edit')}
-          className={cn(
-            "rounded-full text-[10px] font-black uppercase tracking-widest px-6 h-9 transition-all",
-            viewMode === 'edit' && "bg-primary text-primary-foreground shadow-lg"
-          )}
-        >
-          Editor
-        </Button>
-        <Button
-          variant={viewMode === 'preview' ? 'default' : 'ghost'}
-          size="sm"
-          onClick={() => setViewMode('preview')}
-          className={cn(
-            "rounded-full text-[10px] font-black uppercase tracking-widest px-6 h-9 transition-all",
-            viewMode === 'preview' && "bg-primary text-primary-foreground shadow-lg"
-          )}
-        >
-          Preview
-        </Button>
-      </div>
-    </Dialog>
+    {/* Mobile View Toggle (Floating) - Persistent and clear */ }
+  < div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[60] flex sm:hidden bg-background/90 backdrop-blur-2xl border border-primary/20 rounded-full p-1.5 shadow-2xl shadow-primary/20 scale-110" >
+    <Button
+      variant={viewMode === 'edit' ? 'default' : 'ghost'}
+      size="sm"
+      onClick={() => setViewMode('edit')}
+      className={cn(
+        "rounded-full text-[10px] font-black uppercase tracking-widest px-6 h-9 transition-all",
+        viewMode === 'edit' && "bg-primary text-primary-foreground shadow-lg"
+      )}
+    >
+      Editor
+    </Button>
+    <Button
+      variant={viewMode === 'preview' ? 'default' : 'ghost'}
+      size="sm"
+      onClick={() => setViewMode('preview')}
+      className={cn(
+        "rounded-full text-[10px] font-black uppercase tracking-widest px-6 h-9 transition-all",
+        viewMode === 'preview' && "bg-primary text-primary-foreground shadow-lg"
+      )}
+    >
+      Preview
+    </Button>
+  </div >
+    </Dialog >
   );
 }
 

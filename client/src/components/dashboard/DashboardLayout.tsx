@@ -186,10 +186,12 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
 
   const { permission, isSubscribed, subscribe, loading: pushLoading } = usePushNotifications();
 
-  const handleSearchKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && searchQuery.trim()) {
-      setLocation(`/dashboard/inbox?search=${encodeURIComponent(searchQuery.trim())}`);
+      // Pass the search query as a URL parameter to deep link or filter the inbox
+      setLocation(`/dashboard/inbox?q=${encodeURIComponent(searchQuery.trim())}`);
       setSearchQuery("");
+      setMobileMenuOpen(false); // Close mobile menu if open
     }
   };
 

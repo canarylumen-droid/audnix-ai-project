@@ -41,8 +41,8 @@ export class ErrorBoundary extends Component<Props, State> {
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Something went wrong</AlertTitle>
             <AlertDescription className="mt-2">
-              <p className="mb-4">
-                {this.state.error?.message || 'An unexpected error occurred'}
+              <p className="mb-4 text-sm text-muted-foreground">
+                We encountered an unexpected issue. Our team has been notified.
               </p>
               <Button onClick={this.handleReset} variant="outline">
                 Return to Dashboard

@@ -102,6 +102,17 @@ export default function InboxPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterChannel, setFilterChannel] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all"); // Added status filter
+
+  // Handle Global Search params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get("q");
+    if (q) {
+      setSearchQuery(q);
+      // Optional: clear the URL so it doesn't persist forever
+      // window.history.replaceState({}, '', '/dashboard/inbox'); 
+    }
+  }, []);
   const [allLeads, setAllLeads] = useState<any[]>([]);
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
   const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
@@ -148,6 +159,21 @@ export default function InboxPage() {
       }
     };
 
+    const handleNewMessage = (data: any) => {
+      // Invalidate both leads list and specific message thread
+      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      if (leadId || data?.leadId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/messages", leadId || data.leadId] });
+      }
+
+      // Auto-scroll if we are currently viewing the thread
+      if (data?.leadId === leadId) {
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 100);
+      }
+    };
+
     let notifTimeout: NodeJS.Timeout;
     const handleNotification = (data: any) => {
       if (data?.type === 'lead_import') {
@@ -177,11 +203,24 @@ export default function InboxPage() {
     socket.on('notification', handleNotification);
     socket.on('activity_updated', handleActivityUpdated);
 
+    socket.on("messages", handleMessagesUpdated);
+    socket.on("leads", handleLeadsUpdated);
+    socket.on("message", handleNewMessage);
+    socket.on("message_received", handleNewMessage);
+    socket.on("message_sent", handleNewMessage);
+
     return () => {
       socket.off('messages_updated', handleMessagesUpdated);
       socket.off('leads_updated', handleLeadsUpdated);
       socket.off('notification', handleNotification);
       socket.off('activity_updated', handleActivityUpdated);
+
+      socket.off("messages", handleMessagesUpdated);
+      socket.off("leads", handleLeadsUpdated);
+      socket.off("message", handleNewMessage);
+      socket.off("message_received", handleNewMessage);
+      socket.off("message_sent", handleNewMessage);
+
       clearTimeout(messagesTimeout);
       clearTimeout(leadsTimeout);
       clearTimeout(notifTimeout);
@@ -298,7 +337,8 @@ export default function InboxPage() {
         } else if (filterStatus === "replied") {
           matchesStatus = ['replied', 'warm', 'booked'].includes(lead.status);
         } else if (filterStatus === "opened") {
-          matchesStatus = !!lead.metadata?.openedCount || !!lead.metadata?.openedAt || !!lead.metadata?.opened;
+          // Catch any tracking format: opened=true, openedCount>0, or openedAt exists
+          matchesStatus = !!lead.metadata?.openedCount || !!lead.metadata?.openedAt || lead.metadata?.opened === true || lead.status === 'opened';
         } else if (filterStatus === "cold") {
           matchesStatus = ['cold', 'new', 'open'].includes(lead.status);
         } else if (filterStatus === "booked") {

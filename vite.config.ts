@@ -49,7 +49,8 @@ export default defineConfig({
     port: 5000,
     strictPort: true,
     hmr: {
-      port: 24679
+      port: 24679,
+      overlay: false
     },
     fs: {
       strict: false,

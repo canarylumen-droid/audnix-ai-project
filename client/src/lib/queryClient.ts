@@ -81,7 +81,9 @@ export const queryClient = new QueryClient({
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: Infinity,
+      gcTime: 1000 * 60 * 60 * 24, // 24 hours
       retry: false,
+      refetchOnMount: false, // Prevents refetching immediately when component remounts
     },
     mutations: {
       retry: false,

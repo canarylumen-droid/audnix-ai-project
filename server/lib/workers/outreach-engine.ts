@@ -21,8 +21,9 @@ import { sendInstagramOutreach } from '../channels/instagram.js';
 export class OutreachEngine {
   private isRunning: boolean = false;
   private interval: NodeJS.Timeout | null = null;
-  private readonly TICK_INTERVAL_MS = 15000; // 15 seconds for more responsive "live" feel
+  private readonly TICK_INTERVAL_MS = 1000; // 1 second for ultra-live feel and multi-user scaling
   private activeUserProcessing: Set<string> = new Set();
+  private readonly MAX_CONCURRENT_USERS = 5000; // Drastically boosted concurrency limit
 
   /**
    * Start the outreach engine
@@ -78,16 +79,17 @@ export class OutreachEngine {
 
       const uniqueUserIds = [...new Set((activeIntegrations as any).map((i: any) => i.userId))] as string[];
 
-      // 2. Process each user (non-blocking)
-      for (const userId of uniqueUserIds) {
-        if (this.activeUserProcessing.has(userId)) continue;
+      // 2. Process each user in highly-concurrent batches (non-blocking)
+      const userBatch = uniqueUserIds.slice(0, this.MAX_CONCURRENT_USERS);
 
-        // Note: In serverless mode, we might want to wait for these.
-        // But for the background worker, we let them run in parallel.
-        this.processUserOutreach(userId).catch(err => {
+      const processPromises = userBatch.map(userId => {
+        if (this.activeUserProcessing.has(userId)) return Promise.resolve();
+        return this.processUserOutreach(userId).catch(err => {
           console.error(`[OutreachEngine] Error for user ${userId}:`, err);
         });
-      }
+      });
+
+      await Promise.allSettled(processPromises);
 
       workerHealthMonitor.recordSuccess('outreach-engine');
     } catch (error: any) {
@@ -172,7 +174,7 @@ export class OutreachEngine {
           )
         )
       )
-      .limit(50);
+      .limit(500); // 10x capacity per tick per user
 
     if (nextLeadsResult.length === 0) {
       console.log(`[OutreachEngine] No leads due for campaign: ${campaign.name} (ID: ${campaign.id})`);
