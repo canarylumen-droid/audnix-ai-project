@@ -730,7 +730,7 @@ export default function IntegrationsPage() {
                         )}
                       </CardFooter>
                     </Card>
-                  ))
+                })
               )}
             </div>
           </div>
