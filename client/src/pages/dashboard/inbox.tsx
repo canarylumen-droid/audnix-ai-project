@@ -279,7 +279,9 @@ export default function InboxPage() {
     return allLeads.filter((lead: any) => {
       const matchesSearch = !searchQuery ||
         lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        lead.email?.toLowerCase().includes(searchQuery.toLowerCase());
+        lead.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        lead.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        lead.snippet?.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesChannel = filterChannel === "all" || lead.channel === filterChannel;
 

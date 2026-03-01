@@ -35,12 +35,21 @@ const showPushNotification = async (title: string, options: any) => {
   }
 };
 
-// Notification sound
+// Notification sound with audio context fallback
 const playNotificationSound = () => {
   try {
     const audio = new Audio('/sounds/notification.mp3');
     audio.volume = 0.5;
-    audio.play().catch(err => console.log('Could not play notification sound:', err));
+
+    // Create a temporary interaction to unlock audio if needed
+    const playPromise = audio.play();
+
+    if (playPromise !== undefined) {
+      playPromise.catch(error => {
+        console.log('Audio playback blocked by browser policy. Interaction required.');
+        // We'll handle the UI prompt in TopNav
+      });
+    }
   } catch (err) {
     console.log('Notification sound not available');
   }
@@ -64,9 +73,16 @@ const getRelativeTime = (timestamp: string | Date): string => {
 interface RealtimeContextType {
   socket: Socket | null;
   isConnected: boolean;
+  notificationPermission: NotificationPermission;
+  requestPermission: () => Promise<void>;
 }
 
-const RealtimeContext = createContext<RealtimeContextType>({ socket: null, isConnected: false });
+const RealtimeContext = createContext<RealtimeContextType>({
+  socket: null,
+  isConnected: false,
+  notificationPermission: 'default',
+  requestPermission: async () => { }
+});
 
 export function useRealtime() {
   return useContext(RealtimeContext);
@@ -81,9 +97,30 @@ export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const lastNotificationTime = useRef<number>(0);
-  const socketRef = useRef<Socket | null>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>(
+    typeof Notification !== 'undefined' ? Notification.permission : 'denied'
+  );
+
+  const requestPermission = async () => {
+    if (typeof Notification === 'undefined') return;
+
+    const permission = await Notification.requestPermission();
+    setNotificationPermission(permission);
+
+    if (permission === 'granted') {
+      // Unlock audio context with a silent sound
+      const audio = new Audio('/sounds/notification.mp3');
+      audio.volume = 0.01;
+      audio.play().catch(() => { });
+
+      toast({
+        title: "Notifications Enabled",
+        description: "You'll now receive real-time alerts with sound.",
+      });
+    }
+  };
 
   useEffect(() => {
     // Register service worker on mount
@@ -290,7 +327,7 @@ export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
   }, [userId, queryClient, toast]);
 
   return (
-    <RealtimeContext.Provider value={{ socket, isConnected }}>
+    <RealtimeContext.Provider value={{ socket, isConnected, notificationPermission, requestPermission }}>
       {children}
     </RealtimeContext.Provider>
   );

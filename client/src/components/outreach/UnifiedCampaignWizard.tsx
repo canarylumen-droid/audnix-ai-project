@@ -254,7 +254,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[100vw] w-screen h-[100dvh] sm:h-[90vh] sm:max-w-6xl sm:w-[95vw] sm:rounded-3xl m-0 sm:m-auto p-0 border-0 flex flex-col overflow-hidden shadow-2xl">
+      <DialogContent className="max-w-[100vw] w-screen h-[100dvh] sm:h-[95dvh] sm:max-w-7xl sm:w-[98vw] sm:rounded-3xl m-0 sm:m-auto p-0 border-0 flex flex-col overflow-hidden shadow-2xl">
         {/* Header */}
         <div className="p-4 md:p-6 border-b border-border/20 flex items-center shrink-0">
           <div className="flex items-center gap-3 md:gap-4">
@@ -453,10 +453,10 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                       </div>
 
                       <Tabs defaultValue="initial" className="w-full" key={step}>
-                        <TabsList className="h-12 w-full bg-muted/40 p-1.5 rounded-2xl border border-border/10 mb-6 flex gap-2">
-                          <TabsTrigger value="initial" className="flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-md transition-all h-full">Sequene 01</TabsTrigger>
-                          <TabsTrigger value="followup" className="flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-md transition-all h-full">Sequene 02</TabsTrigger>
-                          <TabsTrigger value="followup2" className="flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-md transition-all h-full">Sequene 03</TabsTrigger>
+                        <TabsList className="h-auto w-full bg-muted/40 p-1.5 rounded-2xl border border-border/10 mb-6 flex flex-wrap sm:flex-nowrap gap-2">
+                          <TabsTrigger value="initial" className="flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-md transition-all h-10 sm:h-full">Sequence 01</TabsTrigger>
+                          <TabsTrigger value="followup" className="flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-md transition-all h-10 sm:h-full">Sequence 02</TabsTrigger>
+                          <TabsTrigger value="followup2" className="flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-md transition-all h-10 sm:h-full">Sequence 03</TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="initial" className="space-y-4 animate-in fade-in duration-300">
@@ -652,13 +652,16 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
         </div>
       </DialogContent>
 
-      {/* Mobile View Toggle (Floating) */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex sm:hidden bg-background/80 backdrop-blur-xl border border-border rounded-full p-1 shadow-2xl">
+      {/* Mobile View Toggle (Floating) - Persistent and clear */}
+      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[60] flex sm:hidden bg-background/90 backdrop-blur-2xl border border-primary/20 rounded-full p-1.5 shadow-2xl shadow-primary/20 scale-110">
         <Button
           variant={viewMode === 'edit' ? 'default' : 'ghost'}
           size="sm"
           onClick={() => setViewMode('edit')}
-          className="rounded-full text-[10px] font-bold uppercase tracking-widest px-4 h-8"
+          className={cn(
+            "rounded-full text-[10px] font-black uppercase tracking-widest px-6 h-9 transition-all",
+            viewMode === 'edit' && "bg-primary text-primary-foreground shadow-lg"
+          )}
         >
           Editor
         </Button>
@@ -666,7 +669,10 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
           variant={viewMode === 'preview' ? 'default' : 'ghost'}
           size="sm"
           onClick={() => setViewMode('preview')}
-          className="rounded-full text-[10px] font-bold uppercase tracking-widest px-4 h-8"
+          className={cn(
+            "rounded-full text-[10px] font-black uppercase tracking-widest px-6 h-9 transition-all",
+            viewMode === 'preview' && "bg-primary text-primary-foreground shadow-lg"
+          )}
         >
           Preview
         </Button>
