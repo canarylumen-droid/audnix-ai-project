@@ -92,9 +92,9 @@ router.post('/campaigns', requireAuth, async (req, res) => {
     }).returning();
 
     // Log campaign creation
-    await AuditTrailService.logCampaignAction(userId, campaign.id, 'campaign_started', { 
-      name, 
-      configuredLeads: leads?.length || 0 
+    await AuditTrailService.logCampaignAction(userId, campaign.id, 'campaign_started', {
+      name,
+      configuredLeads: leads?.length || 0
     });
 
     // Link leads to campaign (with auto-upsert for non-UUIDs)
@@ -102,7 +102,7 @@ router.post('/campaigns', requireAuth, async (req, res) => {
     if (leads && Array.isArray(leads)) {
       const finalLeadIds: string[] = [];
       const batchSize = 100; // Increased batch size for processing
-      
+
       const thirtyDaysAgoAnalytics = new Date();
       thirtyDaysAgoAnalytics.setDate(thirtyDaysAgoAnalytics.getDate() - 30);
       const analytics = await storage.getAnalyticsSummary(userId, thirtyDaysAgoAnalytics);
@@ -132,7 +132,7 @@ router.post('/campaigns', requireAuth, async (req, res) => {
           try {
             // Check if lead already exists by email
             let existingLead = await storage.getLeadByEmail(email, userId);
-            
+
             if (!existingLead) {
               // Create new lead
               existingLead = await storage.createLead({
@@ -142,24 +142,24 @@ router.post('/campaigns', requireAuth, async (req, res) => {
                 channel: 'email',
                 status: 'new',
                 aiPaused: false,
-                metadata: { 
-                  auto_created: true, 
+                metadata: {
+                  auto_created: true,
                   campaign_id: campaign.id,
-                  import_date: new Date().toISOString() 
+                  import_date: new Date().toISOString()
                 }
               });
               console.log(`[Campaign] Auto-created lead: ${email}`);
             } else if (existingLead.userId !== userId) {
-                continue;
+              continue;
             }
 
             // --- Deduplication Check (Phase 1 Requirement) ---
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-            
+
             const lastContacted = existingLead.lastMessageAt ? new Date(existingLead.lastMessageAt) : null;
             const hasReplied = existingLead.status === 'replied' || existingLead.status === 'converted';
-            
+
             if (hasReplied) {
               console.log(`[Campaign] Skipping lead ${email}: Already replied/converted.`);
               continue;
@@ -169,7 +169,7 @@ router.post('/campaigns', requireAuth, async (req, res) => {
               console.log(`[Campaign] Skipping lead ${email}: Contacted in the last 30 days.`);
               continue;
             }
-            
+
             finalLeadIds.push(existingLead.id);
           } catch (err) {
             console.error(`[Campaign] Failed to auto-upsert/dedupe lead ${email}:`, err);
@@ -180,13 +180,13 @@ router.post('/campaigns', requireAuth, async (req, res) => {
       const leadLinks = finalLeadIds.map(leadId => {
         let nextActionAt: Date | null = null;
         if (bestHour !== null) {
-           const now = new Date();
-           const candidate = new Date();
-           candidate.setHours(bestHour, Math.floor(Math.random() * 60), 0, 0); // Jitter the minute
-           if (candidate < now) {
-              candidate.setDate(candidate.getDate() + 1);
-           }
-           nextActionAt = candidate;
+          const now = new Date();
+          const candidate = new Date();
+          candidate.setHours(bestHour, Math.floor(Math.random() * 60), 0, 0); // Jitter the minute
+          if (candidate < now) {
+            candidate.setDate(candidate.getDate() + 1);
+          }
+          nextActionAt = candidate;
         }
 
         return {
@@ -214,8 +214,8 @@ router.post('/campaigns', requireAuth, async (req, res) => {
     const metricsResult = await createOutreachCampaign(leads, name);
     const safety = validateCampaignSafety(metricsResult);
 
-    res.json({ 
-      ...campaign, 
+    res.json({
+      ...campaign,
       addedLeads: addedCount,
       safety,
       metrics: formatCampaignMetrics(metricsResult)
@@ -304,7 +304,7 @@ router.get('/campaigns/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.session?.userId;
-    
+
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
     const [campaign] = await db.select().from(outreachCampaigns)
@@ -482,7 +482,7 @@ router.get('/track/:trackingId', async (req, res) => {
 
     // 2. Update campaign_emails status for detailed campaign tracking
     const [campaignEmail] = await db.update(campaignEmails)
-      .set({ 
+      .set({
         status: 'opened',
         metadata: sql`jsonb_set(metadata, '{openedAt}', ${JSON.stringify(new Date().toISOString())}::jsonb)`
       })
@@ -497,7 +497,7 @@ router.get('/track/:trackingId', async (req, res) => {
           updatedAt: new Date()
         })
         .where(eq(outreachCampaigns.id, campaignEmail.campaignId));
-      
+
       console.log(`📊 Campaign stat updated: campaignId=${campaignEmail.campaignId}, stat=opened`);
     }
 
@@ -517,7 +517,7 @@ router.get('/track/:trackingId', async (req, res) => {
           })
           .where(eq(leadsTable.id, lead.id));
       }
-      
+
       const leadName = lead ? lead.name : "a lead";
 
       // Notify UI in real-time
@@ -602,7 +602,7 @@ router.get('/click/:trackingId', async (req, res) => {
 
     // 2. Update campaign_emails status
     const [campaignEmail] = await db.update(campaignEmails)
-      .set({ 
+      .set({
         status: 'clicked',
         metadata: sql`jsonb_set(metadata, '{clickedAt}', ${JSON.stringify(new Date().toISOString())}::jsonb)`
       })
@@ -631,7 +631,7 @@ router.get('/click/:trackingId', async (req, res) => {
         messageId: message.id,
         event: 'clicked'
       });
-      
+
       wsSync.notifyActivityUpdated(message.userId, {
         type: 'email_clicked',
         messageId: message.id,
@@ -654,13 +654,35 @@ router.get('/click/:trackingId', async (req, res) => {
       });
     }
 
+    // Validate the target URL to prevent Open Redirect vulnerabilities
+    const isValidUrl = (targetUrl: string) => {
+      try {
+        const parsed = new URL(targetUrl);
+        return ['http:', 'https:'].includes(parsed.protocol);
+      } catch {
+        return false;
+      }
+    };
+
+    if (!isValidUrl(url)) {
+      console.warn(`⚠️ Blocked potentially malicious redirect to: ${url}`);
+      return res.status(400).send('Invalid or unsafe redirect URL');
+    }
+
     // Redirect to the target URL
     return res.redirect(url);
   } catch (error) {
     console.error('Click tracking error:', error);
     const { url } = req.query;
     if (url && typeof url === 'string') {
-      return res.redirect(url);
+      try {
+        const parsed = new URL(url);
+        if (['http:', 'https:'].includes(parsed.protocol)) {
+          return res.redirect(url);
+        }
+      } catch (e) {
+        // Fall through to error
+      }
     }
     res.status(500).send('Internal Server Error');
   }
