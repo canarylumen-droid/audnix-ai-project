@@ -193,6 +193,38 @@ router.get("/analytics", requireAuth, async (req: Request, res: Response): Promi
 });
 
 /**
+ * Generate a comprehensive weekly report
+ * GET /api/ai/weekly-report
+ */
+router.get("/weekly-report", requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 7);
+    startDate.setHours(0, 0, 0, 0);
+
+    const analytics = await storage.getAnalyticsSummary(userId, startDate);
+    
+    const inboundVolume = analytics.summary.leadsReplied;
+    const outboundVolume = analytics.summary.totalLeads;
+    const replyRate = outboundVolume > 0 ? ((inboundVolume / outboundVolume) * 100).toFixed(1) : '0';
+    
+    const bestHour = analytics.summary.bestReplyHour;
+    const bestHourStr = bestHour !== null ? 
+      new Date(new Date().setHours(bestHour, 0, 0, 0)).toLocaleTimeString('en-US', {hour: 'numeric', hour12: true}) 
+      : 'Not enough data';
+
+    const reportText = `## Weekly Performance Report\n**Period:** Last 7 Days\n\n### Overview\n- **Total Outreach Volume:** ${outboundVolume} leads engaged\n- **Inbound Replies:** ${inboundVolume} total replies\n- **Overall Reply Rate:** ${replyRate}%\n\n### Engagement Insights\n- **Most Active User Hour:** ${bestHourStr}\n- **Positive Sentiment Rate:** ${analytics.positiveSentimentRate}\n- **Conversions Generated:** ${analytics.summary.conversions}\n\n### Strategic Recommendations\n${bestHour !== null ? \`To maximize your response rates, we recommend scheduling your campaigns to deploy around **\${bestHourStr}**, matching your historically highest engagement period.\` : 'Continue engaging leads to gather more data on optimal send times.'}`;
+
+    res.json({ text: reportText });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to generate weekly report";
+    console.error("Weekly report error:", error);
+    res.status(500).json({ error: errorMessage });
+  }
+});
+
+/**
  * Update all lead scores
  * POST /api/ai/score-all
  */

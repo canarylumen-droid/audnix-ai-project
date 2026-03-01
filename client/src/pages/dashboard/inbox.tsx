@@ -131,7 +131,7 @@ export default function InboxPage() {
         if (leadId) {
           queryClient.invalidateQueries({ queryKey: ["/api/messages", leadId] });
         }
-      }, 1500);
+      }, 10);
     };
 
     let leadsTimeout: NodeJS.Timeout;
@@ -139,7 +139,7 @@ export default function InboxPage() {
       clearTimeout(leadsTimeout);
       leadsTimeout = setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
-      }, 1500);
+      }, 10);
       
       if (data?.type === 'lead_updated' && data?.lead) {
         setAllLeads(prev => prev.map(l => l.id === data.lead.id ? data.lead : l));
@@ -260,6 +260,16 @@ export default function InboxPage() {
       
       // Always refresh notifications when a lead is opened
       queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+
+      // Load specific lead draft from local storage
+      const savedDraft = localStorage.getItem(`draft_${leadId}`);
+      if (savedDraft) {
+        setReplyMessage(savedDraft);
+      } else {
+        setReplyMessage("");
+      }
+    } else {
+      setReplyMessage("");
     }
   }, [leadId, activeLead?.id, activeLead?.status, queryClient]); // Added activeLead?.status to dependencies
 
@@ -282,6 +292,8 @@ export default function InboxPage() {
           matchesStatus = ['warm', 'booked'].includes(lead.status) || (lead.score && lead.score > 50) || lead.metadata?.isWarm;
         } else if (filterStatus === "replied") {
           matchesStatus = ['replied', 'warm', 'booked'].includes(lead.status);
+        } else if (filterStatus === "opened") {
+          matchesStatus = !!lead.metadata?.openedCount || !!lead.metadata?.openedAt || !!lead.metadata?.opened;
         } else if (filterStatus === "cold") {
           matchesStatus = ['cold', 'new', 'open'].includes(lead.status);
         } else if (filterStatus === "booked") {
@@ -316,6 +328,7 @@ export default function InboxPage() {
     },
     onSuccess: () => {
       setReplyMessage("");
+      if (leadId) localStorage.removeItem(`draft_${leadId}`);
       queryClient.invalidateQueries({ queryKey: ["/api/messages", leadId] });
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
     }
@@ -559,6 +572,7 @@ export default function InboxPage() {
                     <DropdownMenuItem onClick={() => setFilterStatus("all")} className="cursor-pointer font-medium">All Chats</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setFilterStatus("unread")} className="cursor-pointer font-medium">Unread</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setFilterStatus("read")} className="cursor-pointer font-medium">Read</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setFilterStatus("opened")} className="cursor-pointer font-medium text-sky-400">Opened (Pixel tracked)</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setFilterStatus("replied")} className="cursor-pointer font-medium text-emerald-500">Replied</DropdownMenuItem>
                      <DropdownMenuItem onClick={() => setFilterStatus("warm")} className="cursor-pointer font-medium text-orange-500">Warm (Engaged)</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setFilterStatus("cold")} className="cursor-pointer font-medium text-muted-foreground">Cold (No Reply)</DropdownMenuItem>
@@ -832,11 +846,11 @@ export default function InboxPage() {
                 {/* Thread Header */}
                 <div className="h-16 md:h-20 border-b flex items-center px-4 md:px-8 justify-between bg-background shrink-0 z-10">
                   <div className="flex items-center gap-4 min-w-0">
-                    {/* Back Button for Mobile */}
+                    {/* Back Button for All Device Views */}
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="shrink-0 -ml-2 text-muted-foreground hover:text-primary transition-colors block md:hidden"
+                      className="shrink-0 -ml-2 text-muted-foreground hover:text-primary transition-colors block"
                       onClick={() => setLocation('/dashboard/inbox')}
                       title="Back to Inbox"
                     >
@@ -1240,7 +1254,11 @@ export default function InboxPage() {
                         <textarea
                           value={replyMessage}
                           onChange={e => {
-                            setReplyMessage(e.target.value);
+                            const newText = e.target.value;
+                            setReplyMessage(newText);
+                            if (leadId) {
+                                localStorage.setItem(`draft_${leadId}`, newText);
+                            }
                             // Auto-grow logic
                             e.target.style.height = 'auto';
                             e.target.style.height = e.target.scrollHeight + 'px';

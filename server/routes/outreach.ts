@@ -102,6 +102,11 @@ router.post('/campaigns', requireAuth, async (req, res) => {
     if (leads && Array.isArray(leads)) {
       const finalLeadIds: string[] = [];
       const batchSize = 100; // Increased batch size for processing
+      
+      const thirtyDaysAgoAnalytics = new Date();
+      thirtyDaysAgoAnalytics.setDate(thirtyDaysAgoAnalytics.getDate() - 30);
+      const analytics = await storage.getAnalyticsSummary(userId, thirtyDaysAgoAnalytics);
+      const bestHour = analytics.summary.bestReplyHour;
 
       for (const leadItem of leads) {
         // ... (existing logic for UUID and object checks)
@@ -172,11 +177,25 @@ router.post('/campaigns', requireAuth, async (req, res) => {
         }
       }
 
-      const leadLinks = finalLeadIds.map(leadId => ({
-        campaignId: campaign.id,
-        leadId,
-        status: 'pending' as const
-      }));
+      const leadLinks = finalLeadIds.map(leadId => {
+        let nextActionAt: Date | null = null;
+        if (bestHour !== null) {
+           const now = new Date();
+           const candidate = new Date();
+           candidate.setHours(bestHour, Math.floor(Math.random() * 60), 0, 0); // Jitter the minute
+           if (candidate < now) {
+              candidate.setDate(candidate.getDate() + 1);
+           }
+           nextActionAt = candidate;
+        }
+
+        return {
+          campaignId: campaign.id,
+          leadId,
+          status: 'pending' as const,
+          nextActionAt
+        };
+      });
       addedCount = leadLinks.length;
 
       for (let i = 0; i < leadLinks.length; i += batchSize) {
@@ -445,6 +464,13 @@ router.get('/track/:trackingId', async (req, res) => {
     const { trackingId } = req.params;
     const { wsSync } = await import('../lib/websocket-sync.js');
 
+    // Fetch existing message to check if it's the first time it was opened
+    const existingMessage = await db.query.messages.findFirst({
+      where: eq(messages.trackingId, trackingId),
+    });
+
+    const isFirstOpen = existingMessage && !existingMessage.openedAt;
+
     // 1. Update openedAt for the message in unified inbox
     const [message] = await db.update(messages)
       .set({
@@ -464,7 +490,7 @@ router.get('/track/:trackingId', async (req, res) => {
       .returning();
 
     // 3. Roll up stats to campaign level
-    if (campaignEmail?.campaignId) {
+    if (campaignEmail?.campaignId && isFirstOpen) {
       await db.update(outreachCampaigns)
         .set({
           stats: sql`jsonb_set(stats, '{opened}', (COALESCE((stats->>'opened')::int, 0) + 1)::text::jsonb)`,
@@ -475,12 +501,12 @@ router.get('/track/:trackingId', async (req, res) => {
       console.log(`📊 Campaign stat updated: campaignId=${campaignEmail.campaignId}, stat=opened`);
     }
 
-    if (message) {
-      console.log(`👁️ Email opened: trackingId=${trackingId}, userId=${message.userId}`);
+    if (message && isFirstOpen) {
+      console.log(`👁️ Email first opened: trackingId=${trackingId}, userId=${message.userId}`);
 
-      // Update lead metadata so the UI filtering for 'opened' works
+      // Fetch lead to get their name and update metadata
       const lead = await db.query.leads.findFirst({
-        where: eq(leadsTable.id, message.leadId),
+        where: eq(leadsTable.id, message.leadId!),
       });
 
       if (lead) {
@@ -491,6 +517,8 @@ router.get('/track/:trackingId', async (req, res) => {
           })
           .where(eq(leadsTable.id, lead.id));
       }
+      
+      const leadName = lead ? lead.name : "a lead";
 
       // Notify UI in real-time
       wsSync.notifyMessagesUpdated(message.userId, {
@@ -502,16 +530,18 @@ router.get('/track/:trackingId', async (req, res) => {
         type: 'email_opened',
         messageId: message.id,
         leadId: message.leadId,
-        trackingId
+        trackingId,
+        title: 'Email Opened',
+        message: `Email opened by ${leadName}`
       });
 
       // Create audit log for activity feed
       await storage.createAuditLog({
         userId: message.userId,
-        leadId: message.leadId,
+        leadId: message.leadId!,
         action: 'email_opened',
         details: {
-          message: `Email opened by lead`,
+          message: `Email opened by ${leadName}`,
           messageId: message.id,
           trackingId
         }
@@ -554,6 +584,13 @@ router.get('/click/:trackingId', async (req, res) => {
       return res.status(400).send('Invalid redirect URL');
     }
 
+    // Check if it's the first time clicked
+    const existingMessage = await db.query.messages.findFirst({
+      where: eq(messages.trackingId, trackingId),
+    });
+
+    const isFirstClick = existingMessage && !existingMessage.clickedAt;
+
     // 1. Update clickedAt for the message
     const [message] = await db.update(messages)
       .set({
@@ -573,7 +610,7 @@ router.get('/click/:trackingId', async (req, res) => {
       .returning();
 
     // 3. Roll up stats
-    if (campaignEmail?.campaignId) {
+    if (campaignEmail?.campaignId && isFirstClick) {
       await db.update(outreachCampaigns)
         .set({
           stats: sql`jsonb_set(stats, '{clicked}', (COALESCE((stats->>'clicked')::int, 0) + 1)::text::jsonb)`,
@@ -582,7 +619,12 @@ router.get('/click/:trackingId', async (req, res) => {
         .where(eq(outreachCampaigns.id, campaignEmail.campaignId));
     }
 
-    if (message) {
+    if (message && isFirstClick) {
+      const lead = await db.query.leads.findFirst({
+        where: eq(leadsTable.id, message.leadId!),
+      });
+      const leadName = lead ? lead.name : "a lead";
+
       // Notify UI
       wsSync.notifyMessagesUpdated(message.userId, {
         type: 'UPDATE',
@@ -595,15 +637,17 @@ router.get('/click/:trackingId', async (req, res) => {
         messageId: message.id,
         leadId: message.leadId,
         trackingId,
-        url
+        url,
+        title: 'Link Clicked',
+        message: `Link clicked by ${leadName}`
       });
 
       await storage.createAuditLog({
         userId: message.userId,
-        leadId: message.leadId,
+        leadId: message.leadId!,
         action: 'email_clicked',
         details: {
-          message: `Link clicked in email`,
+          message: `Link clicked by ${leadName}`,
           url,
           trackingId
         }

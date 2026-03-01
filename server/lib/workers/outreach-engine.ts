@@ -145,7 +145,10 @@ export class OutreachEngine {
         and(
           eq(campaignLeads.campaignId, campaign.id),
           or(
-            eq(campaignLeads.status, 'pending'),
+            and(
+              eq(campaignLeads.status, 'pending'),
+              or(isNull(campaignLeads.nextActionAt), lte(campaignLeads.nextActionAt, new Date()))
+            ),
             and(
               eq(campaignLeads.status, 'failed'),
               lt(campaignLeads.retryCount, 3),
