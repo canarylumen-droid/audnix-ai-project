@@ -36,7 +36,7 @@ class EmailSyncWorker {
   private isRunning = false;
   private isSyncing = false;
   private syncTimeout: NodeJS.Timeout | null = null;
-  private readonly SYNC_INTERVAL_MS = 60 * 1000; // Updated to 60s per plan
+  private readonly SYNC_INTERVAL_MS = 10 * 1000; // Accelerated to 10s for hyper-realtime sync
   private readonly GHOSTED_THRESHOLD_HOURS = 48;
 
   /**

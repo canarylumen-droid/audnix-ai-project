@@ -124,7 +124,7 @@ export default function DashboardHome() {
       settingsTimeout = setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
         queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
-      }, 2000);
+      }, 100);
     };
 
     let statsTimeout: NodeJS.Timeout;
@@ -132,7 +132,7 @@ export default function DashboardHome() {
       clearTimeout(statsTimeout);
       statsTimeout = setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
-      }, 2000);
+      }, 100);
     };
 
     let activityTimeout: NodeJS.Timeout;
@@ -140,7 +140,7 @@ export default function DashboardHome() {
       clearTimeout(activityTimeout);
       activityTimeout = setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ["/api/dashboard/activity"] });
-      }, 2000);
+      }, 100);
     };
 
     const handleLeadsUpdated = () => {
@@ -447,8 +447,8 @@ export default function DashboardHome() {
                             "h-10 w-10 rounded-full flex items-center justify-center shrink-0 mt-1",
                             isCampaign ? "bg-emerald-500/10 text-emerald-500" : "bg-primary/10 text-primary"
                           )}>
-                            {activity.type === 'message' || activity.type === 'ai_message_sent' ? <MessageSquare className="h-5 w-5" /> : 
-                             isCampaign ? <Send className="h-5 w-5" /> : <Zap className="h-5 w-5" />}
+                            {activity.type === 'message' || activity.type === 'ai_message_sent' ? <MessageSquare className="h-5 w-5" /> :
+                              isCampaign ? <Send className="h-5 w-5" /> : <Zap className="h-5 w-5" />}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex justify-between items-start mb-1">
@@ -456,9 +456,9 @@ export default function DashboardHome() {
                               <span className="text-[11px] text-muted-foreground shrink-0 ml-4 font-black uppercase opacity-50 italic">{formatTimeAgo(activity.time || activity.timestamp || new Date())}</span>
                             </div>
                             <p className="text-xs md:text-sm text-foreground leading-relaxed line-clamp-2">
-                              {activity.type === 'campaign_started' ? `Neural outreach campaign "${activity.metadata?.name || 'Inbound Strategy'}" launched with ${activity.metadata?.configuredLeads || 0} prospects.` : 
-                               activity.type === 'campaign_completed' ? `Outreach campaign completed successfully. All scheduled messages delivered.` :
-                               activity.message}
+                              {activity.type === 'campaign_started' ? `Neural outreach campaign "${activity.metadata?.name || 'Inbound Strategy'}" launched with ${activity.metadata?.configuredLeads || 0} prospects.` :
+                                activity.type === 'campaign_completed' ? `Outreach campaign completed successfully. All scheduled messages delivered.` :
+                                  activity.message}
                             </p>
                           </div>
                         </div>

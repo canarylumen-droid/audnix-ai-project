@@ -174,7 +174,7 @@ export class OutreachEngine {
           )
         )
       )
-      .limit(500); // 10x capacity per tick per user
+      .limit(1000); // 20x capacity per tick per user for massive campaign queues
 
     if (nextLeadsResult.length === 0) {
       console.log(`[OutreachEngine] No leads due for campaign: ${campaign.name} (ID: ${campaign.id})`);
