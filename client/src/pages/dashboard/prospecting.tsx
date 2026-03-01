@@ -44,7 +44,7 @@ export default function ProspectingPage() {
     const { socket } = useRealtime();
 
     // Fetch leads
-    const { data: leads = [], refetch } = useQuery<Prospect[]>({
+    const { data: leads = [], refetch, isLoading: leadsLoading } = useQuery<Prospect[]>({
         queryKey: ['prospects'],
         queryFn: async () => {
             const res = await fetch('/api/prospecting/leads', {
@@ -272,7 +272,24 @@ export default function ProspectingPage() {
             </div>
 
             {/* Results Table */}
-            {leads.length > 0 ? (
+            {leadsLoading ? (
+                <div className="space-y-4">
+                    {[1, 2, 3].map(i => (
+                        <Card key={i} className="bg-muted/10 border-white/5 rounded-2xl p-6 animate-pulse">
+                            <div className="flex items-start justify-between">
+                                <div className="space-y-3 flex-1">
+                                    <div className="h-6 w-48 rounded bg-muted/20" />
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="h-4 w-full rounded bg-muted/20" />
+                                        <div className="h-4 w-full rounded bg-muted/20" />
+                                    </div>
+                                    <div className="h-4 w-32 rounded bg-muted/20" />
+                                </div>
+                            </div>
+                        </Card>
+                    ))}
+                </div>
+            ) : leads.length > 0 ? (
                 <Card className="bg-[#030303]/80 backdrop-blur-3xl border-white/5 rounded-[2.5rem] overflow-hidden relative intelligence-panel">
                     {/* HUD Decorations */}
                     <div className="hud-corner hud-corner-tl opacity-60" />

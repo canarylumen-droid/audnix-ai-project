@@ -99,10 +99,13 @@ export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
   const lastNotificationTime = useRef<number>(0);
   const socketRef = useRef<Socket | null>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>(
     typeof Notification !== 'undefined' ? Notification.permission : 'denied'
   );
+
+  // Computed for backward compatibility
+  const isConnected = connectionStatus === 'connected';
 
   const requestPermission = async () => {
     if (typeof Notification === 'undefined') return;
@@ -147,17 +150,17 @@ export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
     socketInstance.on('connect', () => {
       console.log('✅ Socket connected');
       setSocket(socketInstance);
-      setIsConnected(true);
+      setConnectionStatus('connected');
     });
 
     socketInstance.on('disconnect', () => {
       console.log('❌ Socket disconnected');
-      setIsConnected(false);
+      setConnectionStatus('disconnected');
     });
 
     socketInstance.on('connect_error', (err) => {
       console.error('Socket connection error:', err);
-      setIsConnected(false);
+      setConnectionStatus('disconnected');
     });
 
     // LEADS UPDATES

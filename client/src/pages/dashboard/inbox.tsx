@@ -201,7 +201,7 @@ export default function InboxPage() {
     enabled: !!leadId,
   });
 
-  const { data: channelStatus } = useQuery<any>({
+  const { data: channelStatus, isLoading: channelsLoading } = useQuery<any>({
     queryKey: ["/api/channels/all"],
   });
 
@@ -213,6 +213,7 @@ export default function InboxPage() {
   };
 
   const hasAnyChannel = channelStatus?.channels?.email?.connected || channelStatus?.channels?.instagram?.connected;
+  const showDisconnectedAlert = !channelsLoading && !hasAnyChannel && allLeads.length > 0;
 
   const activeLead = useMemo(() =>
     leadsData?.leads?.find((l: any) => l.id === leadId) || allLeads.find((l: any) => l.id === leadId),
@@ -639,7 +640,7 @@ export default function InboxPage() {
             </div>
 
             {/* Mobile/Desktop Connect Alert */}
-            {!hasAnyChannel && allLeads.length > 0 && (
+            {showDisconnectedAlert && (
               <div className="mx-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
                 <div className="p-1.5 bg-red-500/20 rounded-full shrink-0">
                   <Plug className="h-3 w-3 text-red-500" />
@@ -708,8 +709,8 @@ export default function InboxPage() {
               </div>
             ) : filteredLeads.length === 0 ? (
               <div className="flex flex-col items-center justify-center p-12 text-center h-full min-h-[400px] animate-in fade-in zoom-in duration-700">
-                {/* Only show "Connect Sources" if ABSOLUTELY no channels are connected AND no leads exist */}
-                {!hasAnyChannel && allLeads.length === 0 ? (
+                {/* Only show "Connect Sources" if loading is DONE and ABSOLUTELY no channels are connected AND no leads exist */}
+                {!channelsLoading && !hasAnyChannel && allLeads.length === 0 ? (
                   <div className="max-w-xs">
                     <div className="w-20 h-20 rounded-[2.5rem] bg-primary/10 flex items-center justify-center mb-8 mx-auto relative group">
                       <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />

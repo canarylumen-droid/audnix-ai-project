@@ -209,24 +209,6 @@ export default function IntegrationsPage() {
   });
   const { data: userData } = useQuery<UserData>({ queryKey: ["/api/user/profile"] });
 
-  useEffect(() => {
-    if (!userData?.user?.id) return;
-
-    const socket = io({
-      path: '/socket.io',
-      query: { userId: userData.user.id }
-    });
-
-    socket.on('settings_updated', () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
-    });
-
-    return () => {
-      socket.disconnect();
-    };
-  }, [userData?.user?.id, queryClient]);
-
   const [tickerTime, setTickerTime] = useState(Date.now());
 
   useEffect(() => {
@@ -548,9 +530,9 @@ export default function IntegrationsPage() {
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             className="h-6 w-6 rounded-full hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
                             onClick={() => {
                               const domain = getDomainFromEmail(customEmailStatus?.email || null);
@@ -685,58 +667,72 @@ export default function IntegrationsPage() {
 
                 </div>
               )}
-          </Card>
+            </Card>
 
-          {/* Social and SaaS Integrations */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {integrationCards.map((card) => {
-              const integration = Array.isArray(integrations) ? integrations.find(i => i.provider === card.id) : undefined;
-              const isConnected = !!integration;
-
-              return (
-                <Card key={card.id} className={`group transition-all rounded-2xl border bg-muted/10 hover:bg-muted/20 ${isConnected ? 'border-primary/40 bg-primary/5' : 'border-border/50'}`}>
-                  <CardHeader className="p-6">
+            {/* Social and SaaS Integrations */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {isLoading ? (
+                // Skeleton loading for integration cards
+                Array.from({ length: 4 }).map((_, i) => (
+                  <Card key={i} className="rounded-2xl border border-border/50 bg-muted/10 p-6 animate-pulse">
                     <div className="flex justify-between items-start mb-6">
-                      <div className={`p-4 rounded-xl bg-background border border-border/50 ${card.color}`}>
-                        <card.icon className="h-6 w-6" />
-                      </div>
-                      {card.badge ? (
-                        <Badge variant="secondary" className="bg-muted text-muted-foreground border-0 font-semibold text-[9px] uppercase tracking-wider py-1">{card.badge}</Badge>
-                      ) : isConnected ? (
-                        <Badge className="bg-emerald-500/10 text-emerald-600 border-0 font-bold text-[9px] uppercase tracking-wider py-1">Active</Badge>
-                      ) : (
-                        <div className="h-2 w-2 rounded-full bg-muted-foreground/20" />
-                      )}
+                      <div className="h-14 w-14 rounded-xl bg-muted/20" />
+                      <div className="h-4 w-12 rounded bg-muted/20" />
                     </div>
-                    <CardTitle className="text-lg font-semibold">{card.name}</CardTitle>
-                    <CardDescription className="text-xs text-muted-foreground font-medium mt-1 leading-relaxed">{card.description}</CardDescription>
-                  </CardHeader>
-                  <CardFooter className="p-6 pt-0">
-                    {isConnected ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full rounded-lg text-xs font-semibold text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => confirmDisconnect(card.id)}
-                      >
-                        Disconnect
-                      </Button>
-                    ) : (
-                      <Button
-                        variant={card.badge ? "secondary" : "default"}
-                        size="sm"
-                        className="w-full rounded-lg text-xs font-semibold"
-                        disabled={!!card.badge}
-                        onClick={() => handleConnect(card.id)}
-                      >
-                        {card.badge ? "Locked" : "Connect Account"}
-                      </Button>
-                    )}
-                  </CardFooter>
-                </Card>
-              )
-            })}
-          </div>
+                    <div className="h-5 w-24 rounded bg-muted/20 mb-2" />
+                    <div className="h-4 w-full rounded bg-muted/20" />
+                    <div className="mt-6 h-9 w-full rounded-lg bg-muted/20" />
+                  </Card>
+                ))
+              ) : (
+                integrationCards.map((card) => {
+                  const integration = Array.isArray(integrations) ? integrations.find(i => i.provider === card.id) : undefined;
+                  const isConnected = !!integration;
+
+                  return (
+                    <Card key={card.id} className={`group transition-all rounded-2xl border bg-muted/10 hover:bg-muted/20 ${isConnected ? 'border-primary/40 bg-primary/5' : 'border-border/50'}`}>
+                      <CardHeader className="p-6">
+                        <div className="flex justify-between items-start mb-6">
+                          <div className={`p-4 rounded-xl bg-background border border-border/50 ${card.color}`}>
+                            <card.icon className="h-6 w-6" />
+                          </div>
+                          {card.badge ? (
+                            <Badge variant="secondary" className="bg-muted text-muted-foreground border-0 font-semibold text-[9px] uppercase tracking-wider py-1">{card.badge}</Badge>
+                          ) : isConnected ? (
+                            <Badge className="bg-emerald-500/10 text-emerald-600 border-0 font-bold text-[9px] uppercase tracking-wider py-1">Active</Badge>
+                          ) : (
+                            <div className="h-2 w-2 rounded-full bg-muted-foreground/20" />
+                          )}
+                        </div>
+                        <CardTitle className="text-lg font-semibold">{card.name}</CardTitle>
+                        <CardDescription className="text-xs text-muted-foreground font-medium mt-1 leading-relaxed">{card.description}</CardDescription>
+                      </CardHeader>
+                      <CardFooter className="p-6 pt-0">
+                        {isConnected ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full rounded-lg text-xs font-semibold text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => confirmDisconnect(card.id)}
+                          >
+                            Disconnect
+                          </Button>
+                        ) : (
+                          <Button
+                            variant={card.badge ? "secondary" : "default"}
+                            size="sm"
+                            className="w-full rounded-lg text-xs font-semibold"
+                            disabled={!!card.badge}
+                            onClick={() => handleConnect(card.id)}
+                          >
+                            {card.badge ? "Locked" : "Connect Account"}
+                          </Button>
+                        )}
+                      </CardFooter>
+                    </Card>
+                  ))
+              )}
+            </div>
           </div>
         </TabsContent>
 
