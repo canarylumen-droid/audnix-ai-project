@@ -362,7 +362,6 @@ export default function LeadProfilePage() {
           </div>
         </div>
       </div>
-    </div>
       <LeadProcessModal
         isOpen={showProcessModal}
         onClose={() => setShowProcessModal(false)}
