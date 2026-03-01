@@ -4,15 +4,15 @@ import { sql } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 
 // Custom type for PostgreSQL bytea
-export const bytea = customType<{ data: Buffer }>({
+export const bytea = customType<{ data: any }>({
   dataType() {
     return 'bytea';
   },
   fromDriver(value: unknown) {
-    if (Buffer.isBuffer(value)) return value;
-    return Buffer.from(value as any);
+    if (typeof value === 'object' && value !== null && 'constructor' in value && (value as any).constructor.name === 'Buffer') return value;
+    return value;
   },
-  toDriver(value: Buffer) {
+  toDriver(value: any) {
     return value;
   },
 });
@@ -94,7 +94,7 @@ export const brandPdfCache = pgTable("brand_pdf_cache", {
   analysisItems: jsonb("analysis_items").$type<any[]>().default(sql`'[]'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => {
+}, (table: any) => {
   return {
     userIdHashIdx: uniqueIndex("brand_pdf_cache_user_id_hash_idx").on(table.userId, table.fileHash),
   };
@@ -144,7 +144,7 @@ export const leadSocialDetails = pgTable("lead_social_details", {
   verified: boolean("verified").default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-}, (table) => ({
+}, (table: any) => ({
   leadPlatformIdx: uniqueIndex("lead_platform_idx").on(table.leadId, table.platform),
 }));
 
@@ -485,6 +485,31 @@ export const insights = pgTable("insights", {
     percentage: number;
   }>>().notNull(),
   generatedAt: timestamp("generated_at").notNull().defaultNow(),
+});
+
+export const emailTracking = pgTable("email_tracking", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  leadId: uuid("lead_id").references(() => leads.id, { onDelete: "set null" }),
+  recipientEmail: text("recipient_email").notNull(),
+  subject: text("subject"),
+  token: text("token").notNull().unique(),
+  sentAt: timestamp("sent_at").notNull(),
+  firstOpenedAt: timestamp("first_opened_at"),
+  firstClickedAt: timestamp("first_clicked_at"),
+  openCount: integer("open_count").notNull().default(0),
+  clickCount: integer("click_count").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const emailEvents = pgTable("email_events", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  token: text("token").notNull(),
+  eventType: text("event_type", { enum: ["open", "click"] }).notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  linkUrl: text("link_url"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const emailMessages = pgTable("email_messages", {

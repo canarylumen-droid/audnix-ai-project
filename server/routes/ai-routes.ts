@@ -177,8 +177,8 @@ router.get("/analytics", requireAuth, async (req: Request, res: Response): Promi
       ...analytics,
       behaviorInsights: {
         ...analytics.summary,
-        replyRate: analytics.summary.totalLeads > 0 
-          ? ((analytics.summary.leadsReplied / analytics.summary.totalLeads) * 100).toFixed(1) 
+        replyRate: analytics.summary.totalLeads > 0
+          ? ((analytics.summary.leadsReplied / analytics.summary.totalLeads) * 100).toFixed(1)
           : '0',
         avgResponseTime: await (await import('../lib/ai/analytics-engine.js')).calculateAvgResponseTime(userId),
         positiveSentimentRate: analytics.positiveSentimentRate
@@ -204,17 +204,17 @@ router.get("/weekly-report", requireAuth, async (req: Request, res: Response): P
     startDate.setHours(0, 0, 0, 0);
 
     const analytics = await storage.getAnalyticsSummary(userId, startDate);
-    
+
     const inboundVolume = analytics.summary.leadsReplied;
     const outboundVolume = analytics.summary.totalLeads;
     const replyRate = outboundVolume > 0 ? ((inboundVolume / outboundVolume) * 100).toFixed(1) : '0';
-    
+
     const bestHour = analytics.summary.bestReplyHour;
-    const bestHourStr = bestHour !== null ? 
-      new Date(new Date().setHours(bestHour, 0, 0, 0)).toLocaleTimeString('en-US', {hour: 'numeric', hour12: true}) 
+    const bestHourStr = bestHour !== null ?
+      new Date(new Date().setHours(bestHour, 0, 0, 0)).toLocaleTimeString('en-US', { hour: 'numeric', hour12: true })
       : 'Not enough data';
 
-    const reportText = `## Weekly Performance Report\n**Period:** Last 7 Days\n\n### Overview\n- **Total Outreach Volume:** ${outboundVolume} leads engaged\n- **Inbound Replies:** ${inboundVolume} total replies\n- **Overall Reply Rate:** ${replyRate}%\n\n### Engagement Insights\n- **Most Active User Hour:** ${bestHourStr}\n- **Positive Sentiment Rate:** ${analytics.positiveSentimentRate}\n- **Conversions Generated:** ${analytics.summary.conversions}\n\n### Strategic Recommendations\n${bestHour !== null ? \`To maximize your response rates, we recommend scheduling your campaigns to deploy around **\${bestHourStr}**, matching your historically highest engagement period.\` : 'Continue engaging leads to gather more data on optimal send times.'}`;
+    const reportText = `## Weekly Performance Report\n**Period:** Last 7 Days\n\n### Overview\n- **Total Outreach Volume:** ${outboundVolume} leads engaged\n- **Inbound Replies:** ${inboundVolume} total replies\n- **Overall Reply Rate:** ${replyRate}%\n\n### Engagement Insights\n- **Most Active User Hour:** ${bestHourStr}\n- **Positive Sentiment Rate:** ${analytics.positiveSentimentRate}\n- **Conversions Generated:** ${analytics.summary.conversions}\n\n### Strategic Recommendations\n${bestHour !== null ? `To maximize your response rates, we recommend scheduling your campaigns to deploy around **${bestHourStr}**, matching your historically highest engagement period.` : 'Continue engaging leads to gather more data on optimal send times.'}`;
 
     res.json({ text: reportText });
   } catch (error: unknown) {
@@ -266,7 +266,7 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
 
     stream
       .pipe(csvParser())
-      .on('data', (data) => results.push(data))
+      .on('data', (data: any) => results.push(data))
       .on('end', async () => {
         try {
           if (results.length === 0) {
@@ -318,10 +318,10 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
           const user = await storage.getUserById(userId);
           const existingLeadsCount = await storage.getLeadsCount(userId);
           const limit = user?.email === 'team.replyflow@gmail.com' ? 20000 : (user?.plan === 'pro' || user?.plan === 'enterprise' ? 10000 : 500);
-          
+
           if (existingLeadsCount >= limit) {
-             res.status(400).json({ error: `Lead limit reached (${limit} leads). Please upgrade your plan.` });
-             return;
+            res.status(400).json({ error: `Lead limit reached (${limit} leads). Please upgrade your plan.` });
+            return;
           }
 
           // 5. Save to DB (Standalone Mode)
@@ -335,7 +335,7 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
             status: 'processing',
             totalItems: processedLeads.length,
             processedItems: 0,
-            metadata: { 
+            metadata: {
               fileName: file.originalname,
               previewMode,
               skipAI
@@ -347,7 +347,7 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
           const chunkSize = 50;
           let duplicateCount = 0;
           let filteredCount = 0;
-          
+
           console.log(`[CSV Import] Verifying and saving ${processedLeads.length} leads...`);
 
           // Check for existing emails in the whole set first (or in chunks)
@@ -357,7 +357,7 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
 
           for (let i = 0; i < processedLeads.length; i += chunkSize) {
             const chunk = processedLeads.slice(i, i + chunkSize);
-            
+
             // Filter out duplicates
             const uniqueChunk = chunk.filter(leadData => {
               if (leadData.email && existingEmailSet.has(leadData.email)) {
@@ -425,7 +425,7 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
 
             // Update process log
             await db.update(aiProcessLogs)
-              .set({ 
+              .set({
                 processedItems: Math.min(i + chunkSize, processedLeads.length),
                 updatedAt: new Date()
               })
@@ -434,7 +434,7 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
 
           // Mark process as completed
           await db.update(aiProcessLogs)
-            .set({ 
+            .set({
               status: 'completed',
               updatedAt: new Date(),
               metadata: {
@@ -476,8 +476,8 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
 
 
         } catch (error: any) {
-           console.error("CSV Processing Error:", error);
-           res.status(500).json({ error: "Failed to process CSV rows" });
+          console.error("CSV Processing Error:", error);
+          res.status(500).json({ error: "Failed to process CSV rows" });
         }
       });
 
@@ -786,8 +786,8 @@ router.post("/import/:provider", requireAuth, async (req: Request, res: Response
         });
         const { wsSync } = await import('../lib/websocket-sync.js');
         // Send a specific event to trigger frontend refresh
-        wsSync.notifyNotification(userId, { 
-          type: 'lead_import', 
+        wsSync.notifyNotification(userId, {
+          type: 'lead_import',
           count: results.leadsImported,
           title: '📥 Leads Imported',
           message: `${results.leadsImported} leads successfully imported from ${provider}.`
@@ -847,7 +847,7 @@ router.post("/import-bulk", requireAuth, async (req: Request, res: Response): Pr
     };
 
     const leadsToImportCount = Math.min(leadsData.length, maxLeads - currentLeadCount);
-    
+
     const newLeadsToInsert: any[] = [];
 
     for (let i = 0; i < leadsToImportCount; i++) {
@@ -874,7 +874,7 @@ router.post("/import-bulk", requireAuth, async (req: Request, res: Response): Pr
               if (dnsCheck && (dnsCheck.overallStatus === 'poor' || !dnsCheck.mx.found)) {
                 deliverability = 'risky';
               }
-            } catch (e) {}
+            } catch (e) { }
           }
         }
 
@@ -893,7 +893,7 @@ router.post("/import-bulk", requireAuth, async (req: Request, res: Response): Pr
             deliverability
           }
         });
-        
+
         results.leadsImported++;
       } catch (error: any) {
         results.errors.push(`Row ${i + 1}: ${error.message}`);
@@ -902,7 +902,7 @@ router.post("/import-bulk", requireAuth, async (req: Request, res: Response): Pr
 
     // --- BATCH INSERTION (PHASE 2 REQUIREMENT) ---
     // Chunked insert to handle 5k+ leads efficiently
-    const chunkSize = 50; 
+    const chunkSize = 50;
     const finalLeads = [];
     for (let i = 0; i < newLeadsToInsert.length; i += chunkSize) {
       const chunk = newLeadsToInsert.slice(i, i + chunkSize);

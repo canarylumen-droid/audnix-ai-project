@@ -31,12 +31,12 @@ export function generateTrackingPixel(baseUrl: string, token: string): string {
 
 export function wrapLinksWithTracking(html: string, baseUrl: string, messageToken: string): string {
   const linkRegex = /<a\s+([^>]*href=["'])([^"']+)(["'][^>]*)>/gi;
-  
+
   return html.replace(linkRegex, (match, prefix, url, suffix) => {
     if (url.startsWith('mailto:') || url.startsWith('tel:') || url.includes('/api/email/track/')) {
       return match;
     }
-    
+
     const encodedUrl = encodeURIComponent(url);
     const trackingUrl = `${baseUrl}/api/email-tracking/track/click/${messageToken}?url=${encodedUrl}`;
     return `<a ${prefix}${trackingUrl}${suffix}>`;
@@ -46,12 +46,12 @@ export function wrapLinksWithTracking(html: string, baseUrl: string, messageToke
 export function wrapPlainTextLinksWithTracking(text: string, baseUrl: string, messageToken: string): string {
   // Simple regex for HTTP/HTTPS URLs
   const urlRegex = /(?<!["'])(https?:\/\/[^\s<]+)/gi;
-  
-  return text.replace(urlRegex, (url) => {
+
+  return text.replace(urlRegex, (url: string) => {
     if (url.includes('/api/email-tracking/track/')) {
       return url;
     }
-    
+
     const encodedUrl = encodeURIComponent(url);
     return `${baseUrl}/api/email-tracking/track/click/${messageToken}?url=${encodedUrl}`;
   });
@@ -59,8 +59,8 @@ export function wrapPlainTextLinksWithTracking(text: string, baseUrl: string, me
 
 export async function createTrackedEmail(data: EmailTrackingData): Promise<{ token: string; pixelHtml: string }> {
   const token = generateTrackingToken();
-  const baseUrl = process.env.BASE_URL || 'https://audnixai.com';
-  
+  const baseUrl = (globalThis as any).process?.env?.BASE_URL || 'https://audnixai.com';
+
   try {
     const validLeadId = isValidUUID(data.leadId) ? data.leadId : null;
 
@@ -81,7 +81,7 @@ export async function createTrackedEmail(data: EmailTrackingData): Promise<{ tok
   } catch (error) {
     console.error('Failed to create email tracking record:', error);
   }
-  
+
   const pixelHtml = generateTrackingPixel(baseUrl, token);
   return { token, pixelHtml };
 }
@@ -107,14 +107,14 @@ export async function recordEmailEvent(event: EmailEvent): Promise<void> {
         ${event.type === 'click' ? sql`AND link_url = ${event.linkUrl}` : sql``}
       )
     `);
-    
+
     // Get userId and leadId to notify
     const trackResult = await db.execute(sql`
       SELECT user_id, lead_id, recipient_email, subject 
       FROM email_tracking 
       WHERE token = ${event.messageId}
     `);
-    
+
     const trackingInfo = trackResult.rows[0] as any;
 
     if (event.type === 'open') {
@@ -136,12 +136,12 @@ export async function recordEmailEvent(event: EmailEvent): Promise<void> {
     // Real-time Notification
     if (trackingInfo) {
       const { wsSync } = await import('../websocket-sync.js');
-      
-          // Update lead metadata for filtering
-          if (trackingInfo.lead_id) {
-            try {
-              if (event.type === 'open') {
-                 await db.execute(sql`
+
+      // Update lead metadata for filtering
+      if (trackingInfo.lead_id) {
+        try {
+          if (event.type === 'open') {
+            await db.execute(sql`
                   UPDATE leads 
                   SET metadata = jsonb_set(COALESCE(metadata, '{}'::jsonb), '{isOpened}', 'true'::jsonb),
                       status = CASE WHEN status = 'new' THEN 'open'::text ELSE status END,
@@ -149,54 +149,60 @@ export async function recordEmailEvent(event: EmailEvent): Promise<void> {
                   WHERE id = ${trackingInfo.lead_id}
                 `);
 
-                // Update messages table
-                await db.execute(sql`
+            // Update messages table
+            await db.execute(sql`
                   UPDATE messages
                   SET opened_at = COALESCE(opened_at, ${event.timestamp.toISOString()}),
                       is_read = true
                   WHERE tracking_id = ${event.messageId}
                 `);
 
-                // Update campaign_emails table
-                await db.execute(sql`
+            // Update campaign_emails table
+            await db.execute(sql`
                   UPDATE campaign_emails
                   SET opened_at = COALESCE(opened_at, ${event.timestamp.toISOString()}),
                       status = 'opened'
                   WHERE message_id = ${event.messageId}
                 `);
-              } else if (event.type === 'click') {
-                 await db.execute(sql`
+          } else if (event.type === 'click') {
+            await db.execute(sql`
                   UPDATE leads 
                   SET metadata = jsonb_set(COALESCE(metadata, '{}'::jsonb), '{isClicked}', 'true'::jsonb),
                       updated_at = NOW()
                   WHERE id = ${trackingInfo.lead_id}
                 `);
 
-                // Update messages table
-                await db.execute(sql`
+            // Update messages table
+            await db.execute(sql`
                   UPDATE messages
                   SET clicked_at = COALESCE(clicked_at, ${event.timestamp.toISOString()})
                   WHERE tracking_id = ${event.messageId}
                 `);
 
-                // Update campaign_emails table
-                await db.execute(sql`
+            // Update campaign_emails table
+            await db.execute(sql`
                   UPDATE campaign_emails
                   SET clicked_at = COALESCE(clicked_at, ${event.timestamp.toISOString()}),
                       status = 'clicked'
                   WHERE message_id = ${event.messageId}
                 `);
-              }
-              
-              // Notify lead update to refresh counts/badges
-              wsSync.notifyLeadsUpdated(trackingInfo.user_id, { 
-                leadId: trackingInfo.lead_id, 
-                action: event.type === 'open' ? 'email_opened' : 'email_clicked' 
-              });
-            } catch (err) {
-              console.error('Failed to update lead/message metadata for tracking event:', err);
-            }
           }
+
+          // Notify lead update to refresh counts/badges
+          wsSync.notifyLeadsUpdated(trackingInfo.user_id, {
+            leadId: trackingInfo.lead_id,
+            action: event.type === 'open' ? 'email_opened' : 'email_clicked'
+          });
+
+          // Notify messages update to refresh the message thread instantly
+          wsSync.notifyMessagesUpdated(trackingInfo.user_id, {
+            leadId: trackingInfo.lead_id,
+            action: event.type === 'open' ? 'email_opened' : 'email_clicked'
+          });
+        } catch (err) {
+          console.error('Failed to update lead/message metadata for tracking event:', err);
+        }
+      }
 
       // Notify activity feed
       wsSync.notifyActivityUpdated(trackingInfo.user_id, {
@@ -212,12 +218,12 @@ export async function recordEmailEvent(event: EmailEvent): Promise<void> {
 
       // Also trigger a generic notification toast
       if (trackingInfo.lead_id) {
-         wsSync.notifyNotification(trackingInfo.user_id, {
-           type: 'lead_activity',
-           title: event.type === 'open' ? 'Email Opened' : 'Link Clicked',
-           message: `${trackingInfo.recipient_email} ${event.type === 'open' ? 'opened your email' : 'clicked a link in your email'}: "${trackingInfo.subject}"`,
-           leadId: trackingInfo.lead_id
-         });
+        wsSync.notifyNotification(trackingInfo.user_id, {
+          type: 'lead_activity',
+          title: event.type === 'open' ? 'Email Opened' : 'Link Clicked',
+          message: `${trackingInfo.recipient_email} ${event.type === 'open' ? 'opened your email' : 'clicked a link in your email'}: "${trackingInfo.subject}"`,
+          leadId: trackingInfo.lead_id
+        });
       }
     }
 
@@ -243,12 +249,12 @@ export async function getEmailStats(userId: string, days: number = 30): Promise<
       WHERE user_id = ${userId}
       AND sent_at > NOW() - INTERVAL '${sql.raw(days.toString())} days'
     `);
-    
+
     const row = result.rows[0] as { sent: string; opened: string; clicked: string } | undefined;
     const sent = parseInt(row?.sent || '0');
     const opened = parseInt(row?.opened || '0');
     const clicked = parseInt(row?.clicked || '0');
-    
+
     return {
       sent,
       opened,
@@ -263,17 +269,17 @@ export async function getEmailStats(userId: string, days: number = 30): Promise<
 }
 
 export function injectTrackingIntoEmail(html: string, token: string): string {
-  const baseUrl = process.env.BASE_URL || 'https://audnixai.com';
-  
+  const baseUrl = (globalThis as any).process?.env?.BASE_URL || 'https://audnixai.com';
+
   let trackedHtml = wrapLinksWithTracking(html, baseUrl, token);
-  
+
   const trackingPixel = generateTrackingPixel(baseUrl, token);
-  
+
   if (trackedHtml.includes('</body>')) {
     trackedHtml = trackedHtml.replace('</body>', `${trackingPixel}</body>`);
   } else {
     trackedHtml += trackingPixel;
   }
-  
+
   return trackedHtml;
 }

@@ -179,7 +179,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
     try {
       const res = await apiRequest("POST", "/api/outreach/campaigns", {
         name: campaignName || `Campaign ${new Date().toLocaleDateString()}`,
-        leads: leads.map(l => l.id || l),
+        leads: leads.map((l: any) => l.id || l),
         config: { dailyLimit, followUpDelayDays: parseInt(followUpDays) },
         template: {
           subject, body,
@@ -204,7 +204,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
   const renderPreview = (subj: string, content: string) => {
     const sampleLead = leads[0] || { name: "Prospect Name", company: "Company Inc." };
     const firstName = sampleLead.name?.trim().split(' ')[0] || 'Prospect';
-    
+
     const replaceTags = (text: string) => {
       return (text || "")
         .replace(/{{name}}/g, sampleLead.name)
@@ -254,10 +254,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={cn(
-        "max-w-[100vw] w-screen h-screen m-0 rounded-none p-0 border-0 flex flex-col", 
-        viewMode === 'preview' ? 'grid grid-cols-3' : 'grid grid-cols-1 lg:grid-cols-3'
-      )}>
+      <DialogContent className="max-w-[100vw] w-screen h-[100dvh] sm:h-[90vh] sm:max-w-6xl sm:w-[95vw] sm:rounded-3xl m-0 sm:m-auto p-0 border-0 flex flex-col overflow-hidden shadow-2xl">
         {/* Header */}
         <div className="p-4 md:p-6 border-b border-border/20 flex items-center shrink-0">
           <div className="flex items-center gap-3 md:gap-4">
@@ -329,8 +326,8 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                           onClick={() => setSourceType('database')}
                           className={cn(
                             "p-4 rounded-2xl border-2 transition-all text-left",
-                            sourceType === 'database' 
-                              ? "border-primary bg-primary/5 shadow-[0_0_20px_rgba(var(--primary),0.1)]" 
+                            sourceType === 'database'
+                              ? "border-primary bg-primary/5 shadow-[0_0_20px_rgba(var(--primary),0.1)]"
                               : "border-border/40 bg-card hover:border-border"
                           )}
                         >
@@ -342,8 +339,8 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                           onClick={() => setSourceType('upload')}
                           className={cn(
                             "p-4 rounded-2xl border-2 transition-all text-left",
-                            sourceType === 'upload' 
-                              ? "border-primary bg-primary/5 shadow-[0_0_20px_rgba(var(--primary),0.1)]" 
+                            sourceType === 'upload'
+                              ? "border-primary bg-primary/5 shadow-[0_0_20px_rgba(var(--primary),0.1)]"
                               : "border-border/40 bg-card hover:border-border"
                           )}
                         >
@@ -373,32 +370,32 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                           <Badge variant="secondary" className="px-3 py-1 font-bold text-sm">{leads.length > 0 ? leads.length : (initialLeads?.length || 0)}</Badge>
                         </div>
                         <p className="text-sm text-muted-foreground/60 leading-relaxed">
-                          {leads.length > 0 
+                          {leads.length > 0
                             ? "Review the leads below or proceed to the next step."
                             : "Your database repository is ready. Click below to synchronize your active leads."}
                         </p>
 
                         <div className="pt-2">
                           {leads.length === 0 ? (
-                            <Button 
+                            <Button
                               onClick={handleFetchLeads}
                               disabled={isLoadingLeads}
                               variant="default"
                               className="w-full h-12 rounded-xl text-xs font-black uppercase tracking-[0.2em] gap-3 bg-primary text-primary-foreground shadow-lg shadow-primary/20"
                             >
-                             {isLoadingLeads ? <Loader2 className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
-                             Fetch leads from Database
+                              {isLoadingLeads ? <Loader2 className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
+                              Fetch leads from Database
                             </Button>
                           ) : (
                             <div className="space-y-3">
-                              <Button 
+                              <Button
                                 onClick={() => setStep(2)}
                                 className="w-full h-12 rounded-xl text-xs font-black uppercase tracking-[0.2em] shadow-lg shadow-primary/20"
                               >
                                 Use {leads.length} Leads & Continue
                               </Button>
-                              <Button 
-                                variant="ghost" 
+                              <Button
+                                variant="ghost"
                                 onClick={handleFetchLeads}
                                 className="w-full text-[10px] font-black uppercase tracking-widest text-muted-foreground"
                               >
@@ -421,12 +418,12 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
 
                 {step === 2 && (
                   <motion.div key="step2" initial="enter" animate="center" exit="exit" variants={variants} className="space-y-8 pb-10">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <h2 className="text-3xl font-black tracking-tighter">CAMPAIGN DESIGN</h2>
-                          <p className="text-muted-foreground text-sm font-medium">Construct your outreach sequence with AI assistance.</p>
-                        </div>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <h2 className="text-3xl font-black tracking-tighter">CAMPAIGN DESIGN</h2>
+                        <p className="text-muted-foreground text-sm font-medium">Construct your outreach sequence with AI assistance.</p>
                       </div>
+                    </div>
 
                     <div className="space-y-6">
                       <div className="p-6 bg-card rounded-3xl border border-border/40 space-y-4">
@@ -618,8 +615,8 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
 
           {/* Preview Panel */}
           <div className={cn(
-            "h-full overflow-hidden bg-muted/10 border-l border-border/10 flex-col",
-            viewMode === 'preview' ? 'flex col-span-2 lg:col-span-1' : 'hidden lg:flex'
+            "h-full overflow-hidden bg-muted/10 border-l border-border/10 flex-col lg:col-span-1",
+            viewMode === 'preview' ? 'flex' : 'hidden lg:flex'
           )}>
             <div className="p-4 border-b border-border/10 flex justify-center gap-3 shrink-0">
               {['ios', 'android'].map(d => (

@@ -85,7 +85,7 @@ export default function InsightsPage() {
   });
 
   const [isReportOpen, setIsReportOpen] = useState(false);
-  const { data: reportData, isLoading: reportLoading } = useQuery<{text: string}>({
+  const { data: reportData, isLoading: reportLoading } = useQuery<{ text: string }>({
     queryKey: ["/api/ai/weekly-report"],
     enabled: isReportOpen,
     refetchOnWindowFocus: false
@@ -253,6 +253,10 @@ export default function InsightsPage() {
             />
           )}
 
+
+        </>
+      )}
+
       <Dialog open={isReportOpen} onOpenChange={setIsReportOpen}>
         <DialogContent className="max-w-xl bg-background border border-border/30 max-h-[85vh] overflow-y-auto w-[90vw]">
           <DialogHeader className="mb-4 bg-muted/10 -mx-6 -mt-6 p-6 border-b border-border/10 relative">
@@ -262,31 +266,29 @@ export default function InsightsPage() {
             </DialogTitle>
           </DialogHeader>
           {reportLoading ? (
-             <div className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground space-y-4">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                <p className="text-[10px] font-bold uppercase tracking-widest">Aggregating Global Activity Data...</p>
-             </div>
+            <div className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground space-y-4">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <p className="text-[10px] font-bold uppercase tracking-widest">Aggregating Global Activity Data...</p>
+            </div>
           ) : (
-             <div className="space-y-4 py-2">
-                {reportData?.text?.split('\n').map((line, i) => {
-                  if (line.startsWith('## ')) return <h2 key={i} className="text-lg font-black text-foreground uppercase tracking-widest mb-4">{line.slice(3)}</h2>;
-                  if (line.startsWith('### ')) return <h3 key={i} className="flex items-center gap-2 text-sm font-bold text-primary mt-6 mb-3 uppercase tracking-wider"><div className="w-1.5 h-1.5 rounded-full bg-primary" />{line.slice(4)}</h3>;
-                  if (line.startsWith('- ')) {
-                    const parts = line.slice(2).split('**');
-                    if (parts.length >= 3) {
-                       return <li key={i} className="flex items-start gap-3 bg-muted/10 p-3 rounded-xl border border-border/30 list-none"><span className="w-1.5 h-1.5 rounded-full bg-primary/40 mt-1.5 shrink-0" /><span className="text-sm font-medium"><strong>{parts[1]}</strong>{parts[2]}</span></li>;
-                    }
-                    return <li key={i} className="flex items-start gap-3 bg-muted/10 p-3 rounded-xl border border-border/30 list-none"><span className="w-1.5 h-1.5 rounded-full bg-primary/40 mt-1.5 shrink-0" /><span className="text-sm font-medium">{line.slice(2)}</span></li>;
+            <div className="space-y-4 py-2">
+              {reportData?.text?.split('\n').map((line, i) => {
+                if (line.startsWith('## ')) return <h2 key={i} className="text-lg font-black text-foreground uppercase tracking-widest mb-4">{line.slice(3)}</h2>;
+                if (line.startsWith('### ')) return <h3 key={i} className="flex items-center gap-2 text-sm font-bold text-primary mt-6 mb-3 uppercase tracking-wider"><div className="w-1.5 h-1.5 rounded-full bg-primary" />{line.slice(4)}</h3>;
+                if (line.startsWith('- ')) {
+                  const parts = line.slice(2).split('**');
+                  if (parts.length >= 3) {
+                    return <li key={i} className="flex items-start gap-3 bg-muted/10 p-3 rounded-xl border border-border/30 list-none"><span className="w-1.5 h-1.5 rounded-full bg-primary/40 mt-1.5 shrink-0" /><span className="text-sm font-medium"><strong>{parts[1]}</strong>{parts[2]}</span></li>;
                   }
-                  if (line.trim() === '') return null;
-                  return <p key={i} className="text-xs text-muted-foreground font-medium leading-relaxed italic border-l-2 border-primary/20 pl-4 py-2 bg-muted/5">{line}</p>;
-                })}
-             </div>
+                  return <li key={i} className="flex items-start gap-3 bg-muted/10 p-3 rounded-xl border border-border/30 list-none"><span className="w-1.5 h-1.5 rounded-full bg-primary/40 mt-1.5 shrink-0" /><span className="text-sm font-medium">{line.slice(2)}</span></li>;
+                }
+                if (line.trim() === '') return null;
+                return <p key={i} className="text-xs text-muted-foreground font-medium leading-relaxed italic border-l-2 border-primary/20 pl-4 py-2 bg-muted/5">{line}</p>;
+              })}
+            </div>
           )}
         </DialogContent>
       </Dialog>
-        </>
-      )}
     </div>
   );
 }
