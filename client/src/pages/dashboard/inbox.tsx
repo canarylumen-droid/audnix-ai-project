@@ -26,6 +26,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { LeadIntelligenceModal } from "@/components/dashboard/LeadIntelligenceModal";
 import { CustomContextMenu, useContextMenu } from "@/components/ui/interactive/CustomContextMenu";
 import UnifiedCampaignWizard from "@/components/outreach/UnifiedCampaignWizard";
+import { LeadProcessModal } from "@/components/dashboard/LeadProcessModal";
 import {
   Search,
   Trash2,
@@ -104,6 +105,7 @@ export default function InboxPage() {
   const [allLeads, setAllLeads] = useState<any[]>([]);
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
   const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
+  const [processLead, setProcessLead] = useState<any>(null);
 
   // Message Thread State
   const [replyMessage, setReplyMessage] = useState("");
@@ -140,7 +142,7 @@ export default function InboxPage() {
       leadsTimeout = setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       }, 10);
-      
+
       if (data?.type === 'lead_updated' && data?.lead) {
         setAllLeads(prev => prev.map(l => l.id === data.lead.id ? data.lead : l));
       }
@@ -257,7 +259,7 @@ export default function InboxPage() {
           queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
         });
       }
-      
+
       // Always refresh notifications when a lead is opened
       queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
 
@@ -278,7 +280,7 @@ export default function InboxPage() {
       const matchesSearch = !searchQuery ||
         lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         lead.email?.toLowerCase().includes(searchQuery.toLowerCase());
-      
+
       const matchesChannel = filterChannel === "all" || lead.channel === filterChannel;
 
       let matchesStatus = true;
@@ -312,6 +314,21 @@ export default function InboxPage() {
       return timeB - timeA;
     });
   }, [allLeads, searchQuery, filterChannel, filterStatus, showArchived]);
+
+  // Highlighting helper
+  const HighlightText = useCallback(({ text, query }: { text: string, query: string }) => {
+    if (!query) return <>{text}</>;
+    const parts = text.split(new RegExp(`(${query})`, 'gi'));
+    return (
+      <span>
+        {parts.map((part, i) =>
+          part.toLowerCase() === query.toLowerCase() ?
+            <mark key={i} className="bg-primary/30 text-foreground rounded-sm px-0.5">{part}</mark> :
+            part
+        )}
+      </span>
+    );
+  }, []);
 
   const sendMutation = useMutation({
     mutationFn: (content: string) => {
@@ -362,9 +379,9 @@ export default function InboxPage() {
 
   const [metadataEditMode, setMetadataEditMode] = useState(false);
   const [editedMetadata, setEditedMetadata] = useState<Record<string, any>>({});
-  
+
   const updateLead = useMutation({
-    mutationFn: async (data: { id: string; [key: string]: any }) => {
+    mutationFn: async (data: { id: string;[key: string]: any }) => {
       const { id, ...updateData } = data;
       const res = await apiRequest("PATCH", `/api/leads/${id}`, updateData);
       return res.json();
@@ -470,7 +487,7 @@ export default function InboxPage() {
 
   const handleSaveMetadata = async () => {
     if (!activeLead || !leadId) return;
-    
+
     // Merge new social links with existing metadata to prevent data loss
     const currentMetadata = activeLead.metadata || {};
     const updatedMetadata = {
@@ -574,7 +591,7 @@ export default function InboxPage() {
                     <DropdownMenuItem onClick={() => setFilterStatus("read")} className="cursor-pointer font-medium">Read</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setFilterStatus("opened")} className="cursor-pointer font-medium text-sky-400">Opened (Pixel tracked)</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setFilterStatus("replied")} className="cursor-pointer font-medium text-emerald-500">Replied</DropdownMenuItem>
-                     <DropdownMenuItem onClick={() => setFilterStatus("warm")} className="cursor-pointer font-medium text-orange-500">Warm (Engaged)</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setFilterStatus("warm")} className="cursor-pointer font-medium text-orange-500">Warm (Engaged)</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setFilterStatus("cold")} className="cursor-pointer font-medium text-muted-foreground">Cold (No Reply)</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setFilterStatus("booked")} className="cursor-pointer font-medium text-sky-500">Booked / Converted</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setFilterStatus("not_interested")} className="cursor-pointer font-medium text-destructive/70">Not Interested</DropdownMenuItem>
@@ -716,10 +733,10 @@ export default function InboxPage() {
                     </div>
                     <p className="text-sm font-black uppercase tracking-widest text-foreground">No conversations found</p>
                     <p className="text-[10px] text-muted-foreground font-bold mt-2 uppercase">
-                      {searchQuery ? "Try adjusting your search" : 
-                       filterStatus !== 'all' ? `No ${filterStatus} conversations` : 
-                       showArchived ? "No archived conversations" :
-                       "Wait for new leads to arrive"}
+                      {searchQuery ? "Try adjusting your search" :
+                        filterStatus !== 'all' ? `No ${filterStatus} conversations` :
+                          showArchived ? "No archived conversations" :
+                            "Wait for new leads to arrive"}
                     </p>
                   </div>
                 )}
@@ -772,10 +789,25 @@ export default function InboxPage() {
                         </Avatar>
                         <div className="flex-1 min-w-0 space-y-1">
                           <div className="flex justify-between items-start gap-2">
-                            <span className="text-sm font-bold truncate text-foreground flex-1" title={lead.name}>{lead.name}</span>
-                            <span className="text-[10px] text-muted-foreground/50 font-medium uppercase tracking-wider shrink-0 mt-0.5">
-                              {new Date(lead.lastMessageAt || lead.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                            <span className="text-sm font-bold truncate text-foreground flex-1" title={lead.name}>
+                              <HighlightText text={lead.name} query={searchQuery} />
                             </span>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-primary"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setProcessLead(lead);
+                                }}
+                              >
+                                <Brain className="h-4 w-4" />
+                              </Button>
+                              <span className="text-[10px] text-muted-foreground/50 font-medium uppercase tracking-wider shrink-0 mt-0.5">
+                                {new Date(lead.lastMessageAt || lead.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                              </span>
+                            </div>
                           </div>
                           <p className={cn("text-xs truncate transition-colors h-4", lead.metadata?.isUnread ? "text-foreground font-bold" : "text-muted-foreground")}>
                             {typingLeadId === lead.id ? (
@@ -783,7 +815,7 @@ export default function InboxPage() {
                                 Typinng...
                               </span>
                             ) : (
-                              lead.snippet || "No messages"
+                              <HighlightText text={lead.snippet || "No messages"} query={searchQuery} />
                             )}
                           </p>
                           <div className="flex items-center gap-2 mt-1">
@@ -906,11 +938,11 @@ export default function InboxPage() {
                                   <div className="flex items-center justify-between">
                                     <span className="text-xs font-bold text-muted-foreground">Engagement Rank</span>
                                     <span className="text-xs font-black text-foreground text-lg tracking-tighter">
-                                      #{leadsData?.leads ? 
-                                          [...leadsData.leads]
-                                            .sort((a, b) => (b.score || 0) - (a.score || 0))
-                                            .findIndex(l => l.id === activeLead?.id) + 1 
-                                          : 0} / {leadsData?.leads?.length || 0}
+                                      #{leadsData?.leads ?
+                                        [...leadsData.leads]
+                                          .sort((a, b) => (b.score || 0) - (a.score || 0))
+                                          .findIndex(l => l.id === activeLead?.id) + 1
+                                        : 0} / {leadsData?.leads?.length || 0}
                                     </span>
                                   </div>
                                   <div className="h-2 w-full bg-muted/30 rounded-full overflow-hidden">
@@ -968,23 +1000,23 @@ export default function InboxPage() {
                                 <AccordionTrigger className="hover:no-underline py-0">
                                   <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Social Insight</h4>
                                 </AccordionTrigger>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
                                   className="h-6 text-[10px] font-black uppercase"
                                   onClick={(e) => {
-                                      e.stopPropagation();
-                                      if (metadataEditMode) {
-                                          handleSaveMetadata();
-                                      } else {
-                                          setEditedMetadata({
-                                              instagram: activeLead?.metadata?.socialLinks?.instagram || activeLead?.socialLinks?.instagram || "",
-                                              facebook: activeLead?.metadata?.socialLinks?.facebook || activeLead?.socialLinks?.facebook || "",
-                                              googleMaps: activeLead?.metadata?.socialLinks?.googleMaps || "",
-                                              reviews: activeLead?.metadata?.socialLinks?.reviews || ""
-                                          });
-                                          setMetadataEditMode(true);
-                                      }
+                                    e.stopPropagation();
+                                    if (metadataEditMode) {
+                                      handleSaveMetadata();
+                                    } else {
+                                      setEditedMetadata({
+                                        instagram: activeLead?.metadata?.socialLinks?.instagram || activeLead?.socialLinks?.instagram || "",
+                                        facebook: activeLead?.metadata?.socialLinks?.facebook || activeLead?.socialLinks?.facebook || "",
+                                        googleMaps: activeLead?.metadata?.socialLinks?.googleMaps || "",
+                                        reviews: activeLead?.metadata?.socialLinks?.reviews || ""
+                                      });
+                                      setMetadataEditMode(true);
+                                    }
                                   }}
                                   disabled={updateLead.isPending}
                                 >
@@ -993,82 +1025,82 @@ export default function InboxPage() {
                               </div>
                               <AccordionContent className="pt-2">
                                 {metadataEditMode ? (
-                                    <div className="space-y-3 p-4 bg-muted/10 rounded-2xl border border-border/30">
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] uppercase font-bold text-muted-foreground">Instagram URL</label>
-                                            <Input 
-                                                className="h-8 text-xs bg-background" 
-                                                value={editedMetadata.instagram} 
-                                                onChange={(e) => setEditedMetadata({...editedMetadata, instagram: e.target.value})} 
-                                                placeholder="https://instagram.com/..."
-                                            />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] uppercase font-bold text-muted-foreground">Facebook URL</label>
-                                            <Input 
-                                                className="h-8 text-xs bg-background" 
-                                                value={editedMetadata.facebook} 
-                                                onChange={(e) => setEditedMetadata({...editedMetadata, facebook: e.target.value})} 
-                                                placeholder="https://facebook.com/..."
-                                            />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] uppercase font-bold text-muted-foreground">Google Maps URL</label>
-                                            <Input 
-                                                className="h-8 text-xs bg-background" 
-                                                value={editedMetadata.googleMaps} 
-                                                onChange={(e) => setEditedMetadata({...editedMetadata, googleMaps: e.target.value})} 
-                                                placeholder="https://maps.google.com/..."
-                                            />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] uppercase font-bold text-muted-foreground">Reviews Page URL</label>
-                                            <Input 
-                                                className="h-8 text-xs bg-background" 
-                                                value={editedMetadata.reviews} 
-                                                onChange={(e) => setEditedMetadata({...editedMetadata, reviews: e.target.value})} 
-                                                placeholder="https://..."
-                                            />
-                                        </div>
+                                  <div className="space-y-3 p-4 bg-muted/10 rounded-2xl border border-border/30">
+                                    <div className="space-y-1">
+                                      <label className="text-[10px] uppercase font-bold text-muted-foreground">Instagram URL</label>
+                                      <Input
+                                        className="h-8 text-xs bg-background"
+                                        value={editedMetadata.instagram}
+                                        onChange={(e) => setEditedMetadata({ ...editedMetadata, instagram: e.target.value })}
+                                        placeholder="https://instagram.com/..."
+                                      />
                                     </div>
+                                    <div className="space-y-1">
+                                      <label className="text-[10px] uppercase font-bold text-muted-foreground">Facebook URL</label>
+                                      <Input
+                                        className="h-8 text-xs bg-background"
+                                        value={editedMetadata.facebook}
+                                        onChange={(e) => setEditedMetadata({ ...editedMetadata, facebook: e.target.value })}
+                                        placeholder="https://facebook.com/..."
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <label className="text-[10px] uppercase font-bold text-muted-foreground">Google Maps URL</label>
+                                      <Input
+                                        className="h-8 text-xs bg-background"
+                                        value={editedMetadata.googleMaps}
+                                        onChange={(e) => setEditedMetadata({ ...editedMetadata, googleMaps: e.target.value })}
+                                        placeholder="https://maps.google.com/..."
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <label className="text-[10px] uppercase font-bold text-muted-foreground">Reviews Page URL</label>
+                                      <Input
+                                        className="h-8 text-xs bg-background"
+                                        value={editedMetadata.reviews}
+                                        onChange={(e) => setEditedMetadata({ ...editedMetadata, reviews: e.target.value })}
+                                        placeholder="https://..."
+                                      />
+                                    </div>
+                                  </div>
                                 ) : (
-                                    <div className="grid grid-cols-2 gap-3">
-                                      {[
-                                        { name: 'Instagram', url: activeLead?.metadata?.socialLinks?.instagram || activeLead?.socialLinks?.instagram, icon: Instagram },
-                                        { name: 'Facebook', url: activeLead?.metadata?.socialLinks?.facebook || activeLead?.socialLinks?.facebook, icon: Facebook },
-                                        { name: 'Google Maps', url: activeLead?.metadata?.socialLinks?.googleMaps, icon: MapPin },
-                                        { name: 'Reviews', url: activeLead?.metadata?.socialLinks?.reviews, icon: Star },
-                                        { name: 'LinkedIn', url: activeLead?.linkedinProfileUrl || activeLead?.socialLinks?.linkedin, icon: ExternalLink }, 
-                                        { name: 'Twitter', url: activeLead?.socialLinks?.twitter, icon: ExternalLink }, 
-                                        { name: 'Website', url: activeLead?.website || activeLead?.socialLinks?.website, icon: ExternalLink }
-                                      ].map((platform) => (
-                                        platform.url ? (
-                                            <Button
-                                              key={platform.name}
-                                              variant="outline"
-                                              className="h-12 border-border/30 bg-muted/10 hover:bg-muted/20 rounded-2xl justify-start px-3"
-                                              onClick={() => platform.url && window.open(platform.url.startsWith('http') ? platform.url : `https://${platform.url}`, '_blank', 'noopener,noreferrer')}
-                                            >
-                                              <platform.icon className={`w-3.5 h-3.5 mr-2 text-primary`} />
-                                              <span className={`text-[10px] font-bold text-foreground`}>{platform.name}</span>
-                                            </Button>
-                                        ) : null
-                                      ))}
-                                      {/* Show placeholder if no links exist */}
-                                      {![
-                                        activeLead?.metadata?.socialLinks?.instagram, activeLead?.socialLinks?.instagram,
-                                        activeLead?.metadata?.socialLinks?.facebook, activeLead?.socialLinks?.facebook,
-                                        activeLead?.metadata?.socialLinks?.googleMaps,
-                                        activeLead?.metadata?.socialLinks?.reviews,
-                                        activeLead?.linkedinProfileUrl, activeLead?.socialLinks?.linkedin,
-                                        activeLead?.socialLinks?.twitter,
-                                        activeLead?.website, activeLead?.socialLinks?.website
-                                      ].some(Boolean) && (
+                                  <div className="grid grid-cols-2 gap-3">
+                                    {[
+                                      { name: 'Instagram', url: activeLead?.metadata?.socialLinks?.instagram || activeLead?.socialLinks?.instagram, icon: Instagram },
+                                      { name: 'Facebook', url: activeLead?.metadata?.socialLinks?.facebook || activeLead?.socialLinks?.facebook, icon: Facebook },
+                                      { name: 'Google Maps', url: activeLead?.metadata?.socialLinks?.googleMaps, icon: MapPin },
+                                      { name: 'Reviews', url: activeLead?.metadata?.socialLinks?.reviews, icon: Star },
+                                      { name: 'LinkedIn', url: activeLead?.linkedinProfileUrl || activeLead?.socialLinks?.linkedin, icon: ExternalLink },
+                                      { name: 'Twitter', url: activeLead?.socialLinks?.twitter, icon: ExternalLink },
+                                      { name: 'Website', url: activeLead?.website || activeLead?.socialLinks?.website, icon: ExternalLink }
+                                    ].map((platform) => (
+                                      platform.url ? (
+                                        <Button
+                                          key={platform.name}
+                                          variant="outline"
+                                          className="h-12 border-border/30 bg-muted/10 hover:bg-muted/20 rounded-2xl justify-start px-3"
+                                          onClick={() => platform.url && window.open(platform.url.startsWith('http') ? platform.url : `https://${platform.url}`, '_blank', 'noopener,noreferrer')}
+                                        >
+                                          <platform.icon className={`w-3.5 h-3.5 mr-2 text-primary`} />
+                                          <span className={`text-[10px] font-bold text-foreground`}>{platform.name}</span>
+                                        </Button>
+                                      ) : null
+                                    ))}
+                                    {/* Show placeholder if no links exist */}
+                                    {![
+                                      activeLead?.metadata?.socialLinks?.instagram, activeLead?.socialLinks?.instagram,
+                                      activeLead?.metadata?.socialLinks?.facebook, activeLead?.socialLinks?.facebook,
+                                      activeLead?.metadata?.socialLinks?.googleMaps,
+                                      activeLead?.metadata?.socialLinks?.reviews,
+                                      activeLead?.linkedinProfileUrl, activeLead?.socialLinks?.linkedin,
+                                      activeLead?.socialLinks?.twitter,
+                                      activeLead?.website, activeLead?.socialLinks?.website
+                                    ].some(Boolean) && (
                                         <div className="col-span-2 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 py-4">
-                                            No social links added
+                                          No social links added
                                         </div>
                                       )}
-                                    </div>
+                                  </div>
                                 )}
                               </AccordionContent>
                             </AccordionItem>
@@ -1178,7 +1210,9 @@ export default function InboxPage() {
                           ? "bg-white text-black rounded-tl-none border border-border/50 shadow-sm"
                           : "bg-primary text-primary-foreground rounded-tr-none shadow-md shadow-primary/20"
                       )}>
-                        <div className="whitespace-pre-wrap break-words break-all leading-relaxed overflow-hidden">{msg.body}</div>
+                        <div className="whitespace-pre-wrap break-words break-all leading-relaxed overflow-hidden">
+                          <HighlightText text={msg.body} query={searchQuery} />
+                        </div>
                         {msg.metadata?.disclaimer && (
                           <div className="mt-3 pt-3 border-t border-current/10 text-[10px] opacity-60 italic font-medium">
                             {msg.metadata.disclaimer}
@@ -1257,7 +1291,7 @@ export default function InboxPage() {
                             const newText = e.target.value;
                             setReplyMessage(newText);
                             if (leadId) {
-                                localStorage.setItem(`draft_${leadId}`, newText);
+                              localStorage.setItem(`draft_${leadId}`, newText);
                             }
                             // Auto-grow logic
                             e.target.style.height = 'auto';
@@ -1325,6 +1359,12 @@ export default function InboxPage() {
         }}
         initialLeads={selectedLeadIds.length > 0 ? selectedLeadIds : []}
       />
-    </div >
+      <LeadProcessModal
+        isOpen={!!processLead}
+        onClose={() => setProcessLead(null)}
+        lead={processLead}
+        messages={messagesData?.messages || []}
+      />
+    </div>
   );
 }

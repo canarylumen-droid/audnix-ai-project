@@ -137,6 +137,16 @@ export default function ProspectingPage() {
         a.click();
     };
 
+    const [filterStatus, setFilterStatus] = useState<string>('all');
+
+    const filteredLeads = leads.filter(lead => {
+        if (filterStatus === 'all') return true;
+        if (filterStatus === 'hardened') return lead.status === 'hardened' || lead.verified;
+        if (filterStatus === 'recovered') return lead.status === 'recovered';
+        if (filterStatus === 'bouncy') return lead.status === 'bouncy';
+        return true;
+    });
+
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-20">
             <div className="max-w-7xl mx-auto space-y-8">
@@ -241,167 +251,173 @@ export default function ProspectingPage() {
                 </div>
 
                 {/* Stats Summary Row */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto mb-12">
-                    {[
-                        { label: 'Network Size', value: leads.length, color: 'text-white' },
-                        { label: 'Hardened', value: leads.filter(l => l.status === 'hardened' || l.verified).length, color: 'text-emerald-400' },
-                        { label: 'Recoveries', value: leads.filter(l => l.status === 'recovered').length, color: 'text-cyan-400' },
-                        { label: 'Bouncy', value: leads.filter(l => l.status === 'bouncy').length, color: 'text-red-400' }
-                    ].map((stat, i) => (
-                        <div key={i} className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 backdrop-blur-sm group hover:border-primary/30 transition-all">
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 mb-1 group-hover:text-primary transition-colors">{stat.label}</p>
-                            <p className={`text-2xl font-black tracking-tighter ${stat.color}`}>{stat.value}</p>
-                        </div>
-                    ))}
-                </div>
-
-                {/* Results Table */}
-                {leads.length > 0 ? (
-                    <Card className="bg-[#030303]/80 backdrop-blur-3xl border-white/5 rounded-[2.5rem] overflow-hidden relative intelligence-panel">
-                        {/* HUD Decorations */}
-                        <div className="hud-corner hud-corner-tl opacity-60" />
-                        <div className="hud-corner hud-corner-tr opacity-30" />
-                        <div className="hud-corner hud-corner-bl opacity-60" />
-                        <div className="hud-corner hud-corner-br opacity-30" />
-
-                        <CardHeader className="px-10 py-8 border-b border-white/5">
-                            <CardTitle className="text-white text-xl font-black uppercase tracking-widest flex items-center gap-4">
-                                <Activity className="w-5 h-5 text-primary" />
-                                Verified Leads List ({leads.length})
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                {leads.map((lead) => (
-                                    <motion.div
-                                        key={lead.id}
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="p-6 bg-muted/10 border border-border/20 rounded-2xl hover:bg-muted/20 transition-all"
-                                    >
-                                        <div className="flex items-start justify-between">
-                                            <div className="space-y-3 flex-1">
-                                                <div className="flex items-center gap-3">
-                                                    <h3 className="text-lg font-bold text-foreground">{lead.entity}</h3>
-                                                    {lead.metadata?.temperature && (
-                                                        <Badge className={`${lead.metadata.temperature.includes('HOT') ? 'bg-orange-500/20 text-orange-400 border-orange-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'}`}>
-                                                            {lead.metadata.temperature}
-                                                        </Badge>
-                                                    )}
-                                                    {lead.verified && (
-                                                        <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
-                                                            <CheckCircle className="w-3 h-3 mr-1" />
-                                                            Verified
-                                                        </Badge>
-                                                    )}
-                                                    <Badge className="bg-primary/20 text-primary border-primary/30">
-                                                        Score: {lead.leadScore}%
-                                                    </Badge>
-
-                                                    {/* Never Bounce / Deliverability Status */}
-                                                    {lead.status === 'bouncy' ? (
-                                                        <Badge className="bg-red-500 text-white border-red-500 font-bold tracking-widest text-[9px] uppercase shadow-[0_0_10px_rgba(239,68,68,0.2)]">
-                                                            <XCircle className="w-3 h-3 mr-1" />
-                                                            Bouncy / Invalid
-                                                        </Badge>
-                                                    ) : lead.status === 'recovered' ? (
-                                                        <Badge className="bg-cyan-500 text-white border-cyan-500 font-bold tracking-widest text-[9px] uppercase animate-pulse">
-                                                            <Zap className="w-3 h-3 mr-1" />
-                                                            Deliverability Fix
-                                                        </Badge>
-                                                    ) : lead.verified ? (
-                                                        <Badge className="bg-emerald-500 text-white border-emerald-500 font-bold tracking-widest text-[9px] uppercase">
-                                                            <ShieldCheck className="w-3 h-3 mr-1 shadow-emerald-500/50" />
-                                                            Verified & Safe
-                                                        </Badge>
-                                                    ) : null}
-
-                                                    {!lead.website && (
-                                                        <Badge className="bg-red-500/20 text-red-400 border-red-500/30 font-bold tracking-tighter shadow-[0_0_10px_rgba(239,68,68,0.2)]">
-                                                            GHOST (No Website)
-                                                        </Badge>
-                                                    )}
-                                                    {lead.metadata?.painPoint && (
-                                                        <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">
-                                                            {lead.metadata.painPoint}
-                                                        </Badge>
-                                                    )}
-                                                </div>
-
-                                                <div className="grid grid-cols-2 gap-4 text-sm">
-                                                    <div className="flex items-center gap-2 text-muted-foreground font-medium">
-                                                        <Mail className="w-4 h-4" />
-                                                        {lead.email}
-                                                    </div>
-                                                    {lead.phone && (
-                                                        <div className="flex items-center gap-2 text-muted-foreground font-medium">
-                                                            <Phone className="w-4 h-4" />
-                                                            {lead.phone}
-                                                        </div>
-                                                    )}
-                                                    {lead.location && (
-                                                        <div className="flex items-center gap-2 text-muted-foreground font-medium">
-                                                            <MapPin className="w-4 h-4" />
-                                                            {lead.location}
-                                                        </div>
-                                                    )}
-                                                    {lead.website && (
-                                                        <div className="flex items-center gap-2 text-muted-foreground font-medium">
-                                                            <Globe className="w-4 h-4" />
-                                                            <a href={lead.website} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">
-                                                                {lead.website.length > 40 ? `${lead.website.substring(0, 40)}...` : lead.website}
-                                                            </a>
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {lead.socialProfiles && Object.keys(lead.socialProfiles).length > 0 && (
-                                                    <div className="flex gap-2">
-                                                        {Object.entries(lead.socialProfiles).map(([platform, url]) => (
-                                                            <a
-                                                                key={platform}
-                                                                href={url}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="px-3 py-1 bg-muted/50 hover:bg-muted border border-border/40 rounded-lg text-xs text-muted-foreground hover:text-primary transition-colors font-medium"
-                                                            >
-                                                                {platform}
-                                                            </a>
-                                                        ))}
-                                                    </div>
-                                                )}
-
-                                                <div className="flex gap-2">
-                                                    {lead.role && (
-                                                        <Badge variant="outline" className="text-xs">{lead.role}</Badge>
-                                                    )}
-                                                    {lead.estimatedRevenue && (
-                                                        <Badge variant="outline" className="text-xs">{lead.estimatedRevenue}</Badge>
-                                                    )}
-                                                    <Badge variant="outline" className="text-xs">{lead.wealthSignal}</Badge>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-                ) : (
-                    <Card className="bg-card/50 backdrop-blur-sm border-border/40 rounded-2xl">
-                        <CardContent className="p-12 text-center">
-                            <div className="text-muted-foreground/40 text-sm font-medium">No leads yet. Start a new search to discover prospects.</div>
-                        </CardContent>
-                    </Card>
-                )}
+                {[
+                    { label: 'Network Size', value: leads.length, color: 'text-white', id: 'all' },
+                    { label: 'Hardened', value: leads.filter(l => l.status === 'hardened' || l.verified).length, color: 'text-emerald-400', id: 'hardened' },
+                    { label: 'Recoveries', value: leads.filter(l => l.status === 'recovered').length, color: 'text-cyan-400', id: 'recovered' },
+                    { label: 'Bouncy', value: leads.filter(l => l.status === 'bouncy').length, color: 'text-red-400', id: 'bouncy' }
+                ].map((stat, i) => (
+                    <button
+                        key={i}
+                        onClick={() => setFilterStatus(stat.id)}
+                        className={cn(
+                            "p-4 rounded-2xl bg-white/[0.03] border backdrop-blur-sm group hover:border-primary/30 transition-all text-left w-full",
+                            filterStatus === stat.id ? "border-primary/50 bg-primary/5" : "border-white/5"
+                        )}
+                    >
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 mb-1 group-hover:text-primary transition-colors">{stat.label}</p>
+                        <p className={`text-2xl font-black tracking-tighter ${stat.color}`}>{stat.value}</p>
+                    </button>
+                ))}
             </div>
 
-            {/* Intelligence Scraper Console Overlay */}
-            <ScraperConsole
-                isVisible={showConsole}
-                onClose={() => setShowConsole(false)}
-                logs={logs}
-            />
+            {/* Results Table */}
+            {leads.length > 0 ? (
+                <Card className="bg-[#030303]/80 backdrop-blur-3xl border-white/5 rounded-[2.5rem] overflow-hidden relative intelligence-panel">
+                    {/* HUD Decorations */}
+                    <div className="hud-corner hud-corner-tl opacity-60" />
+                    <div className="hud-corner hud-corner-tr opacity-30" />
+                    <div className="hud-corner hud-corner-bl opacity-60" />
+                    <div className="hud-corner hud-corner-br opacity-30" />
+
+                    <CardHeader className="px-10 py-8 border-b border-white/5">
+                        <CardTitle className="text-white text-xl font-black uppercase tracking-widest flex items-center gap-4">
+                            <Activity className="w-5 h-5 text-primary" />
+                            Verified Leads List ({leads.length})
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            {filteredLeads.map((lead) => (
+                                <motion.div
+                                    key={lead.id}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="p-6 bg-muted/10 border border-border/20 rounded-2xl hover:bg-muted/20 transition-all"
+                                >
+                                    <div className="flex items-start justify-between">
+                                        <div className="space-y-3 flex-1">
+                                            <div className="flex items-center gap-3">
+                                                <h3 className="text-lg font-bold text-foreground">{lead.entity}</h3>
+                                                {lead.metadata?.temperature && (
+                                                    <Badge className={`${lead.metadata.temperature.includes('HOT') ? 'bg-orange-500/20 text-orange-400 border-orange-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'}`}>
+                                                        {lead.metadata.temperature}
+                                                    </Badge>
+                                                )}
+                                                {lead.verified && (
+                                                    <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                                                        <CheckCircle className="w-3 h-3 mr-1" />
+                                                        Verified
+                                                    </Badge>
+                                                )}
+                                                <Badge className="bg-primary/20 text-primary border-primary/30">
+                                                    Score: {lead.leadScore}%
+                                                </Badge>
+
+                                                {/* Never Bounce / Deliverability Status */}
+                                                {lead.status === 'bouncy' ? (
+                                                    <Badge className="bg-red-500 text-white border-red-500 font-bold tracking-widest text-[9px] uppercase shadow-[0_0_10px_rgba(239,68,68,0.2)]">
+                                                        <XCircle className="w-3 h-3 mr-1" />
+                                                        Bouncy / Invalid
+                                                    </Badge>
+                                                ) : lead.status === 'recovered' ? (
+                                                    <Badge className="bg-cyan-500 text-white border-cyan-500 font-bold tracking-widest text-[9px] uppercase animate-pulse">
+                                                        <Zap className="w-3 h-3 mr-1" />
+                                                        Deliverability Fix
+                                                    </Badge>
+                                                ) : lead.verified ? (
+                                                    <Badge className="bg-emerald-500 text-white border-emerald-500 font-bold tracking-widest text-[9px] uppercase">
+                                                        <ShieldCheck className="w-3 h-3 mr-1 shadow-emerald-500/50" />
+                                                        Verified & Safe
+                                                    </Badge>
+                                                ) : null}
+
+                                                {!lead.website && (
+                                                    <Badge className="bg-red-500/20 text-red-400 border-red-500/30 font-bold tracking-tighter shadow-[0_0_10px_rgba(239,68,68,0.2)]">
+                                                        GHOST (No Website)
+                                                    </Badge>
+                                                )}
+                                                {lead.metadata?.painPoint && (
+                                                    <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">
+                                                        {lead.metadata.painPoint}
+                                                    </Badge>
+                                                )}
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-4 text-sm">
+                                                <div className="flex items-center gap-2 text-muted-foreground font-medium">
+                                                    <Mail className="w-4 h-4" />
+                                                    {lead.email}
+                                                </div>
+                                                {lead.phone && (
+                                                    <div className="flex items-center gap-2 text-muted-foreground font-medium">
+                                                        <Phone className="w-4 h-4" />
+                                                        {lead.phone}
+                                                    </div>
+                                                )}
+                                                {lead.location && (
+                                                    <div className="flex items-center gap-2 text-muted-foreground font-medium">
+                                                        <MapPin className="w-4 h-4" />
+                                                        {lead.location}
+                                                    </div>
+                                                )}
+                                                {lead.website && (
+                                                    <div className="flex items-center gap-2 text-muted-foreground font-medium">
+                                                        <Globe className="w-4 h-4" />
+                                                        <a href={lead.website} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">
+                                                            {lead.website.length > 40 ? `${lead.website.substring(0, 40)}...` : lead.website}
+                                                        </a>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {lead.socialProfiles && Object.keys(lead.socialProfiles).length > 0 && (
+                                                <div className="flex gap-2">
+                                                    {Object.entries(lead.socialProfiles).map(([platform, url]) => (
+                                                        <a
+                                                            key={platform}
+                                                            href={url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="px-3 py-1 bg-muted/50 hover:bg-muted border border-border/40 rounded-lg text-xs text-muted-foreground hover:text-primary transition-colors font-medium"
+                                                        >
+                                                            {platform}
+                                                        </a>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            <div className="flex gap-2">
+                                                {lead.role && (
+                                                    <Badge variant="outline" className="text-xs">{lead.role}</Badge>
+                                                )}
+                                                {lead.estimatedRevenue && (
+                                                    <Badge variant="outline" className="text-xs">{lead.estimatedRevenue}</Badge>
+                                                )}
+                                                <Badge variant="outline" className="text-xs">{lead.wealthSignal}</Badge>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            ) : (
+                <Card className="bg-card/50 backdrop-blur-sm border-border/40 rounded-2xl">
+                    <CardContent className="p-12 text-center">
+                        <div className="text-muted-foreground/40 text-sm font-medium">No leads yet. Start a new search to discover prospects.</div>
+                    </CardContent>
+                </Card>
+            )}
+        </div>
+
+            {/* Intelligence Scraper Console Overlay */ }
+    <ScraperConsole
+        isVisible={showConsole}
+        onClose={() => setShowConsole(false)}
+        logs={logs}
+    />
         </div >
     );
 }

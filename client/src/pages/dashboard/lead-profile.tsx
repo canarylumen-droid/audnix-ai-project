@@ -26,6 +26,8 @@ import {
 import { PremiumLoader } from "@/components/ui/premium-loader";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { LeadProcessModal } from "@/components/dashboard/LeadProcessModal";
+import { useState } from "react";
 
 const statusStyles = {
   new: "bg-primary/20 text-primary border-primary/20",
@@ -42,6 +44,7 @@ const statusStyles = {
 export default function LeadProfilePage() {
   const { id } = useParams();
   const [, setLocation] = useLocation();
+  const [showProcessModal, setShowProcessModal] = useState(false);
 
   const { data: lead, isLoading: leadLoading } = useQuery<any>({
     queryKey: ["/api/leads", id],
@@ -93,6 +96,15 @@ export default function LeadProfilePage() {
               <Badge variant="outline" className={cn("text-[10px] font-bold uppercase tracking-widest px-3 py-1", statusStyles[lead.status as keyof typeof statusStyles])}>
                 {lead.status === 'hardened' ? 'Verified' : lead.status}
               </Badge>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full h-8 w-8 text-primary hover:bg-primary/10 transition-colors"
+                onClick={() => setShowProcessModal(true)}
+                title="View Interaction Study"
+              >
+                <Brain className="h-5 w-5" />
+              </Button>
             </div>
             <p className="text-muted-foreground font-medium flex items-center gap-2">
               <Building2 className="h-4 w-4" />
@@ -351,6 +363,13 @@ export default function LeadProfilePage() {
         </div>
       </div>
     </div>
+      <LeadProcessModal
+        isOpen={showProcessModal}
+        onClose={() => setShowProcessModal(false)}
+        lead={lead}
+        messages={messages}
+      />
+    </div >
   );
 }
 
