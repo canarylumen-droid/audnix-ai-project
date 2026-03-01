@@ -410,14 +410,13 @@ export default function ProspectingPage() {
                     </CardContent>
                 </Card>
             )}
-        </div>
 
-            {/* Intelligence Scraper Console Overlay */ }
-    <ScraperConsole
-        isVisible={showConsole}
-        onClose={() => setShowConsole(false)}
-        logs={logs}
-    />
+            {/* Intelligence Scraper Console Overlay */}
+            <ScraperConsole
+                isVisible={showConsole}
+                onClose={() => setShowConsole(false)}
+                logs={logs}
+            />
         </div >
     );
 }
