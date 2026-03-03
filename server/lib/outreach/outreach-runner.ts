@@ -118,29 +118,63 @@ export async function runOutreachCampaign(
   leads: OutreachLead[],
   brandContext: BrandContext,
   options: {
-    scheduleFollowUpMinutes?: number;
+    followUpDays?: number[]; // Sequence of days for follow-ups (e.g., [3, 7, 14])
     delayBetweenEmailsMs?: number;
-    simulateOnly?: boolean; // Skip actual email sending for demo/testing
+    simulateOnly?: boolean;
   } = {}
 ): Promise<{
   results: OutreachResult[];
   summary: { sent: number; failed: number; total: number };
 }> {
   const results: OutreachResult[] = [];
-  const { scheduleFollowUpMinutes = 5, delayBetweenEmailsMs = 2000, simulateOnly = false } = options;
+  const { followUpDays = [3, 7, 14], delayBetweenEmailsMs = 2000, simulateOnly = false } = options;
 
   console.log(`[Outreach] Starting campaign for ${leads.length} leads...${simulateOnly ? ' (SIMULATION MODE)' : ''}`);
 
-  // Check if user has email configured (skip check in simulation mode)
-  if (!simulateOnly) {
-    const emailIntegration = await storage.getIntegration(userId, 'custom_email');
-    if (!emailIntegration?.connected) {
-      throw new Error('No email configured. Please connect your SMTP in Settings > Email Integration.');
+  const user = await storage.getUserById(userId);
+  if (!user) throw new Error('User not found');
+
+  brandContext.businessName = brandContext.businessName || user.company || user.businessName || 'Audnix AI';
+
+  // --- MAILBOX ROTATION LOGIC ---
+  const allIntegrations = await storage.getIntegrations(userId);
+  const emailIntegrations = allIntegrations.filter(i =>
+    ['custom_email', 'gmail', 'outlook'].includes(i.provider) && i.connected
+  );
+
+  const tier = (user.subscriptionTier || 'free').toLowerCase();
+  const mailboxLimit = tier === 'enterprise' ? 5 : (tier === 'pro' ? 3 : 1);
+
+  // Daily limits per provider
+  const PROVIDER_LIMITS: Record<string, number> = {
+    'gmail': 50,
+    'outlook': 100,
+    'custom_email': 500
+  };
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Filter usable mailboxes that haven't hit their daily limit
+  const emailMailboxes = emailIntegrations.slice(0, mailboxLimit);
+  const usableMailboxes: Array<Integration & { remaining: number }> = [];
+
+  for (const mb of emailMailboxes) {
+    const sentCount = await storage.getIntegrationSentCount(userId, mb.id, today);
+    const limit = PROVIDER_LIMITS[mb.provider] || 50;
+    if (sentCount < limit) {
+      usableMailboxes.push({ ...mb, remaining: limit - sentCount });
+    } else {
+      console.warn(`[Outreach] Mailbox ${mb.id} (${mb.provider}) reached daily limit of ${limit}. Skipping.`);
     }
   }
 
-  const user = await storage.getUserById(userId);
-  brandContext.businessName = brandContext.businessName || user?.company || user?.businessName || 'Audnix AI';
+  if (usableMailboxes.length === 0) {
+    throw new Error('All configured mailboxes have reached their daily sending limits. Please wait until tomorrow or connect more mailboxes.');
+  }
+
+  let mailboxIndex = 0;
+  // ------------------------------
 
   for (const lead of leads) {
     try {
@@ -181,7 +215,7 @@ export async function runOutreachCampaign(
       // --- ENHANCEMENT: Name Interpolation & Plain Text Format ---
       const firstNameRaw = (lead.name.split(' ')[0] || "there").trim();
       const firstName = firstNameRaw.charAt(0).toUpperCase() + firstNameRaw.slice(1);
-      
+
       // Auto-replace placeholders if AI missed them
       let finalBody = emailContent.body.replace(/\{lead_name\}/g, firstName);
       let finalSubject = emailContent.subject.replace(/\{lead_name\}/g, firstName);
@@ -192,38 +226,57 @@ export async function runOutreachCampaign(
         finalSubject = `Re: ${finalSubject}`;
       }
 
-      // Send the email (or simulate)
-      if (!simulateOnly) {
-        await sendEmail(
+      // Pick next mailbox (rotation) - skip if remaining reached during loop
+      let currentMailbox = usableMailboxes[mailboxIndex % usableMailboxes.length];
+
+      // If the current mailbox is exhausted *during* the loop (unlikely since we checked above, 
+      // but good for multi-threading resilience), we skip
+      if (currentMailbox.remaining <= 0) {
+        mailboxIndex++;
+        currentMailbox = usableMailboxes[mailboxIndex % usableMailboxes.length];
+      }
+
+      currentMailbox.remaining--;
+      mailboxIndex++;
+
+      if (simulateOnly) {
+        console.log(`[Outreach] (SIMULATION) Would send email to ${lead.email} via ${currentMailbox.provider}`);
+      } else {
+        // Send the email
+        const outreachSent = await sendEmail(
           userId,
           lead.email,
           finalBody,
           finalSubject,
-          { 
-            isHtml: false, // Force plain text
+          {
+            isHtml: false, // Force plain text for outreach
             isRaw: true,   // Skip branded wrapper
-            trackingId: undefined // No tracking for super-clean mail
+            trackingId: undefined,
+            integrationId: currentMailbox.id,
+            leadId
           }
         );
-        console.log(`[Outreach] ✅ Email sent to ${lead.email}`);
-      } else {
-        console.log(`[Outreach] 📧 SIMULATED email to ${lead.email}: "${finalSubject}"`);
+
+        console.log(`[Outreach] ✅ Email sent to ${lead.email} via ${currentMailbox.accountType || currentMailbox.provider} (${outreachSent.messageId})`);
       }
 
-      // Save outbound message to database
-      await storage.createMessage({
-        leadId,
-        userId,
-        provider: 'email',
-        direction: 'outbound',
-        body: finalBody,
-        metadata: {
-          subject: finalSubject,
-          ai_generated: true,
-          outreach_campaign: true,
-          sent_at: new Date().toISOString()
-        }
-      });
+      if (!simulateOnly) {
+        // Save outbound message to database
+        await storage.createMessage({
+          leadId,
+          userId,
+          provider: 'email',
+          direction: 'outbound',
+          body: finalBody,
+          metadata: {
+            subject: finalSubject,
+            ai_generated: true,
+            outreach_campaign: true,
+            sent_at: new Date().toISOString(),
+            integrationId: currentMailbox.id
+          }
+        });
+      }
 
       // Update lead status
       await storage.updateLead(leadId, {
@@ -236,11 +289,19 @@ export async function runOutreachCampaign(
         }
       });
 
-      // Schedule follow-up
-      let followUpTime: Date | null = null;
-      if (scheduleFollowUpMinutes > 0) {
-        followUpTime = await scheduleFollowUp(userId, leadId, 'email', 'followup');
-        console.log(`[Outreach] 📅 Follow-up scheduled for ${lead.name}`);
+      // Schedule follow-up (Day-based)
+      try {
+        const { scheduleInitialFollowUp } = await import('../ai/follow-up-worker.js');
+        const scheduledAt = new Date();
+        scheduledAt.setDate(scheduledAt.getDate() + followUpDays[0]);
+
+        await scheduleInitialFollowUp(userId, leadId, 'email', {
+          scheduledAt,
+          metadata: { followUpSequence: followUpDays, nextIndex: 1 }
+        });
+        console.log(`[Outreach] 📅 Follow-up scheduled for ${lead.name} in ${followUpDays[0]} days`);
+      } catch (fErr) {
+        console.error(`[Outreach] Follow-up scheduling failed:`, fErr);
       }
 
       // Create notification
@@ -263,7 +324,7 @@ export async function runOutreachCampaign(
         name: lead.name,
         status: 'sent',
         message: emailContent.subject,
-        followUpScheduled: followUpTime || undefined
+        followUpScheduled: undefined // Handled by worker
       });
 
     } catch (error) {

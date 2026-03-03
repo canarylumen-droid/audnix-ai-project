@@ -53,7 +53,7 @@ const router = Router();
 router.get("/", requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    const { channel, status, limit = "50", offset = "0", search, includeArchived } = req.query;
+    const { channel, status, limit = "50", offset = "0", search, includeArchived, integrationId } = req.query;
 
     const limitNum = Math.min(parseInt(limit as string) || 50, 500);
     const offsetNum = parseInt(offset as string) || 0;
@@ -65,6 +65,7 @@ router.get("/", requireAuth, async (req: Request, res: Response): Promise<void> 
       status: status as string | undefined,
       search: search as string | undefined,
       includeArchived: includeArchived === 'true',
+      integrationId: integrationId as string | undefined,
       limit: limitNum,
       offset: offsetNum
     });
@@ -76,7 +77,8 @@ router.get("/", requireAuth, async (req: Request, res: Response): Promise<void> 
         eq(leadsTable.userId, userId),
         includeArchived === 'true' ? undefined : eq(leadsTable.archived, false),
         status && status !== 'all' ? eq(leadsTable.status, status as any) : undefined,
-        channel ? eq(leadsTable.channel, channel as any) : undefined
+        channel ? eq(leadsTable.channel, channel as any) : undefined,
+        integrationId ? eq(leadsTable.integrationId, integrationId as string) : undefined
       ));
 
     res.json({
@@ -1332,7 +1334,7 @@ router.post("/run-outreach", requireAuth, async (req: Request, res: Response): P
         userId,
         leads as OutreachLead[],
         brandContext as BrandContext,
-        { scheduleFollowUpMinutes: 5, delayBetweenEmailsMs: 3000 }
+        { followUpDays: [3, 7, 14], delayBetweenEmailsMs: 2000 }
       );
     } else {
       res.status(400).json({ error: "Provide 'leads' array and 'brandContext', or set 'runDemo: true'" });

@@ -13,6 +13,7 @@ import { storage } from '../storage.js';
 import { db } from '../db.js';
 import { eq, and, desc, sql, ne } from 'drizzle-orm';
 import { AuditTrailService } from '../lib/audit-trail-service.js';
+import { wsSync } from '../lib/websocket-sync.js';
 
 const router = Router();
 
@@ -214,6 +215,9 @@ router.post('/campaigns', requireAuth, async (req, res) => {
     const metricsResult = await createOutreachCampaign(leads, name);
     const safety = validateCampaignSafety(metricsResult);
 
+    // Notify UI of new campaign
+    wsSync.notifyCampaignsUpdated(userId);
+
     res.json({
       ...campaign,
       addedLeads: addedCount,
@@ -246,6 +250,7 @@ router.post('/campaigns/:id/start', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Campaign not found' });
     }
 
+    wsSync.notifyCampaignsUpdated(userId);
     res.json({ success: true, campaign });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -268,6 +273,8 @@ router.post('/campaigns/:id/pause', requireAuth, async (req, res) => {
       .returning();
 
     if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+
+    wsSync.notifyCampaignsUpdated(userId);
     res.json({ success: true, campaign });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -290,6 +297,8 @@ router.post('/campaigns/:id/resume', requireAuth, async (req, res) => {
       .returning();
 
     if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+
+    wsSync.notifyCampaignsUpdated(userId);
     res.json({ success: true, campaign });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -499,6 +508,7 @@ router.get('/track/:trackingId', async (req, res) => {
         .where(eq(outreachCampaigns.id, campaignEmail.campaignId));
 
       console.log(`📊 Campaign stat updated: campaignId=${campaignEmail.campaignId}, stat=opened`);
+      wsSync.notifyCampaignStatsUpdated(message.userId, campaignEmail.campaignId);
     }
 
     if (message && isFirstOpen) {
@@ -617,6 +627,8 @@ router.get('/click/:trackingId', async (req, res) => {
           updatedAt: new Date()
         })
         .where(eq(outreachCampaigns.id, campaignEmail.campaignId));
+
+      wsSync.notifyCampaignStatsUpdated(message.userId, campaignEmail.campaignId);
     }
 
     if (message && isFirstClick) {

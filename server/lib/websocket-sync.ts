@@ -1,7 +1,7 @@
 import { Server, Socket } from 'socket.io';
 import http from 'http';
 
-type MessageType = 'leads_updated' | 'messages_updated' | 'deals_updated' | 'settings_updated' | 'ping' | 'pong' | 'PROSPECTING_LOG' | 'PROSPECT_FOUND' | 'PROSPECT_UPDATED' | 'notification' | 'calendar_updated' | 'TERMINATE_SESSION' | 'insights_updated' | 'activity_updated' | 'stats_updated';
+type MessageType = 'leads_updated' | 'messages_updated' | 'deals_updated' | 'settings_updated' | 'ping' | 'pong' | 'PROSPECTING_LOG' | 'PROSPECT_FOUND' | 'PROSPECT_UPDATED' | 'notification' | 'calendar_updated' | 'TERMINATE_SESSION' | 'insights_updated' | 'activity_updated' | 'stats_updated' | 'campaigns_updated' | 'campaign_stats_updated' | 'desktop_notification';
 
 interface SyncMessage {
   type: MessageType;
@@ -98,6 +98,22 @@ class WebSocketSyncServer {
 
   notifyActivityUpdated(userId: string, data?: any) {
     this.emitToUser(userId, 'activity_updated', data);
+  }
+
+  notifyCampaignsUpdated(userId: string) {
+    this.emitToUser(userId, 'campaigns_updated', { timestamp: new Date().toISOString() });
+  }
+
+  notifyCampaignStatsUpdated(userId: string, campaignId: string) {
+    this.emitToUser(userId, 'campaign_stats_updated', { campaignId, timestamp: new Date().toISOString() });
+  }
+
+  notifyStatsUpdated(userId: string) {
+    this.emitToUser(userId, 'stats_updated', { timestamp: new Date().toISOString() });
+  }
+
+  notifyDesktopNotification(userId: string, data: { title: string; message: string; url?: string; tag?: string }) {
+    this.emitToUser(userId, 'desktop_notification', data);
   }
 
   notifyNotification(userId: string, data: any) {

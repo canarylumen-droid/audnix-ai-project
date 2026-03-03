@@ -7,7 +7,8 @@ import {
   messages,
   integrations,
   campaignEmails,
-  users
+  users,
+  type Integration
 } from '../../../shared/schema.js';
 import { eq, and, or, sql, lte, desc, ne, isNull, lt } from 'drizzle-orm';
 import { storage } from '../../storage.js';
@@ -23,7 +24,8 @@ export class OutreachEngine {
   private interval: NodeJS.Timeout | null = null;
   private readonly TICK_INTERVAL_MS = 1000; // 1 second for ultra-live feel and multi-user scaling
   private activeUserProcessing: Set<string> = new Set();
-  private readonly MAX_CONCURRENT_USERS = 5000; // Drastically boosted concurrency limit
+  private readonly MAX_CONCURRENT_USERS = 5000;
+  private userMailboxIndex: Map<string, number> = new Map(); // Tracks rotating mailbox index per user
 
   /**
    * Start the outreach engine
@@ -116,6 +118,8 @@ export class OutreachEngine {
       await this.tickAutonomousOutreach(userId);
 
     } finally {
+      // Emit stats refresh for instant KPI updates on dashboard
+      wsSync.notifyStatsUpdated(userId);
       this.activeUserProcessing.delete(userId);
     }
   }
@@ -174,7 +178,7 @@ export class OutreachEngine {
           )
         )
       )
-      .limit(1000); // 20x capacity per tick per user for massive campaign queues
+      .limit(2000); // Optimized for 2k+ leads per tick
 
     if (nextLeadsResult.length === 0) {
       console.log(`[OutreachEngine] No leads due for campaign: ${campaign.name} (ID: ${campaign.id})`);
@@ -195,8 +199,13 @@ export class OutreachEngine {
       return false;
     }
 
+    let sentInThisTick = 0;
+    const MAX_SENDS_PER_TICK = 10;
+
     console.log(`[OutreachEngine] Processing batch of ${nextLeadsResult.length} leads for campaign: ${campaign.name}`);
     for (const row of nextLeadsResult) {
+      if (sentInThisTick >= MAX_SENDS_PER_TICK) break;
+
       const leadEntry = (row as any).campaignLead || row;
       const lead = (row as any).lead || row;
 
@@ -205,25 +214,27 @@ export class OutreachEngine {
         continue;
       }
 
-      // Check daily limits and delays for this specific lead's channel
-      if (!(await this.isUserReadyToSend(userId, campaign, lead.channel as 'email' | 'instagram'))) {
-        continue; // Skip this lead for now, try next one or wait for next tick
+      // Check for ready mailbox (rotation)
+      const mailbox = await this.getNextAvailableMailbox(userId, campaign);
+      if (!mailbox) {
+        // No mailbox is ready (limits reached or cooldown)
+        continue;
       }
 
       // Process delivery
       try {
         if (lead.channel === 'instagram') {
           await this.deliverCampaignInstagram(userId, campaign, lead, leadEntry);
-          return true; // We sent ONE, campaign tick should probably finish to respect delays
+          sentInThisTick++;
         } else {
-          await this.deliverCampaignEmail(userId, campaign, lead, leadEntry);
-          return true; // We sent ONE
+          await this.deliverCampaignEmail(userId, campaign, lead, leadEntry, mailbox.id);
+          sentInThisTick++;
         }
       } catch (err) {
         console.error(`[OutreachEngine] Campaign delivery failed for ${lead.email || lead.id}:`, err);
       }
     }
-    return true;
+    return sentInThisTick > 0;
   }
 
   /**
@@ -247,9 +258,13 @@ export class OutreachEngine {
           sql`(${leads.metadata}->>'ai_outreach_consent')::boolean = true`
         )
       )
-      .limit(10); // Check a few
+      .limit(50); // Increased batch for autonomous outreach scalability
+
+    let sentInThisTick = 0;
+    const MAX_AUTONOMOUS_PER_TICK = 10;
 
     for (const lead of userLeads) {
+      if (sentInThisTick >= MAX_AUTONOMOUS_PER_TICK) break;
       if (!lead.email) continue;
 
       // Safety: Double check if already contacted
@@ -261,8 +276,9 @@ export class OutreachEngine {
 
       if (alreadyContacted.length > 0) continue;
 
-      // Check readiness for this channel
-      if (!(await this.isUserReadyToSend(userId, undefined, lead.channel as 'email' | 'instagram'))) {
+      // Check readiness and get a mailbox
+      const mailbox = await this.getNextAvailableMailbox(userId);
+      if (!mailbox) {
         continue;
       }
 
@@ -270,10 +286,11 @@ export class OutreachEngine {
       try {
         if (lead.channel === 'instagram') {
           await this.deliverAutonomousInstagram(userId, lead);
+          sentInThisTick++;
         } else {
-          await this.deliverAutonomousOutreach(userId, lead);
+          await this.deliverAutonomousOutreach(userId, lead, mailbox.id);
+          sentInThisTick++;
         }
-        return; // Only one per tick per user
       } catch (err) {
         console.error(`[OutreachEngine] Autonomous outreach failed for ${lead.email || lead.id}:`, err);
       }
@@ -281,68 +298,136 @@ export class OutreachEngine {
   }
 
   /**
-   * Checks daily limits and mandatory randomized delays
+   * Public helper to get allowed mailboxes for a user based on their plan
    */
-  private async isUserReadyToSend(userId: string, campaign?: any, channel: 'email' | 'instagram' = 'email'): Promise<boolean> {
-    // 1. Channel-specific delay
+  public async getAvailableMailboxes(userId: string): Promise<Integration[]> {
+    const allInts = await storage.getIntegrations(userId);
+    const mailboxes = allInts.filter(i =>
+      ['custom_email', 'gmail', 'outlook'].includes(i.provider) && i.connected
+    );
+
+    const user = await storage.getUser(userId);
+    const plan = (user as any)?.subscriptionPlan?.toLowerCase() || 'starter';
+
+    let limit = 1;
+    if (plan === 'enterprise') limit = 5;
+    else if (plan === 'pro') limit = 3;
+    else if (plan === 'starter') limit = 1;
+
+    return mailboxes.slice(0, limit).sort((a, b) => a.id.localeCompare(b.id));
+  }
+
+  /**
+   * Selection of the next mailbox using round-robin rotation, respecting limits
+   */
+  private async getNextAvailableMailbox(userId: string, campaign?: any): Promise<Integration | undefined> {
+    const allInts = await storage.getIntegrations(userId);
+    const mailboxes = allInts.filter(i =>
+      ['custom_email', 'gmail', 'outlook'].includes(i.provider) && i.connected
+    );
+
+    if (mailboxes.length === 0) return undefined;
+
+    // Plan-based limit check
+    const activeMailboxes = await this.getAvailableMailboxes(userId);
+    if (activeMailboxes.length === 0) return undefined;
+
+    // Get start index for rotation
+    let startIndex = this.userMailboxIndex.get(userId) || 0;
+    if (startIndex >= activeMailboxes.length) startIndex = 0;
+
+    // Try each mailbox starting from index
+    for (let i = 0; i < activeMailboxes.length; i++) {
+      const idx = (startIndex + i) % activeMailboxes.length;
+      const mailbox = activeMailboxes[idx];
+
+      if (await this.isMailboxReadyToSend(userId, mailbox, campaign)) {
+        // Update rotation index for next time
+        this.userMailboxIndex.set(userId, (idx + 1) % activeMailboxes.length);
+        return mailbox;
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Checks daily limits and mandatory randomized delays for a specific mailbox
+   */
+  private async isMailboxReadyToSend(userId: string, integration: Integration, campaign?: any): Promise<boolean> {
+    const channel = integration.provider === 'instagram' ? 'instagram' : 'email';
+
+    // 1. Cooldown check (using integrationId if available)
     const lastSentResult = await db.execute(sql`
         SELECT created_at FROM messages 
-        WHERE user_id = ${userId} AND direction = 'outbound' AND provider = ${channel === 'email' ? 'email' : 'instagram'}
+        WHERE user_id = ${userId} 
+        AND direction = 'outbound' 
+        AND (metadata->>'integrationId' = ${integration.id} OR (provider = ${integration.provider} AND metadata->>'integrationId' IS NULL))
         ORDER BY created_at DESC LIMIT 1
     `);
 
     if (lastSentResult.rows.length > 0) {
       const lastSentAt = new Date(lastSentResult.rows[0].created_at as string).getTime();
-
-      let minDelayMs = 30000; // Default 30s
+      let minDelayMs = 30000;
 
       if (channel === 'instagram') {
-        // Instagram requires much slower pacing to avoid shadowban/blocks
-        // Randomized 5-10 minutes for DMs
         minDelayMs = (5 + Math.random() * 5) * 60 * 1000;
       } else {
-        // Email: 30s - 60s
-        minDelayMs = 30000 + (Math.random() * 30000);
+        // Email randomized 30s-90s for safety
+        minDelayMs = 30000 + (Math.random() * 60000);
       }
 
       if (Date.now() - lastSentAt < minDelayMs) {
-        const remaining = Math.round((minDelayMs - (Date.now() - lastSentAt)) / 1000);
-        console.log(`[OutreachEngine] User ${userId} (${channel}) throttled. Waiting ${remaining}s...`);
-
         return false;
       }
     }
 
-    // 2. Daily limits
-    let dailyLimit = 50;
+    // 2. Global/User Daily Limits & Autonomous Mode
+    let userDailyLimit = 50;
     try {
       const userResult = await db.select().from(users).where(eq(users.id, userId)).limit(1);
       if (userResult[0]) {
         const config = (userResult[0].config as any) || {};
-        dailyLimit = config.dailyLimit || 50;
+        userDailyLimit = config.dailyLimit || 50;
 
-        // Global Autonomous Engine Toggle - DEFAULT TO FALSE for safety
         const isAutonomousMode = config.autonomousMode === true;
         const isManualCampaign = campaign?.config?.isManual === true;
 
-        if (!isAutonomousMode && !isManualCampaign) {
-          return false;
-        }
+        if (!isAutonomousMode && !isManualCampaign) return false;
       }
     } catch (e) { }
 
-    if (campaign?.config?.dailyLimit) dailyLimit = campaign.config.dailyLimit;
+    // 3. Specific Mailbox Daily Limit (from integration config)
+    let mailboxDailyLimit = 50;
+    try {
+      const meta = integration.metadata as any;
+      if (meta?.dailyLimit) mailboxDailyLimit = Number(meta.dailyLimit);
+    } catch (e) { }
 
+    // Check mailbox-specific sent count
     const sentTodayResult = await db.execute(sql`
       SELECT COUNT(*) as count FROM messages 
       WHERE user_id = ${userId} 
       AND direction = 'outbound'
+      AND metadata->>'integrationId' = ${integration.id}
       AND created_at >= CURRENT_DATE::timestamp
     `);
     const sentToday = Number(sentTodayResult.rows[0].count);
 
-    if (sentToday >= dailyLimit) {
+    if (sentToday >= mailboxDailyLimit) {
       return false;
+    }
+
+    // Also respect campaign-specific limit if provided (applies to total campaign)
+    if (campaign?.config?.dailyLimit) {
+      const campaignSentToday = await db.execute(sql`
+            SELECT COUNT(*) as count FROM messages 
+            WHERE user_id = ${userId} 
+            AND metadata->>'campaignId' = ${campaign.id}
+            AND direction = 'outbound'
+            AND created_at >= CURRENT_DATE::timestamp
+        `);
+      if (Number(campaignSentToday.rows[0].count) >= campaign.config.dailyLimit) return false;
     }
 
     return true;
@@ -351,8 +436,8 @@ export class OutreachEngine {
   /**
    * Helper to deliver campaign email
    */
-  private async deliverCampaignEmail(userId: string, campaign: any, lead: any, leadEntry: any): Promise<void> {
-    console.log(`[OutreachEngine] Delivering campaign "${campaign.name}" step ${leadEntry.currentStep} to ${lead.email}`);
+  private async deliverCampaignEmail(userId: string, campaign: any, lead: any, leadEntry: any, integrationId: string): Promise<void> {
+    console.log(`[OutreachEngine] Delivering campaign "${campaign.name}" step ${leadEntry.currentStep} to ${lead.email} using mailbox ${integrationId}`);
 
     // Generate content
     const aiContent = await generateExpertOutreach(lead, userId);
@@ -396,7 +481,8 @@ export class OutreachEngine {
       isHtml: true, // Force HTML for tracking pixel/links
       trackingId: campaign.config?.isManual ? undefined : trackingId,
       campaignId: campaign.id,
-      leadId: lead.id
+      leadId: lead.id,
+      integrationId // Use the rotated mailbox
     });
 
     // Recording and state updates
@@ -408,7 +494,7 @@ export class OutreachEngine {
       subject,
       body,
       trackingId,
-      metadata: { campaignId: campaign.id, step: leadEntry.currentStep }
+      metadata: { campaignId: campaign.id, step: leadEntry.currentStep, integrationId }
     });
 
     // Detailed campaign tracking
@@ -454,15 +540,17 @@ export class OutreachEngine {
       .where(eq(outreachCampaigns.id, campaign.id));
 
     wsSync.notifyLeadsUpdated(userId, { leadId: lead.id, action: 'campaign_sent' });
+    wsSync.notifyCampaignStatsUpdated(userId, campaign.id);
+    wsSync.notifyInsightsUpdated(userId);
   }
 
   /**
    * Helper to deliver autonomous outreach
    */
-  private async deliverAutonomousOutreach(userId: string, lead: any): Promise<void> {
-    console.log(`[OutreachEngine] Delivering autonomous outreach to ${lead.email}`);
+  private async deliverAutonomousOutreach(userId: string, lead: any, integrationId: string): Promise<void> {
+    console.log(`[OutreachEngine] Delivering autonomous outreach to ${lead.email} via ${integrationId}`);
 
-    const user = await storage.getUserById(userId);
+    const user = await storage.getUser(userId);
     const businessName = user?.company || user?.businessName || 'Our Team';
 
     const aiContent = await generateExpertOutreach(lead, userId);
@@ -472,7 +560,8 @@ export class OutreachEngine {
       isRaw: true,
       isHtml: true, // Force HTML for tracking
       trackingId,
-      leadId: lead.id
+      leadId: lead.id,
+      integrationId
     });
 
     await storage.createMessage({
@@ -483,7 +572,7 @@ export class OutreachEngine {
       subject: aiContent.subject,
       body: aiContent.body,
       trackingId, // Save the tracking ID
-      metadata: { autonomous: true }
+      metadata: { autonomous: true, integrationId }
     });
 
     await storage.updateLead(lead.id, {
@@ -497,6 +586,13 @@ export class OutreachEngine {
     });
 
     wsSync.notifyLeadsUpdated(userId, { leadId: lead.id, action: 'autonomous_sent' });
+    wsSync.notifyInsightsUpdated(userId);
+    wsSync.notifyActivityUpdated(userId, {
+      type: 'autonomous_outreach',
+      leadId: lead.id,
+      title: 'Autonomous Outreach Sent',
+      message: `AI sent a message to ${lead.name || lead.email}`
+    });
   }
 
   /**
@@ -568,6 +664,8 @@ export class OutreachEngine {
       .where(eq(outreachCampaigns.id, campaign.id));
 
     wsSync.notifyLeadsUpdated(userId, { leadId: lead.id, action: 'campaign_sent' });
+    wsSync.notifyCampaignStatsUpdated(userId, campaign.id);
+    wsSync.notifyInsightsUpdated(userId);
   }
 
   /**
@@ -603,6 +701,7 @@ export class OutreachEngine {
     });
 
     wsSync.notifyLeadsUpdated(userId, { leadId: lead.id, action: 'autonomous_sent' });
+    wsSync.notifyInsightsUpdated(userId);
   }
 }
 

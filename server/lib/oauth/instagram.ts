@@ -40,25 +40,25 @@ export class InstagramOAuth {
   }
 
   /**
-   * Generate OAuth authorization URL
+   * Generate OAuth authorization URL (Facebook Graph Login for Instagram Professional)
    */
   getAuthorizationUrl(userId: string): string {
     const state = this.generateState(userId);
     const params = new URLSearchParams({
       client_id: this.config.clientId,
       redirect_uri: this.config.redirectUri,
-      scope: 'instagram_basic,instagram_manage_messages,instagram_manage_comments',
+      scope: 'instagram_basic,instagram_manage_messages,pages_show_list,pages_read_engagement,pages_manage_metadata,public_profile',
       response_type: 'code',
       state
     });
 
-    return `https://api.instagram.com/oauth/authorize?${params.toString()}`;
+    return `https://www.facebook.com/v18.0/dialog/oauth?${params.toString()}`;
   }
 
   /**
-   * Exchange authorization code for access token
+   * Exchange authorization code for access token (Facebook User Token)
    */
-  async exchangeCodeForToken(code: string): Promise<InstagramTokenResponse> {
+  async exchangeCodeForToken(code: string): Promise<any> {
     const params = new URLSearchParams({
       client_id: this.config.clientId,
       client_secret: this.config.clientSecret,
@@ -67,7 +67,7 @@ export class InstagramOAuth {
       code
     });
 
-    const response = await fetch('https://api.instagram.com/oauth/access_token', {
+    const response = await fetch('https://graph.facebook.com/v18.0/oauth/access_token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -76,7 +76,6 @@ export class InstagramOAuth {
     });
 
     const data = await response.json();
-
     if (data.error) {
       throw new Error(data.error.message || 'Failed to exchange code for token');
     }
@@ -85,16 +84,17 @@ export class InstagramOAuth {
   }
 
   /**
-   * Exchange short-lived token for long-lived token
+   * Exchange short-lived User token for long-lived User token
    */
-  async exchangeForLongLivedToken(accessToken: string): Promise<{ access_token: string; token_type: string; expires_in: number }> {
+  async exchangeForLongLivedToken(accessToken: string): Promise<any> {
     const params = new URLSearchParams({
-      grant_type: 'ig_exchange_token',
+      grant_type: 'fb_exchange_token',
+      client_id: this.config.clientId,
       client_secret: this.config.clientSecret,
-      access_token: accessToken
+      fb_exchange_token: accessToken
     });
 
-    const response = await fetch(`https://graph.instagram.com/access_token?${params.toString()}`);
+    const response = await fetch(`https://graph.facebook.com/v18.0/oauth/access_token?${params.toString()}`);
     const data = await response.json();
 
     if (data.error) {
@@ -105,34 +105,43 @@ export class InstagramOAuth {
   }
 
   /**
-   * Refresh long-lived token (should be called before expiry)
+   * Get Instagram Business account linked to user's pages
    */
-  async refreshLongLivedToken(accessToken: string): Promise<{ access_token: string; token_type: string; expires_in: number }> {
-    const params = new URLSearchParams({
-      grant_type: 'ig_refresh_token',
-      access_token: accessToken
-    });
+  async getInstagramBusinessAccount(userAccessToken: string): Promise<{ pageToken: string; instagramId: string; username: string } | null> {
+    // 1. Get user's pages
+    const pagesResponse = await fetch(`https://graph.facebook.com/v18.0/me/accounts?access_token=${userAccessToken}`);
+    const pagesData = await pagesResponse.json();
 
-    const response = await fetch(`https://graph.instagram.com/refresh_access_token?${params.toString()}`);
-    const data = await response.json();
-
-    if (data.error) {
-      throw new Error(data.error.message || 'Failed to refresh token');
+    if (!pagesData.data || pagesData.data.length === 0) {
+      throw new Error('No Facebook Pages found. An Instagram Business account must be linked to a Facebook Page.');
     }
 
-    return data;
+    // 2. Find page with linked Instagram Business Account
+    for (const page of pagesData.data) {
+      const igResponse = await fetch(`https://graph.facebook.com/v18.0/${page.id}?fields=instagram_business_account{id,username}&access_token=${page.access_token}`);
+      const igData = await igResponse.json();
+
+      if (igData.instagram_business_account) {
+        return {
+          pageToken: page.access_token,
+          instagramId: igData.instagram_business_account.id,
+          username: igData.instagram_business_account.username
+        };
+      }
+    }
+
+    return null;
   }
 
   /**
-   * Get user profile information
+   * Get user profile information (FB User ID)
    */
-  async getUserProfile(accessToken: string): Promise<InstagramUserProfile> {
+  async getUserProfile(accessToken: string): Promise<any> {
     const response = await fetch(
-      `https://graph.instagram.com/me?fields=id,username,name,account_type&access_token=${accessToken}`
+      `https://graph.facebook.com/v18.0/me?fields=id,name&access_token=${accessToken}`
     );
 
     const data = await response.json();
-
     if (data.error) {
       throw new Error(data.error.message || 'Failed to get user profile');
     }

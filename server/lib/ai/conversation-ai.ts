@@ -289,7 +289,7 @@ export async function generateAIReply(
     });
   }
 
-  const messageContext: Array<{ role: 'user' | 'assistant'; content: string }> = allMessages.slice(-10).map(m => ({
+  const messageContext: Array<{ role: 'user' | 'assistant'; content: string }> = allMessages.slice(-20).map(m => ({
     role: m.direction === 'inbound' ? 'user' as const : 'assistant' as const,
     content: m.body
   }));
@@ -297,6 +297,17 @@ export async function generateAIReply(
   const enrichedContext = memoryResult.context
     ? `\n\nCONVERSATION INSIGHTS:\n${memoryResult.context}`
     : '';
+
+  const leadIntelContext = `
+LEAD PROFILE:
+- Name: ${lead.name}
+- Role: ${lead.role || "Prospect"}
+- Company: ${lead.company || "Unknown"}
+- Industry: ${(lead.metadata as any)?.industry || "General"}
+- Bio/Notes: ${lead.bio || "None provided"}
+- Channel: ${platform}
+- Warmth Level: ${isWarm ? 'Warm Engagement' : 'Cold Outreach'}
+`;
 
   const platformTone: Record<string, string> = {
     instagram: 'casual, friendly, and conversational with emojis',
@@ -310,9 +321,10 @@ ${brandGuidelines}
 
 ${brandPromptSection}
 
+${leadIntelContext}
+
 Platform: ${platform}
 Tone: ${platformTone[platform]}
-Lead Name: ${lead.name}
 Lead Status: ${isWarm ? 'WARM - READY FOR BOOKING 🔥' : 'NEW - BUILDING AUTHORITY ❄️'}
 
 How You Talk:

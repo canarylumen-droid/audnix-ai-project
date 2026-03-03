@@ -5,8 +5,24 @@ import { encrypt } from '../lib/crypto/encryption.js';
 import { pagedEmailImport } from '../lib/imports/paged-email-importer.js';
 import { smtpAbuseProtection } from '../lib/email/smtp-abuse-protection.js';
 import { bounceHandler } from '../lib/email/bounce-handler.js';
+import { EmailDiscoveryService } from '../lib/email/email-discovery.js';
 
 const router = Router();
+
+/**
+ * Auto-discover SMTP/IMAP settings
+ */
+router.post('/discover', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email is required' });
+
+    const settings = await EmailDiscoveryService.discoverSettings(email);
+    res.json(settings);
+  } catch (error) {
+    res.status(500).json({ error: 'Discovery failed' });
+  }
+});
 
 // Common SMTP hostname typos and their corrections
 const HOSTNAME_TYPO_MAP: Record<string, string> = {
@@ -358,12 +374,17 @@ router.post('/test', requireAuth, async (req: Request, res: Response): Promise<v
 router.post('/disconnect', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
+    const { integrationId } = req.body;
 
-    await storage.deleteIntegration(userId, 'custom_email');
+    if (integrationId) {
+      await storage.deleteIntegration(userId, integrationId);
+    } else {
+      await storage.deleteIntegration(userId, 'custom_email');
+    }
 
     res.json({
       success: true,
-      message: 'Custom email disconnected'
+      message: 'Email account disconnected'
     });
   } catch (error: unknown) {
     console.error('Error disconnecting custom email:', error);
@@ -377,13 +398,20 @@ router.post('/disconnect', requireAuth, async (req: Request, res: Response): Pro
 router.get('/status', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    const integration = await storage.getIntegration(userId, 'custom_email');
+    const integrations = await storage.getIntegrations(userId);
+    const customInts = integrations.filter(i => i.provider === 'custom_email');
 
     res.json({
       success: true,
-      connected: !!integration?.connected,
-      email: integration?.accountType || null,
-      provider: 'custom_smtp'
+      integrations: customInts.map(i => ({
+        id: i.id,
+        email: i.accountType,
+        connected: i.connected,
+        provider: 'custom_smtp'
+      })),
+      // Legacy support for single-mailbox UI if needed
+      connected: customInts.some(i => i.connected),
+      email: customInts[0]?.accountType || null
     });
   } catch (error: unknown) {
     console.error('Error getting email status:', error);
@@ -455,8 +483,19 @@ router.get('/settings', requireAuth, async (req: Request, res: Response): Promis
 router.get('/folders', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
+    const { integrationId } = req.query;
     const { imapIdleManager } = await import('../lib/email/imap-idle-manager.js');
-    const folders = imapIdleManager.getDiscoveredFolders(userId);
+
+    // If no integrationId, try to find the first one
+    let targetId = integrationId as string;
+    if (!targetId) {
+      const int = await storage.getIntegration(userId, 'custom_email');
+      if (int) targetId = int.id;
+    }
+
+    if (!targetId) return res.status(400).json({ error: 'No email integration found' });
+
+    const folders = imapIdleManager.getDiscoveredFolders(targetId);
 
     if (!folders) {
       res.json({
@@ -511,10 +550,15 @@ router.post('/sync-history', requireAuth, async (req: Request, res: Response): P
     const { days } = req.body;
     const daysToSync = parseInt(days) || 30;
 
-    const { imapIdleManager } = await import('../lib/email/imap-idle-manager.js');
-    
+    // Get the integration ID for the historical sync
+    const integration = await storage.getIntegration(userId, 'custom_email');
+    if (!integration) {
+      res.status(400).json({ error: 'No custom email integration found' });
+      return;
+    }
+
     // Run in background to avoid timeout
-    imapIdleManager.syncHistoricalEmails(userId, daysToSync)
+    imapIdleManager.syncHistoricalEmails(userId, integration.id, daysToSync)
       .then((result) => {
         console.log(`[Historical Sync] Background job finished for ${userId}:`, result);
       })

@@ -10,17 +10,25 @@ import { wsSync } from './lib/websocket-sync.js';
 
 // Function to check if the database connection is available
 function checkDatabase() {
-  // In a real application, you might want to check a connection pool or a specific connection status.
-  // For this example, we'll assume `db` is either configured or not.
-  // If `db` is not initialized or has issues, subsequent operations will likely fail,
-  // and error handling in those operations should catch it.
-  // A more robust check might involve a simple query like `db.execute(sql`SELECT 1`)`.
   if (!db) {
     throw new Error("Database connection is not available.");
   }
 }
 
 export class DrizzleStorage implements IStorage {
+  async getIntegrationSentCount(userId: string, integrationId: string, since: Date): Promise<number> {
+    checkDatabase();
+    const [result] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(messages)
+      .where(and(
+        eq(messages.userId, userId),
+        eq(messages.direction, 'outbound'),
+        gte(messages.createdAt, since),
+        sql`metadata->>'integrationId' = ${integrationId}`
+      ));
+    return Number(result?.count || 0);
+  }
   async createEmailMessage(message: InsertEmailMessage): Promise<EmailMessage> {
     const [newMessage] = await db.insert(emailMessages).values(message).returning();
     return newMessage;
@@ -356,6 +364,10 @@ export class DrizzleStorage implements IStorage {
 
     if (options.channel) {
       conditions.push(eq(leads.channel, options.channel as any));
+    }
+
+    if (options.integrationId) {
+      conditions.push(eq(leads.integrationId, options.integrationId));
     }
 
     if (options.search) {
@@ -788,6 +800,17 @@ export class DrizzleStorage implements IStorage {
     return result[0];
   }
 
+  async getIntegrationById(id: string): Promise<Integration | undefined> {
+    checkDatabase();
+    if (!isValidUUID(id)) return undefined;
+    const [result] = await db
+      .select()
+      .from(integrations)
+      .where(eq(integrations.id, id))
+      .limit(1);
+    return result;
+  }
+
   async getIntegrationsByProvider(provider: string): Promise<Integration[]> {
     checkDatabase();
     return await db
@@ -825,17 +848,36 @@ export class DrizzleStorage implements IStorage {
     updates: Partial<Integration>
   ): Promise<Integration | undefined> {
     checkDatabase();
+    // For legacy support, update all integrations of this provider for this user
+    // However, we should encourage using updateIntegrationById for multi-mailbox
     const result = await db
       .update(integrations)
       .set({
         ...updates,
-        provider: provider as any, // Preserve provider to avoid type issues
         updatedAt: new Date(),
       })
       .where(and(eq(integrations.userId, userId), eq(integrations.provider, provider as any)))
       .returning();
 
     return result[0];
+  }
+
+  async updateIntegrationById(
+    id: string,
+    updates: Partial<Integration>
+  ): Promise<Integration | undefined> {
+    checkDatabase();
+    if (!isValidUUID(id)) return undefined;
+    const [result] = await db
+      .update(integrations)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(integrations.id, id))
+      .returning();
+
+    return result;
   }
 
   async disconnectIntegration(userId: string, provider: string): Promise<void> {
@@ -847,6 +889,14 @@ export class DrizzleStorage implements IStorage {
 
   async deleteIntegration(userId: string, provider: string): Promise<void> {
     return this.disconnectIntegration(userId, provider);
+  }
+
+  async deleteIntegrationById(id: string): Promise<void> {
+    checkDatabase();
+    if (!isValidUUID(id)) return;
+    await db
+      .delete(integrations)
+      .where(eq(integrations.id, id));
   }
 
 
@@ -1427,6 +1477,20 @@ export class DrizzleStorage implements IStorage {
     return result;
   }
 
+  async getAuditLogs(userId: string, options?: { integrationId?: string }): Promise<AuditTrail[]> {
+    checkDatabase();
+    const conditions = [eq(auditTrail.userId, userId)];
+    if (options?.integrationId) {
+      conditions.push(eq(auditTrail.integrationId, options.integrationId));
+    }
+    return await db
+      .select()
+      .from(auditTrail)
+      .where(and(...conditions))
+      .orderBy(desc(auditTrail.createdAt))
+      .limit(50);
+  }
+
   // ========== AI Learning Patterns ==========
   async getLearningPatterns(userId: string): Promise<any[]> {
     checkDatabase();
@@ -1536,7 +1600,7 @@ export class DrizzleStorage implements IStorage {
   }
 
 
-  async getDashboardStats(userId: string, overrideDates?: { start: Date; end: Date }): Promise<{
+  async getDashboardStats(userId: string, options?: { start?: Date; end?: Date; integrationId?: string }): Promise<{
     totalLeads: number;
     newLeads: number;
     activeLeads: number;
@@ -1565,17 +1629,38 @@ export class DrizzleStorage implements IStorage {
     const yesterdayStart = new Date(todayStart);
     yesterdayStart.setDate(yesterdayStart.getDate() - 1);
 
-    const leadsBaseWhere = overrideDates
-      ? and(eq(leads.userId, userId), gte(leads.createdAt, overrideDates.start), lte(leads.createdAt, overrideDates.end))
-      : eq(leads.userId, userId);
+    // Build filters
+    let leadsWhere = eq(leads.userId, userId);
+    let messagesWhere = eq(messages.userId, userId);
+    let dealsWhere = eq(deals.userId, userId);
 
-    const messagesBaseWhere = overrideDates
-      ? and(eq(messages.userId, userId), gte(messages.createdAt, overrideDates.start), lte(messages.createdAt, overrideDates.end))
-      : eq(messages.userId, userId);
+    if (options?.start) {
+      leadsWhere = and(leadsWhere, gte(leads.createdAt, options.start))!;
+      messagesWhere = and(messagesWhere, gte(messages.createdAt, options.start))!;
+      dealsWhere = and(dealsWhere, gte(deals.createdAt, options.start))!;
+    }
+    if (options?.end) {
+      leadsWhere = and(leadsWhere, lte(leads.createdAt, options.end))!;
+      messagesWhere = and(messagesWhere, lte(messages.createdAt, options.end))!;
+      dealsWhere = and(dealsWhere, lte(deals.createdAt, options.end))!;
+    }
+    if (options?.integrationId) {
+      messagesWhere = and(messagesWhere, sql`(${messages.metadata}->>'integrationId' = ${options.integrationId})`)!;
 
-    const dealsBaseWhere = overrideDates
-      ? and(eq(deals.userId, userId), gte(deals.createdAt, overrideDates.start), lte(deals.createdAt, overrideDates.end))
-      : eq(deals.userId, userId);
+      // Filter leads associated with this integration
+      leadsWhere = and(leadsWhere, sql`exists (
+        select 1 from ${messages} 
+        where ${messages.leadId} = ${leads.id} 
+        and ${messages.metadata}->>'integrationId' = ${options.integrationId}
+      )`)!;
+
+      // Filter deals associated with this integration
+      dealsWhere = and(dealsWhere, sql`exists (
+        select 1 from ${messages} 
+        where ${messages.leadId} = ${deals.leadId} 
+        and ${messages.metadata}->>'integrationId' = ${options.integrationId}
+      )`)!;
+    }
 
     const [leadsStats] = await db.select({
       totalLeads: sql<number>`count(*)`,
@@ -1588,7 +1673,7 @@ export class DrizzleStorage implements IStorage {
       queuedLeads: sql<number>`count(*) filter (where status = 'new' and ai_paused = false)`,
     })
       .from(leads)
-      .where(leadsBaseWhere);
+      .where(leadsWhere);
 
     const [messagesStats] = await db.select({
       totalSent: sql<number>`count(*) filter (where direction = 'outbound')`,
@@ -1599,14 +1684,14 @@ export class DrizzleStorage implements IStorage {
       positiveIntents: sql<number>`count(*) filter (where direction = 'inbound' and (lower(body) like '%yes%' or lower(body) like '%book%' or lower(body) like '%interested%' or lower(body) like '%call%' or lower(body) like '%meeting%'))`,
     })
       .from(messages)
-      .where(messagesBaseWhere);
+      .where(messagesWhere);
 
     const [dealsStats] = await db.select({
       pipelineValue: sql<number>`coalesce(sum(case when status = 'open' then value else 0 end), 0)`,
       closedRevenue: sql<number>`coalesce(sum(case when status in ('converted', 'closed_won') then value else 0 end), 0)`,
     })
       .from(deals)
-      .where(dealsBaseWhere);
+      .where(dealsWhere);
 
     // Calculate predicted deal value from leads without explicit deals
     const [predictedStats] = await db.select({
@@ -1614,12 +1699,13 @@ export class DrizzleStorage implements IStorage {
     })
       .from(leads)
       .where(and(
-        leadsBaseWhere,
+        leadsWhere,
         sql`metadata->'intelligence'->'predictions'->>'predictedAmount' is not null`,
         sql`not exists (select 1 from deals where deals.lead_id = leads.id)`
       ));
 
-    const averageResponseTime = await this.calculateAverageResponseTime(userId);
+    // For averageResponseTime, we also ideally filter by integrationId
+    const averageResponseTime = await this.calculateAverageResponseTime(userId, options?.integrationId);
 
     return {
       totalLeads: Number(leadsStats?.totalLeads || 0),
@@ -1643,7 +1729,11 @@ export class DrizzleStorage implements IStorage {
     };
   }
 
-  private async calculateAverageResponseTime(userId: string): Promise<string> {
+  private async calculateAverageResponseTime(userId: string, integrationId?: string): Promise<string> {
+    const integrationFilter = integrationId
+      ? sql`AND m1.metadata->>'integrationId' = ${integrationId}`
+      : sql``;
+
     const result: any = await db.execute(sql`
       WITH response_times AS (
         SELECT 
@@ -1654,6 +1744,7 @@ export class DrizzleStorage implements IStorage {
           AND m2.direction = 'inbound'
           AND m2.created_at > m1.created_at
           AND m1.user_id = ${userId}
+          ${integrationFilter}
           AND NOT EXISTS (
             SELECT 1 FROM messages m3
             WHERE m3.lead_id = m1.lead_id
@@ -1669,7 +1760,7 @@ export class DrizzleStorage implements IStorage {
     const row = Array.isArray(result) ? result[0] : result?.rows?.[0];
     const avgSeconds = Number(row?.avg_seconds || 0);
     if (avgSeconds <= 0) return '—';
-    
+
     if (avgSeconds < 3600) {
       return `${Math.round(avgSeconds / 60)}m`;
     } else if (avgSeconds < 86400) {
@@ -1679,7 +1770,7 @@ export class DrizzleStorage implements IStorage {
     }
   }
 
-  async getAnalyticsFull(userId: string, days: number): Promise < {
+  async getAnalyticsFull(userId: string, days: number): Promise<{
     metrics: {
       sent: number;
       opened: number;
@@ -1718,7 +1809,7 @@ export class DrizzleStorage implements IStorage {
       sent: sql<number>`count(*) filter (where direction = 'outbound')`,
       opened: sql<number>`count(*) filter (where direction = 'outbound' and opened_at is not null)`,
     }).from(messages).where(eq(messages.userId, userId));
-    
+
     const [dealsStats] = await db.select({
       pipelineValue: sql<number>`coalesce(sum(value), 0)`,
       closedRevenue: sql<number>`coalesce(sum(case when status = 'closed_won' then value else 0 end), 0)`,
@@ -1855,12 +1946,12 @@ export class DrizzleStorage implements IStorage {
   async createNotification(data: InsertNotification): Promise<Notification> {
     checkDatabase();
     const [notification] = await db.insert(notifications).values(data).returning();
-    
+
     if (notification) {
       wsSync.notifyNotification(data.userId, notification);
       wsSync.broadcastToUser(data.userId, { type: 'notification', payload: notification });
     }
-    
+
     return notification;
   }
 
@@ -1868,7 +1959,7 @@ export class DrizzleStorage implements IStorage {
     checkDatabase();
     const conditions = [eq(notifications.id, id)];
     if (userId) conditions.push(eq(notifications.userId, userId));
-    
+
     await db.update(notifications)
       .set({ isRead: true })
       .where(and(...conditions));
@@ -1882,7 +1973,7 @@ export class DrizzleStorage implements IStorage {
         eq(notifications.userId, userId),
         eq(sql`${notifications.metadata}->>'leadId'`, leadId)
       ));
-    
+
     // Broadcast update so the UI counter drops
     wsSync.notifyNotification(userId, { type: 'update', action: 'read_lead', leadId });
   }

@@ -40,18 +40,28 @@ const playNotificationSound = () => {
   try {
     const audio = new Audio('/sounds/notification.mp3');
     audio.volume = 0.5;
-
-    // Create a temporary interaction to unlock audio if needed
     const playPromise = audio.play();
 
     if (playPromise !== undefined) {
-      playPromise.catch(error => {
-        console.log('Audio playback blocked by browser policy. Interaction required.');
-        // We'll handle the UI prompt in TopNav
+      playPromise.catch(() => {
+        // Fallback to Web Audio Oscillator for "unlocked" feel
+        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        if (audioCtx.state === 'suspended') return;
+
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.5);
       });
     }
   } catch (err) {
-    console.log('Notification sound not available');
+    console.log('Notification sound fallback error');
   }
 };
 
@@ -165,7 +175,6 @@ export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
 
     // LEADS UPDATES
     socketInstance.on('leads_updated', (payload: any) => {
-      console.log('Lead update:', payload);
       // Data payload: { event: 'INSERT'|'UPDATE', lead: object }
 
       // Invalidate leads queries and dashboard stats
@@ -224,8 +233,6 @@ export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
 
     // MESSAGES UPDATES
     socketInstance.on('messages_updated', (payload: any) => {
-      console.log('Message update:', payload);
-      // Payload: { event: 'INSERT', message: object }
 
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['/api/conversations'] });
@@ -263,9 +270,9 @@ export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
         return;
       }
 
-      // Throttle sound
+      // Throttle sound (500ms to keep it responsive)
       const now = Date.now();
-      if (now - lastNotificationTime.current > 2000) {
+      if (now - lastNotificationTime.current > 500) {
         playNotificationSound();
         lastNotificationTime.current = now;
       }
@@ -275,6 +282,12 @@ export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
         title: payload.title,
         description: `${payload.message} • ${relativeTime}`,
         variant: payload.type === 'billing_issue' ? 'destructive' : 'default',
+      });
+
+      showPushNotification(payload.title, {
+        body: payload.message,
+        tag: `notif-${payload.id || Date.now()}`,
+        data: { url: payload.metadata?.url || '/dashboard/notifications' }
       });
     });
 
@@ -304,15 +317,63 @@ export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
       queryClient.invalidateQueries({ queryKey: ['/api/user'] });
     });
 
-    socketInstance.on('insights_updated', () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/insights'] });
+    socketInstance.on('insights_updated', (payload: any) => {
+      console.log('Insights updated:', payload);
+      queryClient.invalidateQueries({ queryKey: ['/api/ai/insights'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+
+      if (payload?.isNew) {
+        playNotificationSound();
+        toast({
+          title: '🤖 New AI Insight',
+          description: 'A new strategic insight is ready for review.',
+        });
+      }
     });
 
     socketInstance.on('activity_updated', (payload: any) => {
-      console.log('Activity update:', payload);
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/activity'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+    });
+
+    // STATS UPDATES (instant KPI refresh)
+    socketInstance.on('stats_updated', () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats/previous'] });
+    });
+
+    // CAMPAIGN UPDATES
+    socketInstance.on('campaigns_updated', () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/outreach/campaigns'] });
+      queryClient.invalidateQueries({ queryKey: ['prospects'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/prospecting/leads'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+    });
+
+    socketInstance.on('campaign_stats_updated', (payload: any) => {
+      if (payload?.campaignId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/outreach/campaigns/${payload.campaignId}/stats`] });
+      }
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+    });
+
+    // DESKTOP/PUSH NOTIFICATIONS (Manual)
+    socketInstance.on('desktop_notification', (payload: any) => {
+      console.log('Desktop notification:', payload);
+
+      const { title, message, url, tag } = payload;
+
+      playNotificationSound();
+      toast({
+        title,
+        description: message,
+      });
+
+      showPushNotification(title, {
+        body: message,
+        tag: tag || 'general',
+        data: { url: url || '/dashboard' }
+      });
     });
 
     // FORCE DISCONNECT/LOGOUT

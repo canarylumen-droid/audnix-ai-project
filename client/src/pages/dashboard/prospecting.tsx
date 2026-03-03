@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useUser } from '@/hooks/use-user';
 import { useRealtime } from '@/hooks/use-realtime';
 import { ScraperConsole } from '@/components/dashboard/ScraperConsole';
+import { cn } from '@/lib/utils';
 
 interface Prospect {
     id: string;

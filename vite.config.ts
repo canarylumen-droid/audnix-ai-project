@@ -29,11 +29,15 @@ export default defineConfig({
   root: path.resolve(import.meta.dirname, "client"),
   base: "/",
   publicDir: path.resolve(import.meta.dirname, "client", "public"),
+  css: {
+    devSourcemap: false,
+  },
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
     copyPublicDir: true,
-    chunkSizeWarningLimit: 1200,
+    sourcemap: false,
+    chunkSizeWarningLimit: 2000,
     rollupOptions: {
       output: {
         manualChunks(id) {

@@ -233,15 +233,20 @@ export default function InboxPage() {
 
   const { data: leadsData, isLoading: leadsLoading } = useQuery<any>({
     queryKey: ["/api/leads", { limit: PAGE_SIZE, offset: page * PAGE_SIZE, includeArchived: showArchived }],
+    staleTime: 10000,
+    placeholderData: (prev) => prev,
   });
 
   const { data: messagesData, isLoading: messagesLoading } = useQuery<any>({
     queryKey: ["/api/messages", leadId],
     enabled: !!leadId,
+    placeholderData: (prev) => prev,
   });
 
   const { data: channelStatus, isLoading: channelsLoading } = useQuery<any>({
     queryKey: ["/api/channels/all"],
+    staleTime: 60000,
+    placeholderData: (prev) => prev,
   });
 
   const isChannelConnected = (channel?: string) => {

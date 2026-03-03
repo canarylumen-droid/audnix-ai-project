@@ -175,11 +175,12 @@ router.get('/instagram/callback', async (req: Request, res: Response): Promise<v
       return;
     }
 
-    console.log('[Instagram OAuth] Fetching user profile...');
-    const profile = await instagramOAuth.getUserProfile(longLivedToken.access_token);
-    if (!profile || !profile.id) {
-      console.error('[Instagram OAuth] Profile fetch failed');
-      res.redirect('/dashboard/integrations?error=profile_fetch_failed');
+    console.log('[Instagram OAuth] Fetching Instagram Business Account...');
+    const igAccount = await instagramOAuth.getInstagramBusinessAccount(longLivedToken.access_token);
+
+    if (!igAccount) {
+      console.error('[Instagram OAuth] No linked Instagram Business account found');
+      res.redirect('/dashboard/integrations?error=no_business_account');
       return;
     }
 
@@ -190,18 +191,19 @@ router.get('/instagram/callback', async (req: Request, res: Response): Promise<v
     const { encrypt } = await import('../lib/crypto/encryption.js');
 
     const encryptedMeta = encrypt(JSON.stringify({
-      accessToken: longLivedToken.access_token,
-      userId: profile.id,
-      username: profile.username,
+      accessToken: igAccount.pageToken, // Save Page Token for messaging
+      instagramBusinessAccountId: igAccount.instagramId,
+      username: igAccount.username,
+      fbUserToken: longLivedToken.access_token, // Keep User Token for other things
       expiresAt: new Date(Date.now() + (longLivedToken.expires_in * 1000)).toISOString()
     }));
 
     await storage.createIntegration({
       userId: stateData.userId,
       provider: 'instagram',
-      encryptedMeta,
       connected: true,
-      accountType: 'business',
+      encryptedMeta: encryptedMeta,
+      accountType: igAccount.username,
       lastSync: new Date()
     });
 

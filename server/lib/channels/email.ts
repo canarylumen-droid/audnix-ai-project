@@ -1,6 +1,7 @@
 import { generateBrandedEmail, generateMeetingEmail, type BrandColors } from '../ai/dm-formatter.js';
 import { storage } from '../../storage.js';
 import * as cheerio from 'cheerio';
+import { type Integration } from '../../../shared/schema.js';
 
 /**
  * Email messaging functions with branded templates using extracted PDF brand colors
@@ -91,6 +92,54 @@ interface ParsedEmail {
 }
 
 /**
+ * Auto-discover SMTP/IMAP settings based on email address
+ */
+export function autoDiscoverSettings(email: string): Partial<EmailConfig> {
+  const domain = email.split('@')[1]?.toLowerCase();
+  if (!domain) return {};
+
+  const providers: Record<string, Partial<EmailConfig>> = {
+    'gmail.com': {
+      smtp_host: 'smtp.gmail.com',
+      smtp_port: 587,
+      imap_host: 'imap.gmail.com',
+      imap_port: 993,
+      provider: 'gmail'
+    },
+    'outlook.com': {
+      smtp_host: 'smtp-mail.outlook.com',
+      smtp_port: 587,
+      imap_host: 'outlook.office365.com',
+      imap_port: 993,
+      provider: 'outlook'
+    },
+    'hotmail.com': {
+      smtp_host: 'smtp-mail.outlook.com',
+      smtp_port: 587,
+      imap_host: 'outlook.office365.com',
+      imap_port: 993,
+      provider: 'outlook'
+    },
+    'yahoo.com': {
+      smtp_host: 'smtp.mail.yahoo.com',
+      smtp_port: 465,
+      imap_host: 'imap.mail.yahoo.com',
+      imap_port: 993,
+      provider: 'smtp'
+    },
+    'icloud.com': {
+      smtp_host: 'smtp.mail.me.com',
+      smtp_port: 587,
+      imap_host: 'imap.mail.me.com',
+      imap_port: 993,
+      provider: 'smtp'
+    }
+  };
+
+  return providers[domain] || {};
+}
+
+/**
  * Injects a tracking pixel into HTML email content
  */
 export function injectTrackingPixel(html: string, trackingId: string): string {
@@ -114,13 +163,13 @@ export function wrapLinksWithTracking(html: string, trackingId: string): string 
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://audnixai.com';
   const linkRegex = /<a\s+([^>]*href=["'])([^"']+)(["'][^>]*)>/gi;
-  
+
   return html.replace(linkRegex, (match, prefix, url, suffix) => {
     // Skip mailto, tel, and already tracked links
     if (url.startsWith('mailto:') || url.startsWith('tel:') || url.includes('/api/outreach/track/') || url.includes('/api/outreach/click/')) {
       return match;
     }
-    
+
     const encodedUrl = encodeURIComponent(url);
     const trackingUrl = `${baseUrl}/api/outreach/click/${trackingId}?url=${encodedUrl}`;
     return `<a ${prefix}${trackingUrl}${suffix}>`;
@@ -142,7 +191,8 @@ async function sendCustomSMTP(
   subject: string,
   body: string,
   isHtml: boolean = false,
-  trackingId?: string
+  trackingId?: string,
+  integrationId?: string
 ): Promise<{ messageId: string }> {
   const nodemailer = await import('nodemailer');
   const { imapIdleManager } = await import('../email/imap-idle-manager.js');
@@ -199,7 +249,13 @@ async function sendCustomSMTP(
       // Attempt to save to "Sent" folder via persistent IMAP connection
       try {
         const rawMessage = createMimeMessage(fromAddress || '', to, subject, emailBody, isHtml, messageId);
-        await imapIdleManager.appendSentMessage(userId, rawMessage, config);
+        if (integrationId) {
+          await imapIdleManager.appendSentMessage(userId, integrationId, rawMessage, config);
+        } else {
+          // Fallback searching for integration if id not passed
+          const int = await storage.getIntegration(userId, 'custom_email');
+          if (int) await imapIdleManager.appendSentMessage(userId, int.id, rawMessage, config);
+        }
       } catch (error) {
         console.error(`[CustomSMTP] ❌ Failed to save to Sent folder:`, error);
       }
@@ -478,6 +534,7 @@ export interface EmailOptions {
   isHtml?: boolean;
   campaignId?: string;
   leadId?: string;
+  integrationId?: string;
 }
 
 /**
@@ -491,55 +548,61 @@ export async function sendEmail(
   subject: string,
   options: EmailOptions = {}
 ): Promise<{ messageId: string }> {
-  const customEmailIntegration = await storage.getIntegration(userId, 'custom_email');
+  // 1. Fetch Integration (Specific or Fallback)
+  let integration: Integration | undefined;
+  if (options.integrationId) {
+    integration = await storage.getIntegrationById(options.integrationId);
+  }
 
-  // Tracking Setup: Ensure we have a tracking ID if none provided
+  if (!integration || !integration.connected) {
+    const integrations = await storage.getIntegrations(userId);
+    integration = integrations.find(i =>
+      ['custom_email', 'gmail', 'outlook'].includes(i.provider) && i.connected
+    );
+  }
+
+  if (!integration) {
+    throw new Error('Email not connected. Please connect your business email in Settings.');
+  }
+
+  // Tracking Setup
   const trackingId = options.trackingId || (await (await import('../email/email-tracking.js')).generateTrackingToken());
-  const baseUrl = process.env.BASE_URL || 'https://audnixai.com';
+  const brandColors = options.brandColors || await getUserBrandColors(userId);
+  const user = await storage.getUser(userId);
+  const businessName = options.businessName || user?.businessName || user?.company || 'Our Team';
 
-  if (customEmailIntegration?.connected) {
+  // --- PART 1: Custom SMTP ---
+  if (integration.provider === 'custom_email') {
     const { decrypt } = await import('../crypto/encryption.js');
-    if (!customEmailIntegration.encryptedMeta) {
-      throw new Error('Email credentials not configured');
-    }
-    const credentialsStr = await decrypt(customEmailIntegration.encryptedMeta);
-    const credentials = JSON.parse(credentialsStr) as EmailConfig;
+    if (!integration.encryptedMeta) throw new Error('Email credentials missing');
+    const credentials = JSON.parse(await decrypt(integration.encryptedMeta)) as EmailConfig;
 
     let emailBody = content;
-
-    // Only apply branding if NOT raw
     if (!options.isRaw) {
-      const brandColors = options.brandColors || await getUserBrandColors(userId);
-      const user = await storage.getUser(userId);
-      const businessName = options.businessName || user?.businessName || user?.company || 'Our Team';
-
       if (options.buttonUrl && options.buttonText) {
-        if (options.isMeetingInvite) {
-          emailBody = generateMeetingEmail(content, options.buttonUrl, brandColors, businessName);
-        } else {
-          emailBody = generateBrandedEmail(content, { text: options.buttonText, url: options.buttonUrl }, brandColors, businessName);
-        }
+        emailBody = options.isMeetingInvite
+          ? generateMeetingEmail(content, options.buttonUrl, brandColors, businessName)
+          : generateBrandedEmail(content, { text: options.buttonText, url: options.buttonUrl }, brandColors, businessName);
       } else {
         emailBody = generateBrandedEmail(content, { text: 'View Details', url: 'https://audnixai.com' }, brandColors, businessName);
       }
     }
 
-    // Apply tracking pixel and link wrapping
     const { injectTrackingIntoEmail, createTrackedEmail } = await import('../email/email-tracking.js');
     emailBody = injectTrackingIntoEmail(emailBody, trackingId);
 
-    // Create the tracking record for manual emails if it doesn't exist
     await createTrackedEmail({
       userId,
       leadId: options.leadId || undefined,
       recipientEmail,
       subject,
       sentAt: new Date(),
-      messageId: trackingId // using trackingId as the initial key or token
+      messageId: trackingId
     });
 
-    const result = await sendCustomSMTP(userId, credentials, recipientEmail, subject, emailBody, true, trackingId);
-    if (result && result.messageId) {
+    const result = await sendCustomSMTP(userId, credentials, recipientEmail, subject, emailBody, true, trackingId, integration.id);
+
+    if (result?.messageId) {
       await storage.createEmailMessage({
         userId,
         leadId: options.leadId || null,
@@ -552,30 +615,15 @@ export async function sendEmail(
         direction: 'outbound',
         provider: 'custom_email',
         sentAt: new Date(),
-        metadata: { trackingId: trackingId }
+        metadata: { trackingId, integrationId: integration.id }
       });
     }
-    console.log(`📧 Email sent via user's SMTP: ${credentials.smtp_user} -> ${recipientEmail}`);
     return result;
   }
 
-  // Fallback to Gmail or Outlook via Storage
-  const integrations = await storage.getIntegrations(userId);
-  const emailIntegration = integrations.find(i =>
-    ['gmail', 'outlook'].includes(i.provider) && i.connected
-  );
-
-  if (!emailIntegration) {
-    throw new Error('Email not connected. Please connect your business email in Settings.');
-  }
-
-  const brandColors = options.brandColors || await getUserBrandColors(userId);
-
+  // --- PART 2: OAuth (Gmail/Outlook) ---
   const { generateEmailSubject } = await import('./email-subject-generator.js');
   const emailSubject = subject || await generateEmailSubject(userId, content);
-
-  const user = await storage.getUser(userId);
-  const businessName = options.businessName || user?.businessName || user?.company || 'Our Team';
 
   let emailBody = content;
 
@@ -602,7 +650,7 @@ export async function sendEmail(
       options.isHtml = true;
     }
   } else {
-    options.isHtml = true; 
+    options.isHtml = true;
   }
 
   // Apply tracking pixel and link wrapping for OAuth providers
@@ -625,14 +673,14 @@ export async function sendEmail(
   let accessToken: string | null = null;
   let fromEmail: string | undefined;
 
-  if (emailIntegration.provider === 'gmail') {
+  if (integration.provider === 'gmail') {
     const gmailOAuth = new GmailOAuth();
     accessToken = await gmailOAuth.getValidToken(userId);
-    fromEmail = emailIntegration.accountType || undefined;
-  } else if (emailIntegration.provider === 'outlook') {
+    fromEmail = integration.accountType || undefined;
+  } else if (integration.provider === 'outlook') {
     const outlookOAuth = new OutlookOAuth();
     accessToken = await outlookOAuth.getValidToken(userId);
-    fromEmail = emailIntegration.accountType || undefined;
+    fromEmail = integration.accountType || undefined;
   }
 
   if (!accessToken) {
@@ -644,7 +692,7 @@ export async function sendEmail(
     email: fromEmail || ''
   };
 
-  if (emailIntegration.provider === 'gmail') {
+  if (integration.provider === 'gmail') {
     const result = await sendGmailMessage(
       credentials,
       recipientEmail,
@@ -670,7 +718,7 @@ export async function sendEmail(
       });
     }
     return result;
-  } else if (emailIntegration.provider === 'outlook') {
+  } else if (integration.provider === 'outlook') {
     const result = await sendOutlookMessage(
       credentials,
       recipientEmail,

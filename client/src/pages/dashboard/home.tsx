@@ -31,6 +31,7 @@ import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { WelcomeCelebration } from "@/components/WelcomeCelebration";
 import { useState, useEffect } from "react";
 import { PremiumLoader } from "@/components/ui/premium-loader";
+import { MailboxSwitcher } from "@/components/outreach/MailboxSwitcher";
 
 interface UserProfile {
   id: string;
@@ -113,6 +114,7 @@ export default function DashboardHome() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const { socket } = useRealtime();
+  const [selectedIntegrationId, setSelectedIntegrationId] = useState<string | undefined>(undefined);
 
   // Listen for socket updates
   useEffect(() => {
@@ -201,22 +203,45 @@ export default function DashboardHome() {
   };
 
   const { data: statsData, isLoading: statsLoading } = useQuery<DashboardStats>({
-    queryKey: ["/api/dashboard/stats"],
-
+    queryKey: ["/api/dashboard/stats", { integrationId: selectedIntegrationId }],
+    queryFn: async () => {
+      const url = new URL("/api/dashboard/stats", window.location.origin);
+      if (selectedIntegrationId) url.searchParams.set("integrationId", selectedIntegrationId);
+      const res = await fetch(url.toString());
+      if (!res.ok) throw new Error("Failed to fetch stats");
+      return res.json();
+    },
     staleTime: 10000,
+    placeholderData: (previousData) => previousData,
   });
 
   const { data: previousStats } = useQuery<PreviousDashboardStats>({
-    queryKey: ["/api/dashboard/stats/previous"],
+    queryKey: ["/api/dashboard/stats/previous", { integrationId: selectedIntegrationId }],
+    queryFn: async () => {
+      const url = new URL("/api/dashboard/stats/previous", window.location.origin);
+      if (selectedIntegrationId) url.searchParams.set("integrationId", selectedIntegrationId);
+      const res = await fetch(url.toString());
+      if (!res.ok) throw new Error("Failed to fetch previous stats");
+      return res.json();
+    },
     retry: false,
     staleTime: 300000,
+    placeholderData: (previousData) => previousData,
   });
 
   const { data: activityData, isLoading: activityLoading } = useQuery<DashboardActivityResponse>({
-    queryKey: ["/api/dashboard/activity"],
+    queryKey: ["/api/dashboard/activity", { integrationId: selectedIntegrationId }],
+    queryFn: async () => {
+      const url = new URL("/api/dashboard/activity", window.location.origin);
+      if (selectedIntegrationId) url.searchParams.set("integrationId", selectedIntegrationId);
+      const res = await fetch(url.toString());
+      if (!res.ok) throw new Error("Failed to fetch activity");
+      return res.json();
+    },
     refetchOnWindowFocus: true,
     retry: false,
     staleTime: 30000,
+    placeholderData: (previousData) => previousData,
   });
 
   const { data: integrations } = useQuery<any[]>({
@@ -344,6 +369,11 @@ export default function DashboardHome() {
             >
               <RefreshCw className="mr-2 h-3.5 w-3.5" /> Refresh Data
             </Button>
+            <MailboxSwitcher
+              value={selectedIntegrationId}
+              onValueChange={setSelectedIntegrationId}
+              className="flex w-full md:w-auto"
+            />
             {stats?.lastSync && (
               <Badge variant="outline" className="px-4 py-2 bg-muted/30 text-muted-foreground border-border/40 rounded-2xl font-bold text-xs">
                 <RefreshCw className="w-3 h-3 mr-2 opacity-50" />

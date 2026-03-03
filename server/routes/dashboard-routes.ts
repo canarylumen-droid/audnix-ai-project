@@ -7,6 +7,9 @@ import { decrypt } from '../lib/crypto/encryption.js';
 
 const router = Router();
 
+// In-memory cache for dashboard stats (60s)
+const statsCache = new Map<string, { data: any, expires: number }>();
+
 /**
  * GET /api/dashboard/stats
  * Get current period stats for dashboard
@@ -19,8 +22,19 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
       return;
     }
 
+    const { integrationId } = req.query;
+    const cacheKey = `${userId}:${integrationId || 'all'}`;
+    const cached = statsCache.get(cacheKey);
+
+    if (cached && cached.expires > Date.now()) {
+      res.json(cached.data);
+      return;
+    }
+
     const user = await storage.getUserById(userId);
-    const stats = await storage.getDashboardStats(userId);
+    const stats = await storage.getDashboardStats(userId, {
+      integrationId: integrationId as string
+    });
 
     // Real-time Engine Status & Synchronization
     const integrations = await storage.getIntegrations(userId);
@@ -65,22 +79,33 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
     const verificationPenalty = unverifiedDomains * 15;
     const domainHealth = Math.max(0, reputationScore - verificationPenalty);
 
-    res.json({
+    const responseData = {
       ...stats,
-      conversionRate: stats.totalLeads > 0 ? ((stats.convertedLeads / stats.totalLeads) * 100).toFixed(1) : "0.0",
-      averageResponseTime: stats.averageResponseTime, 
-      plan: user?.plan || 'trial',
-      trialDaysLeft: user?.trialExpiresAt ? Math.ceil((new Date(user.trialExpiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 0,
-      lastSync: lastSyncTimestamp > 0 ? new Date(lastSyncTimestamp).toISOString() : null,
-      lastOutreachActivity: user?.metadata?.last_outreach_activity || null,
-      engineStatus,
-      domainHealth,
-      domainVerifications: domainVerifications.slice(0, 3).map(v => ({
-        domain: v.domain,
-        result: v.verification_result as any,
-        createdAt: v.created_at
-      }))
+      health: {
+        score: domainHealth,
+        status: domainHealth > 80 ? 'healthy' : (domainHealth > 50 ? 'warning' : 'critical'),
+        reputation: reputationScore,
+        bounces: {
+          hard: hardBounces,
+          soft: softBounces,
+          spam: spamBounces
+        }
+      },
+      sync: {
+        status: engineStatus,
+        lastSync: integrations.length > 0 ? (lastSyncTimestamp > 0 ? new Date(lastSyncTimestamp).toISOString() : null) : null,
+        activeMonitors: monitors.length,
+        isAutonomous: isAutonomousMode
+      }
+    };
+
+    // Store in cache
+    statsCache.set(cacheKey, {
+      data: responseData,
+      expires: Date.now() + 60 * 1000
     });
+
+    res.json(responseData);
   } catch (error) {
     console.error('Dashboard stats error:', error);
     res.status(500).json({ error: 'Failed to fetch stats' });
@@ -99,13 +124,15 @@ router.get('/stats/previous', requireAuth, async (req: Request, res: Response): 
       return;
     }
 
+    const { integrationId } = req.query;
     const now = new Date();
-    const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
     const stats = await storage.getDashboardStats(userId, {
-      start: fourteenDaysAgo,
-      end: sevenDaysAgo
+      start: sixtyDaysAgo,
+      end: thirtyDaysAgo,
+      integrationId: integrationId as string
     });
 
     res.json({
@@ -132,7 +159,8 @@ router.get('/activity', requireAuth, async (req: Request, res: Response): Promis
       return;
     }
 
-    const auditLogs = await storage.getAuditLogs(userId);
+    const { integrationId } = req.query;
+    const auditLogs = await storage.getAuditLogs(userId, { integrationId: integrationId as string });
     const activities = auditLogs.map(log => ({
       id: log.id,
       type: log.action,
@@ -472,7 +500,7 @@ router.get('/analytics/full', requireAuth, async (req: Request, res: Response): 
   try {
     const userId = req.session?.userId!;
     const range = parseInt(req.query.days as string) || 7;
-    
+
     const analytics = await storage.getAnalyticsFull(userId, range);
 
     // Connection mapping
@@ -487,6 +515,53 @@ router.get('/analytics/full', requireAuth, async (req: Request, res: Response): 
   } catch (error) {
     console.error('Full analytics error:', error);
     res.status(500).json({ error: 'Failed to synchronize neural analytics' });
+  }
+});
+
+/**
+ * GET /api/dashboard/integrations/:id/health
+ * Get DNS and connection health for a specific integration
+ */
+router.get('/integrations/:id/health', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.session?.userId!;
+    const integrationId = req.params.id;
+
+    const integration = await storage.getIntegration(userId, integrationId);
+    if (!integration) return res.status(404).json({ error: 'Integration not found' });
+
+    // Mock DNS health for now - in production this would call a DNS lookup service
+    const health = {
+      connected: integration.connected,
+      lastSync: integration.lastSync,
+      dns: {
+        spf: true,
+        dkim: true,
+        dmarc: true,
+        tracking: true
+      },
+      status: integration.connected ? 'healthy' : 'disconnected'
+    };
+
+    res.json(health);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch health' });
+  }
+});
+
+/**
+ * GET /api/dashboard/integrations/:id/stats
+ * Get performance stats for a specific mailbox
+ */
+router.get('/integrations/:id/stats', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.session?.userId!;
+    const integrationId = req.params.id;
+
+    const stats = await storage.getDashboardStats(userId, { integrationId });
+    res.json(stats);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch integration stats' });
   }
 });
 

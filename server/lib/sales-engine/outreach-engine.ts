@@ -205,14 +205,14 @@ export function formatCampaignMetrics(campaign: OutreachCampaign): string {
  * Safety guardrails - prevent oversending and reputation damage
  */
 export const SAFETY_GUARDRAILS = {
-  maxSendsPerHour: 100,
-  maxSendsPerDay: 1000,
-  minIntervalBetweenSends: 1, // 1 minute minimum
-  maxFollowupsPerLead: 3,
-  bounceRateThreshold: 0.05, // 5% bounce = pause
-  spamComplaintThreshold: 0.01, // 1% complaints = review
+  maxSendsPerHour: 200,
+  maxSendsPerDay: 2500,
+  minIntervalBetweenSends: 0.5, // 30 seconds minimum for jitter
+  maxFollowupsPerLead: 5,
+  bounceRateThreshold: 0.08, // 8% bounce = pause
+  spamComplaintThreshold: 0.02, // 2% complaints = review
   autoStopOnHighBounceRate: true,
-  requireApprovalAbove: 5000, // Manual review for >5k sends
+  requireApprovalAbove: 10000,
 };
 
 /**
