@@ -373,8 +373,9 @@ export class OutreachEngine {
       if (channel === 'instagram') {
         minDelayMs = (5 + Math.random() * 5) * 60 * 1000;
       } else {
-        // Email randomized 30s-90s for safety
-        minDelayMs = 30000 + (Math.random() * 60000);
+        // Email: 2-3 minutes per mailbox for safe deliverability
+        // With 5 mailboxes rotating, effective rate = ~1 email per 25-36 seconds total
+        minDelayMs = 120000 + (Math.random() * 60000); // 120s-180s
       }
 
       if (Date.now() - lastSentAt < minDelayMs) {

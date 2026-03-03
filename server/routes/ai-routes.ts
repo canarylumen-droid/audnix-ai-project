@@ -78,7 +78,7 @@ router.get("/", requireAuth, async (req: Request, res: Response): Promise<void> 
         includeArchived === 'true' ? undefined : eq(leadsTable.archived, false),
         status && status !== 'all' ? eq(leadsTable.status, status as any) : undefined,
         channel ? eq(leadsTable.channel, channel as any) : undefined,
-        integrationId ? eq(leadsTable.integrationId, integrationId as string) : undefined
+        integrationId ? sql`${leadsTable.metadata}->>'integrationId' = ${integrationId as string}` : undefined
       ));
 
     res.json({

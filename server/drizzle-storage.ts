@@ -337,6 +337,7 @@ export class DrizzleStorage implements IStorage {
     limit?: number;
     offset?: number;
     includeArchived?: boolean;
+    integrationId?: string;
   }): Promise<Lead[]> {
     checkDatabase();
     // Ensure userId is a string, not an object
@@ -367,7 +368,8 @@ export class DrizzleStorage implements IStorage {
     }
 
     if (options.integrationId) {
-      conditions.push(eq(leads.integrationId, options.integrationId));
+      // Filter leads by the integration that handled them (stored in metadata)
+      conditions.push(sql`${leads.metadata}->>'integrationId' = ${options.integrationId}`);
     }
 
     if (options.search) {
@@ -570,15 +572,7 @@ export class DrizzleStorage implements IStorage {
     wsSync.notifyLeadsUpdated(userId, { event: 'BULK_DELETE', leadIds: ids });
   }
 
-  async getAuditLogs(userId: string): Promise<AuditTrail[]> {
-    checkDatabase();
-    return await db
-      .select()
-      .from(auditTrail)
-      .where(eq(auditTrail.userId, userId))
-      .orderBy(desc(auditTrail.createdAt))
-      .limit(50);
-  }
+  // getAuditLogs with options is defined below in the Audit Trail section
 
   async getTotalLeadsCount(): Promise<number> {
     checkDatabase();
