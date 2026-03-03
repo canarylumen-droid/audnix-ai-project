@@ -10,6 +10,7 @@ import PrivacyPolicy from "@/pages/privacy-policy";
 import TermsOfService from "@/pages/terms-of-service";
 import DataDeletion from "@/pages/data-deletion";
 import { PrivacyModal } from "@/components/landing/PrivacyModal";
+import { Analytics } from "@vercel/analytics/react";
 
 import { lazy, Suspense } from "react";
 
@@ -279,6 +280,7 @@ function App() {
             <Router />
             {/* <ExpertChat /> Removed as requested */}
             <PrivacyModal />
+            <Analytics />
           </TooltipProvider>
         </QueryClientProvider>
       </ErrorBoundary>
