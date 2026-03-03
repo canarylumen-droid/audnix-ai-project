@@ -357,6 +357,15 @@ export class OutreachEngine {
   private async isMailboxReadyToSend(userId: string, integration: Integration, campaign?: any): Promise<boolean> {
     const channel = integration.provider === 'instagram' ? 'instagram' : 'email';
 
+    // Calculate safe dynamic rate for non-stop delivery over 24 hours
+    let mailboxDailyLimit = 50;
+    try {
+      const meta = (integration as any).encryptedMeta ? null : (integration as any).metadata;
+      if (meta?.dailyLimit) mailboxDailyLimit = Number(meta.dailyLimit);
+    } catch (e) { }
+
+    const sendsPerHour = Math.max(1, Math.ceil(mailboxDailyLimit / 24));
+
     // 1. Cooldown check (using integrationId if available)
     const lastSentResult = await db.execute(sql`
         SELECT created_at FROM messages 
@@ -373,9 +382,11 @@ export class OutreachEngine {
       if (channel === 'instagram') {
         minDelayMs = (5 + Math.random() * 5) * 60 * 1000;
       } else {
-        // Email: 2-3 minutes per mailbox for safe deliverability
-        // With 5 mailboxes rotating, effective rate = ~1 email per 25-36 seconds total
-        minDelayMs = 120000 + (Math.random() * 60000); // 120s-180s
+        // Dynamic delay spacing based on sendsPerHour to distribute evenly across the hour
+        // e.g., if sendsPerHour is 2 (from 50/day), base delay is ~30 mins
+        const baseDelayMs = (60 * 60 * 1000) / sendsPerHour;
+        // Add +/- 15% random jitter to avoid predictable bot patterns
+        minDelayMs = baseDelayMs * 0.85 + (Math.random() * baseDelayMs * 0.3);
       }
 
       if (Date.now() - lastSentAt < minDelayMs) {
@@ -383,7 +394,19 @@ export class OutreachEngine {
       }
     }
 
-    // 2. Global/User Daily Limits & Autonomous Mode
+    // 2. Hourly Rate Limit Check (safety constraint)
+    const sentLastHourResult = await db.execute(sql`
+      SELECT COUNT(*) as count FROM messages 
+      WHERE user_id = ${userId} 
+      AND direction = 'outbound'
+      AND metadata->>'integrationId' = ${integration.id}
+      AND created_at >= NOW() - INTERVAL '1 hour'
+    `);
+    if (Number(sentLastHourResult.rows[0].count) >= sendsPerHour) {
+      return false; // Wait for next hour
+    }
+
+    // 3. Global/User Daily Limits & Autonomous Mode
     let userDailyLimit = 50;
     try {
       const userResult = await db.select().from(users).where(eq(users.id, userId)).limit(1);
@@ -398,14 +421,7 @@ export class OutreachEngine {
       }
     } catch (e) { }
 
-    // 3. Specific Mailbox Daily Limit (from integration config)
-    let mailboxDailyLimit = 50;
-    try {
-      const meta = integration.metadata as any;
-      if (meta?.dailyLimit) mailboxDailyLimit = Number(meta.dailyLimit);
-    } catch (e) { }
-
-    // Check mailbox-specific sent count
+    // 4. Daily Limit Hit Check
     const sentTodayResult = await db.execute(sql`
       SELECT COUNT(*) as count FROM messages 
       WHERE user_id = ${userId} 

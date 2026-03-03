@@ -133,7 +133,7 @@ class MultiProviderEmailFailover {
     }
 
     const authHeader = Buffer.from(`api:${this.mailgunKey}`).toString('base64');
-    
+
     const response = await fetch(
       `https://api.mailgun.net/v3/${this.mailgunDomain}/messages`,
       {
@@ -199,19 +199,19 @@ class MultiProviderEmailFailover {
       try {
         const { imapIdleManager } = await import('./imap-idle-manager.js');
         const rawMime = this.createMimeMessage(
-            email.from || smtpConfig.smtp_user,
-            email.to,
-            email.subject,
-            email.html
+          email.from || smtpConfig.smtp_user,
+          email.to,
+          email.subject,
+          email.html
         );
         // Fire and forget
-        imapIdleManager.appendSentMessage(userId, rawMime, {
-            smtp_host: smtpConfig.smtp_host,
-            smtp_port: smtpConfig.smtp_port,
-            smtp_user: smtpConfig.smtp_user,
-            smtp_pass: smtpConfig.smtp_pass
+        imapIdleManager.appendSentMessage(userId, '', rawMime, {
+          smtp_host: smtpConfig.smtp_host,
+          smtp_port: smtpConfig.smtp_port,
+          smtp_user: smtpConfig.smtp_user,
+          smtp_pass: smtpConfig.smtp_pass
         }).catch(err => {
-            console.error(`Failed to append to sent folder for user ${userId}:`, err);
+          console.error(`Failed to append to sent folder for user ${userId}:`, err);
         });
       } catch (err) {
         console.error('Error importing imap-idle-manager or creating mime:', err);

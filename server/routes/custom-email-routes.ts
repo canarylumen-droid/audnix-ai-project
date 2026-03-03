@@ -493,7 +493,10 @@ router.get('/folders', requireAuth, async (req: Request, res: Response): Promise
       if (int) targetId = int.id;
     }
 
-    if (!targetId) return res.status(400).json({ error: 'No email integration found' });
+    if (!targetId) {
+      res.status(400).json({ error: 'No email integration found' });
+      return;
+    }
 
     const folders = imapIdleManager.getDiscoveredFolders(targetId);
 
@@ -558,11 +561,12 @@ router.post('/sync-history', requireAuth, async (req: Request, res: Response): P
     }
 
     // Run in background to avoid timeout
-    imapIdleManager.syncHistoricalEmails(userId, integration.id, daysToSync)
-      .then((result) => {
+    const { imapIdleManager: imapMgr } = await import('../lib/email/imap-idle-manager.js');
+    imapMgr.syncHistoricalEmails(userId, integration.id, daysToSync)
+      .then((result: any) => {
         console.log(`[Historical Sync] Background job finished for ${userId}:`, result);
       })
-      .catch((err) => {
+      .catch((err: any) => {
         console.error(`[Historical Sync] Background job failed for ${userId}:`, err);
       });
 

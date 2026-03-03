@@ -1,6 +1,7 @@
 import { storage } from '../../storage.js';
 import { sendEmail } from '../channels/email.js';
 import { scheduleFollowUp } from '../ai/conversation-ai.js';
+import type { Integration } from '../../../shared/schema.js';
 import OpenAI from "openai";
 
 const openai = new OpenAI({
@@ -295,10 +296,7 @@ export async function runOutreachCampaign(
         const scheduledAt = new Date();
         scheduledAt.setDate(scheduledAt.getDate() + followUpDays[0]);
 
-        await scheduleInitialFollowUp(userId, leadId, 'email', {
-          scheduledAt,
-          metadata: { followUpSequence: followUpDays, nextIndex: 1 }
-        });
+        await scheduleInitialFollowUp(userId, leadId, 'email');
         console.log(`[Outreach] 📅 Follow-up scheduled for ${lead.name} in ${followUpDays[0]} days`);
       } catch (fErr) {
         console.error(`[Outreach] Follow-up scheduling failed:`, fErr);

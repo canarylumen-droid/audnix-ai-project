@@ -134,6 +134,31 @@ export class InstagramOAuth {
   }
 
   /**
+   * Refresh a long-lived token before it expires
+   */
+  async refreshLongLivedToken(existingToken: string): Promise<{ access_token: string; token_type: string; expires_in: number }> {
+    const params = new URLSearchParams({
+      grant_type: 'fb_exchange_token',
+      client_id: this.config.clientId,
+      client_secret: this.config.clientSecret,
+      fb_exchange_token: existingToken
+    });
+
+    const response = await fetch(`https://graph.facebook.com/v18.0/oauth/access_token?${params.toString()}`);
+    const data = await response.json() as any;
+
+    if (data.error) {
+      throw new Error(data.error.message || 'Failed to refresh long-lived token');
+    }
+
+    return {
+      access_token: data.access_token,
+      token_type: data.token_type || 'bearer',
+      expires_in: data.expires_in || 5184000 // Default 60 days
+    };
+  }
+
+  /**
    * Get user profile information (FB User ID)
    */
   async getUserProfile(accessToken: string): Promise<any> {

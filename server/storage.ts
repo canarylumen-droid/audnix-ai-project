@@ -1542,6 +1542,7 @@ export class MemStorage implements IStorage {
     const entry: AuditTrail = {
       ...data,
       id,
+      integrationId: data.integrationId || null,
       messageId: data.messageId || null,
       details: data.details || {},
       createdAt: new Date(),
