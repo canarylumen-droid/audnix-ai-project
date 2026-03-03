@@ -837,7 +837,7 @@ export default function InboxPage() {
                         </Avatar>
                         <div className="flex-1 min-w-0 space-y-1">
                           <div className="flex justify-between items-start gap-2">
-                            <span className="text-sm font-bold truncate text-foreground flex-1" title={lead.name}>
+                            <span className="text-sm font-bold truncate text-foreground flex-1 max-w-[140px] sm:max-w-full" title={lead.name}>
                               <HighlightText text={lead.name} query={searchQuery} />
                             </span>
                             <div className="flex items-center gap-1">
@@ -857,7 +857,7 @@ export default function InboxPage() {
                               </span>
                             </div>
                           </div>
-                          <p className={cn("text-xs truncate transition-colors h-4", lead.metadata?.isUnread ? "text-foreground font-bold" : "text-muted-foreground")}>
+                          <p className={cn("text-xs line-clamp-1 overflow-hidden transition-colors", lead.metadata?.isUnread ? "text-foreground font-bold" : "text-muted-foreground")}>
                             {typingLeadId === lead.id ? (
                               <span className="flex items-center gap-1 text-primary font-bold animate-pulse">
                                 Typinng...
@@ -942,7 +942,7 @@ export default function InboxPage() {
                       <AvatarFallback className="bg-primary/10 text-primary font-bold rounded-full">{activeLead?.name?.[0]}</AvatarFallback>
                     </Avatar>
                     <div className="min-w-0">
-                      <h3 className="text-base font-bold truncate leading-none mb-1" title={activeLead?.name}>{activeLead?.name}</h3>
+                      <h3 className="text-base font-bold line-clamp-2 break-words leading-tight mb-1" title={activeLead?.name}>{activeLead?.name}</h3>
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground truncate">{activeLead?.status === 'hardened' ? 'Verified' : activeLead?.status}</span>
                         <div className="h-1 w-1 rounded-full bg-muted-foreground/30" />

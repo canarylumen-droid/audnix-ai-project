@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +52,24 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
   const [dailyLimit, setDailyLimit] = useState(50);
   const [followUpDays, setFollowUpDays] = useState("3");
   const [aiPaused, setAiPaused] = useState(false);
+  const [selectedMailboxes, setSelectedMailboxes] = useState<string[]>([]);
+  const [replyTo, setReplyTo] = useState("");
+
+  const { data: integrations = [] } = useQuery({
+    queryKey: ['/api/integrations'],
+    staleTime: 300000
+  });
+
+  const availableMailboxes = integrations.filter((i: any) =>
+    ['custom_email', 'gmail', 'outlook'].includes(i.provider) && i.connected
+  );
+
+  // Auto-select first mailbox if none selected
+  useEffect(() => {
+    if (availableMailboxes.length > 0 && selectedMailboxes.length === 0) {
+      setSelectedMailboxes([availableMailboxes[0].id]);
+    }
+  }, [availableMailboxes]);
 
   // Templates
   const [subject, setSubject] = useState("");
@@ -180,7 +199,12 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
       const res = await apiRequest("POST", "/api/outreach/campaigns", {
         name: campaignName || `Campaign ${new Date().toLocaleDateString()}`,
         leads: leads.map((l: any) => l.id || l),
-        config: { dailyLimit, followUpDelayDays: parseInt(followUpDays) },
+        config: {
+          dailyLimit,
+          followUpDelayDays: parseInt(followUpDays),
+          mailboxIds: selectedMailboxes,
+          replyTo: replyTo || undefined
+        },
         template: {
           subject, body,
           followups: [
@@ -218,7 +242,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
     const filledBody = replaceTags(content);
 
     return (
-      <div className="flex justify-center h-full items-center p-4">
+      <div className="flex justify-center h-full items-center p-4 transform scale-[0.75] sm:scale-90 md:scale-100 origin-center">
         <div className={cn(
           "relative bg-background border-[6px] border-gray-900 shadow-2xl overflow-hidden transition-all duration-500",
           previewDevice === 'ios' ? 'w-[280px] h-[580px] rounded-[3rem]' : 'w-[320px] h-[600px] rounded-[2rem]'
@@ -254,7 +278,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
 
   return (
     <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-[95vw] w-full h-[95vh] rounded-[2rem] p-0 overflow-hidden bg-background border-border/40 flex flex-col shadow-2xl">
+      <DialogContent className="max-w-full sm:max-w-[95vw] w-full h-[100dvh] sm:h-[95vh] rounded-none sm:rounded-[2rem] p-0 overflow-hidden bg-background border-border/40 flex flex-col shadow-2xl">
         {/* Header */}
         <div className="flex-none p-6 md:p-8 flex items-center justify-between border-b border-border/40 bg-card/50 backdrop-blur-xl shrink-0 z-10">
           <div className="flex items-center gap-4">
@@ -435,10 +459,39 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                           <div className="space-y-4">
                             <div className="flex justify-between text-[11px] font-bold">
                               <span>DAILY VOLUME</span>
-                              <Badge variant="secondary" className="font-mono text-primary">{dailyLimit}/day</Badge>
+                              <Badge variant="default" className="font-mono text-white bg-primary">{dailyLimit}/day</Badge>
                             </div>
                             <Slider value={[dailyLimit]} onValueChange={v => setDailyLimit(v[0])} min={10} max={500} step={10} className="py-2" />
                             <p className="text-[10px] text-muted-foreground uppercase font-medium leading-relaxed">Limits safety prevents account flags.</p>
+                          </div>
+                          <div className="space-y-4">
+                            <span className="text-[11px] font-bold uppercase block tracking-widest">Selected Mailboxes</span>
+                            <div className="flex flex-wrap gap-2">
+                              {availableMailboxes.length === 0 ? (
+                                <span className="text-xs text-destructive">No mailboxes connected</span>
+                              ) : (
+                                availableMailboxes.map((mb: any) => {
+                                  const isSelected = selectedMailboxes.includes(mb.id);
+                                  return (
+                                    <Badge
+                                      key={mb.id}
+                                      variant={isSelected ? "default" : "outline"}
+                                      className={cn("cursor-pointer select-none", isSelected ? "bg-primary text-white" : "opacity-50")}
+                                      onClick={() => {
+                                        if (isSelected && selectedMailboxes.length > 1) {
+                                          setSelectedMailboxes(selectedMailboxes.filter(id => id !== mb.id));
+                                        } else if (!isSelected) {
+                                          setSelectedMailboxes([...selectedMailboxes, mb.id]);
+                                        }
+                                      }}
+                                    >
+                                      {mb.email || mb.provider}
+                                    </Badge>
+                                  );
+                                })
+                              )}
+                            </div>
+                            <p className="text-[10px] text-muted-foreground uppercase font-medium leading-relaxed">System balances volume across selected mailboxes.</p>
                           </div>
                           <div className="space-y-4">
                             <span className="text-[11px] font-bold uppercase block tracking-widest">FOLLOW-UP DELAY</span>
@@ -457,9 +510,9 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
 
                       <Tabs defaultValue="initial" className="w-full" key={step}>
                         <TabsList className="h-auto w-full bg-muted/40 p-1.5 rounded-2xl border border-border/10 mb-6 flex flex-wrap sm:flex-nowrap gap-2">
-                          <TabsTrigger value="initial" className="flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-md transition-all h-10 sm:h-full">Sequence 01</TabsTrigger>
-                          <TabsTrigger value="followup" className="flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-md transition-all h-10 sm:h-full">Sequence 02</TabsTrigger>
-                          <TabsTrigger value="followup2" className="flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-md transition-all h-10 sm:h-full">Sequence 03</TabsTrigger>
+                          <TabsTrigger value="initial" className="flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-md transition-all h-10 sm:h-full">Initial Outreach</TabsTrigger>
+                          <TabsTrigger value="followup" className="flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-md transition-all h-10 sm:h-full">Follow-up 1</TabsTrigger>
+                          <TabsTrigger value="followup2" className="flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-md transition-all h-10 sm:h-full">Follow-up 2</TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="initial" className="space-y-4 animate-in fade-in duration-300">
@@ -576,7 +629,16 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                           value={campaignName}
                           onChange={e => setCampaignName(e.target.value)}
                           placeholder="e.g. Enterprise Expansion Q1"
-                          className="h-14 bg-muted/20 border-0 font-bold text-lg rounded-2xl px-6 focus-visible:ring-1 focus-visible:ring-primary/20"
+                          className="h-14 bg-muted/20 border-0 font-bold text-lg rounded-2xl px-6 focus-visible:ring-1 focus-visible:ring-primary/20 w-full"
+                        />
+                      </div>
+                      <div className="p-8 bg-card border border-border/20 rounded-[2.5rem] space-y-4">
+                        <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60">Reply-To Email (Optional)</Label>
+                        <Input
+                          value={replyTo}
+                          onChange={e => setReplyTo(e.target.value)}
+                          placeholder="Routing email for replies"
+                          className="h-14 bg-muted/20 border-0 font-bold text-lg rounded-2xl px-6 focus-visible:ring-1 focus-visible:ring-primary/20 w-full"
                         />
                       </div>
                     </div>

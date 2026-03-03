@@ -329,8 +329,15 @@ export class OutreachEngine {
     if (mailboxes.length === 0) return undefined;
 
     // Plan-based limit check
-    const activeMailboxes = await this.getAvailableMailboxes(userId);
+    let activeMailboxes = await this.getAvailableMailboxes(userId);
     if (activeMailboxes.length === 0) return undefined;
+
+    // Filter by campaign config if user specifically selected mailboxes
+    const allowedMailboxIds = campaign?.config?.mailboxIds;
+    if (Array.isArray(allowedMailboxIds) && allowedMailboxIds.length > 0) {
+      activeMailboxes = activeMailboxes.filter(mb => allowedMailboxIds.includes(mb.id));
+      if (activeMailboxes.length === 0) return undefined;
+    }
 
     // Get start index for rotation
     let startIndex = this.userMailboxIndex.get(userId) || 0;
