@@ -23,6 +23,7 @@ export default function LeadImportPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [file, setFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [mPreviewOpen, setMPreviewOpen] = useState(false);
   const [mLeadsOpen, setMLeadsOpen] = useState(false);
   const [previewData, setPreviewData] = useState<{ subject: string; body: string }>({
@@ -109,10 +110,7 @@ export default function LeadImportPage() {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (!selectedFile) return;
-
+  const processFileSelection = (selectedFile: File) => {
     const isPDF = selectedFile.name.toLowerCase().endsWith('.pdf');
     const isCSV = selectedFile.name.toLowerCase().endsWith('.csv');
     const isExcel = selectedFile.name.toLowerCase().match(/\.(xlsx|xls)$/i);
@@ -128,6 +126,28 @@ export default function LeadImportPage() {
 
     setFile(selectedFile);
     setImportResults(null);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) processFileSelection(selectedFile);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const selectedFile = e.dataTransfer.files?.[0];
+    if (selectedFile) processFileSelection(selectedFile);
   };
 
   const handleImport = async () => {
@@ -222,16 +242,16 @@ export default function LeadImportPage() {
           setProgress(0);
         }, 2000);
       } else {
-          // For CSV:
-          // If success & preview -> we already setImporting(false) in the try block
-          // If error -> we need to setImporting(false)
-          // If success & no preview -> we need to setImporting(false) (though we handled that in try block too?)
-          // Let's just enforce it here if it's still true and we didn't just open the modal?
-          // Actually, if we just opened the modal, we set mLeadsOpen=true.
-          if (!mLeadsOpen) {
-             setImporting(false);
-             setProgress(0);
-          }
+        // For CSV:
+        // If success & preview -> we already setImporting(false) in the try block
+        // If error -> we need to setImporting(false)
+        // If success & no preview -> we need to setImporting(false) (though we handled that in try block too?)
+        // Let's just enforce it here if it's still true and we didn't just open the modal?
+        // Actually, if we just opened the modal, we set mLeadsOpen=true.
+        if (!mLeadsOpen) {
+          setImporting(false);
+          setProgress(0);
+        }
       }
     }
   };
@@ -268,7 +288,7 @@ export default function LeadImportPage() {
       // Refetch actual DB leads to get their IDs
       const leadsRes = await apiRequest("GET", `/api/leads?limit=10000&offset=0`);
       const allLeads = await leadsRes.json();
-      
+
       setImportResults({
         imported: result.leadsImported,
         skipped: result.leadsFiltered || 0,
@@ -360,7 +380,16 @@ export default function LeadImportPage() {
             />
           </div>
 
-          <div className="border-2 border-dashed border-border/40 rounded-[2rem] p-16 text-center hover:bg-primary/5 hover:border-primary/20 transition-all cursor-pointer group/upload relative overflow-hidden">
+          <div
+            className={cn(
+              "border-2 border-dashed rounded-[2rem] p-16 text-center transition-all cursor-pointer group/upload relative overflow-hidden",
+              isDragging ? "bg-primary/10 border-primary shadow-[0_0_30px_rgba(0,180,255,0.2)]" : "border-border/40 hover:bg-primary/5 hover:border-primary/20",
+              importing && "pointer-events-none opacity-50"
+            )}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
             <Input
               type="file"
               accept=".csv,.xlsx,.xls,.pdf"
@@ -369,20 +398,23 @@ export default function LeadImportPage() {
               className="hidden"
               id="file-upload"
             />
-            <label htmlFor="file-upload" className="cursor-pointer relative z-10">
+            <label htmlFor="file-upload" className="cursor-pointer relative z-10 block w-full h-full">
               <div className="mb-6 flex justify-center">
                 {file ? (
                   <div className="animate-in zoom-in duration-300">
                     {file.name.toLowerCase().endsWith('.pdf') ? <PdfIcon /> : <CsvIcon />}
                   </div>
                 ) : (
-                  <div className="p-6 rounded-[2rem] bg-primary/5 group-hover/upload:bg-primary/10 transition-all transform group-hover/upload:scale-110">
+                  <div className={cn(
+                    "p-6 rounded-[2rem] transition-all transform group-hover/upload:scale-110",
+                    isDragging ? "bg-primary/20 scale-110" : "bg-primary/5 group-hover/upload:bg-primary/10"
+                  )}>
                     <Upload className="h-10 w-10 text-primary" />
                   </div>
                 )}
               </div>
               <p className="text-xl font-bold tracking-tight mb-2">
-                {file ? file.name : 'Select Data Source'}
+                {file ? file.name : (isDragging ? 'Drop file to upload' : 'Select Data Source')}
               </p>
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/40">
                 DRAG & DROP OR BROWSE • CSV, EXCEL, PDF

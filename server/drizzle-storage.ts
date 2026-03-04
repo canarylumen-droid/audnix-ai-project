@@ -1333,7 +1333,7 @@ export class DrizzleStorage implements IStorage {
       .where(and(eq(oauthAccounts.userId, userId), eq(oauthAccounts.provider, provider as any)));
   }
 
-  async getAnalyticsSummary(userId: string, startDate: Date): Promise<{
+  async getAnalyticsSummary(userId: string, startDate: Date, integrationId?: string): Promise<{
     summary: {
       totalLeads: number;
       conversions: number;
@@ -1360,14 +1360,14 @@ export class DrizzleStorage implements IStorage {
       leadsReplied: sql<number>`count(*) filter (where status in ('replied', 'converted', 'booked', 'warm'))`,
     })
       .from(leads)
-      .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate)));
+      .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate), integrationId ? sql`${leads.metadata}->>'integrationId' = ${integrationId}` : undefined));
 
     const statusResults = await db.select({
       status: leads.status,
       count: sql<number>`count(*)`,
     })
       .from(leads)
-      .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate)))
+      .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate), integrationId ? sql`${leads.metadata}->>'integrationId' = ${integrationId}` : undefined))
       .groupBy(leads.status);
 
     const channelResults = await db.select({
@@ -1375,7 +1375,7 @@ export class DrizzleStorage implements IStorage {
       count: sql<number>`count(*)`,
     })
       .from(leads)
-      .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate)))
+      .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate), integrationId ? sql`${leads.metadata}->>'integrationId' = ${integrationId}` : undefined))
       .groupBy(leads.channel);
 
     const hourResults = await db.select({
@@ -1383,7 +1383,7 @@ export class DrizzleStorage implements IStorage {
       count: sql<number>`count(*)`,
     })
       .from(leads)
-      .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate), not(isNull(leads.lastMessageAt))))
+      .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate), not(isNull(leads.lastMessageAt)), integrationId ? sql`${leads.metadata}->>'integrationId' = ${integrationId}` : undefined))
       .groupBy(sql`extract(hour from last_message_at)`)
       .orderBy(desc(sql`count(*)`))
       .limit(1);
@@ -1394,7 +1394,7 @@ export class DrizzleStorage implements IStorage {
       conversions: sql<number>`count(*) filter (where status in ('converted', 'booked'))`,
     })
       .from(leads)
-      .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate)))
+      .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate), integrationId ? sql`${leads.metadata}->>'integrationId' = ${integrationId}` : undefined))
       .groupBy(sql`to_char(created_at, 'YYYY-MM-DD')`)
       .orderBy(sql`to_char(created_at, 'YYYY-MM-DD')`);
 
@@ -1407,7 +1407,7 @@ export class DrizzleStorage implements IStorage {
       negative: sql<number>`count(*) filter (where status in ('not_interested', 'cold'))`,
     })
       .from(leads)
-      .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate)));
+      .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate), integrationId ? sql`${leads.metadata}->>'integrationId' = ${integrationId}` : undefined));
 
     const positiveCount = Number(sentimentSummary?.positive || 0);
     const negativeCount = Number(sentimentSummary?.negative || 0);
@@ -1471,18 +1471,23 @@ export class DrizzleStorage implements IStorage {
     return result;
   }
 
-  async getAuditLogs(userId: string, options?: { integrationId?: string }): Promise<AuditTrail[]> {
+  async getAuditLogs(userId: string, options?: { integrationId?: string, daysFilter?: number, limit?: number }): Promise<AuditTrail[]> {
     checkDatabase();
     const conditions = [eq(auditTrail.userId, userId)];
     if (options?.integrationId) {
       conditions.push(eq(auditTrail.integrationId, options.integrationId));
+    }
+    if (options?.daysFilter) {
+      const cutOff = new Date();
+      cutOff.setDate(cutOff.getDate() - options.daysFilter);
+      conditions.push(gte(auditTrail.createdAt, cutOff));
     }
     return await db
       .select()
       .from(auditTrail)
       .where(and(...conditions))
       .orderBy(desc(auditTrail.createdAt))
-      .limit(50);
+      .limit(options?.limit || 50);
   }
 
   // ========== AI Learning Patterns ==========

@@ -71,7 +71,7 @@ export const LeadProcessModal: React.FC<LeadProcessModalProps> = ({
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0 border-border/40 bg-card/95 backdrop-blur-2xl rounded-[2rem] shadow-2xl">
+            <DialogContent className="w-[95vw] sm:max-w-4xl max-h-[90dvh] md:h-auto overflow-hidden p-0 border-border/40 bg-card/95 backdrop-blur-2xl rounded-[2rem] shadow-2xl">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 blur-[100px] rounded-full -mr-32 -mt-32 z-0" />
 
                 <DialogHeader className="p-8 pb-4 border-b border-border/10 relative z-10">

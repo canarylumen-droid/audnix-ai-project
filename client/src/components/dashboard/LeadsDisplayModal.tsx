@@ -44,8 +44,8 @@ export function LeadsDisplayModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] max-w-4xl max-h-[85vh] p-0 overflow-hidden border-border/40 bg-card/95 backdrop-blur-xl rounded-[2rem]">
-        <DialogHeader className="p-6 md:p-8 pb-4">
+      <DialogContent className="w-[95vw] sm:max-w-5xl md:max-w-6xl max-h-[85vh] p-0 flex flex-col overflow-hidden border-border/40 bg-card/95 backdrop-blur-xl rounded-[2rem]">
+        <DialogHeader className="p-6 md:p-8 pb-4 shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <DialogTitle className="text-xl md:text-2xl font-bold tracking-tight">Imported Lead Profiles</DialogTitle>
@@ -136,9 +136,9 @@ export function LeadsDisplayModal({
             </table>
             {hasMore && (
               <div className="p-6 text-center border-t border-border/20 bg-muted/5">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={handleShowMore}
                   className="text-xs font-bold tracking-widest uppercase text-primary hover:bg-primary/10"
                 >
@@ -150,7 +150,7 @@ export function LeadsDisplayModal({
         </ScrollArea>
 
         {onConfirm && (
-          <div className="p-4 md:p-6 border-t border-border/40 bg-muted/20 flex flex-col-reverse sm:flex-row justify-end gap-3 px-4 md:px-8">
+          <div className="p-4 md:p-6 border-t border-border/40 bg-muted/20 flex flex-col-reverse sm:flex-row justify-end gap-3 px-4 md:px-8 shrink-0">
             <Button variant="outline" onClick={onClose} disabled={isImporting} className="font-bold rounded-xl border-border/50 h-11 w-full sm:w-auto">
               Cancel
             </Button>

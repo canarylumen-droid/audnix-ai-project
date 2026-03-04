@@ -555,18 +555,22 @@ export default function IntegrationsPage() {
                           </div>
                           <div className="space-y-0.5">
                             <div className="flex items-center gap-2">
-                              <h4 className="text-sm font-bold text-foreground">{mailbox.email}</h4>
+                              <h4 className="text-sm font-bold text-foreground">
+                                {mailbox.provider === 'custom_email'
+                                  ? (mailbox as any).metadata?.from_name || (mailbox.email || '').split('@')[0]
+                                  : (mailbox.email || mailbox.provider)}
+                              </h4>
                               <Badge className="bg-emerald-500/10 text-emerald-500 border-0 text-[8px] font-black uppercase tracking-widest px-1.5 py-0">Active</Badge>
                             </div>
                             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Custom SMTP Account</p>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button variant="outline" size="sm" className="h-8 rounded-lg text-[10px] px-3" onClick={() => setIsTestEmailOpen(true)}>
-                            <Mail className="h-3 w-3 mr-1.5" /> Test
+                        <div className="flex flex-wrap items-center gap-2 mt-4 md:mt-0 transition-opacity">
+                          <Button variant="outline" size="sm" className="h-8 rounded-lg text-[10px] px-3 w-full sm:w-auto" onClick={() => setIsTestEmailOpen(true)}>
+                            <Mail className="h-3 w-3 mr-1.5" /> Test Connection
                           </Button>
-                          <Button variant="ghost" size="sm" className="h-8 rounded-lg text-[10px] px-3 font-bold text-destructive hover:bg-destructive/10" onClick={() => confirmDisconnect('custom_email', mailbox.id)}>
+                          <Button variant="ghost" size="sm" className="h-8 rounded-lg text-[10px] px-3 font-bold text-destructive hover:bg-destructive/10 w-full sm:w-auto" onClick={() => confirmDisconnect('custom_email', mailbox.id)}>
                             <Unplug className="h-3 w-3 mr-1.5" /> Disconnect
                           </Button>
                         </div>

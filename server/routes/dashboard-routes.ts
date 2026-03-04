@@ -159,8 +159,18 @@ router.get('/activity', requireAuth, async (req: Request, res: Response): Promis
       return;
     }
 
-    const { integrationId } = req.query;
-    const auditLogs = await storage.getAuditLogs(userId, { integrationId: integrationId as string });
+    const { integrationId, days, limit } = req.query;
+    const daysFilter = days ? parseInt(days as string) : 3;
+    const options: any = { integrationId: integrationId as string };
+
+    // If days is 'all', ignore daysFilter
+    if (days !== 'all') {
+      options.daysFilter = daysFilter;
+    }
+
+    if (limit) options.limit = parseInt(limit as string);
+
+    const auditLogs = await storage.getAuditLogs(userId, options);
     const activities = auditLogs.map(log => ({
       id: log.id,
       type: log.action,

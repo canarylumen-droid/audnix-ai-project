@@ -125,7 +125,21 @@ export default function InboxPage() {
   const [showIntelligence, setShowIntelligence] = useState(false);
   const [showDetails, setShowDetails] = useState(false); // Controls the right sidebar
   const [typingLeadId, setTypingLeadId] = useState<string | null>(null); // Track which lead is typing
+  const [localDrafts, setLocalDrafts] = useState<Record<string, string>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load drafts on mount
+  useEffect(() => {
+    const drafts: Record<string, string> = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('draft_')) {
+        const val = localStorage.getItem(key);
+        if (val) drafts[key.replace('draft_', '')] = val;
+      }
+    }
+    setLocalDrafts(drafts);
+  }, []);
 
   const { contextConfig, handleContextMenu, closeMenu } = useContextMenu();
 
@@ -189,7 +203,7 @@ export default function InboxPage() {
     const handleActivityUpdated = (data: any) => {
       if (data?.type === 'typing_status' && data.channel === 'instagram') {
         if (data.status === 'typing_on') {
-          setTypingLeadId(data.leadId);
+          setTypingLeadId((prev: any) => prev === data.leadId ? null : prev);
           // Auto-clear after 5 seconds just in case 'typing_off' is missed
           setTimeout(() => setTypingLeadId(null), 5000);
         } else {
@@ -234,19 +248,19 @@ export default function InboxPage() {
   const { data: leadsData, isLoading: leadsLoading } = useQuery<any>({
     queryKey: ["/api/leads", { limit: PAGE_SIZE, offset: page * PAGE_SIZE, includeArchived: showArchived }],
     staleTime: 10000,
-    placeholderData: (prev) => prev,
+    placeholderData: (prev: any) => prev,
   });
 
   const { data: messagesData, isLoading: messagesLoading } = useQuery<any>({
     queryKey: ["/api/messages", leadId],
     enabled: !!leadId,
-    placeholderData: (prev) => prev,
+    placeholderData: (prev: any) => prev,
   });
 
   const { data: channelStatus, isLoading: channelsLoading } = useQuery<any>({
     queryKey: ["/api/channels/all"],
     staleTime: 60000,
-    placeholderData: (prev) => prev,
+    placeholderData: (prev: any) => prev,
   });
 
   const isChannelConnected = (channel?: string) => {
@@ -266,6 +280,7 @@ export default function InboxPage() {
 
   useEffect(() => {
     if (leadsData?.leads) {
+      setTypingLeadId(null); // Clear typing indicator generally when leads bulk update
       setAllLeads(prev => {
         const newLeads = [...prev];
         leadsData.leads.forEach((lead: any) => {
@@ -357,11 +372,17 @@ export default function InboxPage() {
 
       return matchesSearch && matchesChannel && matchesStatus && matchesArchived;
     }).sort((a: any, b: any) => {
+      const hasDraftA = !!localDrafts[a.id];
+      const hasDraftB = !!localDrafts[b.id];
+
+      if (hasDraftA && !hasDraftB) return -1;
+      if (!hasDraftA && hasDraftB) return 1;
+
       const timeA = new Date(a.lastMessageAt || a.createdAt).getTime();
       const timeB = new Date(b.lastMessageAt || b.createdAt).getTime();
       return timeB - timeA;
     });
-  }, [allLeads, searchQuery, filterChannel, filterStatus, showArchived]);
+  }, [allLeads, searchQuery, filterChannel, filterStatus, showArchived, localDrafts]);
 
   // Highlighting helper
   const HighlightText = useCallback(({ text, query }: { text: string, query: string }) => {
@@ -393,7 +414,14 @@ export default function InboxPage() {
     },
     onSuccess: () => {
       setReplyMessage("");
-      if (leadId) localStorage.removeItem(`draft_${leadId}`);
+      if (leadId) {
+        localStorage.removeItem(`draft_${leadId}`);
+        setLocalDrafts(prev => {
+          const next = { ...prev };
+          delete next[leadId];
+          return next;
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ["/api/messages", leadId] });
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
     }
@@ -837,7 +865,7 @@ export default function InboxPage() {
                         </Avatar>
                         <div className="flex-1 min-w-0 space-y-1">
                           <div className="flex justify-between items-start gap-2">
-                            <span className="text-sm font-bold truncate text-foreground flex-1 max-w-[140px] sm:max-w-full" title={lead.name}>
+                            <span className="text-sm font-bold truncate text-foreground flex-1 max-w-[120px] md:max-w-[140px] lg:max-w-full" title={lead.name}>
                               <HighlightText text={lead.name} query={searchQuery} />
                             </span>
                             <div className="flex items-center gap-1">
@@ -862,6 +890,8 @@ export default function InboxPage() {
                               <span className="flex items-center gap-1 text-primary font-bold animate-pulse">
                                 Typinng...
                               </span>
+                            ) : localDrafts[lead.id] ? (
+                              <span className="text-destructive font-bold">Draft: <span className="font-normal text-muted-foreground/80">{localDrafts[lead.id]}</span></span>
                             ) : (
                               <HighlightText text={lead.snippet || "No messages"} query={searchQuery} />
                             )}
@@ -1339,7 +1369,17 @@ export default function InboxPage() {
                             const newText = e.target.value;
                             setReplyMessage(newText);
                             if (leadId) {
-                              localStorage.setItem(`draft_${leadId}`, newText);
+                              if (newText.trim()) {
+                                localStorage.setItem(`draft_${leadId}`, newText);
+                                setLocalDrafts(prev => ({ ...prev, [leadId]: newText }));
+                              } else {
+                                localStorage.removeItem(`draft_${leadId}`);
+                                setLocalDrafts(prev => {
+                                  const next = { ...prev };
+                                  delete next[leadId];
+                                  return next;
+                                });
+                              }
                             }
                             // Auto-grow logic
                             e.target.style.height = 'auto';

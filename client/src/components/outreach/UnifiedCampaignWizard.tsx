@@ -55,12 +55,12 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
   const [selectedMailboxes, setSelectedMailboxes] = useState<string[]>([]);
   const [replyTo, setReplyTo] = useState("");
 
-  const { data: integrations = [] } = useQuery({
+  const { data: integrations = [] } = useQuery<any[]>({
     queryKey: ['/api/integrations'],
     staleTime: 300000
   });
 
-  const availableMailboxes = integrations.filter((i: any) =>
+  const availableMailboxes = (integrations || []).filter((i: any) =>
     ['custom_email', 'gmail', 'outlook'].includes(i.provider) && i.connected
   );
 
@@ -581,15 +581,15 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
                           <div className="space-y-1">
                             <div className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-1">Target List</div>
-                            <div className="text-3xl font-black tracking-tighter italic">{leads.length} <span className="text-xs uppercase not-italic font-bold text-muted-foreground/40 ml-1">Leads</span></div>
+                            <div className="text-3xl font-black tracking-tighter italic">{leads.length} <span className="text-xs uppercase not-italic font-bold text-foreground/80 ml-1">Leads</span></div>
                           </div>
                           <div className="space-y-1">
                             <div className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-1">Volume Rate</div>
-                            <div className="text-3xl font-black tracking-tighter italic">{dailyLimit} <span className="text-xs uppercase not-italic font-bold text-muted-foreground/40 ml-1">/day</span></div>
+                            <div className="text-3xl font-black tracking-tighter italic">{dailyLimit} <span className="text-xs uppercase not-italic font-bold text-foreground/80 ml-1">/day</span></div>
                           </div>
                           <div className="space-y-1 hidden md:block">
                             <div className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-1">Sequence</div>
-                            <div className="text-3xl font-black tracking-tighter italic">3 <span className="text-xs uppercase not-italic font-bold text-muted-foreground/40 ml-1">Steps</span></div>
+                            <div className="text-3xl font-black tracking-tighter italic">3 <span className="text-xs uppercase not-italic font-bold text-foreground/80 ml-1">Steps</span></div>
                           </div>
                         </div>
 

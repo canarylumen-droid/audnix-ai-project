@@ -42,6 +42,7 @@ import { useCanAccessAnalytics, useCanAccessFullAnalytics } from "@/hooks/use-ac
 import { FeatureLock } from "@/components/upgrade/FeatureLock";
 import { PremiumLoader } from "@/components/ui/premium-loader";
 import { AudnixLogo } from "@/components/ui/CustomIcons";
+import { MailboxSwitcher } from "@/components/outreach/MailboxSwitcher";
 
 interface ChannelData {
   channel: string;
@@ -85,10 +86,19 @@ export default function InsightsPage() {
   });
 
   const [isReportOpen, setIsReportOpen] = useState(false);
-  const { data: reportData, isLoading: reportLoading } = useQuery<{ text: string }>({
-    queryKey: ["/api/ai/weekly-report"],
+  const [selectedMailbox, setSelectedMailbox] = useState<string | undefined>("all");
+
+  const { data: reportData, isLoading: reportLoading, isFetching: reportFetching } = useQuery<{ text: string }>({
+    queryKey: ["/api/ai/weekly-report", selectedMailbox],
+    queryFn: async () => {
+      const url = selectedMailbox === "all" ? "/api/ai/weekly-report" : `/api/ai/weekly-report?integrationId=${selectedMailbox}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Failed to fetch report");
+      return res.json();
+    },
     enabled: isReportOpen,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000 // Cache for 5 mins
   });
 
   const insights = insightsData?.summary || null;
@@ -258,14 +268,21 @@ export default function InsightsPage() {
       )}
 
       <Dialog open={isReportOpen} onOpenChange={setIsReportOpen}>
-        <DialogContent className="max-w-xl bg-background border border-border/30 max-h-[85vh] overflow-y-auto w-[90vw]">
+        <DialogContent className="w-[95vw] sm:max-w-xl bg-background border border-border/30 max-h-[85vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader className="mb-4 bg-muted/10 -mx-6 -mt-6 p-6 border-b border-border/10 relative">
-            <DialogTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-widest text-foreground relative z-10">
-              <Sparkles className="h-5 w-5 text-primary animate-pulse" />
-              Intelligence Briefing
-            </DialogTitle>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10 w-full">
+              <DialogTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-widest text-foreground">
+                <Sparkles className="h-5 w-5 text-primary animate-pulse" />
+                Intelligence Briefing
+              </DialogTitle>
+              <MailboxSwitcher
+                value={selectedMailbox}
+                onValueChange={setSelectedMailbox}
+                className="w-full md:w-auto"
+              />
+            </div>
           </DialogHeader>
-          {reportLoading ? (
+          {(reportLoading || reportFetching) ? (
             <div className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground space-y-4">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
               <p className="text-[10px] font-bold uppercase tracking-widest">Aggregating Global Activity Data...</p>

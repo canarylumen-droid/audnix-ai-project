@@ -157,7 +157,7 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-background to-muted/20 border-border/60">
+            <DialogContent className="w-[95vw] sm:max-w-4xl max-h-[90dvh] overflow-y-auto bg-gradient-to-br from-background to-muted/20 border-border/60 p-4 sm:p-6">
                 <DialogHeader className="pb-4 border-b border-border/40">
                     <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/30">
@@ -390,7 +390,7 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                                         }}
                                         className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
                                     >
-                                        {intelligence.intent.intentLevel === 'high' ? "Send Booking Link" : "Open Lead Campaign"} 
+                                        {intelligence.intent.intentLevel === 'high' ? "Send Booking Link" : "Open Lead Campaign"}
                                         <ArrowRight className="ml-2 h-4 w-4" />
                                     </Button>
                                 </div>

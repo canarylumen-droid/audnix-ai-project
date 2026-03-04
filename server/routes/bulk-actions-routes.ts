@@ -67,8 +67,17 @@ router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Pr
 
         // Batch deduplication (from Remote logic)
         const batchKey = email || `name:${nameKey}`;
-        if (batchIdentifiers.has(batchKey)) continue;
+        if (batchIdentifiers.has(batchKey)) {
+          results.leadsFiltered++;
+          continue;
+        }
         batchIdentifiers.add(batchKey);
+
+        // Database deduplication
+        if (email && emailMap.has(email)) {
+          results.leadsFiltered++;
+          continue;
+        }
 
         // Create lead with suppressed notifications
         const newLead = await storage.createLead({
@@ -109,7 +118,7 @@ router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Pr
           message: `${results.leadsImported} leads added to your active pipeline.`,
           metadata: { count: results.leadsImported, source: 'bulk_json' }
         });
-        
+
         const { wsSync } = await import('../lib/websocket-sync.js');
         wsSync.notifyLeadsUpdated(userId, { type: 'leads_imported', count: results.leadsImported });
       } catch (notifErr) {

@@ -205,7 +205,8 @@ router.get("/weekly-report", requireAuth, async (req: Request, res: Response): P
     startDate.setDate(startDate.getDate() - 7);
     startDate.setHours(0, 0, 0, 0);
 
-    const analytics = await storage.getAnalyticsSummary(userId, startDate);
+    const { integrationId } = req.query;
+    const analytics = await storage.getAnalyticsSummary(userId, startDate, integrationId as string | undefined);
 
     const inboundVolume = analytics.summary.leadsReplied;
     const outboundVolume = analytics.summary.totalLeads;

@@ -22,7 +22,8 @@ import {
   RefreshCw,
   Sparkles,
   ArrowDown,
-  Send
+  Send,
+  Brain
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useReducedMotion } from "@/lib/animation-utils";
@@ -229,11 +230,14 @@ export default function DashboardHome() {
     placeholderData: (previousData) => previousData,
   });
 
+  const [showPastActivity, setShowPastActivity] = useState(false);
+
   const { data: activityData, isLoading: activityLoading } = useQuery<DashboardActivityResponse>({
-    queryKey: ["/api/dashboard/activity", { integrationId: selectedIntegrationId }],
+    queryKey: ["/api/dashboard/activity", { integrationId: selectedIntegrationId, showPastActivity }],
     queryFn: async () => {
       const url = new URL("/api/dashboard/activity", window.location.origin);
       if (selectedIntegrationId) url.searchParams.set("integrationId", selectedIntegrationId);
+      url.searchParams.set("days", showPastActivity ? "all" : "3");
       const res = await fetch(url.toString());
       if (!res.ok) throw new Error("Failed to fetch activity");
       return res.json();
@@ -248,6 +252,15 @@ export default function DashboardHome() {
     queryKey: ["/api/integrations"],
   });
 
+  const activities = activityData?.activities || [];
+
+  const { data: insightsData } = useQuery<any>({
+    queryKey: ["/api/ai/insights", { period: '7d' }],
+    refetchOnWindowFocus: false,
+    enabled: !!activities && activities.length > 0 && !!user, // Only fetch inside dashboard if activities exist
+    staleTime: 5 * 60 * 1000 // Cache for 5 mins
+  });
+
   const isSmtpConnected = integrations?.some((i: any) => (i.provider === 'gmail' || i.provider === 'outlook' || i.provider === 'custom_email') && i.connected);
   const stats = statsData;
 
@@ -260,7 +273,6 @@ export default function DashboardHome() {
   };
 
   const trialDaysLeft = getTrialDaysLeft();
-  const activities = activityData?.activities || [];
 
   const formatTimeAgo = (date: string | Date) => {
     const now = new Date();
@@ -456,7 +468,24 @@ export default function DashboardHome() {
         {/* Main Content Split */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Activity Feed */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-6">
+            {/* AI Insights Summary inside Activity stream */}
+            {activities.length > 0 && insightsData?.summary && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-primary/5 border border-primary/20 rounded-2xl p-5 relative overflow-hidden group"
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-[50px] rounded-full group-hover:bg-primary/20 transition-colors" />
+                <h4 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary mb-2">
+                  <Brain className="h-4 w-4" /> Deep Insights
+                </h4>
+                <p className="text-sm font-medium leading-relaxed text-foreground/80 relative z-10 italic">
+                  "{insightsData.summary.replace(/\*\*/g, '')}"
+                </p>
+              </motion.div>
+            )}
+
             <Card className="rounded-2xl border-border/50 h-full">
               <CardHeader className="border-b border-border/40">
                 <CardTitle className="text-lg font-semibold flex items-center gap-3">
@@ -482,10 +511,10 @@ export default function DashboardHome() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex justify-between items-start mb-1">
-                              <p className="font-bold text-sm text-foreground truncate">{activity.title || "Activity Event"}</p>
+                              <p className="font-medium text-sm text-foreground/90 truncate">{activity.title || "Activity Event"}</p>
                               <span className="text-[11px] text-muted-foreground shrink-0 ml-4 font-black uppercase opacity-50 italic">{formatTimeAgo(activity.time || activity.timestamp || new Date())}</span>
                             </div>
-                            <p className="text-xs md:text-sm text-foreground leading-relaxed line-clamp-2">
+                            <p className="text-xs md:text-sm text-muted-foreground leading-relaxed line-clamp-2">
                               {activity.type === 'campaign_started' ? `Neural outreach campaign "${activity.metadata?.name || 'Inbound Strategy'}" launched with ${activity.metadata?.configuredLeads || 0} prospects.` :
                                 activity.type === 'campaign_completed' ? `Outreach campaign completed successfully. All scheduled messages delivered.` :
                                   activity.message}
@@ -496,9 +525,19 @@ export default function DashboardHome() {
                     })}
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground opacity-60">
-                    <Activity className="h-8 w-8 mb-3" />
-                    <p className="text-sm font-bold tracking-widest uppercase">No recent activity</p>
+                  <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground opacity-80">
+                    <Activity className="h-8 w-8 mb-4 opacity-50" />
+                    <p className="text-sm font-bold tracking-widest uppercase mb-4">No recent activity</p>
+                    {!showPastActivity && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-full text-xs font-bold uppercase tracking-widest border-border text-foreground hover:bg-muted"
+                        onClick={() => setShowPastActivity(true)}
+                      >
+                        Show Previous Activity
+                      </Button>
+                    )}
                   </div>
                 )}
               </CardContent>

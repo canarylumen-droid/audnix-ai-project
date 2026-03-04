@@ -52,7 +52,7 @@ export interface IStorage {
   getEmailMessages(userId: string): Promise<EmailMessage[]>;
   createEmailMessage(message: InsertEmailMessage): Promise<EmailMessage>;
   createAuditLog(data: InsertAuditTrail): Promise<AuditTrail>;
-  getAuditLogs(userId: string, options?: { integrationId?: string }): Promise<AuditTrail[]>;
+  getAuditLogs(userId: string, options?: { integrationId?: string, daysFilter?: number, limit?: number }): Promise<AuditTrail[]>;
 
   // Message methods
   getMessagesByLeadId(leadId: string): Promise<Message[]>;
@@ -159,7 +159,7 @@ export interface IStorage {
   getVoiceMinutesBalance(userId: string): Promise<number>;
 
   // Analytics
-  getAnalyticsSummary(userId: string, startDate: Date): Promise<{
+  getAnalyticsSummary(userId: string, startDate: Date, integrationId?: string): Promise<{
     summary: {
       totalLeads: number;
       conversions: number;
@@ -1452,7 +1452,7 @@ export class MemStorage implements IStorage {
     };
   }
 
-  async getAnalyticsSummary(userId: string, startDate: Date): Promise<{
+  async getAnalyticsSummary(userId: string, startDate: Date, integrationId?: string): Promise<{
     summary: {
       totalLeads: number;
       conversions: number;
