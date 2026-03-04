@@ -18,7 +18,8 @@ interface EmailConfig {
 
 class ImapIdleManager {
     private connections: Map<string, Imap> = new Map(); // Key: integrationId
-    private folders: Map<string, { inbox: string[], sent: string[] }> = new Map(); // Key: integrationId
+    private folders: Map<string, { inbox: string[], sent: string[], spam: string[] }> = new Map(); // Key: integrationId
+    private syncing: Set<string> = new Set(); // Key: integrationId
     private isRunning = false;
 
     /**
@@ -37,7 +38,7 @@ class ImapIdleManager {
     /**
      * Get discovered folders for a specific integration
      */
-    public getDiscoveredFolders(integrationId: string): { inbox: string[], sent: string[] } | undefined {
+    public getDiscoveredFolders(integrationId: string): { inbox: string[], sent: string[], spam: string[] } | undefined {
         return this.folders.get(integrationId);
     }
 
@@ -83,13 +84,18 @@ class ImapIdleManager {
             imap.getBoxes((err, boxes) => {
                 if (err) {
                     console.warn(`[IMAP] Could not list boxes for integration ${integrationId}:`, err.message);
-                    this.folders.set(integrationId, { inbox: ['INBOX'], sent: ['Sent', 'Sent Items', '[Gmail]/Sent Mail', 'Sent Messages', 'Sent-Mail', 'SENT'] });
+                    this.folders.set(integrationId, {
+                        inbox: ['INBOX'],
+                        sent: ['Sent', 'Sent Items', '[Gmail]/Sent Mail'],
+                        spam: ['Spam', 'Junk', '[Gmail]/Spam']
+                    });
                     resolve();
                     return;
                 }
 
                 const inboxFolders: string[] = [];
                 const sentFolders: string[] = [];
+                const spamFolders: string[] = [];
 
                 const processBoxes = (obj: any, prefix = '') => {
                     for (const key in obj) {
@@ -102,6 +108,8 @@ class ImapIdleManager {
                             inboxFolders.push(fullName);
                         } else if (attribs.includes('\\Sent') || attribs.includes('\\SentMail') || attribs.includes('\\SentItems')) {
                             sentFolders.push(fullName);
+                        } else if (attribs.includes('\\Spam') || attribs.includes('\\Junk')) {
+                            spamFolders.push(fullName);
                         } else {
                             // 2. Fallback to name patterns
                             const lowerKey = key.toLowerCase();
@@ -116,8 +124,10 @@ class ImapIdleManager {
 
                             if (standardInboxes.includes(lowerKey)) {
                                 if (!inboxFolders.includes(fullName)) inboxFolders.push(fullName);
-                            } else if (standardSents.some(s => lowerKey === s || lowerKey.includes('sent') || fullName.toLowerCase().includes('inbox.sent'))) {
+                            } else if (standardSents.some(s => lowerKey === s || lowerKey.includes('sent'))) {
                                 if (!sentFolders.includes(fullName)) sentFolders.push(fullName);
+                            } else if (lowerKey.includes('spam') || lowerKey.includes('junk') || lowerKey.includes('bulk')) {
+                                if (!spamFolders.includes(fullName)) spamFolders.push(fullName);
                             }
                         }
 
@@ -137,8 +147,18 @@ class ImapIdleManager {
                     sentFolders.push('Sent Items');
                 }
 
-                console.log(`[IMAP] Discovered folders for integration ${integrationId}: Inbox=[${inboxFolders.join(',')}], Sent=[${sentFolders.join(',')}]`);
-                this.folders.set(integrationId, { inbox: [...new Set(inboxFolders)], sent: [...new Set(sentFolders)] });
+                if (spamFolders.length === 0) {
+                    spamFolders.push('Spam');
+                    spamFolders.push('Junk');
+                    spamFolders.push('[Gmail]/Spam');
+                }
+
+                console.log(`[IMAP] Discovered folders for integration ${integrationId}: Inbox=[${inboxFolders.join(',')}], Sent=[${sentFolders.join(',')}], Spam=[${spamFolders.join(',')}]`);
+                this.folders.set(integrationId, {
+                    inbox: [...new Set(inboxFolders)],
+                    sent: [...new Set(sentFolders)],
+                    spam: [...new Set(spamFolders)]
+                });
                 resolve();
             });
         });
@@ -258,44 +278,55 @@ class ImapIdleManager {
 
             console.log(`✅ IMAP IDLE active on ${primaryInbox} for integration ${integrationId} (User: ${userId})`);
 
-            this.fetchNewEmails(integrationId, userId, imap, primaryInbox, 'inbound');
+            this.syncAccountFolders(integrationId, imap, userId);
 
             imap.on('mail', (numNewMsgs: number) => {
                 console.log(`📬 Integration ${integrationId} received ${numNewMsgs} new messages`);
-                this.fetchNewEmails(integrationId, userId, imap, primaryInbox, 'inbound');
+                this.syncAccountFolders(integrationId, imap, userId);
             });
-
-            for (const sentFolder of folders.sent) {
-                if (sentFolder !== primaryInbox) {
-                    imap.on('mail', () => {
-                        console.log(`📤 New message detected in Sent folder ${sentFolder} for integration ${integrationId}`);
-                        this.fetchNewEmails(integrationId, userId, imap, sentFolder, 'outbound');
-                    });
-                }
-            }
 
             if (typeof (imap as any).idle === 'function') {
                 (imap as any).idle();
             }
 
             setInterval(async () => {
-                const currentFolders = this.folders.get(integrationId);
-                if (!currentFolders) return;
-
-                console.log(`🕒 Starting periodic full sync for integration ${integrationId}`);
-
-                for (let i = 1; i < currentFolders.inbox.length; i++) {
-                    await this.fetchNewEmails(integrationId, userId, imap, currentFolders.inbox[i], 'inbound');
+                if (this.connections.get(integrationId) === imap) {
+                    this.syncAccountFolders(integrationId, imap, userId);
                 }
-
-                for (const folder of currentFolders.sent) {
-                    await this.fetchNewEmails(integrationId, userId, imap, folder, 'outbound');
-                }
-            }, 1000);
+            }, 1000); // 1s sync speed
         });
     }
 
-    private async fetchNewEmails(integrationId: string, userId: string, imap: Imap, folderName: string = 'INBOX', direction: 'inbound' | 'outbound' = 'inbound'): Promise<void> {
+    private async syncAccountFolders(integrationId: string, imap: Imap, userId: string): Promise<void> {
+        if (this.syncing.has(integrationId)) return;
+        this.syncing.add(integrationId);
+
+        try {
+            const folders = this.folders.get(integrationId);
+            if (!folders) return;
+
+            // Sync Inbox
+            for (const inbox of folders.inbox) {
+                await this.fetchNewEmails(integrationId, userId, imap, inbox, 'inbound');
+            }
+
+            // Sync Sent
+            for (const sent of folders.sent) {
+                await this.fetchNewEmails(integrationId, userId, imap, sent, 'outbound');
+            }
+
+            // Sync Spam
+            for (const spam of folders.spam) {
+                await this.fetchNewEmails(integrationId, userId, imap, spam, 'inbound', true);
+            }
+        } catch (error) {
+            console.error(`[IMAP] Sync folders failed for ${integrationId}:`, error);
+        } finally {
+            this.syncing.delete(integrationId);
+        }
+    }
+
+    private async fetchNewEmails(integrationId: string, userId: string, imap: Imap, folderName: string = 'INBOX', direction: 'inbound' | 'outbound' = 'inbound', isSpam = false): Promise<void> {
         return new Promise((resolve) => {
             const folders = this.folders.get(integrationId) || { inbox: ['INBOX'], sent: [] };
             const primaryInbox = folders.inbox[0] || 'INBOX';
@@ -327,6 +358,14 @@ class ImapIdleManager {
                 }
 
                 const total = box.messages.total;
+                if (total === 0) {
+                    try {
+                        if (typeof (imap as any).idle === 'function') (imap as any).idle();
+                    } catch (e) { }
+                    resolve();
+                    return;
+                }
+
                 const fetchRange = total < 20 ? '1:*' : `${total - 19}:*`;
 
                 const fetch = imap.seq.fetch(fetchRange, { bodies: '', struct: true });
@@ -349,7 +388,8 @@ class ImapIdleManager {
                                     flags,
                                     uid: seqno,
                                     messageId: parsed.messageId,
-                                    inReplyTo: parsed.inReplyTo
+                                    inReplyTo: parsed.inReplyTo,
+                                    isSpam: isSpam
                                 });
                             }
                         });
@@ -362,7 +402,7 @@ class ImapIdleManager {
                     if (fetchError) {
                         console.error(`[IMAP] Fetch error for ${folderName}:`, fetchError.message);
                     } else if (emails.length > 0) {
-                        console.log(`📥 Processing ${emails.length} ${direction} emails from ${folderName} for integration ${integrationId}`);
+                        console.log(`📥 Processing ${emails.length} ${direction} emails from ${folderName} for integration ${integrationId} (Spam: ${isSpam})`);
                         await pagedEmailImport(userId, emails.map(e => ({
                             from: e.from?.split('<')[1]?.split('>')[0] || e.from,
                             to: e.to?.split('<')[1]?.split('>')[0] || e.to,
@@ -373,12 +413,15 @@ class ImapIdleManager {
                             isRead: e.flags?.includes('\\Seen') || false,
                             messageId: e.messageId,
                             inReplyTo: e.inReplyTo,
-                            integrationId: integrationId
+                            integrationId: integrationId,
+                            isSpam: isSpam
                         })), undefined, direction);
 
                         // Real-time propagation to UI
                         wsSync.notifyMessagesUpdated(userId);
-                        if (direction === 'inbound') {
+                        wsSync.notifyStatsUpdated(userId); // Trigger total bounce/spam refresh
+
+                        if (direction === 'inbound' && !isSpam) {
                             wsSync.notifyActivityUpdated(userId, {
                                 type: 'email_received',
                                 title: 'New Email Received',
@@ -574,6 +617,7 @@ class ImapIdleManager {
 
             for (const inbox of folders.inbox) totalImported += await syncFolder(inbox, 'inbound');
             for (const sent of folders.sent) totalImported += await syncFolder(sent, 'outbound');
+            for (const spam of folders.spam) totalImported += await syncFolder(spam, 'inbound');
 
             const primaryInbox = folders.inbox[0] || 'INBOX';
             imap.openBox(primaryInbox, false, (err) => {

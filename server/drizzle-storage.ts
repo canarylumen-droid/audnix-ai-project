@@ -1660,7 +1660,7 @@ export class DrizzleStorage implements IStorage {
       dealsWhere = and(dealsWhere, sql`exists (
         select 1 from ${messages} 
         where ${messages.leadId} = ${deals.leadId} 
-        and ${messages.metadata}->>'integrationId' = ${options.integrationId}
+        and ${messages}.metadata->>'integrationId' = ${options.integrationId}
       )`)!;
     }
 
@@ -1689,20 +1689,20 @@ export class DrizzleStorage implements IStorage {
       .where(messagesWhere);
 
     const [dealsStats] = await db.select({
-      pipelineValue: sql<number>`coalesce(sum(case when status = 'open' then coalesce(cast(metadata->>'offerPrice' as numeric), cast(metadata->>'offer_price' as numeric), value) else 0 end), 0)`,
-      closedRevenue: sql<number>`coalesce(sum(case when status in ('converted', 'closed_won') then coalesce(cast(metadata->>'offerPrice' as numeric), cast(metadata->>'offer_price' as numeric), value) else 0 end), 0)`,
+      pipelineValue: sql<number>`coalesce(sum(case when status = 'open' then coalesce(cast(ai_analysis->>'offerPrice' as numeric), cast(ai_analysis->>'offer_price' as numeric), value) else 0 end), 0)`,
+      closedRevenue: sql<number>`coalesce(sum(case when status in ('converted', 'closed_won') then coalesce(cast(ai_analysis->>'offerPrice' as numeric), cast(ai_analysis->>'offer_price' as numeric), value) else 0 end), 0)`,
     })
       .from(deals)
       .where(dealsWhere);
 
     // Calculate predicted deal value from leads without explicit deals
     const [predictedStats] = await db.select({
-      value: sql<number>`coalesce(sum(cast(metadata->'intelligence'->'predictions'->>'predictedAmount' as numeric)), 0)`
+      value: sql<number>`coalesce(sum(cast(${leads.metadata}->'intelligence'->'predictions'->>'predictedAmount' as numeric)), 0)`
     })
       .from(leads)
       .where(and(
         leadsWhere,
-        sql`metadata->'intelligence'->'predictions'->>'predictedAmount' is not null`,
+        sql`${leads.metadata}->'intelligence'->'predictions'->>'predictedAmount' is not null`,
         sql`not exists (select 1 from deals where deals.lead_id = leads.id)`
       ));
 

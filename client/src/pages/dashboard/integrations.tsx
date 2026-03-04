@@ -30,7 +30,8 @@ import {
   Cpu,
   Unplug,
   RefreshCw,
-  FolderSync
+  FolderSync,
+  ArrowRight
 } from "lucide-react";
 import { SiGoogle, SiShopify, SiHubspot, SiSlack } from "react-icons/si";
 import {
@@ -206,7 +207,7 @@ export default function IntegrationsPage() {
   const { data: integrationsData, isLoading } = useQuery<IntegrationsResponse>({
     queryKey: ["/api/integrations"],
     staleTime: 30000,
-    placeholderData: (prev) => prev,
+    placeholderData: (prev: any) => prev,
   });
   const { data: customEmailStatus, refetch: refetchStatus } = useQuery<{
     connected: boolean;
@@ -281,6 +282,7 @@ export default function IntegrationsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/custom-email/status"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
       setIsEditingCustomEmail(false);
       setCustomEmailConfig({ smtpHost: '', smtpPort: '587', imapHost: '', imapPort: '993', email: '', password: '', fromName: '' });
       toast({ title: "Email Connected", description: "SMTP settings saved successfully." });
@@ -304,6 +306,7 @@ export default function IntegrationsPage() {
     mutationFn: async (integrationId?: string) => apiRequest("POST", "/api/custom-email/disconnect", { integrationId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/custom-email/status"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
       toast({ title: "Email Disconnected" });
     }
   });
@@ -411,6 +414,13 @@ export default function IntegrationsPage() {
     (integrations.filter(i => i.provider === 'gmail' || i.provider === 'outlook').length || 0);
 
   const isAtMailboxLimit = connectedMailboxesCount >= getMailboxLimit();
+
+  const getNextPlan = () => {
+    const tier = userData?.user?.subscriptionTier?.toLowerCase() || 'starter';
+    if (tier === 'starter') return 'Pro';
+    if (tier === 'pro') return 'Enterprise';
+    return null;
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -539,8 +549,20 @@ export default function IntegrationsPage() {
                       </div>
                       <p className="text-xs text-muted-foreground">Manage your outreach accounts and their health.</p>
                     </div>
-                    {!isAtMailboxLimit && (
-                      <Button size="sm" className="rounded-full gap-2" onClick={() => setIsEditingCustomEmail(true)}>
+                    {isAtMailboxLimit ? (
+                      getNextPlan() ? (
+                        <Link href="/dashboard/billing">
+                          <Button size="sm" variant="outline" className="rounded-full gap-2 border-primary/20 text-primary hover:bg-primary/5">
+                            <Zap className="h-3.5 w-3.5 fill-primary" /> Upgrade to {getNextPlan()} for More
+                          </Button>
+                        </Link>
+                      ) : (
+                        <Badge variant="outline" className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 border-border/40">
+                          Limit Reached
+                        </Badge>
+                      )
+                    ) : (
+                      <Button size="sm" className="rounded-full gap-2 shadow-lg shadow-primary/20" onClick={() => setIsEditingCustomEmail(true)}>
                         <Plus className="h-4 w-4" /> Add Mailbox
                       </Button>
                     )}
@@ -699,22 +721,24 @@ export default function IntegrationsPage() {
               ) : (!isCustomEmailConnected || isEditingCustomEmail) && (
                 <div className="p-8 space-y-6">
                   {isAtMailboxLimit && !isEditingCustomEmail ? (
-                    <div className="flex flex-col items-center text-center py-12 space-y-4">
-                      <div className="h-16 w-16 rounded-full bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
-                        <AlertCircle className="h-8 w-8 text-amber-500" />
+                    <div className="flex flex-col items-center text-center py-12 space-y-6">
+                      <div className="h-20 w-20 rounded-[2rem] bg-amber-500/5 flex items-center justify-center border border-amber-500/10 mb-2">
+                        <AlertCircle className="h-10 w-10 text-amber-500" />
                       </div>
                       <div className="space-y-2 max-w-sm">
-                        <h3 className="text-lg font-bold">Plan Limit Reached</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Your "{userData?.user?.subscriptionTier}" plan supports up to {getMailboxLimit()} mailbox{getMailboxLimit() > 1 ? 'es' : ''}.
-                          Please upgrade or disconnect an existing account to add more.
+                        <h3 className="text-xl font-black tracking-tight">Plan Limit Reached</h3>
+                        <p className="text-sm font-medium text-muted-foreground leading-relaxed px-4">
+                          Your {userData?.user?.subscriptionTier || 'Starter'} plan supports up to {getMailboxLimit()} mailbox{getMailboxLimit() > 1 ? 'es' : ''}.
+                          Disconnect an existing account to add another.
                         </p>
                       </div>
-                      <Link href="/dashboard/billing">
-                        <Button className="rounded-full gap-2">
-                          <Zap className="h-4 w-4" /> Upgrade Plan
-                        </Button>
-                      </Link>
+                      {getNextPlan() && (
+                        <Link href="/dashboard/billing">
+                          <Button className="rounded-2xl gap-2 h-12 px-8 bg-primary hover:bg-primary/90 text-primary-foreground font-black uppercase tracking-widest shadow-xl shadow-primary/20">
+                            <Zap className="h-4 w-4 fill-primary-foreground" /> Upgrade to {getNextPlan()}
+                          </Button>
+                        </Link>
+                      )}
                     </div>
                   ) : (
                     <>
@@ -821,10 +845,38 @@ export default function IntegrationsPage() {
                                     <TooltipTrigger asChild>
                                       <AlertCircle className="h-3 w-3 text-primary animate-pulse cursor-help" />
                                     </TooltipTrigger>
-                                    <TooltipContent className="max-w-[250px] p-3 space-y-2">
-                                      <p className="font-bold text-[10px] uppercase">Using a personal account?</p>
-                                      <p className="text-xs leading-relaxed">Personal Gmail/Outlook accounts require an <strong>App Password</strong>. Your standard login password will not work.</p>
-                                      <p className="text-xs opacity-70">Enable 2FA first, then generate it in your account's Security settings.</p>
+                                    <TooltipContent className="max-w-[280px] p-4 space-y-3 bg-indigo-950/90 border-primary/20 backdrop-blur-xl">
+                                      <div className="space-y-1">
+                                        <p className="font-black text-[10px] uppercase tracking-widest text-primary flex items-center gap-2">
+                                          <Sparkles className="h-3 w-3" /> Gmail / Outlook Guide
+                                        </p>
+                                        <p className="text-xs leading-relaxed text-foreground/90 italic">Manual connection for personal accounts requires a 16-character <strong>App Password</strong>.</p>
+                                      </div>
+                                      <div className="space-y-2 py-1">
+                                        <div className="flex items-start gap-2">
+                                          <div className="h-4 w-4 rounded-full bg-primary/20 flex items-center justify-center text-[8px] font-bold text-primary mt-0.5 shrink-0">1</div>
+                                          <p className="text-[10px] text-muted-foreground">Enable <strong>IMAP Access</strong> in your email Forwarding/IMAP settings.</p>
+                                        </div>
+                                        <div className="flex items-start gap-2">
+                                          <div className="h-4 w-4 rounded-full bg-primary/20 flex items-center justify-center text-[8px] font-bold text-primary mt-0.5 shrink-0">2</div>
+                                          <p className="text-[10px] text-muted-foreground">Enable <strong>2-Step Verification</strong> in Security settings.</p>
+                                        </div>
+                                        <div className="flex items-start gap-2">
+                                          <div className="h-4 w-4 rounded-full bg-primary/20 flex items-center justify-center text-[8px] font-bold text-primary mt-0.5 shrink-0">3</div>
+                                          <p className="text-[10px] text-muted-foreground">Search for <strong>"App Passwords"</strong> and generate a code.</p>
+                                        </div>
+                                      </div>
+                                      <div className="pt-2 border-t border-white/5 space-y-2">
+                                        <p className="text-[9px] font-black uppercase tracking-widest text-orange-500/60">Getting Connection Error?</p>
+                                        <p className="text-[10px] text-muted-foreground leading-snug">Ensure <strong>IMAP</strong> is set to "Enabled" in your email provider. Your regular password will not work.</p>
+                                      </div>
+                                      <Button
+                                        variant="ghost"
+                                        className="p-0 h-auto text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/80 hover:bg-transparent"
+                                        onClick={() => window.open('https://myaccount.google.com/apppasswords', '_blank')}
+                                      >
+                                        Open Google Settings <ArrowRight className="ml-1 h-3 w-3" />
+                                      </Button>
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
@@ -925,7 +977,7 @@ export default function IntegrationsPage() {
               )}
             </div>
           </div>
-        </TabsContent>
+        </TabsContent >
 
 
         <TabsContent value="voice">
@@ -983,7 +1035,7 @@ export default function IntegrationsPage() {
             </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
+      </Tabs >
     </div >
   );
 }

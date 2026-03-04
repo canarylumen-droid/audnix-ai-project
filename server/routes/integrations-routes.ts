@@ -72,8 +72,12 @@ router.post('/:provider/disconnect', requireAuth, async (req: Request, res: Resp
     }
 
     const { provider } = req.params;
-    
+
     await storage.disconnectIntegration(userId, provider as string);
+
+    // Notify UI to refresh integration state
+    const { wsSync } = await import('../lib/websocket-sync.js');
+    wsSync.notifySettingsUpdated(userId);
 
     res.json({ message: `${provider} disconnected` });
   } catch (error) {

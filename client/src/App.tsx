@@ -10,6 +10,7 @@ import PrivacyPolicy from "@/pages/privacy-policy";
 import TermsOfService from "@/pages/terms-of-service";
 import DataDeletion from "@/pages/data-deletion";
 import { PrivacyModal } from "@/components/landing/PrivacyModal";
+import { NotificationSound } from "@/components/shared/NotificationSound";
 
 import { lazy, Suspense } from "react";
 
@@ -277,6 +278,7 @@ function App() {
             <InternetConnectionBanner />
             <Toaster />
             <Router />
+            <NotificationSound />
             {/* <ExpertChat /> Removed as requested */}
             <PrivacyModal />
           </TooltipProvider>

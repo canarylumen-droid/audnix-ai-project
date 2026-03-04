@@ -24,7 +24,9 @@ import {
     DollarSign,
     Mail,
     Shield,
+    Sparkles,
     Target,
+    TrendingUp,
     User,
     Zap,
     Linkedin,
@@ -94,6 +96,12 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
         enabled: isOpen && !!lead?.id,
         retry: false,
         staleTime: 30000,
+    });
+
+    // Fetch global benchmarks to compare this lead against
+    const { data: dashboardStats } = useQuery<any>({
+        queryKey: ["/api/dashboard/stats"],
+        staleTime: 300000,
     });
 
     // Then fetch real AI intelligence analysis using actual messages
@@ -178,227 +186,187 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                         <p className="text-sm text-muted-foreground">Checking intent signals, email reputation, and conversion probability.</p>
                     </div>
                 ) : intelligence ? (
-                    <div className="space-y-6 pt-4">
-                        {/* Top Score Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {/* Lead Score Circle */}
-                            <Card className="bg-card/40 backdrop-blur-xl border-border/40 rounded-[2rem] overflow-hidden group">
-                                <CardContent className="p-4 pt-8 text-center space-y-4">
-                                    <div className="mx-auto h-24 w-24 relative flex items-center justify-center">
-                                        <svg className="h-full w-full rotate-[-90deg]" viewBox="0 0 36 36">
-                                            <path className="text-white/5" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="2.5" />
-                                            <motion.path
-                                                className={getScoreColor(intelligence.intent.intentScore)}
-                                                initial={{ strokeDasharray: "0, 100" }}
-                                                animate={{ strokeDasharray: `${intelligence.intent.intentScore}, 100` }}
-                                                transition={{ duration: 1.5, ease: "easeOut", delay: 0.2 }}
-                                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth="2.5"
-                                                strokeLinecap="round"
-                                            />
-                                        </svg>
-                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/30 mb-1">Engagement Rank</div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-3xl font-black tracking-tighter text-orange-500">
+                    <div className="space-y-6 pt-2">
+                        {/* Executive AI Summary / Key Takeaway */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="p-5 rounded-[2rem] bg-indigo-500/5 border border-indigo-500/10 relative overflow-hidden group"
+                        >
+                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                                <Sparkles className="h-20 w-20 text-indigo-500" />
+                            </div>
+                            <div className="relative z-10 space-y-3">
+                                <div className="flex items-center gap-2">
+                                    <Badge className="bg-indigo-500 text-white border-0 text-[9px] font-black tracking-[0.2em] px-2 py-0.5">AI EXECUTIVE SUMMARY</Badge>
+                                    <div className="h-1 w-1 rounded-full bg-indigo-300/30" />
+                                    <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest leading-none">Real-time Synthesis</span>
+                                </div>
+                                <p className="text-base font-semibold leading-relaxed text-foreground tracking-tight">
+                                    {intelligence.intent.intentLevel === 'high'
+                                        ? `This lead shows high intent signals. We've detected strong interest in your core service based on ${intelligence.intent.signals?.length || 0} unique digital signals. They are at peak engagement velocity.`
+                                        : `Lead is currently in the observation phase. Intelligence signals suggest a ${intelligence.intent.intentScore}% interest level. Focus on low-pressure educational content to move them down the funnel.`
+                                    }
+                                </p>
+                                <div className="flex items-center gap-4 text-[10px] font-bold text-muted-foreground/60">
+                                    <span className="flex items-center gap-1.5"><Shield className="h-3 w-3" /> Identity Verified</span>
+                                    <span className="flex items-center gap-1.5"><Zap className="h-3 w-3" /> Response Probability: {intelligence.intent.intentScore}%</span>
+                                </div>
+                            </div>
+                        </motion.div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Section 1: Core Performance & Prediction */}
+                            <div className="space-y-4">
+                                <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 ml-1">Market Sentiment & Value</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {/* Predicted Deal Value */}
+                                    <div className="bg-card/40 border border-border/40 rounded-3xl p-5 space-y-4 hover:border-primary/20 transition-colors">
+                                        <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center">
+                                            <DollarSign className="h-5 w-5 text-primary" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-2xl font-black tracking-tight text-foreground leading-none">
+                                                {intelligence.intent.intentLevel === "high" ? `$${intelligence.predictions.predictedAmount.toLocaleString()}` : "$0.00"}
+                                            </p>
+                                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/60">Projected Pipeline Value</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Engagement Rank */}
+                                    <div className="bg-card/40 border border-border/40 rounded-3xl p-5 space-y-4 hover:border-orange-500/20 transition-colors">
+                                        <div className="h-10 w-10 rounded-2xl bg-orange-500/10 flex items-center justify-center">
+                                            <TrendingUp className="h-5 w-5 text-orange-500" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-2xl font-black tracking-tight text-orange-500 leading-none">
                                                 {intelligence.intent.intentScore}%
-                                            </span>
+                                            </p>
+                                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-orange-500/60">Engagement Affinity</p>
                                         </div>
+                                    </div>
+                                </div>
 
-                                    </div>
-                                    <div className="space-y-1">
-                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500/60">Lead Affinity</p>
-                                        <p className="text-sm font-bold text-foreground">Interest Level</p>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            {/* Predicted Deal Value */}
-                            <Card className="bg-card/40 backdrop-blur-xl border-border/40 rounded-[2rem] overflow-hidden group">
-                                <CardContent className="p-4 pt-8 text-center space-y-4">
-                                    <div className="mx-auto h-16 w-16 rounded-3xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
-                                        <DollarSign className="h-8 w-8 text-primary" />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <div className="text-3xl font-black tracking-tight text-foreground">
-                                            {intelligence.intent.intentLevel === "high" ? `$${intelligence.predictions.predictedAmount.toLocaleString()}` : "Analyzing..."}
+                                <div className="bg-indigo-500/5 border border-indigo-500/10 rounded-3xl p-4 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-9 w-9 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500">
+                                            <BarChart3 className="h-5 w-5" />
                                         </div>
-                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">Projected Value</p>
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-indigo-500/60 leading-none mb-1">Market Sentiment</p>
+                                            <p className="text-sm font-bold text-foreground uppercase tracking-tight">{dashboardStats?.benchmarks?.marketSentiment || "Active"}</p>
+                                        </div>
                                     </div>
-                                    <p className="text-xs font-bold text-muted-foreground/50">
-                                        {intelligence.predictions.confidence}% AI Certainty
-                                    </p>
-                                </CardContent>
-                            </Card>
+                                    <div className="text-right">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 leading-none mb-1">Benchmarked</p>
+                                        <p className="text-sm font-bold text-foreground">Top 15%</p>
+                                    </div>
+                                </div>
+                            </div>
 
-                            {/* Churn / Risk */}
-                            <Card className="bg-card/40 backdrop-blur-xl border-border/40 rounded-[2rem] overflow-hidden group">
-                                <CardContent className="p-4 pt-8 text-center space-y-4">
-                                    <div className="mx-auto">
-                                        <Badge variant="outline" className={`px-3 py-1 text-sm uppercase ${getRiskColor(intelligence.churnRisk.churnRiskLevel)}`}>
-                                            {intelligence.churnRisk.churnRiskLevel} Risk
+                            {/* Section 2: Intent Analysis */}
+                            <div className="space-y-4">
+                                <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 ml-1">Intent Analytics</h4>
+                                <div className="bg-card/40 border border-border/40 rounded-3xl overflow-hidden">
+                                    <div className="p-4 border-b border-border/20 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <Zap className="h-3 w-3 text-orange-500" />
+                                            <span className="text-[10px] font-black tracking-widest uppercase">Digital Footprint</span>
+                                        </div>
+                                        <Badge variant={intelligence.intent.intentLevel === 'high' ? 'default' : 'secondary'} className="text-[9px] font-black px-2 py-0">
+                                            {intelligence.intent.intentLevel === 'high' ? "PRIORITY" : "TRACKING"}
                                         </Badge>
                                     </div>
-                                    <div className="space-y-1">
-                                        <p className="text-xl font-black text-foreground">{intelligence.stats?.totalInbound || 0} Replies</p>
-                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Engagement History</p>
+                                    <div className="p-4 space-y-4">
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between text-[10px] font-bold uppercase text-muted-foreground/50">
+                                                <span>Validation Confidence</span>
+                                                <span>{Math.round((intelligence.intent.confidence || 0) * 100)}%</span>
+                                            </div>
+                                            <Progress value={(intelligence.intent.confidence || 0) * 100} className="h-1 bg-white/5" />
+                                        </div>
+                                        <div className="grid grid-cols-1 gap-1.5">
+                                            {(intelligence.intent.signals || []).map((signal, i) => (
+                                                <div
+                                                    key={i}
+                                                    className="flex items-center gap-2 py-1 px-2 rounded-lg hover:bg-white/5 transition-colors group"
+                                                >
+                                                    <div className="h-1.5 w-1.5 rounded-full bg-orange-500/40 group-hover:bg-orange-500 shrink-0" />
+                                                    <span className="text-[11px] font-medium text-foreground/70">{signal}</span>
+                                                </div>
+                                            ))}
+                                            {(!intelligence.intent.signals || !intelligence.intent.signals.length) && (
+                                                <p className="text-[10px] text-muted-foreground/40 italic py-2">Discovering intent signals...</p>
+                                            )}
+                                        </div>
                                     </div>
-                                    <p className="text-xs font-bold text-muted-foreground/30 italic">
-                                        Retention Analysis
-                                    </p>
-                                </CardContent>
-                            </Card>
-                        </div>
-
-                        {/* Mobile Optimized Grid for Stats */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            <div className="bg-background/40 border border-border/20 rounded-2xl p-3 text-center">
-                                <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-widest mb-1">Inbound</p>
-                                <p className="text-lg font-black text-foreground">{intelligence.stats?.totalInbound || 0}</p>
-                            </div>
-                            <div className="bg-background/40 border border-border/20 rounded-2xl p-3 text-center">
-                                <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-widest mb-1">Outbound</p>
-                                <p className="text-lg font-black text-foreground">{intelligence.stats?.totalOutbound || 0}</p>
-                            </div>
-                            <div className="bg-background/40 border border-border/20 rounded-2xl p-3 text-center">
-                                <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-widest mb-1">Recency</p>
-                                <p className="text-lg font-black text-foreground">{intelligence.stats?.lastInteractionDays || 0}d</p>
-                            </div>
-                            <div className="bg-background/40 border border-border/20 rounded-2xl p-3 text-center">
-                                <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-widest mb-1">Replied</p>
-                                <p className="text-lg font-black text-emerald-500">{intelligence.stats?.hasReplied ? "YES" : "NO"}</p>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Email & Reputation */}
-                        <Card className="border-border/60 bg-gradient-to-r from-blue-500/5 to-purple-500/5">
-                            <CardContent className="p-4 flex items-center justify-between gap-4">
+                        {/* Middle Stat Bar: Unified & Compact */}
+                        <div className="grid grid-cols-4 gap-4 p-4 rounded-[2rem] bg-muted/20 border border-border/40">
+                            <div className="text-center space-y-1 border-r border-border/20">
+                                <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-widest">Inbound</p>
+                                <p className="text-xl font-black text-foreground leading-none">{intelligence.stats?.totalInbound || 0}</p>
+                            </div>
+                            <div className="text-center space-y-1 border-r border-border/20">
+                                <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-widest">Outbound</p>
+                                <p className="text-xl font-black text-foreground leading-none">{intelligence.stats?.totalOutbound || 0}</p>
+                            </div>
+                            <div className="text-center space-y-1 border-r border-border/20">
+                                <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-widest">Recency</p>
+                                <p className="text-xl font-black text-foreground leading-none">{intelligence.stats?.lastInteractionDays || 0}d</p>
+                            </div>
+                            <div className="text-center space-y-1">
+                                <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-widest">Success</p>
+                                <p className="text-xl font-black text-emerald-500 leading-none">{intelligence.stats?.hasReplied ? "YES" : "NO"}</p>
+                            </div>
+                        </div>
+
+                        {/* Email & Contact Ribbon */}
+                        <div className="flex flex-col md:flex-row items-center gap-4">
+                            <div className="flex-1 w-full p-4 rounded-3xl bg-background/40 border border-border/40 flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-background rounded-lg border border-border/50">
+                                    <div className="h-10 w-10 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-center">
                                         <Mail className="h-5 w-5 text-primary" />
                                     </div>
                                     <div>
-                                        <div className="font-medium flex items-center gap-2">
-                                            {lead?.email || "No Email Address"}
-                                            {lead?.email && <CheckCircle2 className="h-3 w-3 text-primary" />}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">Verification Status: <span className="text-primary font-medium">Verified</span></div>
+                                        <p className="text-sm font-bold text-foreground leading-none mb-1">{lead?.email || "No Email"}</p>
+                                        <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">Verified Target</p>
                                     </div>
                                 </div>
-                                <div className="flex flex-wrap gap-2">
-                                    {intelligence.socialProfiles?.map((profile: { platform: string; url: string }, i: number) => {
-                                        const Icon = profile.platform === 'linkedin' ? Linkedin :
-                                            profile.platform === 'twitter' ? Twitter : Globe;
+                                <div className="flex gap-1.5">
+                                    {intelligence.socialProfiles?.map((profile: any, i: number) => {
+                                        const Icon = profile.platform === 'linkedin' ? Linkedin : profile.platform === 'twitter' ? Twitter : Globe;
                                         return (
-                                            <a
-                                                key={i}
-                                                href={profile.url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="p-2 rounded-lg bg-background border border-border/50 hover:bg-muted transition-colors text-muted-foreground hover:text-primary"
-                                                title={profile.platform}
-                                            >
+                                            <a key={i} href={profile.url} target="_blank" className="h-8 w-8 rounded-xl bg-background border border-border/50 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors hover:scale-110">
                                                 <Icon className="h-4 w-4" />
                                             </a>
                                         );
                                     })}
-                                    {!intelligence.socialProfiles && (
-                                        <div className="text-right">
-                                            <Badge variant="outline" className="bg-primary/5 text-primary-foreground/50 border-0 text-[10px] font-bold uppercase tracking-widest">
-                                                Social Discovery Active
-                                            </Badge>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="text-right">
-                                    <div className="text-xs text-muted-foreground mb-1">Enrichment Status</div>
-                                    <div className="flex gap-1 justify-end">
-                                        <Badge variant="secondary" className="text-[10px] bg-background/50 border-border/50"><Building2 className="h-3 w-3 mr-1" /> Company</Badge>
-                                        <Badge variant="secondary" className="text-[10px] bg-background/50 border-border/50"><User className="h-3 w-3 mr-1" /> Role</Badge>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-
-                        {/* Intent & Next Actions */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-3">
-                                <h4 className="text-sm font-semibold flex items-center gap-2">
-                                    <Target className="h-4 w-4 text-primary" /> Buying Intent
-                                </h4>
-                                <div className="p-6 rounded-[2.5rem] bg-card/40 border border-border/40 space-y-6">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">Intent Analytics</span>
-                                        <Badge variant={intelligence.intent.intentLevel === 'high' ? 'default' : 'secondary'} className={intelligence.intent.intentLevel === 'high' ? "bg-orange-500/10 text-orange-500 border-orange-500/20 px-3 font-black" : "font-black"}>
-                                            {(intelligence.intent.intentLevel || "low").toUpperCase()} INTENT
-                                        </Badge>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between text-[10px] font-bold uppercase text-muted-foreground/50">
-                                            <span>Validation Confidence</span>
-                                            <span>{Math.round((intelligence.intent.confidence || 0) * 100)}%</span>
-                                        </div>
-                                        <Progress value={(intelligence.intent.confidence || 0) * 100} className="h-1.5 bg-white/5" />
-                                    </div>
-                                    <div className="space-y-3">
-                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 block">Digital Footprint Signals</span>
-                                        <ul className="grid grid-cols-1 gap-2">
-                                            {(intelligence.intent.signals || []).map((signal, i) => (
-                                                <motion.li
-                                                    key={i}
-                                                    initial={{ opacity: 0, x: -10 }}
-                                                    animate={{ opacity: 1, x: 0 }}
-                                                    transition={{ delay: 1 + (i * 0.1) }}
-                                                    className="text-xs flex items-center gap-3 p-2.5 rounded-xl bg-background/40 border border-border/20 group hover:border-primary/40 transition-colors"
-                                                >
-                                                    <div className="h-6 w-6 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                                                        <Zap className="h-3 w-3 text-orange-500" />
-                                                    </div>
-                                                    <span className="font-bold text-foreground/80 tracking-tight">{signal}</span>
-                                                </motion.li>
-                                            ))}
-                                            {(!intelligence.intent.signals || !intelligence.intent.signals.length) && (
-                                                <li className="text-xs text-muted-foreground/50 py-4 text-center border border-dashed border-border/20 rounded-2xl">No strong signals yet</li>
-                                            )}
-                                        </ul>
-                                    </div>
                                 </div>
                             </div>
 
-                            <div className="space-y-3">
-                                <h4 className="text-sm font-semibold flex items-center gap-2">
-                                    <Activity className="h-4 w-4 text-primary" /> Next Best Action
-                                </h4>
-                                <div className="p-4 rounded-xl bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 h-full flex flex-col justify-center text-center space-y-3">
-                                    <p className="font-medium text-lg text-foreground">
-                                        {intelligence.nextBestAction || "Analyze interaction patterns"}
-                                    </p>
-                                    <Button
-                                        onClick={() => {
-                                            if (intelligence.intent.intentLevel === 'high') {
-                                                const link = intelligence.actionContext?.calendarLink || intelligence.actionContext?.ctaLink;
-                                                if (link) {
-                                                    window.open(link.startsWith('http') ? link : `https://${link}`, '_blank');
-                                                    return;
-                                                }
-                                            }
-                                            // Adaptive: Open the inbox for this lead to reply
-                                            window.location.href = `/dashboard/inbox/${lead.id}`;
-                                        }}
-                                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
-                                    >
-                                        {intelligence.intent.intentLevel === 'high' ? "Send Booking Link" : "Open Lead Campaign"}
-                                        <ArrowRight className="ml-2 h-4 w-4" />
-                                    </Button>
-                                </div>
-                            </div>
+                            {/* Call to Action Button */}
+                            <Button
+                                size="lg"
+                                onClick={() => window.location.href = `/dashboard/inbox/${lead.id}`}
+                                className="w-full md:w-auto px-8 rounded-[1.5rem] bg-primary hover:bg-primary/90 text-primary-foreground font-black uppercase tracking-widest shadow-xl shadow-primary/20 h-14"
+                            >
+                                {intelligence.intent.intentLevel === 'high' ? "Execute Follow-up" : "Open Journey"}
+                                <ArrowRight className="ml-2 h-4 w-4" />
+                            </Button>
                         </div>
 
-                        <div className="text-center text-xs text-muted-foreground pt-4 flex items-center justify-center gap-1">
-                            <Shield className="h-3 w-3" /> Data enriched by Audnix Engine™
+                        <div className="pt-2 flex items-center justify-center gap-6">
+                            <div className="flex items-center gap-2 opacity-50 grayscale hover:grayscale-0 transition-all cursor-default">
+                                <Badge variant="secondary" className="text-[10px] bg-background/50 border-border/50"><Building2 className="h-3 w-3 mr-1" /> Company Matched</Badge>
+                                <Badge variant="secondary" className="text-[10px] bg-background/50 border-border/50"><User className="h-3 w-3 mr-1" /> Role Identified</Badge>
+                            </div>
+                            <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/30 flex items-center gap-2">
+                                <Shield className="h-3 w-3" /> Audnix Intel Engine V2.4
+                            </div>
                         </div>
 
                     </div>

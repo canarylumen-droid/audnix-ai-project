@@ -28,6 +28,7 @@ import {
 import { Link, useLocation } from "wouter";
 import { useReducedMotion } from "@/lib/animation-utils";
 import { useRealtime } from "@/hooks/use-realtime";
+import { SiGmail } from "react-icons/si"; // If needed, but let's check what was there.
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { WelcomeCelebration } from "@/components/WelcomeCelebration";
 import { useState, useEffect } from "react";
@@ -84,6 +85,12 @@ interface DashboardStats {
       spam: number;
       total: number;
     };
+  };
+  benchmarks?: {
+    avgLeadScore: number;
+    avgOpenRate: number;
+    avgResponseRate: number;
+    marketSentiment: string;
   };
 }
 
@@ -489,6 +496,7 @@ export default function DashboardHome() {
           })}
         </div>
 
+
         {/* Main Content Split */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Activity Feed */}
@@ -535,8 +543,8 @@ export default function DashboardHome() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex justify-between items-start mb-1">
-                              <p className="font-medium text-sm text-foreground/90 truncate">{activity.title || "Activity Event"}</p>
-                              <span className="text-[11px] text-muted-foreground shrink-0 ml-4 font-black uppercase opacity-50 italic">{formatTimeAgo(activity.time || activity.timestamp || new Date())}</span>
+                              <p className="font-normal text-sm text-foreground/90 truncate">{activity.title || "Activity Event"}</p>
+                              <span className="text-[11px] text-muted-foreground shrink-0 ml-4 font-bold uppercase opacity-50 italic">{formatTimeAgo(activity.time || activity.timestamp || new Date())}</span>
                             </div>
                             <p className="text-xs md:text-sm text-muted-foreground leading-relaxed line-clamp-2">
                               {activity.type === 'campaign_started' ? `Neural outreach campaign "${activity.metadata?.name || 'Inbound Strategy'}" launched with ${activity.metadata?.configuredLeads || 0} prospects.` :
@@ -672,6 +680,7 @@ export default function DashboardHome() {
                 </div>
               </CardContent>
             </Card>
+
 
             <Card className="border-border/50 rounded-2xl">
               <CardHeader className="pb-3 border-b border-border/40">

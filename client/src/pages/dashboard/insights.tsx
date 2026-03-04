@@ -271,10 +271,29 @@ export default function InsightsPage() {
         <DialogContent className="w-[95vw] sm:max-w-xl bg-background border border-border/30 max-h-[85vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader className="mb-4 bg-muted/10 -mx-6 -mt-6 p-6 border-b border-border/10 relative">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10 w-full">
-              <DialogTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-widest text-foreground">
-                <Sparkles className="h-5 w-5 text-primary animate-pulse" />
-                Intelligence Briefing
-              </DialogTitle>
+              <div className="flex items-center gap-3">
+                <DialogTitle className="flex items-center gap-3 text-xl font-black uppercase tracking-widest text-foreground">
+                  <Sparkles className="h-5 w-5 text-primary animate-pulse" />
+                  Intelligence Briefing
+                </DialogTitle>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                  onClick={() => {
+                    const queryClient = (window as any).queryClient;
+                    if (queryClient) {
+                      queryClient.invalidateQueries({ queryKey: ["/api/ai/weekly-report", selectedMailbox] });
+                    } else {
+                      // Fallback if queryClient is not on window
+                      refetch();
+                    }
+                  }}
+                  disabled={reportLoading || reportFetching}
+                >
+                  <RefreshCw className={cn("h-4 w-4", (reportLoading || reportFetching) && "animate-spin")} />
+                </Button>
+              </div>
               <MailboxSwitcher
                 value={selectedMailbox}
                 onValueChange={setSelectedMailbox}

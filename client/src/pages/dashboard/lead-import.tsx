@@ -101,6 +101,16 @@ export default function LeadImportPage() {
       const data = await response.json();
       if (data.success) {
         setPreviewData(data.preview);
+        // Map dynamic lead data if available
+        if (importResults?.leads?.[0]) {
+          const lead = importResults.leads[0];
+          setPreviewData(prev => ({
+            ...prev,
+            body: prev.body
+              .replace(/\[Name\]/g, lead.name || "there")
+              .replace(/\[Company\]/g, lead.company || "your team")
+          }));
+        }
         setMPreviewOpen(true);
       }
     } catch (e) {
@@ -208,8 +218,8 @@ export default function LeadImportPage() {
           });
           setMLeadsOpen(true); // Open modal for confirmation
           toast({
-            title: "Preview Ready",
-            description: `Found ${result.total} leads. Please review and confirm import.`
+            title: "Data Synched",
+            description: `${result.total} leads found. Reviewing intelligence core...`
           });
           setImporting(false); // Stop loading main spinner, modal takes over
           return;
@@ -300,7 +310,7 @@ export default function LeadImportPage() {
         setFile(null);
         toast({
           title: "Network Synchronization Complete",
-          description: `Successfully integrated ${result.leadsImported} leads into the intelligence core.`
+          description: `${result.leadsImported} items integrated. ${result.leadsFiltered || 0} duplicates protected.`
         });
       }, 2000);
 
@@ -383,13 +393,20 @@ export default function LeadImportPage() {
           <div
             className={cn(
               "border-2 border-dashed rounded-[2rem] p-16 text-center transition-all cursor-pointer group/upload relative overflow-hidden",
-              isDragging ? "bg-primary/10 border-primary shadow-[0_0_30px_rgba(0,180,255,0.2)]" : "border-border/40 hover:bg-primary/5 hover:border-primary/20",
+              isDragging ? "bg-primary/20 border-primary scale-[1.02] shadow-[0_0_40px_rgba(0,180,255,0.3)]" : "border-border/40 hover:bg-primary/5 hover:border-primary/20",
               importing && "pointer-events-none opacity-50"
             )}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
           >
+            {isDragging && (
+              <div className="absolute inset-0 bg-primary/10 backdrop-blur-[2px] z-20 flex items-center justify-center animate-in fade-in duration-200">
+                <div className="bg-primary/20 p-8 rounded-full animate-bounce">
+                  <Upload className="h-12 w-12 text-primary" />
+                </div>
+              </div>
+            )}
             <Input
               type="file"
               accept=".csv,.xlsx,.xls,.pdf"

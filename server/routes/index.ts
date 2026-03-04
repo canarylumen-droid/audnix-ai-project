@@ -47,6 +47,7 @@ import prospectingRoutes from "./prospecting.js";
 import { organizationRouter } from "./organization-routes.js";
 import adminMigrationsRouter from "./admin-migrations.js";
 import notificationRoutes from "./notification-routes.js";
+import emailTrackingRoutes from "./email-tracking-routes.js";
 
 export async function registerRoutes(app: Express): Promise<http.Server> {
   // 1. Static Assets & Public Manifests (Served before auth/rate limiting for common assets)
@@ -89,13 +90,13 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
 
   // Mount all other routes
   app.use("/api/organizations", organizationRouter);
-  
+
   // Consolidate Auth routes to prevent session fragmentation
   app.use("/api/user/auth", userAuthRouter);
-  app.use("/api/user", userAuthRouter); 
+  app.use("/api/user", userAuthRouter);
   app.use("/api/auth", authClean);
   app.use("/api/auth/username", authUsernameOnboarding);
-  
+
   app.use("/api/admin/auth", adminAuthRouter);
   app.use("/api/billing", billingRoutes);
   app.use("/api/bulk", bulkActionsRoutes);
@@ -139,7 +140,9 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
   app.use("/api/expert-chat-v2", expertChatRoutes);
   app.use("/api/prospecting", prospectingRoutes);
   app.use("/api/notifications", notificationRoutes);
+  app.use("/api/email-tracking", emailTrackingRoutes);
   app.use("/api/admin", adminMigrationsRouter); // Admin-only migration controls
+  app.use("/api/cron", (await import("./cron-routes.js")).default);
 
   // Create HTTP server
   const server = http.createServer(app);

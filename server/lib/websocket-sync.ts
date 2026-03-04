@@ -108,8 +108,8 @@ class WebSocketSyncServer {
     this.emitToUser(userId, 'campaign_stats_updated', { campaignId, timestamp: new Date().toISOString() });
   }
 
-  notifyStatsUpdated(userId: string) {
-    this.emitToUser(userId, 'stats_updated', { timestamp: new Date().toISOString() });
+  notifyStatsUpdated(userId: string, data?: any) {
+    this.emitToUser(userId, 'stats_updated', { ...data, timestamp: new Date().toISOString() });
   }
 
   notifyDesktopNotification(userId: string, data: { title: string; message: string; url?: string; tag?: string }) {

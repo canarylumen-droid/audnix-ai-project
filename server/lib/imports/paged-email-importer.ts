@@ -208,11 +208,11 @@ async function processEmailForLead(
     // DETECT BOUNCES: Using isTransactionalEmail + subject check
     if (direction === 'inbound' && isTransactionalEmail(email)) {
       const subject = (email.subject || '').toLowerCase();
-      const isBounce = subject.includes('undeliverable') || 
-                       subject.includes('bounced') || 
-                       subject.includes('delivery failure') ||
-                       subject.includes('failure notice');
-      
+      const isBounce = subject.includes('undeliverable') ||
+        subject.includes('bounced') ||
+        subject.includes('delivery failure') ||
+        subject.includes('failure notice');
+
       if (isBounce) {
         try {
           const { bounceHandler } = await import('../email/bounce-handler.js');
@@ -233,7 +233,7 @@ async function processEmailForLead(
     // Notify UI of new message and potentially lead status change
     try {
       const { wsSync } = await import('../websocket-sync.js');
-      
+
       // Notify broad updates for real-time feel
       wsSync.notifyMessagesUpdated(userId, {
         type: 'INSERT',
@@ -242,12 +242,37 @@ async function processEmailForLead(
       });
 
       // Always notify leads updated to refresh counts/badges
-      wsSync.notifyLeadsUpdated(userId, { 
-        leadId: lead.id, 
-        action: direction === 'inbound' ? 'message_received' : 'message_sent' 
+      wsSync.notifyLeadsUpdated(userId, {
+        leadId: lead.id,
+        action: direction === 'inbound' ? 'message_received' : 'message_sent'
       });
-      
+
       if (direction === 'inbound') {
+        // Create actual notification for inbound replies
+        try {
+          await storage.createNotification({
+            userId,
+            type: 'inbound_email',
+            title: 'New Reply Received',
+            message: `From ${email.from || lead.email}: "${email.subject}"`,
+            metadata: {
+              leadId: lead.id,
+              threadId: threadId,
+              messageId: (newMessage as any).id
+            }
+          });
+
+          // Notify UI to play sound and show toast
+          wsSync.notifyNotification(userId, {
+            type: 'lead_activity',
+            title: 'New Reply Received',
+            message: `${email.from || lead.email} replied to your outreach.`,
+            leadId: lead.id,
+            playSound: true // Custom flag for frontend sound trigger
+          });
+        } catch (notifErr) {
+          console.error('[Email Import] Notification failed:', notifErr);
+        }
         // Fire activity update for toasts and analytics
         wsSync.notifyActivityUpdated(userId, {
           type: 'email_received',
@@ -307,7 +332,7 @@ async function processEmailForLead(
             await db.update(campaignLeads)
               .set({ status: 'replied' })
               .where(eq(campaignLeads.id, entry.id));
-            
+
             console.log(`[EMAIL_IMPORT] Lead ${lead.email} marked as 'replied' in campaign ${entry.campaignId}`);
 
             // NEW: Increment replied stat in outreachCampaigns
@@ -329,17 +354,17 @@ async function processEmailForLead(
             // Real-time notification and audit log
             try {
               const { wsSync } = await import('../websocket-sync.js');
-              wsSync.notifyActivityUpdated(userId, { 
-                type: 'email_reply', 
+              wsSync.notifyActivityUpdated(userId, {
+                type: 'email_reply',
                 leadId: lead.id,
-                campaignId: entry.campaignId 
+                campaignId: entry.campaignId
               });
-              
+
               await storage.createAuditLog({
                 userId,
                 leadId: lead.id,
                 action: 'lead_reply',
-                details: { 
+                details: {
                   message: `Received email reply from ${lead.name}`,
                   campaignId: entry.campaignId,
                   channel: 'email'
@@ -371,14 +396,14 @@ async function processEmailForLead(
                 body: email.text || '',
                 receivedAt: email.date || new Date()
               });
-            } catch (replyLogErr) {}
+            } catch (replyLogErr) { }
 
             // Fetch the campaign to get the auto-reply template
             const campaigns = await db.select()
               .from(outreachCampaigns)
               .where(eq(outreachCampaigns.id, entry.campaignId))
               .limit(1);
-            
+
             let activeCampaign: any = null;
             if (campaigns.length > 0) {
               activeCampaign = campaigns[0];

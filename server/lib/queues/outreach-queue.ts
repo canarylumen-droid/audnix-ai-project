@@ -4,7 +4,7 @@ import { outreachEngine } from '../workers/outreach-engine.js';
 
 // 1. Define Queues
 export const outreachQueue = new Queue('outreach-tasks', {
-    connection: redisConnection,
+    connection: redisConnection as any,
     defaultJobOptions: {
         attempts: 3,
         backoff: {
@@ -17,7 +17,7 @@ export const outreachQueue = new Queue('outreach-tasks', {
 });
 
 export const followUpQueue = new Queue('follow-up-tasks', {
-    connection: redisConnection,
+    connection: redisConnection as any,
 });
 
 // 2. Define Workers
@@ -36,7 +36,7 @@ export const outreachWorker = new Worker(
         }
     },
     {
-        connection: redisConnection,
+        connection: redisConnection as any,
         concurrency: 10,
         removeOnComplete: { count: 100 },
         removeOnFail: { count: 500 }

@@ -1,64 +1,18 @@
 {
-    "version": 2,
-    "buildCommand": "npm run build",
-    "outputDirectory": "dist/public",
-    "installCommand": "npm install --legacy-peer-deps",
-    "framework": null,
-    "functions": {
-        "api/index.ts": {
-            "maxDuration": 60
+    "crons": [
+        {
+            "path": "/api/cron/tick",
+            "schedule": "*/10 * * * *"
         }
-    },
+    ],
     "rewrites": [
         {
-            "source": "/api/:path*",
-            "destination": "/api/index"
-        },
-        {
-            "source": "/auth/:path*",
-            "destination": "/api/index"
-        },
-        {
-            "source": "/health",
-            "destination": "/api/index"
-        },
-        {
-            "source": "/webhooks/:path*",
-            "destination": "/api/index"
-        },
-        {
-            "source": "/socket.io/:path*",
-            "destination": "/api/index"
+            "source": "/api/(.*)",
+            "destination": "/server/index.ts"
         },
         {
             "source": "/(.*)",
-            "destination": "/index.html"
+            "destination": "/client/index.html"
         }
-    ],
-    "headers": [
-        {
-            "source": "/api/(.*)",
-            "headers": [
-                {
-                    "key": "Access-Control-Allow-Credentials",
-                    "value": "true"
-                },
-                {
-                    "key": "Access-Control-Allow-Origin",
-                    "value": "*"
-                },
-                {
-                    "key": "Access-Control-Allow-Methods",
-                    "value": "GET,OPTIONS,PATCH,DELETE,POST,PUT"
-                },
-                {
-                    "key": "Access-Control-Allow-Headers",
-                    "value": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization"
-                }
-            ]
-        }
-    ],
-    "env": {
-        "NODE_ENV": "production"
-    }
+    ]
 }

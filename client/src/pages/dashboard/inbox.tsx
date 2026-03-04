@@ -288,8 +288,8 @@ export default function InboxPage() {
     return false;
   };
 
-  const hasAnyChannel = channelStatus?.channels?.email?.connected || channelStatus?.channels?.instagram?.connected;
-  const showDisconnectedAlert = !channelsLoading && !hasAnyChannel && allLeads.length > 0;
+  const showDisconnectedAlert = !channelsLoading && !leadsLoading && !hasAnyChannel && allLeads.length > 0;
+  const isSyncing = leadsLoading || channelsLoading;
 
   const activeLead = useMemo(() =>
     leadsData?.leads?.find((l: any) => l.id === leadId) || allLeads.find((l: any) => l.id === leadId),
@@ -396,8 +396,8 @@ export default function InboxPage() {
       if (hasDraftA && !hasDraftB) return -1;
       if (!hasDraftA && hasDraftB) return 1;
 
-      const timeA = new Date(a.lastMessageAt || a.createdAt).getTime();
-      const timeB = new Date(b.lastMessageAt || b.createdAt).getTime();
+      const timeA = new Date(a.lastMessageAt || a.updatedAt || a.createdAt).getTime();
+      const timeB = new Date(b.lastMessageAt || b.updatedAt || b.createdAt).getTime();
       return timeB - timeA;
     });
   }, [allLeads, searchQuery, filterChannel, filterStatus, showArchived, localDrafts]);
