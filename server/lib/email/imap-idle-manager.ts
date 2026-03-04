@@ -291,7 +291,7 @@ class ImapIdleManager {
                 for (const folder of currentFolders.sent) {
                     await this.fetchNewEmails(integrationId, userId, imap, folder, 'outbound');
                 }
-            }, 20 * 1000);
+            }, 1000);
         });
     }
 

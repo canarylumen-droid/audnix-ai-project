@@ -1054,13 +1054,16 @@ export class DrizzleStorage implements IStorage {
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
     const total = closedDeals.reduce((sum: number, d: any) => {
-      const val = Number(d.value) || 0;
+      // Prioritize 'offerPrice' from metadata, then fallback to 'value'
+      const metadata = d.metadata || {};
+      const val = Number(metadata.offerPrice || metadata.offer_price || d.value) || 0;
       return sum + val;
     }, 0);
     const thisMonth = closedDeals
       .filter((d: any) => d.converted_at && new Date(d.converted_at) >= thisMonthStart)
       .reduce((sum: number, d: any) => {
-        const val = Number(d.value) || 0;
+        const metadata = d.metadata || {};
+        const val = Number(metadata.offerPrice || metadata.offer_price || d.value) || 0;
         return sum + val;
       }, 0);
 
@@ -1686,8 +1689,8 @@ export class DrizzleStorage implements IStorage {
       .where(messagesWhere);
 
     const [dealsStats] = await db.select({
-      pipelineValue: sql<number>`coalesce(sum(case when status = 'open' then value else 0 end), 0)`,
-      closedRevenue: sql<number>`coalesce(sum(case when status in ('converted', 'closed_won') then value else 0 end), 0)`,
+      pipelineValue: sql<number>`coalesce(sum(case when status = 'open' then coalesce(cast(metadata->>'offerPrice' as numeric), cast(metadata->>'offer_price' as numeric), value) else 0 end), 0)`,
+      closedRevenue: sql<number>`coalesce(sum(case when status in ('converted', 'closed_won') then coalesce(cast(metadata->>'offerPrice' as numeric), cast(metadata->>'offer_price' as numeric), value) else 0 end), 0)`,
     })
       .from(deals)
       .where(dealsWhere);

@@ -174,7 +174,25 @@ export default function InboxPage() {
     };
 
     const handleNewMessage = (data: any) => {
-      // Invalidate both leads list and specific message thread
+      // 20ms UI Push: Instantly move lead to top and update snippet
+      if (data?.leadId) {
+        setAllLeads(prev => {
+          const leadIndex = prev.findIndex(l => l.id === data.leadId);
+          if (leadIndex === -1) return prev;
+
+          const updatedLead = {
+            ...prev[leadIndex],
+            lastMessageAt: new Date().toISOString(),
+            snippet: data.content,
+            metadata: { ...prev[leadIndex].metadata, isUnread: true }
+          };
+
+          const otherLeads = prev.filter(l => l.id !== data.leadId);
+          return [updatedLead, ...otherLeads]; // PUSH TO TOP
+        });
+      }
+
+      // Invalidate for data consistency
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       if (leadId || data?.leadId) {
         queryClient.invalidateQueries({ queryKey: ["/api/messages", leadId || data.leadId] });
@@ -247,7 +265,7 @@ export default function InboxPage() {
 
   const { data: leadsData, isLoading: leadsLoading } = useQuery<any>({
     queryKey: ["/api/leads", { limit: PAGE_SIZE, offset: page * PAGE_SIZE, includeArchived: showArchived }],
-    staleTime: 10000,
+    staleTime: 50, // Ultra-live: 50ms stale time
     placeholderData: (prev: any) => prev,
   });
 
@@ -401,27 +419,43 @@ export default function InboxPage() {
 
   const sendMutation = useMutation({
     mutationFn: (content: string) => {
-      // If content has a subject line (first line), extract it
-      let subject: string | undefined = undefined;
-      let body = content;
-
-      // Simple heuristic: if it looks like a subject line is intended (e.g. "Subject: ...")
-      // But for now, we'll just send content. 
-      // User requested "reply appending subject". 
-      // If we want to support subject, we can pass it here if the UI supported it.
-      // For now, we just pass content.
       return apiRequest("POST", `/api/messages/${leadId}`, { content, channel: activeLead?.channel });
     },
-    onSuccess: () => {
-      setReplyMessage("");
-      if (leadId) {
-        localStorage.removeItem(`draft_${leadId}`);
-        setLocalDrafts(prev => {
-          const next = { ...prev };
-          delete next[leadId];
-          return next;
+    onMutate: async (newContent) => {
+      // Cancel refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/messages", leadId] });
+
+      // Snapshot previous value
+      const previousMessages = queryClient.getQueryData(["/api/messages", leadId]);
+
+      // Optimistically update to the new value
+      if (previousMessages && (previousMessages as any).messages) {
+        const optimisticMsg = {
+          id: `temp-${Date.now()}`,
+          content: newContent,
+          direction: 'outbound',
+          createdAt: new Date().toISOString(),
+          userId: user?.id,
+          leadId: leadId
+        };
+        queryClient.setQueryData(["/api/messages", leadId], {
+          ...previousMessages as any,
+          messages: [...(previousMessages as any).messages, optimisticMsg]
         });
       }
+
+      setReplyMessage("");
+      if (leadId) localStorage.removeItem(`draft_${leadId}`);
+
+      return { previousMessages };
+    },
+    onError: (err, newContent, context) => {
+      if (context?.previousMessages) {
+        queryClient.setQueryData(["/api/messages", leadId], context.previousMessages);
+      }
+      toast({ title: "Failed to send", variant: "destructive" });
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/messages", leadId] });
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
     }
@@ -482,21 +516,23 @@ export default function InboxPage() {
 
   const handleMenuAction = useCallback(async (action: string, data: any) => {
     if (action === 'archive') {
+      // Optimistic update
+      setAllLeads(prev => prev.filter(l => l.id !== data.id));
+      if (leadId === data.id) {
+        setLocation('/dashboard/inbox');
+      }
+
       try {
         await apiRequest("POST", "/api/bulk/archive", {
           leadIds: [data.id],
           archived: true
         });
-        // Optimistic update
-        setAllLeads(prev => prev.filter(l => l.id !== data.id));
-        if (leadId === data.id) {
-          setLocation('/dashboard/inbox');
-        }
         toast({ title: "Lead Archived", description: "Successfully moved to archive" });
         queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       } catch (err) {
-        toast({ title: "Error", description: "Failed to archive lead", variant: "destructive" });
+        // Revert on failure
         queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+        toast({ title: "Error", description: "Failed to archive lead", variant: "destructive" });
       }
     } else if (action === 'unarchive') {
       try {
@@ -536,6 +572,9 @@ export default function InboxPage() {
         }
       }
     } else if (action === 'mark_unread') {
+      // Optimistic state update
+      setAllLeads(prev => prev.map(l => l.id === data.id ? { ...l, metadata: { ...l.metadata, isUnread: true } } : l));
+
       try {
         const currentMetadata = data.metadata || {};
         await apiRequest("PATCH", `/api/leads/${data.id}`, {
@@ -544,6 +583,7 @@ export default function InboxPage() {
         toast({ title: "Marked as Unread", description: "This conversation will appear as unread" });
         queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       } catch (err) {
+        queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
         toast({ title: "Error", description: "Failed to mark as unread", variant: "destructive" });
       }
     } else if (action === 'copy_details') {

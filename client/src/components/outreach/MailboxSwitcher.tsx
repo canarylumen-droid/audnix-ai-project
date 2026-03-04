@@ -43,19 +43,21 @@ export function MailboxSwitcher({ value, onValueChange, className }: MailboxSwit
                             All Mailboxes
                         </div>
                     </SelectItem>
-                    {mailboxes.map((mailbox) => (
-                        <SelectItem
-                            key={mailbox.id}
-                            value={mailbox.id}
-                            className="font-bold text-[10px] uppercase tracking-widest py-3"
-                        >
-                            <div className="flex items-center gap-2">
-                                <Mail className="h-3.5 w-3.5 text-indigo-400" />
-                                <span className="truncate max-w-[120px]">{mailbox.accountType || mailbox.provider}</span>
-                                {mailbox.connected && <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />}
-                            </div>
-                        </SelectItem>
-                    ))}
+                    <SelectItem
+                        key={mailbox.id}
+                        value={mailbox.id}
+                        className="font-bold text-[10px] uppercase tracking-widest py-3"
+                    >
+                        <div className="flex items-center gap-2">
+                            <Mail className="h-3.5 w-3.5 text-indigo-400" />
+                            <span className="truncate max-w-[150px]">
+                                {mailbox.accountType || mailbox.provider.charAt(0).toUpperCase() + mailbox.provider.slice(1)}
+                                {mailbox.encryptedMeta && " • "}
+                                {mailbox.userId === mailbox.accountType ? "" : (mailbox.accountType || "")}
+                            </span>
+                            {mailbox.connected && <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />}
+                        </div>
+                    </SelectItem>
                 </SelectContent>
             </Select>
         </div>

@@ -34,6 +34,7 @@ import { emailWarmupWorker } from "./lib/email/email-warmup-worker.js";
 import { emailSyncWorker } from "./lib/email/email-sync-worker.js";
 import { paymentAutoApprovalWorker } from "./lib/billing/payment-auto-approval-worker.js";
 import { outreachEngine } from "./lib/workers/outreach-engine.js";
+import { outreachWorker } from "./lib/queues/outreach-queue.js";
 import { leadExpiryWorker } from "./lib/workers/lead-expiry-worker.js";
 import { apiLimiter, authLimiter } from "./middleware/rate-limit.js";
 import { fileURLToPath } from "url";

@@ -60,6 +60,8 @@ export class OutreachEngine {
     if (!db) return results;
 
     try {
+      const { outreachQueue } = await import('../queues/outreach-queue.js');
+
       // 1. Find all users with active and connected email integrations
       const activeIntegrations = await db
         .select({
@@ -81,17 +83,22 @@ export class OutreachEngine {
 
       const uniqueUserIds = [...new Set((activeIntegrations as any).map((i: any) => i.userId))] as string[];
 
-      // 2. Process each user in highly-concurrent batches (non-blocking)
+      // 2. Enqueue jobs into BullMQ for highly-concurrent processing
       const userBatch = uniqueUserIds.slice(0, this.MAX_CONCURRENT_USERS);
 
-      const processPromises = userBatch.map(userId => {
-        if (this.activeUserProcessing.has(userId)) return Promise.resolve();
-        return this.processUserOutreach(userId).catch(err => {
-          console.error(`[OutreachEngine] Error for user ${userId}:`, err);
+      for (const userId of userBatch) {
+        // Enqueue both campaign and autonomous tasks for the user
+        // Frequency: Every 10 seconds to support high-volume splitting
+        await outreachQueue.add(`outreach-campaign-${userId}`, { userId, type: 'campaign' }, {
+          jobId: `outreach-campaign-${userId}-${Math.floor(Date.now() / 10000)}`,
+          removeOnComplete: true
         });
-      });
 
-      await Promise.allSettled(processPromises);
+        await outreachQueue.add(`outreach-autonomous-${userId}`, { userId, type: 'autonomous' }, {
+          jobId: `outreach-autonomous-${userId}-${Math.floor(Date.now() / 10000)}`,
+          removeOnComplete: true
+        });
+      }
 
       workerHealthMonitor.recordSuccess('outreach-engine');
     } catch (error: any) {
@@ -104,7 +111,7 @@ export class OutreachEngine {
   }
 
   /**
-   * Process outreach for a single user (Campaing + Autonomous)
+   * Process outreach for a single user (Campaign + Autonomous)
    */
   private async processUserOutreach(userId: string): Promise<void> {
     this.activeUserProcessing.add(userId);
@@ -127,7 +134,7 @@ export class OutreachEngine {
   /**
    * Logic for structured campaigns (replacing campaign-worker.ts)
    */
-  private async tickCampaigns(userId: string): Promise<boolean> {
+  public async tickCampaigns(userId: string): Promise<boolean> {
     // Find active campaigns for this user
     const campaigns = await db
       .select()
@@ -240,7 +247,7 @@ export class OutreachEngine {
   /**
    * Logic for autonomous AI outreach (replacing outreach-worker.ts)
    */
-  private async tickAutonomousOutreach(userId: string): Promise<void> {
+  public async tickAutonomousOutreach(userId: string): Promise<void> {
     // We check readiness per lead
 
     // Get leads with status 'new', channel 'email', and AI explicitly enabled
@@ -274,7 +281,9 @@ export class OutreachEngine {
         .where(and(eq(messages.leadId, lead.id), eq(messages.direction, 'outbound')))
         .limit(1);
 
-      if (alreadyContacted.length > 0) continue;
+      if (alreadyContacted.length > 0) {
+        continue;
+      }
 
       // Check readiness and get a mailbox
       const mailbox = await this.getNextAvailableMailbox(userId);
@@ -725,6 +734,7 @@ export class OutreachEngine {
     });
 
     wsSync.notifyLeadsUpdated(userId, { leadId: lead.id, action: 'autonomous_sent' });
+    wsSync.notifyStatsUpdated(userId);
     wsSync.notifyInsightsUpdated(userId);
   }
 }

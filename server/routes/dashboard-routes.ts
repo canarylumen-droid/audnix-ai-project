@@ -76,8 +76,10 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
       return result && result.overallStatus !== 'excellent' && result.overallStatus !== 'good';
     }).length;
 
-    const verificationPenalty = unverifiedDomains * 15;
-    const domainHealth = Math.max(0, reputationScore - verificationPenalty);
+    const disconnectedIntegrations = integrations.filter(i => !i.connected).length;
+
+    const healthPenalty = (unverifiedDomains * 15) + (disconnectedIntegrations * 20);
+    const domainHealth = Math.max(0, reputationScore - healthPenalty);
 
     const responseData = {
       ...stats,
@@ -88,7 +90,8 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
         bounces: {
           hard: hardBounces,
           soft: softBounces,
-          spam: spamBounces
+          spam: spamBounces,
+          total: hardBounces + softBounces + spamBounces
         }
       },
       sync: {

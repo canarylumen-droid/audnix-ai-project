@@ -7,6 +7,7 @@ import csvParser from "csv-parser";
 import { Readable } from "stream";
 import { storage } from "../storage.js";
 import { requireAuth, getCurrentUserId } from "../middleware/auth.js";
+import { wsSync } from "../lib/websocket-sync.js";
 
 const upload = multer({ storage: multer.memoryStorage() });
 import {
@@ -358,14 +359,18 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
           const existingEmails = await storage.getExistingEmails(userId, allEmails);
           const existingEmailSet = new Set(existingEmails);
 
+          const localSeenEmails = new Set<string>();
           for (let i = 0; i < processedLeads.length; i += chunkSize) {
             const chunk = processedLeads.slice(i, i + chunkSize);
 
             // Filter out duplicates
             const uniqueChunk = chunk.filter(leadData => {
-              if (leadData.email && existingEmailSet.has(leadData.email)) {
-                duplicateCount++;
-                return false;
+              if (leadData.email) {
+                if (existingEmailSet.has(leadData.email) || localSeenEmails.has(leadData.email)) {
+                  duplicateCount++;
+                  return false;
+                }
+                localSeenEmails.add(leadData.email);
               }
               return true;
             });
@@ -448,6 +453,17 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
               }
             })
             .where(eq(aiProcessLogs.id, processLog.id));
+
+          // Notify user of completion with summary
+          // Notify user of completion with a clean, positive summary
+          await wsSync.notifyNotification(userId, {
+            type: 'lead_import',
+            title: 'Leads Processed',
+            message: `Successfully processed ${leadsToSave.length} new leads.`,
+            metadata: { newCount: leadsToSave.length }
+          });
+          wsSync.notifyLeadsUpdated(userId);
+          wsSync.notifyStatsUpdated(userId, { integrationId: req.body.integrationId });
 
           res.json({
             success: true,

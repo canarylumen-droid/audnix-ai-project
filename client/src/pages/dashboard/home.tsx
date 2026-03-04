@@ -74,6 +74,17 @@ interface DashboardStats {
   undeliveredLeads?: number;
   lastOutreachActivity?: string | null;
   domainHealth?: number;
+  health?: {
+    score: number;
+    status: 'healthy' | 'warning' | 'critical';
+    reputation: number;
+    bounces: {
+      hard: number;
+      soft: number;
+      spam: number;
+      total: number;
+    };
+  };
 }
 
 interface PreviousDashboardStats {
@@ -127,7 +138,7 @@ export default function DashboardHome() {
       settingsTimeout = setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
         queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
-      }, 100);
+      }, 50);
     };
 
     let statsTimeout: NodeJS.Timeout;
@@ -135,7 +146,7 @@ export default function DashboardHome() {
       clearTimeout(statsTimeout);
       statsTimeout = setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
-      }, 100);
+      }, 50);
     };
 
     let activityTimeout: NodeJS.Timeout;
@@ -143,7 +154,7 @@ export default function DashboardHome() {
       clearTimeout(activityTimeout);
       activityTimeout = setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ["/api/dashboard/activity"] });
-      }, 100);
+      }, 50);
     };
 
     const handleLeadsUpdated = () => {
@@ -203,7 +214,7 @@ export default function DashboardHome() {
     showCelebrationAfterOnboarding();
   };
 
-  const { data: statsData, isLoading: statsLoading } = useQuery<DashboardStats>({
+  const { data: statsData, isLoading: statsLoading, isFetching: statsFetching } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats", { integrationId: selectedIntegrationId }],
     queryFn: async () => {
       const url = new URL("/api/dashboard/stats", window.location.origin);
@@ -212,7 +223,7 @@ export default function DashboardHome() {
       if (!res.ok) throw new Error("Failed to fetch stats");
       return res.json();
     },
-    staleTime: 10000,
+    staleTime: 1000,
     placeholderData: (previousData) => previousData,
   });
 
@@ -244,7 +255,7 @@ export default function DashboardHome() {
     },
     refetchOnWindowFocus: true,
     retry: false,
-    staleTime: 30000,
+    staleTime: 5000,
     placeholderData: (previousData) => previousData,
   });
 
@@ -353,6 +364,19 @@ export default function DashboardHome() {
             username={user.username}
             onComplete={() => setShowWelcomeCelebration(false)}
           />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {statsFetching && !statsLoading && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-md flex items-center justify-center"
+          >
+            <PremiumLoader text="Preparing Workspace..." />
+          </motion.div>
         )}
       </AnimatePresence>
 
@@ -586,30 +610,35 @@ export default function DashboardHome() {
                     <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest leading-none">Sender Reputation</p>
                     <p className={cn(
                       "text-xl font-black tracking-tighter",
-                      (stats?.domainHealth || 100) > 95 ? "text-emerald-400" : (stats?.domainHealth || 100) > 80 ? "text-amber-400" : "text-red-400"
+                      (stats?.health?.score || 100) > 95 ? "text-emerald-400" : (stats?.health?.score || 100) > 80 ? "text-amber-400" : "text-red-400"
                     )}>
-                      {stats?.domainHealth !== undefined ? stats.domainHealth.toFixed(1) : "100.0"}%
+                      {stats?.health?.score !== undefined ? stats.health.score.toFixed(1) : "100.0"}%
                     </p>
                   </div>
                   <Badge className={cn(
                     "border-0 text-[8px] font-black uppercase tracking-widest",
-                    (stats?.domainHealth || 100) > 95 ? "bg-emerald-500/10 text-emerald-500" : (stats?.domainHealth || 100) > 80 ? "bg-amber-500/10 text-amber-500" : "bg-red-500/10 text-red-500"
+                    (stats?.health?.score || 100) > 95 ? "bg-emerald-500/10 text-emerald-500" : (stats?.health?.score || 100) > 80 ? "bg-amber-500/10 text-amber-500" : "bg-red-500/10 text-red-500"
                   )}>
-                    {(stats?.domainHealth || 100) > 95 ? "Excellent" : (stats?.domainHealth || 100) > 80 ? "Fair" : "Low"}
+                    {(stats?.health?.score || 100) > 95 ? "Excellent" : (stats?.health?.score || 100) > 80 ? "Fair" : "Low"}
                   </Badge>
                 </div>
 
                 {/* AI Deliverability Metrics */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-2">
                   <div className="space-y-0.5">
                     <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest leading-none">Queued</p>
                     <p className="text-xl font-black text-indigo-400 tracking-tighter">{stats?.queuedLeads || 0}</p>
                     <Badge className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20 text-[7px] font-black uppercase tracking-widest py-0 h-3">Waiting</Badge>
                   </div>
                   <div className="space-y-0.5">
-                    <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest leading-none">Undelivered</p>
-                    <p className="text-xl font-black text-rose-400 tracking-tighter">{stats?.undeliveredLeads || 0}</p>
+                    <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest leading-none">Bounced</p>
+                    <p className="text-xl font-black text-rose-400 tracking-tighter">{(stats?.health?.bounces?.total || 0)}</p>
                     <Badge className="bg-rose-500/10 text-rose-400 border-rose-500/20 text-[7px] font-black uppercase tracking-widest py-0 h-3">Retry</Badge>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest leading-none">Spam</p>
+                    <p className="text-xl font-black text-orange-400 tracking-tighter">{stats?.health?.bounces?.spam || 0}</p>
+                    <Badge className="bg-orange-500/10 text-orange-400 border-orange-500/20 text-[7px] font-black uppercase tracking-widest py-0 h-3">Filter</Badge>
                   </div>
                 </div>
 
@@ -620,7 +649,7 @@ export default function DashboardHome() {
                     Reputation Advisory
                   </p>
                   <p className="text-[10px] text-muted-foreground leading-tight">
-                    {(stats?.domainHealth || 100) < 90
+                    {(stats?.health?.score || 100) < 90
                       ? "Bounce rate increasing. Pause outreach and verify your lead list to avoid domain blacklisting."
                       : "Your sender reputation is high. Continue 1-by-1 sending to maintain optimal deliverability."}
                   </p>
