@@ -428,10 +428,12 @@ async function runMigrations() {
     const { serveStatic } = await import("./vite.js");
     serveStatic(app);
   }
-  const PORT = parseInt(process.env.PORT || "5000", 10);
-  server.listen(PORT, "0.0.0.0", () => {
-    log(`🚀 Server running at http://0.0.0.0:${PORT}`);
-  });
+  if (!process.env.VERCEL) {
+    const PORT = parseInt(process.env.PORT || "5000", 10);
+    server.listen(PORT, "0.0.0.0", () => {
+      log(`🚀 Server running at http://0.0.0.0:${PORT}`);
+    });
+  }
 
   if (process.env.NODE_ENV !== "production" && (server as any)._vite) {
     // If we have access to vite instance via server, we can try to change its HMR port
@@ -441,29 +443,31 @@ async function runMigrations() {
   if (process.env.DATABASE_URL) {
     await runMigrations();
 
-    // Worker error wrapper for graceful degradation
-    const startWorker = (name: string, startFn: () => void) => {
-      try {
-        startFn();
-        console.log(`✅ ${name} worker started`);
-      } catch (error) {
-        console.error(`❌ ${name} worker failed to start:`, error);
-      }
-    };
+    if (!process.env.VERCEL) {
+      // Worker error wrapper for graceful degradation
+      const startWorker = (name: string, startFn: () => void) => {
+        try {
+          startFn();
+          console.log(`✅ ${name} worker started`);
+        } catch (error) {
+          console.error(`❌ ${name} worker failed to start:`, error);
+        }
+      };
 
-    // START WORKERS: Follow-up and Outreach engines
-    startWorker("Follow-up", () => followUpWorker.start());
-    startWorker("Outreach", () => outreachEngine.start());
+      // START WORKERS: Follow-up and Outreach engines
+      startWorker("Follow-up", () => followUpWorker.start());
+      startWorker("Outreach", () => outreachEngine.start());
 
-    startWorker("Video comment", () => startVideoCommentMonitoring());
-    startWorker("Email sync", () => emailSyncWorker.start());
-    startWorker("Payment approval", () => paymentAutoApprovalWorker.start());
-    startWorker("Email warmup", () => emailWarmupWorker.start());
-    // startWorker("Lead Expiry", () => leadExpiryWorker.start());
+      startWorker("Video comment", () => startVideoCommentMonitoring());
+      startWorker("Email sync", () => emailSyncWorker.start());
+      startWorker("Payment approval", () => paymentAutoApprovalWorker.start());
+      startWorker("Email warmup", () => emailWarmupWorker.start());
+      // startWorker("Lead Expiry", () => leadExpiryWorker.start());
 
-    // Real-time IMAP IDLE Manager
-    const { imapIdleManager } = await import("./lib/email/imap-idle-manager.js");
-    startWorker("IMAP IDLE", () => imapIdleManager.start());
+      // Real-time IMAP IDLE Manager
+      const { imapIdleManager } = await import("./lib/email/imap-idle-manager.js");
+      startWorker("IMAP IDLE", () => imapIdleManager.start());
+    }
   }
 })();
 
