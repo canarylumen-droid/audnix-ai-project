@@ -14,11 +14,11 @@ export const outreachQueue = new Queue('outreach-tasks', {
         removeOnComplete: true,
         removeOnFail: false,
     },
-});
+} as any);
 
 export const followUpQueue = new Queue('follow-up-tasks', {
     connection: redisConnection as any,
-});
+} as any);
 
 // 2. Define Workers
 export const outreachWorker = new Worker(
@@ -40,7 +40,7 @@ export const outreachWorker = new Worker(
         concurrency: 10,
         removeOnComplete: { count: 100 },
         removeOnFail: { count: 500 }
-    }
+    } as any
 );
 
 outreachWorker.on('completed', (job) => {

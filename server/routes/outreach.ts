@@ -14,6 +14,7 @@ import { db } from '../db.js';
 import { eq, and, desc, sql, ne } from 'drizzle-orm';
 import { AuditTrailService } from '../lib/audit-trail-service.js';
 import { wsSync } from '../lib/websocket-sync.js';
+import validator from 'validator';
 
 const router = Router();
 
@@ -668,12 +669,12 @@ router.get('/click/:trackingId', async (req, res) => {
 
     // Validate the target URL to prevent Open Redirect vulnerabilities
     const isValidUrl = (targetUrl: string) => {
-      try {
-        const parsed = new URL(targetUrl);
-        return ['http:', 'https:'].includes(parsed.protocol);
-      } catch {
-        return false;
-      }
+      return validator.isURL(targetUrl, {
+        protocols: ['http', 'https'],
+        require_protocol: true,
+        require_valid_protocol: true,
+        allow_underscores: true,
+      }) && !targetUrl.includes('localhost') && !targetUrl.includes('127.0.0.1');
     };
 
     if (!isValidUrl(url)) {
