@@ -52,6 +52,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
   const [dailyLimit, setDailyLimit] = useState(50);
   const [followUpDays, setFollowUpDays] = useState("3");
   const [aiPaused, setAiPaused] = useState(false);
+  const [excludeWeekends, setExcludeWeekends] = useState(false);
   const [selectedMailboxes, setSelectedMailboxes] = useState<string[]>([]);
   const [replyTo, setReplyTo] = useState("");
 
@@ -107,11 +108,12 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
         campaignName, subject, body,
         followUpSubject, followUpBody,
         followUpSubject2, followUpBody2,
-        dailyLimit, followUpDays
+        dailyLimit, followUpDays,
+        excludeWeekends
       };
       localStorage.setItem("campaign_draft", JSON.stringify(draft));
     }
-  }, [campaignName, subject, body, followUpSubject, followUpBody, followUpSubject2, followUpBody2, dailyLimit, followUpDays, isOpen]);
+  }, [campaignName, subject, body, followUpSubject, followUpBody, followUpSubject2, followUpBody2, dailyLimit, followUpDays, excludeWeekends, isOpen]);
 
   // "RE: " Logic for Follow-up Subjects
   useEffect(() => {
@@ -199,6 +201,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
       const res = await apiRequest("POST", "/api/outreach/campaigns", {
         name: campaignName || `Campaign ${new Date().toLocaleDateString()}`,
         leads: leads.map((l: any) => l.id || l),
+        excludeWeekends,
         config: {
           dailyLimit,
           followUpDelayDays: parseInt(followUpDays),
@@ -504,6 +507,18 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                               </SelectContent>
                             </Select>
                             <p className="text-[10px] text-muted-foreground uppercase font-medium leading-relaxed">Wait time between sequences.</p>
+                          </div>
+                          <div className="space-y-4">
+                            <span className="text-[11px] font-bold uppercase block tracking-widest">WEEKENED EXCLUSION</span>
+                            <div className="flex items-center justify-between p-4 bg-muted/30 border border-border/20 rounded-xl h-12">
+                              <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Skip Sat/Sun</span>
+                              <Switch
+                                checked={excludeWeekends}
+                                onCheckedChange={setExcludeWeekends}
+                                className="data-[state=checked]:bg-primary"
+                              />
+                            </div>
+                            <p className="text-[10px] text-muted-foreground uppercase font-medium leading-relaxed italic">Smart scheduler skips weekends automatically.</p>
                           </div>
                         </div>
                       </div>

@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useMailbox } from "@/hooks/use-mailbox";
 import { LeadIntelligenceModal } from "@/components/dashboard/LeadIntelligenceModal";
 import { CustomContextMenu, useContextMenu } from "@/components/ui/interactive/CustomContextMenu";
 import UnifiedCampaignWizard from "@/components/outreach/UnifiedCampaignWizard";
@@ -99,6 +100,7 @@ export default function InboxPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { selectedMailboxId } = useMailbox();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterChannel, setFilterChannel] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all"); // Added status filter
@@ -264,13 +266,13 @@ export default function InboxPage() {
   const PAGE_SIZE = 50;
 
   const { data: leadsData, isLoading: leadsLoading } = useQuery<any>({
-    queryKey: ["/api/leads", { limit: PAGE_SIZE, offset: page * PAGE_SIZE, includeArchived: showArchived }],
+    queryKey: ["/api/leads", { limit: PAGE_SIZE, offset: page * PAGE_SIZE, includeArchived: showArchived, integrationId: selectedMailboxId }],
     staleTime: 50, // Ultra-live: 50ms stale time
     placeholderData: (prev: any) => prev,
   });
 
   const { data: messagesData, isLoading: messagesLoading } = useQuery<any>({
-    queryKey: ["/api/messages", leadId],
+    queryKey: ["/api/messages", leadId, { integrationId: selectedMailboxId }],
     enabled: !!leadId,
     placeholderData: (prev: any) => prev,
   });
@@ -318,6 +320,8 @@ export default function InboxPage() {
         });
         return newLeads;
       });
+    } else if (leadsData?.leads?.length === 0) {
+      setAllLeads([]); // Clear if no leads for this mailbox
     }
   }, [leadsData]);
 

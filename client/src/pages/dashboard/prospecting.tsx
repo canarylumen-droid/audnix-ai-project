@@ -9,6 +9,7 @@ import { Search, Download, CheckCircle, XCircle, Loader2, Zap, Globe, Mail, Phon
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUser } from '@/hooks/use-user';
 import { useRealtime } from '@/hooks/use-realtime';
+import { useMailbox } from '@/hooks/use-mailbox';
 import { ScraperConsole } from '@/components/dashboard/ScraperConsole';
 import { cn } from '@/lib/utils';
 
@@ -43,12 +44,13 @@ export default function ProspectingPage() {
     const [logs, setLogs] = useState<LogMessage[]>([]);
     const [showConsole, setShowConsole] = useState(false);
     const { socket } = useRealtime();
+    const { selectedMailboxId } = useMailbox();
 
     // Fetch leads
     const { data: leads = [], refetch, isLoading: leadsLoading } = useQuery<Prospect[]>({
-        queryKey: ['prospects'],
+        queryKey: ['prospects', { integrationId: selectedMailboxId }],
         queryFn: async () => {
-            const res = await fetch('/api/prospecting/leads', {
+            const res = await fetch(`/api/prospecting/leads?integrationId=${selectedMailboxId || ''}`, {
                 credentials: 'include'
             });
             if (!res.ok) throw new Error('Failed to fetch leads');
@@ -64,7 +66,7 @@ export default function ProspectingPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ query })
+                body: JSON.stringify({ query, integrationId: selectedMailboxId })
             });
             if (!res.ok) throw new Error('Failed to start scan');
             return res.json();

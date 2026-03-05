@@ -139,42 +139,7 @@ export function autoDiscoverSettings(email: string): Partial<EmailConfig> {
   return providers[domain] || {};
 }
 
-/**
- * Injects a tracking pixel into HTML email content
- */
-export function injectTrackingPixel(html: string, trackingId: string): string {
-  if (!trackingId) return html;
-
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://audnixai.com';
-  const pixelUrl = `${baseUrl}/api/outreach/track/${trackingId}`;
-  const pixelHtml = `<img src="${pixelUrl}" width="1" height="1" style="display:none !important;" alt="" />`;
-
-  if (html.includes('</body>')) {
-    return html.replace('</body>', `${pixelHtml}</body>`);
-  }
-  return html + pixelHtml;
-}
-
-/**
- * Wraps links in HTML email content with tracking URLs
- */
-export function wrapLinksWithTracking(html: string, trackingId: string): string {
-  if (!trackingId) return html;
-
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://audnixai.com';
-  const linkRegex = /<a\s+([^>]*href=["'])([^"']+)(["'][^>]*)>/gi;
-
-  return html.replace(linkRegex, (match, prefix, url, suffix) => {
-    // Skip mailto, tel, and already tracked links
-    if (url.startsWith('mailto:') || url.startsWith('tel:') || url.includes('/api/outreach/track/') || url.includes('/api/outreach/click/')) {
-      return match;
-    }
-
-    const encodedUrl = encodeURIComponent(url);
-    const trackingUrl = `${baseUrl}/api/outreach/click/${trackingId}?url=${encodedUrl}`;
-    return `<a ${prefix}${trackingUrl}${suffix}>`;
-  });
-}
+// DELETED local tracking functions - moving to centralized lib/email/email-tracking.ts
 
 /**
  * Send email via custom SMTP (for custom domain emails)
@@ -197,11 +162,7 @@ async function sendCustomSMTP(
   const nodemailer = await import('nodemailer');
   const { imapIdleManager } = await import('../email/imap-idle-manager.js');
 
-  let emailBody = body;
-  if (isHtml && trackingId) {
-    emailBody = injectTrackingPixel(emailBody, trackingId);
-    emailBody = wrapLinksWithTracking(emailBody, trackingId);
-  }
+  const emailBody = body;
 
   const transporter = nodemailer.createTransport({
     host: config.smtp_host,
@@ -589,7 +550,9 @@ export async function sendEmail(
     }
 
     const { injectTrackingIntoEmail, createTrackedEmail } = await import('../email/email-tracking.js');
-    emailBody = injectTrackingIntoEmail(emailBody, trackingId);
+    const trackingResult = injectTrackingIntoEmail(emailBody, trackingId);
+    emailBody = trackingResult.html;
+    const firstUrl = trackingResult.urls.length > 0 ? trackingResult.urls.join(',') : null;
 
     await createTrackedEmail({
       userId,
@@ -597,7 +560,8 @@ export async function sendEmail(
       recipientEmail,
       subject,
       sentAt: new Date(),
-      messageId: trackingId
+      messageId: trackingId,
+      targetUrl: firstUrl || undefined
     });
 
     const result = await sendCustomSMTP(userId, credentials, recipientEmail, subject, emailBody, true, trackingId, integration.id);
@@ -615,6 +579,7 @@ export async function sendEmail(
         direction: 'outbound',
         provider: 'custom_email',
         sentAt: new Date(),
+        targetUrl: firstUrl,
         metadata: { trackingId, integrationId: integration.id }
       });
     }
@@ -655,7 +620,9 @@ export async function sendEmail(
 
   // Apply tracking pixel and link wrapping for OAuth providers
   const { injectTrackingIntoEmail, createTrackedEmail } = await import('../email/email-tracking.js');
-  emailBody = injectTrackingIntoEmail(emailBody, trackingId);
+  const trackingResult = injectTrackingIntoEmail(emailBody, trackingId);
+  emailBody = trackingResult.html;
+  const firstUrl = trackingResult.urls.length > 0 ? trackingResult.urls.join(',') : null;
 
   // Create the tracking record
   await createTrackedEmail({
@@ -664,7 +631,8 @@ export async function sendEmail(
     recipientEmail,
     subject: emailSubject,
     sentAt: new Date(),
-    messageId: trackingId
+    messageId: trackingId,
+    targetUrl: firstUrl || undefined
   });
 
   const { GmailOAuth } = await import('../oauth/gmail.js');
@@ -714,6 +682,7 @@ export async function sendEmail(
         direction: 'outbound',
         provider: 'gmail',
         sentAt: new Date(),
+        targetUrl: firstUrl,
         metadata: { trackingId: trackingId }
       });
     }
@@ -740,6 +709,7 @@ export async function sendEmail(
         direction: 'outbound',
         provider: 'outlook',
         sentAt: new Date(),
+        targetUrl: firstUrl,
         metadata: { trackingId: trackingId }
       });
     }
@@ -760,11 +730,7 @@ async function sendGmailMessage(
   isHtml: boolean = false,
   trackingId?: string
 ): Promise<{ messageId: string }> {
-  let emailBody = body;
-  if (isHtml && trackingId) {
-    emailBody = injectTrackingPixel(emailBody, trackingId);
-    emailBody = wrapLinksWithTracking(emailBody, trackingId);
-  }
+  const emailBody = body;
 
   const message = createMimeMessage(credentials.email, to, subject, emailBody, isHtml);
   const encodedMessage = Buffer.from(message).toString('base64url');
@@ -799,11 +765,7 @@ async function sendOutlookMessage(
   isHtml: boolean = false,
   trackingId?: string
 ): Promise<{ messageId: string }> {
-  let emailBody = body;
-  if (isHtml && trackingId) {
-    emailBody = injectTrackingPixel(emailBody, trackingId);
-    emailBody = wrapLinksWithTracking(emailBody, trackingId);
-  }
+  const emailBody = body;
 
   const response = await fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
     method: 'POST',

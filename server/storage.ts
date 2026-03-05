@@ -57,7 +57,7 @@ export interface IStorage {
   // Message methods
   getMessagesByLeadId(leadId: string): Promise<Message[]>;
   getMessages(leadId: string): Promise<Message[]>; // Alias for getMessagesByLeadId
-  getAllMessages(userId: string, options?: { limit?: number; channel?: string }): Promise<Message[]>;
+  getAllMessages(userId: string, options?: { limit?: number; channel?: string; integrationId?: string }): Promise<Message[]>;
   createMessage(message: Partial<InsertMessage> & { leadId: string; userId: string; direction: "inbound" | "outbound"; body: string; threadId?: string }): Promise<Message>;
   updateMessage(id: string, updates: Partial<Message>): Promise<Message | undefined>;
   getMessageByTrackingId(trackingId: string): Promise<Message | undefined>;
@@ -180,7 +180,7 @@ export interface IStorage {
   getEmailMessageByMessageId(messageId: string): Promise<EmailMessage | undefined>;
 
   // Notifications
-  getNotifications(userId: string, opts?: { limit?: number; offset?: number; dateFrom?: Date; dateTo?: Date }): Promise<Notification[]>;
+  getNotifications(userId: string, opts?: { limit?: number; offset?: number; dateFrom?: Date; dateTo?: Date; integrationId?: string }): Promise<Notification[]>;
   getUnreadNotificationCount(userId: string): Promise<number>;
   createNotification(data: InsertNotification): Promise<Notification>;
   markNotificationAsRead(id: string, userId?: string): Promise<Notification | undefined>;
@@ -648,6 +648,7 @@ export class MemStorage implements IStorage {
       status: (insertLead.status as any) || "new",
       score: insertLead.score || 0,
       warm: insertLead.warm || false,
+      integrationId: insertLead.integrationId || null,
       lastMessageAt: insertLead.lastMessageAt || null,
       aiPaused: insertLead.aiPaused || false,
       verified: insertLead.verified || false,
@@ -762,6 +763,8 @@ export class MemStorage implements IStorage {
       body: message.body,
       audioUrl: message.audioUrl || null,
       trackingId: message.trackingId || null,
+      integrationId: (message as any).integrationId || null,
+      targetUrl: (message as any).targetUrl || null,
       openedAt: message.openedAt || null,
       clickedAt: message.clickedAt || null,
       repliedAt: message.repliedAt || null,
@@ -1587,6 +1590,7 @@ export class MemStorage implements IStorage {
       createdAt: now,
       metadata: data.metadata || {},
       actionUrl: data.actionUrl || null,
+      integrationId: data.integrationId || null,
     };
     this.notifications.set(id, notification);
     return notification;

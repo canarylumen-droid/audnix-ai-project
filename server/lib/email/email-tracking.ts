@@ -10,6 +10,7 @@ export interface EmailTrackingData {
   recipientEmail: string;
   subject: string;
   sentAt: Date;
+  targetUrl?: string;
 }
 
 export interface EmailEvent {
@@ -29,18 +30,22 @@ export function generateTrackingPixel(baseUrl: string, token: string): string {
   return `<img src="${baseUrl}/api/email-tracking/track/open/${token}" width="1" height="1" style="display:none;" alt="" />`;
 }
 
-export function wrapLinksWithTracking(html: string, baseUrl: string, messageToken: string): string {
+export function wrapLinksWithTracking(html: string, baseUrl: string, messageToken: string): { html: string; urls: string[] } {
   const linkRegex = /<a\s+([^>]*href=["'])([^"']+)(["'][^>]*)>/gi;
+  const urls: string[] = [];
 
-  return html.replace(linkRegex, (match, prefix, url, suffix) => {
-    if (url.startsWith('mailto:') || url.startsWith('tel:') || url.includes('/api/email/track/')) {
+  const trackedHtml = html.replace(linkRegex, (match, prefix, url, suffix) => {
+    if (url.startsWith('mailto:') || url.startsWith('tel:') || url.includes('/api/email/track/') || url.includes('/api/outreach/click/')) {
       return match;
     }
 
+    urls.push(url);
     const encodedUrl = encodeURIComponent(url);
     const trackingUrl = `${baseUrl}/api/email-tracking/track/click/${messageToken}?url=${encodedUrl}`;
     return `<a ${prefix}${trackingUrl}${suffix}>`;
   });
+
+  return { html: trackedHtml, urls };
 }
 
 export function wrapPlainTextLinksWithTracking(text: string, baseUrl: string, messageToken: string): string {
@@ -66,7 +71,7 @@ export async function createTrackedEmail(data: EmailTrackingData): Promise<{ tok
 
     await db.execute(sql`
       INSERT INTO email_tracking (
-        id, user_id, lead_id, recipient_email, subject, token, sent_at, created_at
+        id, user_id, lead_id, recipient_email, subject, token, sent_at, created_at, target_url
       ) VALUES (
         gen_random_uuid(),
         ${data.userId},
@@ -75,7 +80,8 @@ export async function createTrackedEmail(data: EmailTrackingData): Promise<{ tok
         ${data.subject},
         ${token},
         ${data.sentAt.toISOString()},
-        NOW()
+        NOW(),
+        ${data.targetUrl || null}
       )
     `);
   } catch (error) {
@@ -268,18 +274,19 @@ export async function getEmailStats(userId: string, days: number = 30): Promise<
   }
 }
 
-export function injectTrackingIntoEmail(html: string, token: string): string {
+export function injectTrackingIntoEmail(html: string, token: string): { html: string; urls: string[] } {
   const baseUrl = (globalThis as any).process?.env?.BASE_URL || 'https://audnixai.com';
 
-  let trackedHtml = wrapLinksWithTracking(html, baseUrl, token);
+  const { html: trackedHtml, urls } = wrapLinksWithTracking(html, baseUrl, token);
 
   const trackingPixel = generateTrackingPixel(baseUrl, token);
 
-  if (trackedHtml.includes('</body>')) {
-    trackedHtml = trackedHtml.replace('</body>', `${trackingPixel}</body>`);
+  let finalHtml = trackedHtml;
+  if (finalHtml.includes('</body>')) {
+    finalHtml = finalHtml.replace('</body>', `${trackingPixel}</body>`);
   } else {
-    trackedHtml += trackingPixel;
+    finalHtml += trackingPixel;
   }
 
-  return trackedHtml;
+  return { html: finalHtml, urls };
 }

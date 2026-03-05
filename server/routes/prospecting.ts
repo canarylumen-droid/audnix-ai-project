@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { db } from '../db.js';
 import { prospects } from '../../shared/schema.js';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { AudnixIngestor } from '../lib/scraping/audnix-ingestor.js';
 
 import { requireAuth } from '../middleware/auth.js';
@@ -15,13 +15,14 @@ router.post('/scan', requireAuth, async (req: Request, res: Response) => {
     try {
         const userId = req.user!.id;
 
-        const { query } = req.body;
+        const { query, integrationId } = req.body;
         if (!query) {
             return res.status(400).json({ error: 'Query is required' });
         }
 
         // Start async scan (real scraping, no mock)
         const ingestor = new AudnixIngestor(userId.toString());
+        // Pass integrationId to ingestor if needed or handle it in the results
 
         // Run in background, respond immediately
         ingestor.startNeuralScan(query).catch(error => {
@@ -45,13 +46,20 @@ router.post('/scan', requireAuth, async (req: Request, res: Response) => {
 router.get('/leads', requireAuth, async (req: Request, res: Response) => {
     try {
         const userId = req.user!.id;
+        const integrationId = req.query.integrationId as string | undefined;
 
         // Fetch REAL leads from database
-        const leads = await db.select()
+        let query = db.select()
             .from(prospects)
-            .where(eq(prospects.userId, userId))
-            .orderBy(prospects.createdAt)
-            .limit(2000);
+            .where(eq(prospects.userId, userId));
+
+        if (integrationId) {
+            query = db.select().from(prospects).where(
+                sql`${prospects.userId} = ${userId} AND ${prospects.integrationId} = ${integrationId}`
+            ) as any;
+        }
+
+        const leads = await query.orderBy(prospects.createdAt).limit(2000);
 
         res.json(leads);
 

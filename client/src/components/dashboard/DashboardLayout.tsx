@@ -44,6 +44,8 @@ import {
   DollarSign,
   Users
 } from "lucide-react";
+import { MailboxSwitcher } from "@/components/outreach/MailboxSwitcher";
+import { useMailbox } from "@/hooks/use-mailbox";
 
 import { useTheme } from "next-themes";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -139,6 +141,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
     queryKey: ["/api/user/profile"],
     staleTime: 1000 * 60 * 5, // 5 minutes cache
   });
+  const { selectedMailboxId } = useMailbox();
   const tourState = useTour(user?.metadata?.onboardingCompleted);
   const { showTour, completeTour, skipTour, replayTour } = tourState || {
     showTour: false,
@@ -237,12 +240,12 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
   const { isConnected, notificationPermission, requestPermission } = useRealtime();
 
   const { data: notificationsData } = useQuery<NotificationsData | null>({
-    queryKey: ["/api/notifications"],
+    queryKey: ["/api/notifications", { integrationId: selectedMailboxId }],
     staleTime: 1000 * 60, // 1 minute cache
   });
 
   const { data: dashboardStats } = useQuery<any>({
-    queryKey: ["/api/dashboard/stats"],
+    queryKey: ["/api/dashboard/stats", { integrationId: selectedMailboxId }],
     staleTime: 1000 * 30, // 30 seconds cache
   });
 
@@ -600,6 +603,8 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                   ENABLE NOTIFICATIONS
                 </motion.div>
               )}
+
+              <MailboxSwitcher className="hidden sm:flex" />
               <ThemeSwitcher />
 
               <Sheet open={showNotificationsPanel} onOpenChange={setShowNotificationsPanel}>

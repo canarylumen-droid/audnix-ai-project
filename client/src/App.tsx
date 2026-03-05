@@ -11,6 +11,7 @@ import TermsOfService from "@/pages/terms-of-service";
 import DataDeletion from "@/pages/data-deletion";
 import { PrivacyModal } from "@/components/landing/PrivacyModal";
 import { NotificationSound } from "@/components/shared/NotificationSound";
+import { MailboxProvider } from "@/hooks/use-mailbox";
 
 import { lazy, Suspense } from "react";
 
@@ -274,14 +275,16 @@ function App() {
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            <InternetConnectionBanner />
-            <Toaster />
-            <Router />
-            <NotificationSound />
-            {/* <ExpertChat /> Removed as requested */}
-            <PrivacyModal />
-          </TooltipProvider>
+          <MailboxProvider>
+            <TooltipProvider>
+              <InternetConnectionBanner />
+              <Toaster />
+              <Router />
+              <NotificationSound />
+              {/* <ExpertChat /> Removed as requested */}
+              <PrivacyModal />
+            </TooltipProvider>
+          </MailboxProvider>
         </QueryClientProvider>
       </ErrorBoundary>
     </ThemeProvider>

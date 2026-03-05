@@ -368,8 +368,7 @@ export class DrizzleStorage implements IStorage {
     }
 
     if (options.integrationId) {
-      // Filter leads by the integration that handled them (stored in metadata)
-      conditions.push(sql`${leads.metadata}->>'integrationId' = ${options.integrationId}`);
+      conditions.push(eq(leads.integrationId, options.integrationId));
     }
 
     if (options.search) {
@@ -481,6 +480,7 @@ export class DrizzleStorage implements IStorage {
         pdfConfidence: insertLead.pdfConfidence || null,
         tags: insertLead.tags || [],
         metadata: insertLead.metadata || {},
+        integrationId: insertLead.integrationId || (insertLead.metadata as any)?.integrationId || null,
       })
       .returning();
 
@@ -594,7 +594,7 @@ export class DrizzleStorage implements IStorage {
     return this.getMessagesByLeadId(leadId);
   }
 
-  async getAllMessages(userId: string, options?: { limit?: number; channel?: string }): Promise<Message[]> {
+  async getAllMessages(userId: string, options?: { limit?: number; channel?: string; integrationId?: string }): Promise<Message[]> {
     checkDatabase();
 
     // Build conditions array
@@ -602,6 +602,10 @@ export class DrizzleStorage implements IStorage {
 
     if (options?.channel) {
       conditions.push(eq(messages.provider, options.channel as any));
+    }
+
+    if (options?.integrationId) {
+      conditions.push(eq(messages.integrationId, options.integrationId));
     }
 
     // Build query with combined conditions
@@ -644,6 +648,7 @@ export class DrizzleStorage implements IStorage {
         isRead: message.isRead ?? (message.direction === 'outbound'),
         createdAt: new Date(),
         metadata: message.metadata || {},
+        integrationId: message.integrationId || (message.metadata as any)?.integrationId || null,
       })
       .returning();
 
@@ -1647,20 +1652,18 @@ export class DrizzleStorage implements IStorage {
       dealsWhere = and(dealsWhere, lte(deals.createdAt, options.end))!;
     }
     if (options?.integrationId) {
-      messagesWhere = and(messagesWhere, sql`(${messages.metadata}->>'integrationId' = ${options.integrationId})`)!;
+      messagesWhere = and(messagesWhere, eq(messages.integrationId, options.integrationId))!;
 
       // Filter leads associated with this integration
-      leadsWhere = and(leadsWhere, sql`exists (
-        select 1 from ${messages} 
-        where ${messages.leadId} = ${leads.id} 
-        and ${messages.metadata}->>'integrationId' = ${options.integrationId}
-      )`)!;
+      leadsWhere = and(leadsWhere, eq(leads.integrationId, options.integrationId))!;
 
       // Filter deals associated with this integration
+      // Decisions: Filter deals by the lead's integrationId or the associated message's integrationId?
+      // For now, if a deal has a lead, we'll check the lead's integrationId.
       dealsWhere = and(dealsWhere, sql`exists (
-        select 1 from ${messages} 
-        where ${messages.leadId} = ${deals.leadId} 
-        and ${messages}.metadata->>'integrationId' = ${options.integrationId}
+        select 1 from ${leads} 
+        where ${leads.id} = ${deals.leadId} 
+        and ${leads.integrationId} = ${options.integrationId}
       )`)!;
     }
 
@@ -1733,7 +1736,7 @@ export class DrizzleStorage implements IStorage {
 
   private async calculateAverageResponseTime(userId: string, integrationId?: string): Promise<string> {
     const integrationFilter = integrationId
-      ? sql`AND m1.metadata->>'integrationId' = ${integrationId}`
+      ? sql`AND m1.integration_id = ${integrationId}`
       : sql``;
 
     const result: any = await db.execute(sql`
@@ -1923,11 +1926,14 @@ export class DrizzleStorage implements IStorage {
 
   // ========== Notification Methods ==========
 
-  async getNotifications(userId: string, opts?: { limit?: number; offset?: number; dateFrom?: Date; dateTo?: Date }): Promise<Notification[]> {
+  async getNotifications(userId: string, opts?: { limit?: number; offset?: number; dateFrom?: Date; dateTo?: Date; integrationId?: string }): Promise<Notification[]> {
     checkDatabase();
     const conditions = [eq(notifications.userId, userId)];
     if (opts?.dateFrom) conditions.push(gte(notifications.createdAt, opts.dateFrom));
     if (opts?.dateTo) conditions.push(lte(notifications.createdAt, opts.dateTo));
+    if (opts?.integrationId) {
+      conditions.push(or(eq(notifications.integrationId, opts.integrationId), isNull(notifications.integrationId)) as any);
+    }
 
     return await db.select()
       .from(notifications)
@@ -1947,7 +1953,10 @@ export class DrizzleStorage implements IStorage {
 
   async createNotification(data: InsertNotification): Promise<Notification> {
     checkDatabase();
-    const [notification] = await db.insert(notifications).values(data).returning();
+    const [notification] = await db.insert(notifications).values({
+      ...data,
+      integrationId: data.integrationId || (data.metadata as any)?.integrationId || null,
+    }).returning();
 
     if (notification) {
       wsSync.notifyNotification(data.userId, notification);

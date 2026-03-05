@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { useMailbox } from "@/hooks/use-mailbox";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -111,20 +112,21 @@ export default function AnalyticsPage() {
     const [timeRange, setTimeRange] = useState<string>('7d');
     const [channelFilter, setChannelFilter] = useState<'all' | 'email' | 'instagram'>('all');
     const queryClient = useQueryClient();
+    const { selectedMailboxId } = useMailbox();
     const { data: analytics, isLoading } = useQuery<AnalyticsData>({
-        queryKey: ["/api/dashboard/analytics/full", { days: dateRange }],
+        queryKey: ["/api/dashboard/analytics/full", { days: dateRange, integrationId: selectedMailboxId }],
 
     });
 
     const { data: previousStats } = useQuery<any>({
-        queryKey: ["/api/dashboard/stats/previous"],
+        queryKey: ["/api/dashboard/stats/previous", { integrationId: selectedMailboxId }],
     });
 
     const calculatePercentageChange = (current: number, previous: number | undefined): { percentage: string; isUp: boolean; isNeutral: boolean } => {
         if (previous === undefined || previous === 0) return { percentage: "—", isUp: false, isNeutral: true };
         const change = ((current - previous) / previous) * 100;
-        return { 
-            percentage: `${change > 0 ? "+" : ""}${change.toFixed(1)}%`, 
+        return {
+            percentage: `${change > 0 ? "+" : ""}${change.toFixed(1)}%`,
             isUp: change > 0,
             isNeutral: Math.abs(change) < 0.01
         };
@@ -385,8 +387,8 @@ export default function AnalyticsPage() {
                                 <div key={event.id} className="flex gap-4 group items-center">
                                     <div className={cn(
                                         "mt-1 w-2 h-2 rounded-full shrink-0 transition-all duration-500",
-                                        (event as any).isNew 
-                                            ? "bg-primary shadow-[0_0_15px_rgba(59,130,246,0.8)] scale-110 animate-pulse" 
+                                        (event as any).isNew
+                                            ? "bg-primary shadow-[0_0_15px_rgba(59,130,246,0.8)] scale-110 animate-pulse"
                                             : "bg-muted-foreground/30 shadow-none border border-white/5"
                                     )} />
                                     <div className="flex-1 min-w-0">
@@ -534,7 +536,7 @@ export default function AnalyticsPage() {
                                         Number(row.currentVal || 0),
                                         Number(row.previousVal || 0)
                                     );
-                                    
+
                                     return (
                                         <tr key={idx} className="hover:bg-muted/20 transition-colors group">
                                             <td className="px-8 py-5 text-sm font-black text-foreground/80 group-hover:text-primary transition-colors">{row.label}</td>
@@ -543,8 +545,8 @@ export default function AnalyticsPage() {
                                             <td className="px-8 py-5 text-right">
                                                 <div className={cn(
                                                     "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
-                                                    isNeutral ? "bg-muted text-muted-foreground" : 
-                                                    isUp ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"
+                                                    isNeutral ? "bg-muted text-muted-foreground" :
+                                                        isUp ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"
                                                 )}>
                                                     {!isNeutral && (isUp ? <ArrowUpRight className="w-3 h-3" /> : <TrendingUp className="w-3 h-3 rotate-180" />)}
                                                     {percentage}

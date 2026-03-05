@@ -69,7 +69,7 @@ router.post('/campaigns', requireAuth, async (req, res) => {
     const userId = req.session?.userId;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { name, config, template, leads } = req.body;
+    const { name, config, template, leads, excludeWeekends } = req.body;
 
     if (!name || !leads) {
       return res.status(400).json({ error: 'Missing required campaign data' });
@@ -89,6 +89,7 @@ router.post('/campaigns', requireAuth, async (req, res) => {
       name,
       config: campaignConfig,
       template: campaignTemplate,
+      excludeWeekends: !!excludeWeekends,
       status: 'draft',
       stats: { total: 0, sent: 0, replied: 0, bounced: 0 } // Initialize total as 0, will update after processing
     }).returning();
@@ -677,13 +678,43 @@ router.get('/click/:trackingId', async (req, res) => {
       }) && !targetUrl.includes('localhost') && !targetUrl.includes('127.0.0.1');
     };
 
-    if (!isValidUrl(url)) {
-      console.warn(`⚠️ Blocked potentially malicious redirect to: ${url}`);
+    // Try to look up the target URL from our database first (Secure way)
+    const [campaignEmailRecord] = await db.select({ targetUrl: campaignEmails.targetUrl })
+      .from(campaignEmails)
+      .where(eq(campaignEmails.messageId, trackingId))
+      .limit(1);
+
+    let redirectUrl = url;
+    let verified = false;
+
+    // Check campaign_emails target_url (comma-separated list of original URLs)
+    if (campaignEmailRecord?.targetUrl) {
+      const allowedUrls = campaignEmailRecord.targetUrl.split(',');
+      verified = allowedUrls.includes(url);
+    }
+
+    // Fallback: check messages table
+    if (!verified) {
+      const messageResult = await storage.getMessageByTrackingId(trackingId);
+      if (messageResult?.targetUrl) {
+        const allowedUrls = messageResult.targetUrl.split(',');
+        if (allowedUrls.includes(url)) {
+          verified = true;
+        } else {
+          console.warn(`⚠️ Blocked unverified redirect for tracking ${trackingId}: ${url}`);
+          return res.status(400).send('Invalid or unsafe redirect URL');
+        }
+      }
+      // If no stored target_url (legacy emails), fall through to basic validation
+    }
+
+    if (!redirectUrl || !isValidUrl(redirectUrl)) {
+      console.warn(`⚠️ Blocked potentially malicious redirect to: ${redirectUrl || url}`);
       return res.status(400).send('Invalid or unsafe redirect URL');
     }
 
     // Redirect to the target URL
-    return res.redirect(url);
+    return res.redirect(redirectUrl);
   } catch (error) {
     console.error('Click tracking error:', error);
     return res.status(500).send('Internal Server Error');

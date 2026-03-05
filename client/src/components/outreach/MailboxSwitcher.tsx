@@ -9,14 +9,26 @@ import {
 import { Mail, Globe, CheckCircle2, PlusCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocation } from "wouter";
+import { useMailbox } from "@/hooks/use-mailbox";
 
 interface MailboxSwitcherProps {
-    value?: string;
-    onValueChange: (value: string | undefined) => void;
     className?: string;
+    value?: string;
+    onValueChange?: (value: string | undefined) => void;
 }
 
-export function MailboxSwitcher({ value, onValueChange, className }: MailboxSwitcherProps) {
+export function MailboxSwitcher({ className, value, onValueChange }: MailboxSwitcherProps) {
+    const { selectedMailboxId, setSelectedMailboxId } = useMailbox();
+
+    // Use controlled value if provided, otherwise fallback to hook state
+    const currentMailboxId = value !== undefined ? value : selectedMailboxId;
+    const handleMailboxChange = (val: string | undefined) => {
+        if (onValueChange) {
+            onValueChange(val);
+        } else {
+            setSelectedMailboxId(val);
+        }
+    };
     const [, setLocation] = useLocation();
     const { data: integrations, isLoading } = useQuery<any[]>({
         queryKey: ["/api/integrations"],
@@ -34,13 +46,13 @@ export function MailboxSwitcher({ value, onValueChange, className }: MailboxSwit
     return (
         <div className={cn("flex items-center gap-2", className)}>
             <Select
-                value={value || "all"}
+                value={currentMailboxId || "all"}
                 onValueChange={(val) => {
                     if (val === "add_new") {
                         setLocation("/dashboard/integrations");
                         return;
                     }
-                    onValueChange(val === "all" ? undefined : val);
+                    handleMailboxChange(val === "all" ? undefined : val);
                 }}
             >
                 <SelectTrigger className="w-[220px] h-10 rounded-2xl border-border/40 bg-card/40 backdrop-blur-md font-bold text-[10px] uppercase tracking-wider text-muted-foreground/80 hover:text-foreground transition-colors group">

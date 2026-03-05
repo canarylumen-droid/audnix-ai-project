@@ -124,6 +124,7 @@ export const leads = pgTable("leads", {
   pdfConfidence: real("pdf_confidence"),
   archived: boolean("archived").notNull().default(false),
   tags: jsonb("tags").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  integrationId: uuid("integration_id").references(() => integrations.id, { onDelete: "set null" }),
   metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -168,6 +169,8 @@ export const messages = pgTable("messages", {
   clickedAt: timestamp("clicked_at"),
   repliedAt: timestamp("replied_at"),
   isRead: boolean("is_read").notNull().default(false),
+  integrationId: uuid("integration_id").references(() => integrations.id, { onDelete: "set null" }),
+  targetUrl: text("target_url"),
   metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -314,6 +317,7 @@ export const notifications = pgTable("notifications", {
   message: text("message").notNull(),
   isRead: boolean("is_read").notNull().default(false),
   actionUrl: text("action_url"),
+  integrationId: uuid("integration_id").references(() => integrations.id, { onDelete: "set null" }),
   metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -354,6 +358,7 @@ export const outreachCampaigns = pgTable("outreach_campaigns", {
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   status: text("status", { enum: ["draft", "active", "paused", "completed"] }).notNull().default("draft"),
+  excludeWeekends: boolean("exclude_weekends").notNull().default(false),
   stats: jsonb("stats").$type<{
     total: number;
     sent: number;
@@ -411,6 +416,7 @@ export const apiKeys = pgTable("api_keys", {
 export const prospects = pgTable("prospects", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  integrationId: uuid("integration_id").references(() => integrations.id, { onDelete: "set null" }),
   sessionId: uuid("session_id"),
   entity: text("entity").notNull(),
   industry: text("industry"),
@@ -527,6 +533,7 @@ export const emailMessages = pgTable("email_messages", {
   direction: text("direction", { enum: ["inbound", "outbound"] }).notNull(),
   provider: text("provider", { enum: ["gmail", "outlook", "custom_email"] }).notNull(),
   sentAt: timestamp("sent_at").notNull(),
+  targetUrl: text("target_url"),
   metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -866,6 +873,7 @@ export const campaignEmails = pgTable("campaign_emails", {
   sentAt: timestamp("sent_at").notNull().defaultNow(),
   status: text("status", { enum: ["sent", "delivered", "opened", "clicked", "replied", "bounced"] }).notNull().default("sent"),
   stepIndex: integer("step_index").notNull().default(0),
+  targetUrl: text("target_url"),
   metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
 });
 

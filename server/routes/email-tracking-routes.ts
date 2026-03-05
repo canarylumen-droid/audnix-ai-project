@@ -55,11 +55,13 @@ router.get('/track/click/:token', async (req: Request, res: Response): Promise<v
     }
 
     const decodedUrl = decodeURIComponent(url);
+
+    // Validate URL format
     let isSafe = false;
     try {
       if (decodedUrl.startsWith('//')) {
         isSafe = false;
-      } else if (decodedUrl.startsWith('/') || decodedUrl.startsWith('http')) {
+      } else if (decodedUrl.startsWith('http://') || decodedUrl.startsWith('https://')) {
         isSafe = true;
       } else {
         isSafe = false;
@@ -73,16 +75,42 @@ router.get('/track/click/:token', async (req: Request, res: Response): Promise<v
       return;
     }
 
+    // SECURITY: Look up the stored target_url from the email_tracking table
+    // and verify the requested URL was actually in the original email
+    let redirectUrl = decodedUrl;
+    try {
+      const trackResult = await db.execute(sql`
+        SELECT target_url FROM email_tracking WHERE token = ${token} LIMIT 1
+      `);
+      const storedTargetUrl = (trackResult.rows[0] as any)?.target_url;
+      if (storedTargetUrl) {
+        // target_url stores comma-separated URLs from the original email
+        const allowedUrls = storedTargetUrl.split(',');
+        if (allowedUrls.includes(decodedUrl)) {
+          redirectUrl = decodedUrl; // URL is verified as part of original email
+        } else {
+          // The requested URL was NOT in the original email - potential attack
+          console.warn(`[Tracking] ⚠️ Blocked unverified redirect for token ${token}: ${decodedUrl}`);
+          res.status(400).send('Invalid redirect URL');
+          return;
+        }
+      }
+      // If no stored target_url (legacy emails), fall through using basic validation above
+    } catch (lookupErr) {
+      console.error('[Tracking] Error looking up target_url:', lookupErr);
+      // On DB error, allow the redirect if basic validation passed (graceful degradation)
+    }
+
     await recordEmailEvent({
       type: 'click',
       messageId: token,
       timestamp: new Date(),
       ipAddress: req.ip || req.socket.remoteAddress,
       userAgent: req.headers['user-agent'],
-      linkUrl: decodedUrl,
+      linkUrl: redirectUrl,
     });
 
-    res.redirect(302, decodedUrl);
+    res.redirect(302, redirectUrl);
   } catch (error) {
     console.error('Error tracking email click:', error);
     res.status(400).send('Invalid request');

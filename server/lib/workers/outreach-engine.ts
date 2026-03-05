@@ -145,9 +145,25 @@ export class OutreachEngine {
 
     // Split logic: Process one campaign per tick to avoid overwhelming user SMTP
     // We'll pick the one that was updated least recently (round-robin feel)
-    const campaign = campaigns.sort((a: any, b: any) =>
+    const sortedCampaigns = campaigns.sort((a: any, b: any) =>
       new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
-    )[0];
+    );
+
+    const now = new Date();
+    const isWeekend = now.getDay() === 0 || now.getDay() === 6; // 0 is Sunday, 6 is Saturday
+
+    // Find first campaign that is NOT excluded by weekend logic
+    let campaign = null;
+    for (const c of sortedCampaigns) {
+      if (isWeekend && c.excludeWeekends) {
+        console.log(`[OutreachEngine] Skipping campaign "${c.name}" because it's weekend and excludeWeekends is active.`);
+        continue;
+      }
+      campaign = c;
+      break;
+    }
+
+    if (!campaign) return false;
 
     // campaign.config is where we might store preferred channel, but leads have their own
     // We will check readines PER LEAD in the loop below to handle mixed-channel batches
@@ -517,6 +533,13 @@ export class OutreachEngine {
       leadId: lead.id,
       integrationId // Use the rotated mailbox
     });
+
+    // Update lead with integrationId if not already set, to ensure future replies/tracking stay with this mailbox
+    if (!lead.integrationId) {
+      await db.update(leads)
+        .set({ integrationId, updatedAt: new Date() })
+        .where(eq(leads.id, lead.id));
+    }
 
     // Recording and state updates
     await storage.createMessage({
