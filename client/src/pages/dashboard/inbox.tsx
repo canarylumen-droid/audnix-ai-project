@@ -288,6 +288,11 @@ export default function InboxPage() {
     return false;
   };
 
+  const hasAnyChannel = useMemo(() => {
+    if (!channelStatus?.channels) return false;
+    return channelStatus.channels.email?.connected || channelStatus.channels.instagram?.connected;
+  }, [channelStatus]);
+
   const showDisconnectedAlert = !channelsLoading && !leadsLoading && !hasAnyChannel && allLeads.length > 0;
   const isSyncing = leadsLoading || channelsLoading;
 

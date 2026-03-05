@@ -227,7 +227,7 @@ export default function IntegrationsPage() {
   const { data: stats } = useQuery<any>({
     queryKey: ["/api/dashboard/stats"],
     staleTime: 15000,
-    placeholderData: (prev) => prev,
+    placeholderData: (prev: any) => prev,
   });
   const { data: userData } = useQuery<UserData>({ queryKey: ["/api/user/profile"] });
 

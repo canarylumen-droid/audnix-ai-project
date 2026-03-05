@@ -119,7 +119,7 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
     const disconnectedIntegrations = integrations.filter(i => !i.connected).length;
 
     // [NEW] Workspace Benchmarks (Global Comparison)
-    const allLeads = await storage.getLeads({ limit: 10000 });
+    const allLeads = await storage.getLeads({ userId, limit: 10000 });
     const globalAvgScore = allLeads.length > 0 ? (allLeads.reduce((sum, l) => sum + (l.score || 0), 0) / allLeads.length) : 50;
 
     const { db } = await import('../db.js');

@@ -1957,14 +1957,20 @@ export class DrizzleStorage implements IStorage {
     return notification;
   }
 
-  async markNotificationAsRead(id: string, userId?: string): Promise<void> {
+  async markNotificationAsRead(id: string, userId?: string): Promise<Notification | undefined> {
     checkDatabase();
     const conditions = [eq(notifications.id, id)];
     if (userId) conditions.push(eq(notifications.userId, userId));
 
-    await db.update(notifications)
+    const [result] = await db.update(notifications)
       .set({ isRead: true })
-      .where(and(...conditions));
+      .where(and(...conditions))
+      .returning();
+    return result;
+  }
+
+  async markNotificationRead(id: string, userId?: string): Promise<Notification | undefined> {
+    return this.markNotificationAsRead(id, userId);
   }
 
   async markLeadNotificationsAsRead(leadId: string, userId: string): Promise<void> {

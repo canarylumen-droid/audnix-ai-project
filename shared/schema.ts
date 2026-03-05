@@ -309,7 +309,7 @@ export const processedComments = pgTable("processed_comments", {
 export const notifications = pgTable("notifications", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  type: text("type", { enum: ["webhook_error", "billing_issue", "conversion", "lead_reply", "system", "insight", "lead_import", "campaign_sent", "new_lead", "lead_status_change", "topup_success", "info", "email_bounce"] }).notNull(),
+  type: text("type", { enum: ["webhook_error", "billing_issue", "conversion", "lead_reply", "system", "insight", "lead_import", "campaign_sent", "new_lead", "lead_status_change", "topup_success", "info", "email_bounce", "inbound_email"] }).notNull(),
   title: text("title").notNull(),
   message: text("message").notNull(),
   isRead: boolean("is_read").notNull().default(false),
@@ -1186,7 +1186,7 @@ export const calendarEventSchema = z.object({
 export const notificationSchema = z.object({
   id: z.string().uuid(),
   userId: z.string().uuid(),
-  type: z.enum(["webhook_error", "billing_issue", "conversion", "lead_reply", "system", "insight"]),
+  type: z.enum(["webhook_error", "billing_issue", "conversion", "lead_reply", "system", "insight", "lead_import", "campaign_sent", "new_lead", "lead_status_change", "topup_success", "info", "email_bounce", "inbound_email"]),
   title: z.string(),
   message: z.string(),
   isRead: z.boolean().default(false),

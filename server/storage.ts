@@ -183,7 +183,8 @@ export interface IStorage {
   getNotifications(userId: string, opts?: { limit?: number; offset?: number; dateFrom?: Date; dateTo?: Date }): Promise<Notification[]>;
   getUnreadNotificationCount(userId: string): Promise<number>;
   createNotification(data: InsertNotification): Promise<Notification>;
-  markNotificationAsRead(id: string, userId?: string): Promise<void>;
+  markNotificationAsRead(id: string, userId?: string): Promise<Notification | undefined>;
+  markNotificationRead(id: string, userId?: string): Promise<Notification | undefined>;
   markAllNotificationsAsRead(userId: string): Promise<void>;
   clearAllNotifications(userId: string): Promise<void>;
   deleteNotification(id: string, userId: string): Promise<void>;
@@ -1591,13 +1592,19 @@ export class MemStorage implements IStorage {
     return notification;
   }
 
-  async markNotificationAsRead(id: string, userId?: string): Promise<void> {
+  async markNotificationAsRead(id: string, userId?: string): Promise<Notification | undefined> {
     const notification = this.notifications.get(id);
     if (notification && (!userId || notification.userId === userId)) {
-      notification.isRead = true;
+      const updated = { ...notification, isRead: true };
+      this.notifications.set(id, updated);
+      return updated;
     }
+    return undefined;
   }
 
+  async markNotificationRead(id: string, userId?: string): Promise<Notification | undefined> {
+    return this.markNotificationAsRead(id, userId);
+  }
   async markAllNotificationsAsRead(userId: string): Promise<void> {
     Array.from(this.notifications.values())
       .filter(n => n.userId === userId)
