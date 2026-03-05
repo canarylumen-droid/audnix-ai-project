@@ -685,18 +685,7 @@ router.get('/click/:trackingId', async (req, res) => {
     return res.redirect(url);
   } catch (error) {
     console.error('Click tracking error:', error);
-    const { url } = req.query;
-    if (url && typeof url === 'string') {
-      try {
-        const parsed = new URL(url);
-        if (['http:', 'https:'].includes(parsed.protocol)) {
-          return res.redirect(url);
-        }
-      } catch (e) {
-        // Fall through to error
-      }
-    }
-    res.status(500).send('Internal Server Error');
+    return res.status(500).send('Internal Server Error');
   }
 });
 
