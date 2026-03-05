@@ -396,8 +396,9 @@ export default function InboxPage() {
       }
 
       const matchesArchived = showArchived ? lead.archived : !lead.archived;
+      const matchesMailbox = selectedMailboxId ? lead.integrationId === selectedMailboxId : true;
 
-      return matchesSearch && matchesChannel && matchesStatus && matchesArchived;
+      return matchesSearch && matchesChannel && matchesStatus && matchesArchived && matchesMailbox;
     }).sort((a: any, b: any) => {
       const hasDraftA = !!localDrafts[a.id];
       const hasDraftB = !!localDrafts[b.id];
@@ -409,7 +410,7 @@ export default function InboxPage() {
       const timeB = new Date(b.lastMessageAt || b.updatedAt || b.createdAt).getTime();
       return timeB - timeA;
     });
-  }, [allLeads, searchQuery, filterChannel, filterStatus, showArchived, localDrafts]);
+  }, [allLeads, searchQuery, filterChannel, filterStatus, showArchived, localDrafts, selectedMailboxId]);
 
   // Highlighting helper
   const HighlightText = useCallback(({ text, query }: { text: string, query: string }) => {

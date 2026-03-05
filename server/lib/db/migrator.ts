@@ -14,7 +14,7 @@ const __dirname = path.dirname(__filename);
  */
 export async function runDatabaseMigrations() {
     console.log("🚀 Starting database migrations (direct integration)...");
-    
+
     // Find migrations folder relative to this file
     // In source: server/lib/db/migrator.ts -> ../../../migrations
     // In dist: dist/server/lib/db/migrator.js -> ../../../../migrations (likely)
@@ -50,7 +50,7 @@ export async function runDatabaseMigrations() {
         console.log("✨ Database migrations completed successfully");
     } catch (error: any) {
         console.warn("⚠️ Drizzle migration reported an issue:", error.message || error);
-        
+
         // 2. Emergency fallback: Directly ensure critical columns exist
         // This handles cases where the migration journal might be out of sync
         console.log("🛠️ Running emergency schema synchronization...");
@@ -79,6 +79,19 @@ export async function runDatabaseMigrations() {
                     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='messages' AND column_name='thread_id') THEN
                         ALTER TABLE "messages" ADD COLUMN "thread_id" uuid;
                     END IF;
+
+                    -- Integration ID fixes for critical tables
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='leads' AND column_name='integration_id') THEN
+                        ALTER TABLE leads ADD COLUMN integration_id UUID REFERENCES integrations(id) ON DELETE SET NULL;
+                    END IF;
+
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='messages' AND column_name='integration_id') THEN
+                        ALTER TABLE messages ADD COLUMN integration_id UUID REFERENCES integrations(id) ON DELETE SET NULL;
+                    END IF;
+                    
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='notifications' AND column_name='integration_id') THEN
+                        ALTER TABLE notifications ADD COLUMN integration_id UUID REFERENCES integrations(id) ON DELETE SET NULL;
+                    END IF;
                 END $$;
             `);
             console.log("✅ Emergency schema synchronization completed.");
@@ -86,10 +99,10 @@ export async function runDatabaseMigrations() {
             console.error("❌ Emergency schema synchronization failed:", emergencyError.message || emergencyError);
         }
 
-        const isAlreadyExists = error.code === '42P07' || 
-                               error.code === '42710' || 
-                               error.message?.includes('already exists');
-        
+        const isAlreadyExists = error.code === '42P07' ||
+            error.code === '42710' ||
+            error.message?.includes('already exists');
+
         if (isAlreadyExists) {
             console.log("✅ Database schema appears to be up to date (soft-fail handled).");
         }

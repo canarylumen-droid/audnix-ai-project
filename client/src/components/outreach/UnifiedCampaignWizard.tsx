@@ -79,6 +79,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
   const [followUpBody, setFollowUpBody] = useState("");
   const [followUpSubject2, setFollowUpSubject2] = useState("");
   const [followUpBody2, setFollowUpBody2] = useState("");
+  const [autoReplyBody, setAutoReplyBody] = useState("");
 
   // Persistence: Load from localStorage
   useEffect(() => {
@@ -93,6 +94,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
         if (data.followUpBody) setFollowUpBody(data.followUpBody);
         if (data.followUpSubject2) setFollowUpSubject2(data.followUpSubject2);
         if (data.followUpBody2) setFollowUpBody2(data.followUpBody2);
+        if (data.autoReplyBody) setAutoReplyBody(data.autoReplyBody);
         if (data.dailyLimit) setDailyLimit(data.dailyLimit);
         if (data.followUpDays) setFollowUpDays(data.followUpDays);
       } catch (e) {
@@ -108,12 +110,13 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
         campaignName, subject, body,
         followUpSubject, followUpBody,
         followUpSubject2, followUpBody2,
+        autoReplyBody,
         dailyLimit, followUpDays,
         excludeWeekends
       };
       localStorage.setItem("campaign_draft", JSON.stringify(draft));
     }
-  }, [campaignName, subject, body, followUpSubject, followUpBody, followUpSubject2, followUpBody2, dailyLimit, followUpDays, excludeWeekends, isOpen]);
+  }, [campaignName, subject, body, followUpSubject, followUpBody, followUpSubject2, followUpBody2, autoReplyBody, dailyLimit, followUpDays, excludeWeekends, isOpen]);
 
   // "RE: " Logic for Follow-up Subjects
   useEffect(() => {
@@ -210,6 +213,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
         },
         template: {
           subject, body,
+          autoReplyBody,
           followups: [
             { delayDays: parseInt(followUpDays), subject: followUpSubject, body: followUpBody },
             { delayDays: parseInt(followUpDays) + 4, subject: followUpSubject2, body: followUpBody2 }
@@ -461,7 +465,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                           <div className="space-y-4">
                             <div className="flex justify-between text-[11px] font-bold">
-                              <span>DAILY VOLUME</span>
+                              <span>DAILY VOLUME (PER MAILBOX)</span>
                               <Badge variant="default" className="font-mono text-white bg-primary">{dailyLimit}/day</Badge>
                             </div>
                             <Slider value={[dailyLimit]} onValueChange={v => setDailyLimit(v[0])} min={10} max={500} step={10} className="py-2" />
@@ -525,9 +529,10 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
 
                       <Tabs defaultValue="initial" className="w-full" key={step}>
                         <TabsList className="h-auto w-full bg-muted/40 p-1.5 rounded-2xl border border-border/10 mb-6 flex flex-wrap sm:flex-nowrap gap-2">
-                          <TabsTrigger value="initial" className="flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-md transition-all h-10 sm:h-full">Initial Outreach</TabsTrigger>
+                          <TabsTrigger value="initial" className="flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-md transition-all h-10 sm:h-full">Initial</TabsTrigger>
                           <TabsTrigger value="followup" className="flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-md transition-all h-10 sm:h-full">Follow-up 1</TabsTrigger>
                           <TabsTrigger value="followup2" className="flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-md transition-all h-10 sm:h-full">Follow-up 2</TabsTrigger>
+                          <TabsTrigger value="reply" className="flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-md transition-all h-10 sm:h-full">Auto-Reply</TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="initial" className="space-y-4 animate-in fade-in duration-300">
@@ -574,6 +579,22 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                             placeholder="FINAL CHANCE COPY..."
                           />
                         </TabsContent>
+
+                        <TabsContent value="reply" className="space-y-4 animate-in fade-in duration-300">
+                          <div className="p-4 bg-muted/30 border border-border/20 rounded-2xl mb-2 flex items-start gap-4">
+                            <Clock className="w-5 h-5 text-primary mt-0.5" />
+                            <div>
+                              <p className="text-xs font-bold leading-relaxed">Intelligent Auto-Reply enabled</p>
+                              <p className="text-[10px] font-medium text-muted-foreground mt-1">When a lead replies to this campaign, we will send this exact template automatically after a randomized 2 to 4 minute human-like delay.</p>
+                            </div>
+                          </div>
+                          <Textarea
+                            value={autoReplyBody}
+                            onChange={e => setAutoReplyBody(e.target.value)}
+                            className="min-h-[260px] bg-muted/10 border-0 rounded-2xl p-6 text-sm leading-relaxed resize-none"
+                            placeholder="Thanks for responding! We'll get back to you shortly..."
+                          />
+                        </TabsContent>
                       </Tabs>
                     </div>
                   </motion.div>
@@ -600,7 +621,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                           </div>
                           <div className="space-y-1">
                             <div className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-1">Volume Rate</div>
-                            <div className="text-3xl font-black tracking-tighter italic">{dailyLimit} <span className="text-xs uppercase not-italic font-bold text-foreground/80 ml-1">/day</span></div>
+                            <div className="text-3xl font-black tracking-tighter italic">{dailyLimit * Math.max(1, selectedMailboxes.length)} <span className="text-xs uppercase not-italic font-bold text-foreground/80 ml-1">/day</span></div>
                           </div>
                           <div className="space-y-1 hidden md:block">
                             <div className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-1">Sequence</div>
@@ -699,10 +720,12 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                 <TabsTrigger value="p1" className="h-8 md:h-10 text-[9px] md:text-[10px] font-black uppercase px-5 md:px-8 rounded-full transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">S1</TabsTrigger>
                 <TabsTrigger value="p2" className="h-8 md:h-10 text-[9px] md:text-[10px] font-black uppercase px-5 md:px-8 rounded-full transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">S2</TabsTrigger>
                 <TabsTrigger value="p3" className="h-8 md:h-10 text-[9px] md:text-[10px] font-black uppercase px-5 md:px-8 rounded-full transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">S3</TabsTrigger>
+                <TabsTrigger value="reply" className="h-8 md:h-10 text-[9px] md:text-[10px] font-black uppercase px-5 md:px-8 rounded-full transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Reply</TabsTrigger>
               </TabsList>
               <TabsContent value="p1" className="h-full m-0 pt-16 md:pt-0">{renderPreview(subject, body)}</TabsContent>
               <TabsContent value="p2" className="h-full m-0 pt-16 md:pt-0">{renderPreview(followUpSubject, followUpBody)}</TabsContent>
               <TabsContent value="p3" className="h-full m-0 pt-16 md:pt-0">{renderPreview(followUpSubject2, followUpBody2)}</TabsContent>
+              <TabsContent value="reply" className="h-full m-0 pt-16 md:pt-0">{renderPreview(`Re: ${subject}`, autoReplyBody)}</TabsContent>
             </Tabs>
           </div>
 

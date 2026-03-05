@@ -180,22 +180,54 @@ router.post('/campaigns', requireAuth, async (req, res) => {
         }
       }
 
-      const leadLinks = finalLeadIds.map(leadId => {
+      // Fetch integrations once to calculate distribution
+      const userIntegrations = await storage.getIntegrations(userId);
+      const selectedMailboxIds = campaignConfig.mailboxIds || [];
+      const activeMailboxes = userIntegrations.filter(i =>
+        selectedMailboxIds.includes(i.id) && i.connected
+      );
+
+      const getLimit = (mb: any) => {
+        try {
+          const meta = mb.metadata;
+          if (meta?.dailyLimit) return Number(meta.dailyLimit);
+        } catch (e) { }
+        if (mb.provider === 'gmail' || mb.provider === 'outlook') return 50;
+        return 500;
+      };
+
+      const mailboxesWithLimits = activeMailboxes.map(mb => ({ id: mb.id, limit: getLimit(mb) }));
+      const totalLimit = mailboxesWithLimits.reduce((sum, mb) => sum + mb.limit, 0);
+
+      const leadLinks = finalLeadIds.map((leadId, index) => {
         let nextActionAt: Date | null = null;
         if (bestHour !== null) {
           const now = new Date();
           const candidate = new Date();
-          candidate.setHours(bestHour, Math.floor(Math.random() * 60), 0, 0); // Jitter the minute
-          if (candidate < now) {
-            candidate.setDate(candidate.getDate() + 1);
-          }
+          candidate.setHours(bestHour, Math.floor(Math.random() * 60), 0, 0);
+          if (candidate < now) candidate.setDate(candidate.getDate() + 1);
           nextActionAt = candidate;
+        }
+
+        // Proportional assignment
+        let selectedMailboxId = activeMailboxes[0]?.id;
+        if (totalLimit > 0) {
+          const targetWeight = (index / finalLeadIds.length) * totalLimit;
+          let cumulative = 0;
+          for (const mb of mailboxesWithLimits) {
+            cumulative += mb.limit;
+            if (targetWeight < cumulative) {
+              selectedMailboxId = mb.id;
+              break;
+            }
+          }
         }
 
         return {
           campaignId: campaign.id,
           leadId,
           status: 'pending' as const,
+          integrationId: selectedMailboxId,
           nextActionAt
         };
       });

@@ -846,6 +846,7 @@ export const campaignLeads = pgTable("campaign_leads", {
   sentAt: timestamp("sent_at"),
   error: text("error"),
   retryCount: integer("retry_count").notNull().default(0),
+  integrationId: uuid("integration_id").references(() => integrations.id, { onDelete: "set null" }),
   metadata: jsonb("metadata").$type<Record<string, any>>().default(sql`'{}'::jsonb`),
 }, (table: any) => {
   return {

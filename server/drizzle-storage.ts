@@ -666,6 +666,25 @@ export class DrizzleStorage implements IStorage {
       // Notify both updates
       wsSync.notifyMessagesUpdated(message.userId, { event: 'INSERT', message: result[0] });
       wsSync.notifyLeadsUpdated(message.userId, { event: 'UPDATE', leadId: message.leadId });
+
+      // --- Campaign Auto-Reply Trigger ---
+      if (message.direction === 'inbound') {
+        const { campaignLeads } = await import('../shared/schema.js');
+        const campaignLead = await db.select().from(campaignLeads).where(eq(campaignLeads.leadId, message.leadId)).limit(1);
+        if (campaignLead[0] && campaignLead[0].status !== 'replied') {
+          const delayMinutes = 2 + Math.floor(Math.random() * 3); // 2 to 4 minutes
+          const nextActionAt = new Date();
+          nextActionAt.setMinutes(nextActionAt.getMinutes() + delayMinutes);
+
+          await db.update(campaignLeads)
+            .set({
+              status: 'replied',
+              nextActionAt,
+              metadata: { ...campaignLead[0].metadata, pendingAutoReply: true }
+            })
+            .where(eq(campaignLeads.id, campaignLead[0].id));
+        }
+      }
     }
     return result[0];
   }
