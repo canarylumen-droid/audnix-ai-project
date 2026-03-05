@@ -36,6 +36,7 @@ export function getPlanCapabilities(planId: string) {
 
   return {
     leadsLimit: tier.leadsLimit,
+    mailboxLimit: tier.mailboxLimit,
     voiceMinutes: tier.voiceMinutes,
     hasVoiceNotes,
     hasAnalytics: true, // FREE for all users - show preview for trial/free, full features for paid

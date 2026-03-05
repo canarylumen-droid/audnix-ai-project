@@ -129,6 +129,7 @@ export default function InboxPage() {
   const [typingLeadId, setTypingLeadId] = useState<string | null>(null); // Track which lead is typing
   const [localDrafts, setLocalDrafts] = useState<Record<string, string>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Load drafts on mount
   useEffect(() => {
@@ -143,6 +144,24 @@ export default function InboxPage() {
     setLocalDrafts(drafts);
   }, []);
 
+  // Handle lead change: focus textarea and load draft
+  useEffect(() => {
+    if (leadId) {
+      if (localDrafts[leadId]) {
+        setReplyMessage(localDrafts[leadId]);
+      } else {
+        setReplyMessage("");
+      }
+
+      // Auto-focus when switching to a lead thread
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+        }
+      }, 50);
+    }
+  }, [leadId]); // Depend only on leadId initially so we don't reset while typing
+
   const { contextConfig, handleContextMenu, closeMenu } = useContextMenu();
 
   const { data: user } = useQuery<{ id: string }>({ queryKey: ["/api/user/profile"] });
@@ -152,56 +171,67 @@ export default function InboxPage() {
   useEffect(() => {
     if (!socket) return;
 
-    let messagesTimeout: NodeJS.Timeout;
-    const handleMessagesUpdated = () => {
-      clearTimeout(messagesTimeout);
-      messagesTimeout = setTimeout(() => {
+    const handleMessagesUpdated = (payload: any) => {
+      // payload could be { message }, { leadId }, or { event, count }
+      const msgData = payload?.message || payload || {};
+      const targetLeadId = msgData.leadId || payload?.leadId;
+
+      if (!targetLeadId) {
         queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
         if (leadId) {
           queryClient.invalidateQueries({ queryKey: ["/api/messages", leadId] });
         }
-      }, 10);
-    };
-
-    let leadsTimeout: NodeJS.Timeout;
-    const handleLeadsUpdated = (data: any) => {
-      clearTimeout(leadsTimeout);
-      leadsTimeout = setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
-      }, 10);
-
-      if (data?.type === 'lead_updated' && data?.lead) {
-        setAllLeads(prev => prev.map(l => l.id === data.lead.id ? data.lead : l));
+        return;
       }
-    };
 
-    const handleNewMessage = (data: any) => {
       // 20ms UI Push: Instantly move lead to top and update snippet
-      if (data?.leadId) {
-        setAllLeads(prev => {
-          const leadIndex = prev.findIndex(l => l.id === data.leadId);
-          if (leadIndex === -1) return prev;
+      setAllLeads(prev => {
+        const leadIndex = prev.findIndex(l => l.id === targetLeadId);
+        if (leadIndex === -1) return prev;
 
-          const updatedLead = {
-            ...prev[leadIndex],
-            lastMessageAt: new Date().toISOString(),
-            snippet: data.content,
-            metadata: { ...prev[leadIndex].metadata, isUnread: true }
-          };
+        const updatedLead = {
+          ...prev[leadIndex],
+          lastMessageAt: new Date().toISOString(),
+          snippet: msgData.content || msgData.snippet || prev[leadIndex].snippet,
+          metadata: { ...prev[leadIndex].metadata, isUnread: true }
+        };
 
-          const otherLeads = prev.filter(l => l.id !== data.leadId);
-          return [updatedLead, ...otherLeads]; // PUSH TO TOP
-        });
+        const otherLeads = prev.filter(l => l.id !== targetLeadId);
+        return [updatedLead, ...otherLeads]; // PUSH TO TOP
+      });
+
+      // 20ms UI Push: Instantly add message to the exact thread if currently viewing
+      if (targetLeadId === leadId && msgData.id) {
+        queryClient.setQueriesData(
+          { queryKey: ["/api/messages", targetLeadId] },
+          (oldData: any) => {
+            if (!oldData || !oldData.messages) return oldData;
+            const exists = oldData.messages.some((m: any) => m.id === msgData.id);
+            if (exists) return oldData;
+
+            const newMsg = {
+              id: msgData.id || `temp-${Date.now()}`,
+              content: msgData.content || '',
+              direction: msgData.direction || 'inbound',
+              createdAt: msgData.createdAt || new Date().toISOString(),
+              userId: user?.id,
+              leadId: targetLeadId,
+              metadata: msgData.metadata || {}
+            };
+            return {
+              ...oldData,
+              messages: [...oldData.messages, newMsg]
+            };
+          }
+        );
       }
 
-      // Invalidate for data consistency
+      // Invalidate specific lead's messages for consistency
+      queryClient.invalidateQueries({ queryKey: ["/api/messages", targetLeadId] });
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
-      if (leadId || data?.leadId) {
-        queryClient.invalidateQueries({ queryKey: ["/api/messages", leadId || data.leadId] });
-      }
 
       // Auto-scroll if we are currently viewing the thread
-      if (data?.leadId === leadId) {
+      if (targetLeadId === leadId) {
         setTimeout(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
         }, 100);
@@ -239,9 +269,9 @@ export default function InboxPage() {
 
     socket.on("messages", handleMessagesUpdated);
     socket.on("leads", handleLeadsUpdated);
-    socket.on("message", handleNewMessage);
-    socket.on("message_received", handleNewMessage);
-    socket.on("message_sent", handleNewMessage);
+    socket.on("message", handleMessagesUpdated);
+    socket.on("message_received", handleMessagesUpdated);
+    socket.on("message_sent", handleMessagesUpdated);
 
     return () => {
       socket.off('messages_updated', handleMessagesUpdated);
@@ -251,11 +281,10 @@ export default function InboxPage() {
 
       socket.off("messages", handleMessagesUpdated);
       socket.off("leads", handleLeadsUpdated);
-      socket.off("message", handleNewMessage);
-      socket.off("message_received", handleNewMessage);
-      socket.off("message_sent", handleNewMessage);
+      socket.off("message", handleMessagesUpdated);
+      socket.off("message_received", handleMessagesUpdated);
+      socket.off("message_sent", handleMessagesUpdated);
 
-      clearTimeout(messagesTimeout);
       clearTimeout(leadsTimeout);
       clearTimeout(notifTimeout);
     };
@@ -396,7 +425,9 @@ export default function InboxPage() {
       }
 
       const matchesArchived = showArchived ? lead.archived : !lead.archived;
-      const matchesMailbox = selectedMailboxId ? lead.integrationId === selectedMailboxId : true;
+      // Strict Isolation: Only show leads assigned to the selected mailbox
+      // If no mailbox is selected (e.g. initial load), don't show any leads to prevent bleed
+      const matchesMailbox = selectedMailboxId ? lead.integrationId === selectedMailboxId : false;
 
       return matchesSearch && matchesChannel && matchesStatus && matchesArchived && matchesMailbox;
     }).sort((a: any, b: any) => {
@@ -916,6 +947,9 @@ export default function InboxPage() {
                         <div className="flex-1 min-w-0 space-y-1">
                           <div className="flex justify-between items-start gap-2">
                             <span className="text-sm font-bold truncate text-foreground flex-1 max-w-[120px] md:max-w-[140px] lg:max-w-full" title={lead.name}>
+                              <span className="text-[10px] font-black opacity-30 mr-1.5 tabular-nums">
+                                #{filteredLeads.findIndex(l => l.id === lead.id) + 1}
+                              </span>
                               <HighlightText text={lead.name} query={searchQuery} />
                             </span>
                             <div className="flex items-center gap-1">
@@ -1414,6 +1448,7 @@ export default function InboxPage() {
                     <div className="flex gap-2 md:gap-3 items-end max-w-5xl mx-auto w-full">
                       <div className="flex-1 relative group">
                         <textarea
+                          ref={textareaRef}
                           value={replyMessage}
                           onChange={e => {
                             const newText = e.target.value;

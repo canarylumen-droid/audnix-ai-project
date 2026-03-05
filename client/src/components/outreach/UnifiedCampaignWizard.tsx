@@ -47,9 +47,10 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
   const [file, setFile] = useState<File | null>(null);
   const [isLoadingLeads, setIsLoadingLeads] = useState(false);
 
+  const [mailboxLimits, setMailboxLimits] = useState<Record<string, number>>({});
+
   // Step 2: Campaign Config
   const [campaignName, setCampaignName] = useState("");
-  const [dailyLimit, setDailyLimit] = useState(50);
   const [followUpDays, setFollowUpDays] = useState("3");
   const [aiPaused, setAiPaused] = useState(false);
   const [excludeWeekends, setExcludeWeekends] = useState(false);
@@ -65,12 +66,26 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
     ['custom_email', 'gmail', 'outlook'].includes(i.provider) && i.connected
   );
 
+  // Initialize mailbox limits
+  useEffect(() => {
+    if (availableMailboxes.length > 0) {
+      const initialLimits: Record<string, number> = {};
+      availableMailboxes.forEach((mb: any) => {
+        initialLimits[mb.id] = mb.metadata?.dailyLimit || 50;
+      });
+      setMailboxLimits(initialLimits);
+    }
+  }, [availableMailboxes]);
+
   // Auto-select first mailbox if none selected
   useEffect(() => {
     if (availableMailboxes.length > 0 && selectedMailboxes.length === 0) {
       setSelectedMailboxes([availableMailboxes[0].id]);
     }
   }, [availableMailboxes]);
+
+  const totalDailyVolume = selectedMailboxes.reduce((sum, id) => sum + (mailboxLimits[id] || 0), 0);
+  const estimatedDays = Math.ceil(leads.length / (totalDailyVolume || 1));
 
   // Templates
   const [subject, setSubject] = useState("");
@@ -206,7 +221,8 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
         leads: leads.map((l: any) => l.id || l),
         excludeWeekends,
         config: {
-          dailyLimit,
+          dailyLimit: totalDailyVolume,
+          mailboxLimits: mailboxLimits, // Send the per-mailbox overrides
           followUpDelayDays: parseInt(followUpDays),
           mailboxIds: selectedMailboxes,
           replyTo: replyTo || undefined
@@ -460,69 +476,172 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                     </div>
 
                     <div className="space-y-6">
-                      <div className="p-6 bg-card rounded-3xl border border-border/40 space-y-4">
-                        <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground/60">Sequence Logic</Label>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                          <div className="space-y-4">
-                            <div className="flex justify-between text-[11px] font-bold">
-                              <span>DAILY VOLUME (PER MAILBOX)</span>
-                              <Badge variant="default" className="font-mono text-white bg-primary">{dailyLimit}/day</Badge>
-                            </div>
-                            <Slider value={[dailyLimit]} onValueChange={v => setDailyLimit(v[0])} min={10} max={500} step={10} className="py-2" />
-                            <p className="text-[10px] text-muted-foreground uppercase font-medium leading-relaxed">Limits safety prevents account flags.</p>
+                      <div className="p-8 bg-card rounded-[2.5rem] border border-border/40 space-y-8 shadow-xl">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div className="space-y-1">
+                            <Label className="text-xs font-black uppercase tracking-[0.3em] text-primary/60">Sequence Distribution</Label>
+                            <p className="text-[10px] text-muted-foreground font-medium">Automatic lead allocation based on server capacity.</p>
                           </div>
-                          <div className="space-y-4">
-                            <span className="text-[11px] font-bold uppercase block tracking-widest">Selected Mailboxes</span>
-                            <div className="flex flex-wrap gap-2">
+                          <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest px-4 py-2 bg-primary/5 text-primary border-primary/20 shadow-sm self-start md:self-auto">
+                            {leads.length} leads • ~{estimatedDays} days total
+                          </Badge>
+                        </div>
+
+                        {/* Distribution Preview Card */}
+                        {selectedMailboxes.length > 1 && (
+                          <div className="p-6 rounded-[2rem] bg-muted/20 border border-border/10 space-y-4">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Allocation Forecast</span>
+                              <Sparkles className="h-3.5 w-3.5 text-primary/40" />
+                            </div>
+                            <div className="flex flex-wrap gap-3">
+                              {selectedMailboxes.map(id => {
+                                const mb = availableMailboxes.find(m => m.id === id);
+                                const count = Math.floor(leads.length * ((mailboxLimits[id] || 50) / (totalDailyVolume || 1)));
+                                return (
+                                  <div key={id} className="px-4 py-2 bg-background/50 rounded-xl border border-border/10 flex items-center gap-2 shadow-sm">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                                    <span className="text-[11px] font-bold truncate max-w-[120px]">{mb?.email?.split('@')[0]}</span>
+                                    <Badge variant="secondary" className="text-[9px] font-black h-4 px-1.5">{count} leads</Badge>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                          <div className="space-y-6">
+                            <span className="text-[11px] font-black uppercase block tracking-widest text-muted-foreground/80">Active Mailboxes</span>
+                            <div className="space-y-4">
                               {availableMailboxes.length === 0 ? (
                                 <span className="text-xs text-destructive">No mailboxes connected</span>
                               ) : (
                                 availableMailboxes.map((mb: any) => {
                                   const isSelected = selectedMailboxes.includes(mb.id);
                                   return (
-                                    <Badge
-                                      key={mb.id}
-                                      variant={isSelected ? "default" : "outline"}
-                                      className={cn("cursor-pointer select-none", isSelected ? "bg-primary text-white" : "opacity-50")}
-                                      onClick={() => {
-                                        if (isSelected && selectedMailboxes.length > 1) {
-                                          setSelectedMailboxes(selectedMailboxes.filter(id => id !== mb.id));
-                                        } else if (!isSelected) {
-                                          setSelectedMailboxes([...selectedMailboxes, mb.id]);
-                                        }
-                                      }}
-                                    >
-                                      {mb.email || mb.provider}
-                                    </Badge>
+                                    <div key={mb.id} className="space-y-3">
+                                      <div
+                                        className={cn(
+                                          "flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer group",
+                                          isSelected
+                                            ? "border-primary bg-primary/5 shadow-lg shadow-primary/5 ring-1 ring-primary/20"
+                                            : "border-border/40 bg-muted/20 hover:border-border/80 opacity-60"
+                                        )}
+                                        onClick={() => {
+                                          if (isSelected && selectedMailboxes.length > 1) {
+                                            setSelectedMailboxes(selectedMailboxes.filter(id => id !== mb.id));
+                                          } else if (!isSelected) {
+                                            setSelectedMailboxes([...selectedMailboxes, mb.id]);
+                                          }
+                                        }}
+                                      >
+                                        <div className="flex items-center gap-3">
+                                          <div className={cn("p-2 rounded-xl transition-colors", isSelected ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground")}>
+                                            <Mail className="h-4 w-4" />
+                                          </div>
+                                          <div className="flex flex-col">
+                                            <span className="text-xs font-bold truncate max-w-[140px]">{mb.email || mb.provider}</span>
+                                            <span className="text-[9px] uppercase font-black tracking-tighter opacity-40">{mb.provider}</span>
+                                          </div>
+                                        </div>
+                                        {isSelected && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                                      </div>
+
+                                      <AnimatePresence>
+                                        {isSelected && (
+                                          <motion.div
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: "auto", opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            className="overflow-hidden px-2"
+                                          >
+                                            <div className="space-y-3 pt-1 pb-4">
+                                              <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-primary/80">
+                                                <span>Custom Daily Limit</span>
+                                                <span className="bg-primary/10 px-2 rounded text-primary">{mailboxLimits[mb.id] || 50}/day</span>
+                                              </div>
+                                              <Slider
+                                                value={[mailboxLimits[mb.id] || 50]}
+                                                onValueChange={v => setMailboxLimits(prev => ({ ...prev, [mb.id]: v[0] }))}
+                                                min={10}
+                                                max={mb.provider === 'gmail' || mb.provider === 'outlook' ? 50 : 500}
+                                                step={5}
+                                                className="py-1"
+                                              />
+                                            </div>
+                                          </motion.div>
+                                        )}
+                                      </AnimatePresence>
+                                    </div>
                                   );
                                 })
                               )}
                             </div>
-                            <p className="text-[10px] text-muted-foreground uppercase font-medium leading-relaxed">System balances volume across selected mailboxes.</p>
                           </div>
-                          <div className="space-y-4">
-                            <span className="text-[11px] font-bold uppercase block tracking-widest">FOLLOW-UP DELAY</span>
-                            <Select value={followUpDays} onValueChange={setFollowUpDays}>
-                              <SelectTrigger className="h-12 bg-muted/30 border- border-border/20 rounded-xl focus:ring-0 px-4">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {[1, 2, 3, 5, 7, 10].map(d => <SelectItem key={d} value={d.toString()}>{d} {d === 1 ? 'Day' : 'Days'}</SelectItem>)}
-                              </SelectContent>
-                            </Select>
-                            <p className="text-[10px] text-muted-foreground uppercase font-medium leading-relaxed">Wait time between sequences.</p>
-                          </div>
-                          <div className="space-y-4">
-                            <span className="text-[11px] font-bold uppercase block tracking-widest">WEEKENED EXCLUSION</span>
-                            <div className="flex items-center justify-between p-4 bg-muted/30 border border-border/20 rounded-xl h-12">
-                              <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Skip Sat/Sun</span>
-                              <Switch
-                                checked={excludeWeekends}
-                                onCheckedChange={setExcludeWeekends}
-                                className="data-[state=checked]:bg-primary"
-                              />
+
+                          <div className="space-y-8">
+                            <div className="space-y-4">
+                              <div className="flex items-center gap-2">
+                                <Clock className="w-4 h-4 text-primary/60" />
+                                <span className="text-[11px] font-black uppercase tracking-widest text-muted-foreground/80">Timing & Logic</span>
+                              </div>
+
+                              <div className="space-y-6">
+                                <div className="space-y-3">
+                                  <Label className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40">Follow-up Delay</Label>
+                                  <Select value={followUpDays} onValueChange={setFollowUpDays}>
+                                    <SelectTrigger className="h-12 bg-muted/30 border- border-border/20 rounded-2xl focus:ring-0 px-6 font-bold text-xs uppercase tracking-widest">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-2xl border-border/40 bg-card/95 backdrop-blur-xl">
+                                      {[1, 2, 3, 5, 7, 10].map(d => (
+                                        <SelectItem key={d} value={d.toString()} className="font-bold text-[10px] uppercase tracking-widest py-3">
+                                          {d} {d === 1 ? 'Day' : 'Days'} Wait
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+
+                                <div className="space-y-3">
+                                  <Label className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40">Safety Rules</Label>
+                                  <div
+                                    className={cn(
+                                      "flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer",
+                                      excludeWeekends ? "bg-primary/5 border-primary shadow-sm" : "bg-muted/20 border-border/40 opacity-60"
+                                    )}
+                                    onClick={() => setExcludeWeekends(!excludeWeekends)}
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <div className={cn("p-2 rounded-xl", excludeWeekends ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground")}>
+                                        <Clock className="h-4 w-4" />
+                                      </div>
+                                      <div className="flex flex-col">
+                                        <span className="text-xs font-bold">Skip Weekends</span>
+                                        <span className="text-[9px] uppercase font-black tracking-tighter opacity-40">Safety Protocol</span>
+                                      </div>
+                                    </div>
+                                    <Switch
+                                      checked={excludeWeekends}
+                                      onCheckedChange={setExcludeWeekends}
+                                      className="data-[state=checked]:bg-primary"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
                             </div>
-                            <p className="text-[10px] text-muted-foreground uppercase font-medium leading-relaxed italic">Smart scheduler skips weekends automatically.</p>
+
+                            <div className="p-5 bg-primary/5 rounded-3xl border border-primary/10 space-y-2">
+                              <div className="flex items-center gap-2 text-primary">
+                                <Sparkles className="w-3.5 h-3.5" />
+                                <span className="text-[10px] font-black uppercase tracking-widest">Distribution Summary</span>
+                              </div>
+                              <p className="text-[11px] leading-relaxed text-muted-foreground/80">
+                                This campaign will utilize <span className="text-primary font-black">{selectedMailboxes.length} mailboxes</span> to engagement <span className="text-primary font-black">{leads.length} leads</span>.
+                                Total daily volume is capped at <span className="text-primary font-black">{totalDailyVolume} messages/day</span>.
+                              </p>
+                            </div>
                           </div>
                         </div>
                       </div>

@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import { MODELS } from './model-config.js';
 import { storage } from '../../storage.js';
 import { type Message } from '../../../shared/schema.js';
+import { AuditTrailService } from '../audit-trail-service.js';
 
 export interface IntentAnalysis {
   isInterested: boolean;
@@ -66,29 +67,29 @@ Latest Message: "${message}"
 
 Analyze and return a JSON object with these exact fields:
 {
-  "isInterested": boolean (shows buying interest),
-  "isNegative": boolean (rejection or complaint),
-  "hasQuestion": boolean (asking for information),
-  "hasObjection": boolean (price, timing, feature concerns),
-  "wantsToSchedule": boolean (wants meeting/call/demo),
-  "readyToBuy": boolean (ready to purchase/sign up),
-  "needsMoreInfo": boolean (needs education),
-  "confidence": number (0-1 confidence in analysis),
-  "sentiment": "positive" | "negative" | "neutral",
-  "suggestedAction": string (next best action),
-  "keywords": string[] (important keywords/phrases)
+  "isInterested": boolean(shows buying interest),
+    "isNegative": boolean(rejection or complaint),
+      "hasQuestion": boolean(asking for information),
+        "hasObjection": boolean(price, timing, feature concerns),
+          "wantsToSchedule": boolean(wants meeting / call / demo),
+            "readyToBuy": boolean(ready to purchase / sign up),
+              "needsMoreInfo": boolean(needs education),
+                "confidence": number(0 - 1 confidence in analysis),
+                  "sentiment": "positive" | "negative" | "neutral",
+                    "suggestedAction": string(next best action),
+                      "keywords": string[](important keywords / phrases)
 }
 
 Focus on buying signals like:
 - "interested", "love it", "perfect", "need this"
-- "how much", "pricing", "cost", "payment"
-- "when can we", "schedule", "meet", "call", "demo"
-- "sign up", "get started", "purchase", "buy"
+  - "how much", "pricing", "cost", "payment"
+  - "when can we", "schedule", "meet", "call", "demo"
+  - "sign up", "get started", "purchase", "buy"
 
 Negative signals:
 - "not interested", "no thanks", "unsubscribe", "stop"
-- "too expensive", "can't afford", "not now"
-- "already have", "using another", "competitor"
+  - "too expensive", "can't afford", "not now"
+  - "already have", "using another", "competitor"
 
 Return ONLY valid JSON, no explanation.`;
 
@@ -147,6 +148,9 @@ Return ONLY valid JSON, no explanation.`;
         intentAnalysis: analysis
       }
     });
+
+    // Log intent analysis to audit trail
+    await AuditTrailService.logIntentAnalysis(lead.id.toString(), analysis.sentiment, analysis.suggestedAction);
 
     return analysis;
 
@@ -213,12 +217,12 @@ function performBasicIntentAnalysis(message: string): IntentAnalysis {
 export async function suggestLeadTags(lead: Lead, latestMessage?: string, analysis?: IntentAnalysis): Promise<string[]> {
   try {
     const messages = await storage.getMessagesByLeadId(lead.id.toString());
-    const history = messages?.slice(-5).map(m => `${m.direction === 'inbound' ? 'Lead' : 'AI'}: ${m.body}`).join('\n') || 'No history';
+    const history = messages?.slice(-5).map(m => `${m.direction === 'inbound' ? 'Lead' : 'AI'}: ${m.body} `).join('\n') || 'No history';
 
-    const prompt = `Analyze this conversation and suggest 3-5 technical tags for this lead.
-    
-    Lead: ${lead.name}
-    Channel: ${lead.channel}
+    const prompt = `Analyze this conversation and suggest 3 - 5 technical tags for this lead.
+
+  Lead: ${lead.name}
+Channel: ${lead.channel}
     Current Tags: ${lead.tags?.join(', ') || 'none'}
     
     Conversation History:
@@ -227,14 +231,14 @@ export async function suggestLeadTags(lead: Lead, latestMessage?: string, analys
     ${latestMessage ? `Latest Message: "${latestMessage}"` : ''}
     ${analysis ? `AI Analysis: ${JSON.stringify(analysis)}` : ''}
 
-    Rules:
-    - Include industry tags (e.g., "SaaS", "Real Estate", "Ecommerce")
-    - Include intent tags (e.g., "High Intent", "Price Sensitive", "Technical Buyer")
-    - Include status tags (e.g., "Decision Maker", "Information Seeker")
-    - Return a string array of tags only.
-    
-    Example: ["SaaS", "High Intent", "Decision Maker", "Q1 Timeline"]
-    Return JSON: { "tags": ["string"] }`;
+Rules:
+- Include industry tags(e.g., "SaaS", "Real Estate", "Ecommerce")
+  - Include intent tags(e.g., "High Intent", "Price Sensitive", "Technical Buyer")
+    - Include status tags(e.g., "Decision Maker", "Information Seeker")
+      - Return a string array of tags only.
+
+        Example: ["SaaS", "High Intent", "Decision Maker", "Q1 Timeline"]
+    Return JSON: { "tags": ["string"] } `;
 
     if (!openai) {
       throw new Error("OpenAI not initialized");

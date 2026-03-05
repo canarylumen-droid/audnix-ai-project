@@ -150,12 +150,18 @@ export default function PricingPage() {
 
                 <div className="mt-auto pt-8 border-t border-border space-y-6">
                   <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="w-3.5 h-3.5 text-primary" />
-                      <span>{tier.leadsLimit.toLocaleString()} Leads / Mo</span>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="w-3.5 h-3.5 text-primary" />
+                        <span>{tier.leadsLimit.toLocaleString()} Leads / Mo</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-3.5 h-3.5 text-primary" />
+                        <span>{tier.mailboxLimit} Mailbox{tier.mailboxLimit > 1 ? 'es' : ''}</span>
+                      </div>
                     </div>
                     {tier.voiceMinutes > 0 && (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 self-start">
                         <Activity className="w-3.5 h-3.5 text-primary" />
                         <span>{tier.voiceMinutes} AI Mins</span>
                       </div>

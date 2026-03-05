@@ -7,6 +7,7 @@ export interface PricingTier {
   description: string;
   features: string[];
   leadsLimit: number;
+  mailboxLimit: number;
   voiceMinutes: number;
   popular?: boolean;
   paymentLink?: string;
@@ -21,6 +22,7 @@ export const PRICING_TIERS: PricingTier[] = [
     period: '3 days',
     description: 'Experience the power of autonomous engagement. No commitment required.',
     leadsLimit: 500,
+    mailboxLimit: 1,
     voiceMinutes: 0,
     order: -1,
     features: [
@@ -40,6 +42,7 @@ export const PRICING_TIERS: PricingTier[] = [
     period: 'month',
     description: 'Empower your small team with elite-level automation and intelligence.',
     leadsLimit: 2500,
+    mailboxLimit: 3,
     voiceMinutes: 100,
     order: 1,
     features: [
@@ -59,6 +62,7 @@ export const PRICING_TIERS: PricingTier[] = [
     period: 'month',
     description: 'The standard for high-performance sales teams scaling past their limits.',
     leadsLimit: 7500,
+    mailboxLimit: 5,
     voiceMinutes: 400,
     popular: true,
     order: 2,
@@ -79,6 +83,7 @@ export const PRICING_TIERS: PricingTier[] = [
     period: 'month',
     description: 'Custom-built automation architecture for organizations lead by data.',
     leadsLimit: 20000,
+    mailboxLimit: 10,
     voiceMinutes: 1000,
     order: 3,
     features: [

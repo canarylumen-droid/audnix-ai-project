@@ -285,6 +285,11 @@ class ImapIdleManager {
                 this.syncAccountFolders(integrationId, imap, userId);
             });
 
+            imap.on('expunge', (seqno: number) => {
+                console.log(`🗑️ Integration ${integrationId} expunged message (Seq: ${seqno})`);
+                this.syncDeletedMessages(integrationId, imap, userId, primaryInbox);
+            });
+
             if (typeof (imap as any).idle === 'function') {
                 (imap as any).idle();
             }
@@ -448,6 +453,62 @@ class ImapIdleManager {
                 });
             });
         });
+    private async syncDeletedMessages(integrationId: string, imap: Imap, userId: string, folderName: string): Promise<void> {
+        try {
+            const { db } = await import('../../db.js');
+            const { messages } = await import('../../../shared/schema.js');
+            const { eq, and, desc } = await import('drizzle-orm');
+
+            // Check recent inbound messages
+            const recentDbMessages = await db.query.messages.findMany({
+                where: and(eq(messages.userId, userId), eq(messages.direction, 'inbound')),
+                orderBy: [desc(messages.createdAt)],
+                limit: 50
+            });
+
+            if (recentDbMessages.length === 0) return;
+
+            imap.openBox(folderName, true, (err: any, box: any) => {
+                if (err || !box || box.messages.total === 0) {
+                    try { if (typeof (imap as any).idle === 'function') (imap as any).idle(); } catch (e) { }
+                    return;
+                }
+
+                const fetchRange = box.messages.total < 100 ? '1:*' : `${box.messages.total - 99}:*`;
+                const fetch = imap.seq.fetch(fetchRange, { bodies: 'HEADER.FIELDS (MESSAGE-ID)', struct: false });
+                const imapMessageIds = new Set<string>();
+
+                fetch.on('message', (msg: any) => {
+                    msg.on('body', (stream: any) => {
+                        simpleParser(stream, (err: any, parsed: any) => {
+                            if (parsed && parsed.messageId) imapMessageIds.add(parsed.messageId);
+                        });
+                    });
+                });
+
+                fetch.once('end', async () => {
+                    let deletedCount = 0;
+                    let lastDeletedLeadId: string | null = null;
+
+                    for (const dbMsg of recentDbMessages) {
+                        if (dbMsg.messageId && !imapMessageIds.has(dbMsg.messageId)) {
+                            console.log(`🧹 Removing deleted message ${dbMsg.messageId} from database`);
+                            await db.delete(messages).where(eq(messages.id, dbMsg.id));
+                            deletedCount++;
+                            lastDeletedLeadId = dbMsg.leadId || null;
+                        }
+                    }
+                    if (deletedCount > 0) {
+                        wsSync.notifyMessagesUpdated(userId);
+                        wsSync.notifyStatsUpdated(userId);
+                        wsSync.notifyLeadsUpdated(userId); // Update lead list snippets if affected
+                    }
+                    try { if (typeof (imap as any).idle === 'function') (imap as any).idle(); } catch (e) { }
+                });
+            });
+        } catch (error) {
+            console.error(`[IMAP] Sync deleted messages failed for ${integrationId}:`, error);
+        }
     }
 
     private reconnect(integrationId: string, integration: Integration): void {

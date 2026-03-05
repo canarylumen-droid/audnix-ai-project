@@ -5,16 +5,17 @@
 
 import { db } from "../db.js";
 import { auditTrail, pdfAnalytics } from "../../shared/schema.js";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 
-export type AuditActionType = 
-  | "ai_message_sent" 
-  | "opt_out_toggled" 
-  | "pdf_processed" 
+export type AuditActionType =
+  | "ai_message_sent"
+  | "opt_out_toggled"
+  | "pdf_processed"
   | "upload_rate_limited"
   | "campaign_started"
   | "campaign_completed"
-  | "campaign_pause_toggled";
+  | "campaign_pause_toggled"
+  | "intent_detected";
 
 export interface AuditAction {
   userId: string;
@@ -280,6 +281,47 @@ export class AuditTrailService {
     } catch (error) {
       console.error("Error checking PDF quality:", error);
       return { shouldAlert: false };
+    }
+  }
+
+  /**
+   * Log detected intent with deduplication (24h window per intent type)
+   */
+  static async logIntentDetected(userId: string, leadId: string, intent: string, score: number): Promise<void> {
+    try {
+      if (!db || !leadId) return;
+
+      // Check for identical intent log for this lead in the last 24 hours
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+      const existing = await db
+        .select()
+        .from(auditTrail)
+        .where(
+          and(
+            eq(auditTrail.leadId, leadId),
+            eq(auditTrail.action, "intent_detected"),
+            sql`(${auditTrail.details}->>'intent') = ${intent}`,
+            sql`(${auditTrail.createdAt}) > ${yesterday}`
+          )
+        )
+        .limit(1);
+
+      if (existing.length > 0) return;
+
+      await db.insert(auditTrail).values({
+        userId,
+        leadId,
+        action: "intent_detected",
+        details: {
+          intent,
+          score,
+          timestamp: new Date().toISOString(),
+        },
+      });
+      console.log(`✓ Audit: Intent "${intent}" detected for lead ${leadId}`);
+    } catch (error) {
+      console.error("Audit trail intent error:", error);
     }
   }
 }

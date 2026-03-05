@@ -188,10 +188,16 @@ router.post('/campaigns', requireAuth, async (req, res) => {
       );
 
       const getLimit = (mb: any) => {
+        // First check for campaign-specific overrides
+        if (campaignConfig.mailboxLimits && campaignConfig.mailboxLimits[mb.id]) {
+          return Number(campaignConfig.mailboxLimits[mb.id]);
+        }
+        // Fallback to integration metadata
         try {
           const meta = mb.metadata;
           if (meta?.dailyLimit) return Number(meta.dailyLimit);
         } catch (e) { }
+        // Default fallbacks
         if (mb.provider === 'gmail' || mb.provider === 'outlook') return 50;
         return 500;
       };

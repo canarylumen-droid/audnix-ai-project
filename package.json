@@ -179,6 +179,9 @@
     "rollup": "^4.34.8",
     "vite": "^6.4.1"
   },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "4.34.8"
+  },
   "overrides": {
     "tough-cookie": "^5.0.0",
     "semver": "^7.6.3",

@@ -329,8 +329,18 @@ async function processEmailForLead(
 
           if (campaignLeadEntries.length > 0) {
             const entry = campaignLeadEntries[0];
+            const randomDelayMinutes = 2 + Math.random() * 2; // 2-4 minutes
+            const nextActionAt = new Date(Date.now() + randomDelayMinutes * 60 * 1000);
+
             await db.update(campaignLeads)
-              .set({ status: 'replied' })
+              .set({
+                status: 'replied',
+                nextActionAt,
+                metadata: {
+                  ...(entry.metadata as Record<string, any> || {}),
+                  pendingAutoReply: true
+                }
+              })
               .where(eq(campaignLeads.id, entry.id));
 
             console.log(`[EMAIL_IMPORT] Lead ${lead.email} marked as 'replied' in campaign ${entry.campaignId}`);
@@ -454,7 +464,7 @@ async function processEmailForLead(
           const { followUpQueue } = await import('../../../shared/schema.js');
 
           if (followUpDb) {
-            const quickDelay = (2 + Math.random() * 1) * 60 * 1000; // 2-3 minutes
+            const quickDelay = (2 + Math.random() * 2) * 60 * 1000; // 2-4 minutes random delay
             const scheduledTime = new Date(Date.now() + quickDelay);
 
             // Extract custom auto-reply body if it exists

@@ -53,6 +53,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+import { getPlanCapabilities } from "@shared/plan-utils";
+
 interface Integration {
   provider: string;
   connected: boolean;
@@ -246,8 +248,20 @@ export default function IntegrationsPage() {
   };
 
   const calculateReputation = () => {
-    return (stats?.domainHealth ?? 100).toFixed(1);
+    return stats?.domainHealth !== undefined ? stats.domainHealth.toFixed(1) : null;
   };
+
+  useEffect(() => {
+    // Autonomous check: if email connected but no domain health, trigger it
+    if (customEmailStatus?.connected && customEmailStatus?.email && stats?.domainHealth === undefined) {
+      if (!verifyDomainMutation.isPending) {
+        const domain = getDomainFromEmail(customEmailStatus.email);
+        if (domain) {
+          verifyDomainMutation.mutate(domain);
+        }
+      }
+    }
+  }, [customEmailStatus?.connected, customEmailStatus?.email, stats?.domainHealth]);
 
   const integrations = integrationsData?.integrations ?? [];
   const isCustomEmailConnected = customEmailStatus?.connected || false;
@@ -404,10 +418,8 @@ export default function IntegrationsPage() {
   };
 
   const getMailboxLimit = () => {
-    const tier = userData?.user?.subscriptionTier?.toLowerCase();
-    if (tier === 'enterprise') return 5;
-    if (tier === 'pro') return 3;
-    return 1;
+    const tier = userData?.user?.subscriptionTier || 'trial';
+    return getPlanCapabilities(tier).mailboxLimit;
   };
 
   const connectedMailboxesCount = (customEmailStatus?.integrations?.length || 0) +
@@ -551,15 +563,20 @@ export default function IntegrationsPage() {
                     </div>
                     {isAtMailboxLimit ? (
                       getNextPlan() ? (
-                        <Link href="/dashboard/billing">
+                        <Link href="/dashboard/pricing">
                           <Button size="sm" variant="outline" className="rounded-full gap-2 border-primary/20 text-primary hover:bg-primary/5">
-                            <Zap className="h-3.5 w-3.5 fill-primary" /> Upgrade to {getNextPlan()} for More
+                            <Zap className="h-3.5 w-3.5 fill-primary" /> Upgrade for More
                           </Button>
                         </Link>
                       ) : (
-                        <Badge variant="outline" className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 border-border/40">
-                          Limit Reached
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-500 border-emerald-500/20 bg-emerald-500/5">
+                            Full Capacity
+                          </Badge>
+                          <Button size="sm" className="rounded-full gap-2 shadow-lg shadow-primary/20" onClick={() => setIsEditingCustomEmail(true)}>
+                            <Plus className="h-4 w-4" /> Add Mailbox
+                          </Button>
+                        </div>
                       )
                     ) : (
                       <Button size="sm" className="rounded-full gap-2 shadow-lg shadow-primary/20" onClick={() => setIsEditingCustomEmail(true)}>
@@ -643,9 +660,10 @@ export default function IntegrationsPage() {
                           </Button>
                           <Badge className={cn(
                             "text-[9px] font-black border-0 uppercase tracking-tighter",
-                            parseFloat(calculateReputation()) > 90 ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"
+                            calculateReputation() === null ? "bg-muted text-muted-foreground" :
+                              parseFloat(calculateReputation()!) > 90 ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"
                           )}>
-                            {parseFloat(calculateReputation()) > 90 ? "Healthy" : "Attention Required"}
+                            {calculateReputation() === null ? "Pending Analysis" : parseFloat(calculateReputation()!) > 90 ? "Healthy" : "Attention Required"}
                           </Badge>
                         </div>
                       </div>
@@ -653,28 +671,33 @@ export default function IntegrationsPage() {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-0.5">
                           <p className="text-[9px] font-bold text-muted-foreground/60 uppercase">Domain Grade</p>
-                          <p className="text-3xl font-black tracking-tighter text-foreground">{calculateReputation()}%</p>
+                          <div className="text-3xl font-black tracking-tighter text-foreground h-9 flex items-center">
+                            {calculateReputation() !== null ? `${calculateReputation()}%` : <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />}
+                          </div>
                         </div>
                         <div className="space-y-0.5">
                           <p className="text-[9px] font-bold text-muted-foreground/60 uppercase">Engine Status</p>
                           <p className={cn(
                             "text-xs font-black uppercase tracking-widest pt-2",
-                            parseFloat(calculateReputation()) > 90 ? "text-emerald-500" : "text-amber-500"
+                            calculateReputation() === null ? "text-muted-foreground" :
+                              parseFloat(calculateReputation()!) > 90 ? "text-emerald-500" : "text-amber-500"
                           )}>
-                            {parseFloat(calculateReputation()) > 95 ? "Autonomous" : "User Oversight Recommended"}
+                            {calculateReputation() === null ? "Waiting" : parseFloat(calculateReputation()!) > 95 ? "Autonomous" : "User Oversight Recommended"}
                           </p>
                         </div>
                       </div>
 
                       <div className={cn(
-                        "p-3 rounded-xl border text-[10px] leading-tight font-medium",
-                        parseFloat(calculateReputation()) > 90
-                          ? "bg-primary/5 border-primary/10 text-muted-foreground"
-                          : "bg-red-500/5 border-red-500/10 text-red-400"
+                        "p-3 rounded-xl border text-[10px] leading-tight font-medium transition-all duration-300",
+                        calculateReputation() === null ? "bg-muted/10 border-border/20 text-muted-foreground" :
+                          parseFloat(calculateReputation()!) > 90
+                            ? "bg-primary/5 border-primary/10 text-muted-foreground"
+                            : "bg-red-500/5 border-red-500/10 text-red-400"
                       )}>
-                        {parseFloat(calculateReputation()) > 90
-                          ? "Your domain parameters are within safe limits. AI is managing 1-by-1 sending autonomously."
-                          : "Warning: Low reputation detected. Engine will auto-pause if bounce rate exceeds 10%."}
+                        {calculateReputation() === null ? "AI is initiating a health checkpoint for your domain." :
+                          parseFloat(calculateReputation()!) > 90
+                            ? "Your domain parameters are within safe limits. AI is managing 1-by-1 sending autonomously."
+                            : "Warning: Low reputation detected. Engine will auto-pause if bounce rate exceeds 10%."}
                       </div>
 
                       {stats?.domainVerifications?.length > 0 && (

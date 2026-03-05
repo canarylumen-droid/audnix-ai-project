@@ -230,7 +230,7 @@ export default function DashboardHome() {
       if (!res.ok) throw new Error("Failed to fetch stats");
       return res.json();
     },
-    staleTime: 1000,
+    staleTime: 50, // Ultra-fast 20ms-feel refreshes
     placeholderData: (previousData) => previousData,
   });
 
@@ -244,7 +244,7 @@ export default function DashboardHome() {
       return res.json();
     },
     retry: false,
-    staleTime: 300000,
+    staleTime: 60000,
     placeholderData: (previousData) => previousData,
   });
 
@@ -262,7 +262,7 @@ export default function DashboardHome() {
     },
     refetchOnWindowFocus: true,
     retry: false,
-    staleTime: 5000,
+    staleTime: 50, // Keep activity ultra-fresh
     placeholderData: (previousData) => previousData,
   });
 
@@ -431,6 +431,44 @@ export default function DashboardHome() {
             )}
           </div>
         </div>
+
+        {/* AI Smart Scheduling Banner */}
+        {insightsData?.summary && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="relative overflow-hidden group bg-primary/10 border border-primary/20 rounded-[2rem] p-6 shadow-lg shadow-primary/5 mb-8"
+          >
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 blur-[80px] rounded-full translate-x-1/2 -translate-y-1/2 group-hover:bg-primary/20 transition-all duration-700" />
+            <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
+              <div className="h-12 w-12 rounded-2xl bg-primary/20 flex items-center justify-center text-primary shrink-0 animate-pulse">
+                <Brain className="h-6 w-6" />
+              </div>
+              <div className="flex-1 space-y-1 text-center md:text-left">
+                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">Peak Hour Optimization</h3>
+                <p className="text-sm md:text-base font-bold text-foreground/90">
+                  AI predicts your optimal sending window is <span className="text-primary font-black uppercase tracking-widest">{insightsData.bestReplyHour || 14}:00 - {((insightsData.bestReplyHour || 14) + 2) % 24}:00</span> based on recent patterns.
+                </p>
+                <div className="flex items-center justify-center md:justify-start gap-4 mt-2">
+                  <Badge variant="outline" className="bg-primary/5 text-[9px] font-black uppercase tracking-widest px-3 py-1 border-primary/10">
+                    <Zap className="w-3 h-3 mr-1.5" /> Adaptive Frequency: ON
+                  </Badge>
+                  <Badge variant="outline" className="bg-primary/5 text-[9px] font-black uppercase tracking-widest px-3 py-1 border-primary/10">
+                    <Activity className="w-3 h-3 mr-1.5" /> High Deliverability
+                  </Badge>
+                </div>
+              </div>
+              <Button
+                variant="default"
+                className="rounded-full bg-primary hover:bg-primary/90 text-[10px] font-black uppercase tracking-widest h-10 px-8 shadow-md"
+                onClick={() => setLocation('/dashboard/ai-analytics')}
+              >
+                View Full Analysis
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
 
         {/* KPI Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

@@ -190,6 +190,14 @@ export class OutreachEngine {
           )
         )
       )
+      .orderBy(
+        // Priority 1: Auto-Replies (highest)
+        sql`CASE WHEN ${campaignLeads.metadata}->>'pendingAutoReply' = 'true' THEN 0 ELSE 1 END`,
+        // Priority 2: Follow-ups (higher than new outreach)
+        sql`CASE WHEN ${campaignLeads.currentStep} > 1 THEN 0 ELSE 1 END`,
+        // Then by scheduled time
+        campaignLeads.nextActionAt
+      )
       .limit(2000);
 
     if (nextLeadsResult.length === 0) {
@@ -215,7 +223,8 @@ export class OutreachEngine {
       const integration = await storage.getIntegrationById(integrationId);
       if (!integration || !integration.connected) continue;
 
-      const isReady = await this.isMailboxReadyToSend(userId, integration, campaign);
+      const isHighPriority = leadEntry.currentStep > 1 || leadEntry.metadata?.pendingAutoReply === true;
+      const isReady = await this.isMailboxReadyToSend(userId, integration, campaign, isHighPriority);
       if (!isReady) continue;
 
       // Process delivery
@@ -308,10 +317,10 @@ export class OutreachEngine {
     const user = await storage.getUser(userId);
     const plan = (user as any)?.subscriptionPlan?.toLowerCase() || 'starter';
 
-    let limit = 1;
-    if (plan === 'enterprise') limit = 5;
-    else if (plan === 'pro') limit = 3;
-    else if (plan === 'starter') limit = 1;
+    let limit = 3;
+    if (plan === 'enterprise') limit = 10;
+    else if (plan === 'pro') limit = 5;
+    else if (plan === 'starter') limit = 3;
 
     return mailboxes.slice(0, limit).sort((a, b) => a.id.localeCompare(b.id));
   }
@@ -360,17 +369,46 @@ export class OutreachEngine {
   /**
    * Checks daily limits and mandatory randomized delays for a specific mailbox
    */
-  private async isMailboxReadyToSend(userId: string, integration: Integration, campaign?: any): Promise<boolean> {
+  private async isMailboxReadyToSend(userId: string, integration: Integration, campaign?: any, isHighPriority: boolean = false): Promise<boolean> {
+    const mailboxDailyLimit = (integration.metadata as any)?.dailyLimit || 50;
+
+    // High Priority (Follow-ups/Auto-Replies) can vastly exceed the initial send limit (e.g., up to 300)
+    // To ensure active fluid conversations don't get stuck due to initial outreach limits.
+    const effectiveLimit = isHighPriority ? Math.max(300, mailboxDailyLimit * 5) : mailboxDailyLimit;
+
     const channel = integration.provider === 'instagram' ? 'instagram' : 'email';
 
     // Calculate safe dynamic rate for non-stop delivery over 24 hours
-    let mailboxDailyLimit = 50;
-    try {
-      const meta = (integration as any).encryptedMeta ? null : (integration as any).metadata;
-      if (meta?.dailyLimit) mailboxDailyLimit = Number(meta.dailyLimit);
-    } catch (e) { }
+    let finalMailboxLimit = mailboxDailyLimit;
+    const meta = integration.metadata as any;
+    if (meta?.dailyLimit) finalMailboxLimit = Number(meta.dailyLimit);
 
-    const sendsPerHour = Math.max(1, Math.ceil(mailboxDailyLimit / 24));
+    // --- Peak Hour Analysis ---
+    const now = new Date();
+    const currentHour = now.getHours();
+
+    // Fetch analytics summary for the user to find bestReplyHour
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    let bestHour = 14; // Default to 2 PM if unknown
+    try {
+      const analytics = await storage.getAnalyticsSummary(userId, thirtyDaysAgo);
+      bestHour = analytics?.summary?.bestReplyHour || 14;
+    } catch (e) {
+      console.warn(`[OutreachEngine] Could not fetch analytics for user ${userId}, using default peak hour`);
+    }
+
+    // Check if we are in the peak window (+/- 1 hour from bestHour)
+    const isPeakHour = Math.abs(currentHour - bestHour) <= 1 || Math.abs(currentHour - (bestHour + 24)) <= 1;
+
+    // Adaptive frequency: During peak hours, we can send more aggressively (up to 3x base rate)
+    // but we still respect the daily total cap.
+    const peakMultiplier = isPeakHour ? 3 : 1;
+    const baseSendsPerHour = Math.max(1, Math.ceil(mailboxDailyLimit / 24));
+
+    // Cap at 50/hour for new safety, 100/hr for high-priority replies
+    const targetSendsPerHour = Math.min(baseSendsPerHour * peakMultiplier, isHighPriority ? 100 : 50);
 
     // 1. Cooldown check (using integrationId if available)
     const lastSentResult = await db.execute(sql`
@@ -388,9 +426,8 @@ export class OutreachEngine {
       if (channel === 'instagram') {
         minDelayMs = (5 + Math.random() * 5) * 60 * 1000;
       } else {
-        // Dynamic delay spacing based on sendsPerHour to distribute evenly across the hour
-        // e.g., if sendsPerHour is 2 (from 50/day), base delay is ~30 mins
-        const baseDelayMs = (60 * 60 * 1000) / sendsPerHour;
+        // Dynamic delay spacing based on targetSendsPerHour to distribute evenly across the hour
+        const baseDelayMs = (60 * 60 * 1000) / (targetSendsPerHour || 1);
         // Add +/- 15% random jitter to avoid predictable bot patterns
         minDelayMs = baseDelayMs * 0.85 + (Math.random() * baseDelayMs * 0.3);
       }
@@ -405,21 +442,19 @@ export class OutreachEngine {
       SELECT COUNT(*) as count FROM messages 
       WHERE user_id = ${userId} 
       AND direction = 'outbound'
-      AND metadata->>'integrationId' = ${integration.id}
+      AND (metadata->>'integrationId' = ${integration.id} OR metadata->>'integration_id' = ${integration.id})
       AND created_at >= NOW() - INTERVAL '1 hour'
     `);
-    if (Number(sentLastHourResult.rows[0].count) >= sendsPerHour) {
-      return false; // Wait for next hour
+
+    if (Number(sentLastHourResult.rows[0].count) >= targetSendsPerHour) {
+      return false; // Wait for next slot
     }
 
     // 3. Global/User Daily Limits & Autonomous Mode
-    let userDailyLimit = 50;
     try {
       const userResult = await db.select().from(users).where(eq(users.id, userId)).limit(1);
       if (userResult[0]) {
         const config = (userResult[0].config as any) || {};
-        userDailyLimit = config.dailyLimit || 50;
-
         const isAutonomousMode = config.autonomousMode === true;
         const isManualCampaign = campaign?.config?.isManual === true;
 
@@ -432,16 +467,16 @@ export class OutreachEngine {
       SELECT COUNT(*) as count FROM messages 
       WHERE user_id = ${userId} 
       AND direction = 'outbound'
-      AND metadata->>'integrationId' = ${integration.id}
+      AND (metadata->>'integrationId' = ${integration.id} OR metadata->>'integration_id' = ${integration.id})
       AND created_at >= CURRENT_DATE::timestamp
     `);
     const sentToday = Number(sentTodayResult.rows[0].count);
 
-    if (sentToday >= mailboxDailyLimit) {
+    if (sentToday >= effectiveLimit) {
       return false;
     }
 
-    // Also respect campaign-specific limit if provided (applies to total campaign)
+    // Also respect campaign-specific limit if provided
     if (campaign?.config?.dailyLimit) {
       const campaignSentToday = await db.execute(sql`
             SELECT COUNT(*) as count FROM messages 
