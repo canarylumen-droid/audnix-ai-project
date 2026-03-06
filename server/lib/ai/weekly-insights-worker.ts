@@ -100,18 +100,29 @@ export class WeeklyInsightsWorker {
               },
             };
 
-            // Generate insights using AI
-            const insightsPrompt = `Generate a brief weekly performance summary for a sales user. 
-            Highlight key metrics, trends, and actionable recommendations.
-            Focus on lead conversion, response times, and channel effectiveness.`;
+            // Generate insights using AI - Enhanced for low data & strategic value
+            const insightsPrompt = `Generate a brief, punchy weekly performance summary for a sales professional.
+            
+            METRICS:
+            - Leads Processed: ${insightsData.leadsCount}
+            - Messages Sent: ${insightsData.messagesCount}
+            - Converted: ${insightsData.convertedLeads}
+            
+            LOGIC:
+            If data is low (0-5 leads), focus on "Momentum Building" and "Setup Optimization".
+            If data is high, focus on "Conversion Optimization" and "Scaling".
+            Always provide 3 bullet points: 1 Metric Insight, 1 Behavior Pattern, 1 Direct Action.
+            Keep it under 150 words. Tone: Elite Sales Consultant.`;
 
             const insights: string = await generateInsights(insightsData, insightsPrompt);
 
             // Create notification for the user
             await storage.createNotification({
               userId: user.id,
-              title: "🎯 Your Weekly Insights Are Ready!",
-              message: `We've analyzed your performance from the past week. ${leads.length} leads tracked, ${weekMessages.length} messages sent. View your personalized insights now!`,
+              title: "🎯 Weekly Performance Audit",
+              message: insightsData.leadsCount > 0
+                ? `Audit complete: ${insightsData.leadsCount} leads analyzed. View your strategic insights.`
+                : "Initial baseline established. View your setup recommendations.",
               type: "insight",
               isRead: false,
               metadata: {

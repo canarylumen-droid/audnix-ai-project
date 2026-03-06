@@ -18,6 +18,7 @@ import { wsSync } from '../websocket-sync.js';
 import { workerHealthMonitor } from '../monitoring/worker-health.js';
 import { AuditTrailService } from '../audit-trail-service.js';
 import { sendInstagramOutreach } from '../channels/instagram.js';
+import { decryptToJSON } from '../crypto/encryption.js';
 
 export class OutreachEngine {
   private isRunning: boolean = false;
@@ -223,7 +224,7 @@ export class OutreachEngine {
       const integration = await storage.getIntegrationById(integrationId);
       if (!integration || !integration.connected) continue;
 
-      const isHighPriority = leadEntry.currentStep > 1 || leadEntry.metadata?.pendingAutoReply === true;
+      const isHighPriority = leadEntry.currentStep >= 1 || leadEntry.metadata?.pendingAutoReply === true;
       const isReady = await this.isMailboxReadyToSend(userId, integration, campaign, isHighPriority);
       if (!isReady) continue;
 
@@ -370,7 +371,8 @@ export class OutreachEngine {
    * Checks daily limits and mandatory randomized delays for a specific mailbox
    */
   private async isMailboxReadyToSend(userId: string, integration: Integration, campaign?: any, isHighPriority: boolean = false): Promise<boolean> {
-    const mailboxDailyLimit = (integration.metadata as any)?.dailyLimit || 50;
+    const meta = decryptToJSON(integration.encryptedMeta) || {};
+    const mailboxDailyLimit = meta.dailyLimit || 50;
 
     // High Priority (Follow-ups/Auto-Replies) can vastly exceed the initial send limit (e.g., up to 300)
     // To ensure active fluid conversations don't get stuck due to initial outreach limits.
@@ -380,7 +382,6 @@ export class OutreachEngine {
 
     // Calculate safe dynamic rate for non-stop delivery over 24 hours
     let finalMailboxLimit = mailboxDailyLimit;
-    const meta = integration.metadata as any;
     if (meta?.dailyLimit) finalMailboxLimit = Number(meta.dailyLimit);
 
     // --- Peak Hour Analysis ---

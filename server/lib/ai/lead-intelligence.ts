@@ -14,13 +14,23 @@ import OpenAI from "openai";
 import { MODELS } from "./model-config.js";
 import type { ConversationMessage, LeadProfile, BrandContext } from "../../../shared/types.js";
 
-// Initialize OpenAI if key is present, otherwise use fallback
+// Initialize Z-AI (GLM) if key is present, otherwise fallback to OpenAI
+const zai = process.env.Z_AI_API_KEY
+  ? new OpenAI({
+    apiKey: process.env.Z_AI_API_KEY,
+    baseURL: "https://open.bigmodel.cn/api/paas/v4"
+  })
+  : null;
+
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
-if (!openai) {
-  console.warn('⚠️ OpenAI API Key missing. Lead Intelligence will use basic scoring.');
+const aiClient = zai || openai;
+const isZAI = !!zai;
+
+if (!aiClient) {
+  console.warn('⚠️ AI API Key missing (Z-AI or OpenAI). Lead Intelligence will use basic scoring.');
 }
 
 export interface IntentDetectionResult {
@@ -113,7 +123,7 @@ export async function detectLeadIntent(
     const company = lead.metadata?.company as string | undefined;
     const industry = lead.metadata?.industry as string | undefined;
 
-    if (!openai) {
+    if (!aiClient) {
       // Fallback: Deterministic Intent Scoring for Local Mode
       const inboundCount = messages.filter(m => m.direction === 'inbound').length;
       const score = Math.min(100, inboundCount * 25);
@@ -126,8 +136,8 @@ export async function detectLeadIntent(
       };
     }
 
-    const response = await openai.chat.completions.create({
-      model: MODELS.sales_reasoning,
+    const response = await aiClient.chat.completions.create({
+      model: isZAI ? MODELS.sales_reasoning : MODELS.sales_reasoning,
       messages: [
         {
           role: "user",
@@ -303,7 +313,7 @@ Format as JSON:
 
     const messageContent = response.choices[0]?.message?.content;
     if (!messageContent) {
-      throw new Error("Empty response from OpenAI");
+      throw new Error(`Empty response from ${isZAI ? 'Z-AI' : 'OpenAI'}`);
     }
 
     const objection = JSON.parse(messageContent) as {

@@ -32,6 +32,7 @@ import { mapCSVColumnsToSchema, extractLeadFromRow, extractExtraFieldsAsMetadata
 import { parseEmailBody } from "../lib/ai/body-parser.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { GEMINI_LATEST_MODEL } from "../lib/ai/model-config.js";
+import { checkGrammar, generateReply } from "../lib/ai/ai-service.js";
 
 const verifier = new EmailVerifier();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
@@ -79,7 +80,7 @@ router.get("/", requireAuth, async (req: Request, res: Response): Promise<void> 
         includeArchived === 'true' ? undefined : eq(leadsTable.archived, false),
         status && status !== 'all' ? eq(leadsTable.status, status as any) : undefined,
         channel ? eq(leadsTable.channel, channel as any) : undefined,
-        integrationId ? sql`${leadsTable.metadata}->>'integrationId' = ${integrationId as string}` : undefined
+        integrationId ? eq(leadsTable.integrationId, integrationId as string) : undefined
       ));
 
     res.json({
@@ -1380,6 +1381,56 @@ router.post("/run-outreach", requireAuth, async (req: Request, res: Response): P
     const errorMessage = error instanceof Error ? error.message : "Failed to run outreach";
     console.error("Outreach campaign error:", error);
     res.status(500).json({ error: errorMessage });
+  }
+});
+
+/**
+ * AI Grammar Check
+ * POST /api/ai/check-grammar
+ */
+router.post("/check-grammar", requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { text } = req.body;
+    if (!text) {
+      res.status(400).json({ error: "No text provided" });
+      return;
+    }
+
+    const result = await checkGrammar(text);
+    res.json(result);
+  } catch (error) {
+    console.error("Grammar check error:", error);
+    res.status(500).json({ error: "Failed to check grammar" });
+  }
+});
+
+/**
+ * AI Magic Pencil (Rewrite / Polish)
+ * POST /api/ai/magic-pencil
+ */
+router.post("/magic-pencil", requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { text, tone = "professional", context = "" } = req.body;
+    if (!text) {
+      res.status(400).json({ error: "No text provided" });
+      return;
+    }
+
+    const systemPrompt = `You are an elite sales communication coach. Rewrite the following message to be more effective, professional, and natural. 
+Tone: ${tone}
+Goal: Increase response rates and trust.
+No matter what, keep it human and concise. Do NOT use corporate jargon.`;
+
+    const userPrompt = `Message to rewrite: "${text}"
+${context ? `Extra Context: ${context}` : ""}
+
+Provide ONLY the rewritten message.`;
+
+    const result = await generateReply(systemPrompt, userPrompt, { temperature: 0.7 });
+    res.json({ rewrittenText: result.text.trim() });
+  } catch (error) {
+    console.error("Magic pencil error:", error);
+    res.status(500).json({ error: "Failed to rewrite message" });
   }
 });
 

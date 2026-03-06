@@ -36,6 +36,7 @@ import { paymentAutoApprovalWorker } from "./lib/billing/payment-auto-approval-w
 import { outreachEngine } from "./lib/workers/outreach-engine.js";
 import { outreachWorker } from "./lib/queues/outreach-queue.js";
 import { leadExpiryWorker } from "./lib/workers/lead-expiry-worker.js";
+import { reputationWorker } from "./lib/workers/reputation-worker.js";
 import { apiLimiter, authLimiter } from "./middleware/rate-limit.js";
 import { fileURLToPath } from "url";
 import fs from "fs";
@@ -462,6 +463,7 @@ async function runMigrations() {
       startWorker("Email sync", () => emailSyncWorker.start());
       startWorker("Payment approval", () => paymentAutoApprovalWorker.start());
       startWorker("Email warmup", () => emailWarmupWorker.start());
+      startWorker("Reputation", () => reputationWorker.start());
       // startWorker("Lead Expiry", () => leadExpiryWorker.start());
 
       // Real-time IMAP IDLE Manager

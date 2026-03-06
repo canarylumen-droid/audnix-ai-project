@@ -453,6 +453,8 @@ class ImapIdleManager {
                 });
             });
         });
+    }
+
     private async syncDeletedMessages(integrationId: string, imap: Imap, userId: string, folderName: string): Promise<void> {
         try {
             const { db } = await import('../../db.js');

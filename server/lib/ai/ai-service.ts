@@ -12,13 +12,19 @@ const gemini = process.env.GEMINI_API_KEY
   ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
   : null;
 
+// Initialize Z-AI (GLM) conditionally (OpenAI-compatible)
+const zai = process.env.Z_AI_API_KEY
+  ? new OpenAI({
+    apiKey: process.env.Z_AI_API_KEY,
+    baseURL: "https://open.bigmodel.cn/api/paas/v4/"
+  })
+  : null;
+
 /**
- * Determine primary provider: OpenAI > Gemini > None (Demo)
- * We prefer OpenAI for embeddings to avoid dimension padding complications,
- * but the system can fallback to Gemini.
+ * Determine primary provider: Z-AI > OpenAI > Gemini > None (Demo)
  */
-const PREFERRED_PROVIDER = process.env.OPENAI_API_KEY ? "openai" : (process.env.GEMINI_API_KEY ? "gemini" : "demo");
-const AI_MODEL = process.env.OPENAI_MODEL || OPENAI_INTELLIGENCE_MODEL; 
+const PREFERRED_PROVIDER = process.env.Z_AI_API_KEY ? "zai" : (process.env.OPENAI_API_KEY ? "openai" : (process.env.GEMINI_API_KEY ? "gemini" : "demo"));
+const AI_MODEL = process.env.Z_AI_API_KEY ? MODELS.sales_reasoning : (process.env.OPENAI_MODEL || OPENAI_INTELLIGENCE_MODEL);
 
 console.log(`[AI Service] Unified initialization with provider: ${PREFERRED_PROVIDER}`);
 
@@ -26,6 +32,7 @@ console.log(`[AI Service] Unified initialization with provider: ${PREFERRED_PROV
  * Registry to track AI provider health and cooldowns
  */
 const PROVIDER_STATUS = {
+  zai: { cooldownUntil: 0, consecutiveErrors: 0 },
   openai: { cooldownUntil: 0, consecutiveErrors: 0 },
   gemini: { cooldownUntil: 0, consecutiveErrors: 0 },
 };
@@ -33,7 +40,7 @@ const PROVIDER_STATUS = {
 const COOLDOWN_BASE_MS = 60000; // 1 minute
 const MAX_COOLDOWN_MS = 3600000; // 1 hour
 
-function updateProviderHealth(provider: 'openai' | 'gemini', isSuccess: boolean, errorStatus?: number) {
+function updateProviderHealth(provider: 'openai' | 'gemini' | 'zai', isSuccess: boolean, errorStatus?: number) {
   const status = PROVIDER_STATUS[provider];
   if (isSuccess) {
     status.consecutiveErrors = 0;
@@ -44,12 +51,13 @@ function updateProviderHealth(provider: 'openai' | 'gemini', isSuccess: boolean,
     const cooldownMultiplier = isRateLimit ? Math.pow(2, status.consecutiveErrors) : 1;
     const cooldownDuration = Math.min(COOLDOWN_BASE_MS * cooldownMultiplier, MAX_COOLDOWN_MS);
     status.cooldownUntil = Date.now() + cooldownDuration;
-    
-    console.warn(`[AI Service] Provider ${provider} entered cooldown for ${Math.round(cooldownDuration/1000)}s due to ${isRateLimit ? '429 Quota' : 'Error'}`);
+
+    console.warn(`[AI Service] Provider ${provider} entered cooldown for ${Math.round(cooldownDuration / 1000)}s due to ${isRateLimit ? '429 Quota' : 'Error'}`);
   }
 }
 
-function isProviderAvailable(provider: 'openai' | 'gemini'): boolean {
+function isProviderAvailable(provider: 'openai' | 'gemini' | 'zai'): boolean {
+  if (provider === 'zai' && !zai) return false;
   if (provider === 'openai' && !openai) return false;
   if (provider === 'gemini' && !gemini) return false;
   return Date.now() >= PROVIDER_STATUS[provider].cooldownUntil;
@@ -98,8 +106,8 @@ export async function embed(text: string): Promise<number[]> {
       updateProviderHealth('gemini', true);
       return normalizeEmbedding(result.embedding.values);
     } catch (error: any) {
-       console.error("[AI Service] Gemini embedding error:", error.message);
-       updateProviderHealth('gemini', false, error.status);
+      console.error("[AI Service] Gemini embedding error:", error.message);
+      updateProviderHealth('gemini', false, error.status);
     }
   }
 
@@ -147,7 +155,7 @@ export async function generateReply(
     model?: string;
   }
 ): Promise<{ text: string; tokensUsed: number }> {
-  
+
   const tryOpenAI = async () => {
     if (!isProviderAvailable('openai')) return null;
     try {
@@ -178,7 +186,7 @@ export async function generateReply(
     if (!isProviderAvailable('gemini')) return null;
     try {
       const modelName = options?.model?.includes("gemini") ? options.model : MODELS.content_generation || "gemini-1.5-pro";
-      const model = gemini!.getGenerativeModel({ 
+      const model = gemini!.getGenerativeModel({
         model: modelName,
         generationConfig: {
           temperature: options?.temperature || 0.7,
@@ -190,7 +198,7 @@ export async function generateReply(
 
       const result = await model.generateContent(userPrompt);
       const data = result.response;
-      
+
       updateProviderHealth('gemini', true);
       return {
         text: data.text(),
@@ -203,15 +211,52 @@ export async function generateReply(
     }
   };
 
+  const tryZAI = async () => {
+    if (!isProviderAvailable('zai')) return null;
+    try {
+      const response = await zai!.chat.completions.create({
+        model: options?.model || MODELS.sales_reasoning || AI_MODEL,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        response_format: options?.jsonMode ? { type: "json_object" } : undefined,
+        max_completion_tokens: options?.maxTokens || 1000,
+        temperature: options?.temperature || 0.7
+      });
+
+      updateProviderHealth('zai', true);
+      return {
+        text: response.choices[0].message.content || "",
+        tokensUsed: response.usage?.total_tokens || 0
+      };
+    } catch (error: any) {
+      console.error("[AI Service] Z-AI error:", error.message);
+      updateProviderHealth('zai', false, error.status);
+      return null;
+    }
+  };
+
   // Execution flow with circuit breaking availability
-  if (PREFERRED_PROVIDER === "openai") {
+  if (PREFERRED_PROVIDER === "zai") {
+    const res = await tryZAI();
+    if (res) return res;
+    const openaiRes = await tryOpenAI();
+    if (openaiRes) return openaiRes;
+    const geminiRes = await tryGemini();
+    if (geminiRes) return geminiRes;
+  } else if (PREFERRED_PROVIDER === "openai") {
     const res = await tryOpenAI();
     if (res) return res;
+    const zaiRes = await tryZAI();
+    if (zaiRes) return zaiRes;
     const geminiRes = await tryGemini();
     if (geminiRes) return geminiRes;
   } else {
     const res = await tryGemini();
     if (res) return res;
+    const zaiRes = await tryZAI();
+    if (zaiRes) return zaiRes;
     const openaiRes = await tryOpenAI();
     if (openaiRes) return openaiRes;
   }
@@ -239,7 +284,7 @@ export async function classify(
   const geminiClassify = async () => {
     if (!isProviderAvailable('gemini')) return null;
     try {
-      const model = gemini!.getGenerativeModel({ 
+      const model = gemini!.getGenerativeModel({
         model: MODELS.intent_classification?.includes("gemini") ? MODELS.intent_classification : "gemini-1.5-flash",
         generationConfig: { responseMimeType: "application/json" },
         systemInstruction: systemPrompt
@@ -270,7 +315,26 @@ export async function classify(
     }
   };
 
-  const result = PREFERRED_PROVIDER === "gemini" ? (await geminiClassify() || await openaiClassify()) : (await openaiClassify() || await geminiClassify());
+  const zaiClassify = async () => {
+    if (!isProviderAvailable('zai')) return null;
+    try {
+      const response = await zai!.chat.completions.create({
+        model: MODELS.intent_classification || "glm-4-flash",
+        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: text }],
+        response_format: { type: "json_object" },
+        max_completion_tokens: 100,
+      });
+      updateProviderHealth('zai', true);
+      return JSON.parse(response.choices[0].message.content || "{}");
+    } catch (e: any) {
+      updateProviderHealth('zai', false, e.status);
+      return null;
+    }
+  };
+
+  const result = PREFERRED_PROVIDER === "zai" ? (await zaiClassify() || await openaiClassify() || await geminiClassify()) :
+    (PREFERRED_PROVIDER === "gemini" ? (await geminiClassify() || await zaiClassify() || await openaiClassify()) :
+      (await openaiClassify() || await zaiClassify() || await geminiClassify()));
 
   return {
     category: result?.category || categories[0] || "unknown",
@@ -292,9 +356,9 @@ export async function generateInsights(data: any, prompt: string): Promise<strin
       const result = await model.generateContent(fullPrompt);
       updateProviderHealth('gemini', true);
       return result.response.text();
-    } catch (e) { 
+    } catch (e) {
       updateProviderHealth('gemini', false);
-      return null; 
+      return null;
     }
   };
 
@@ -308,11 +372,54 @@ export async function generateInsights(data: any, prompt: string): Promise<strin
       });
       updateProviderHealth('openai', true);
       return response.choices[0].message.content || "";
-    } catch (e: any) { 
+    } catch (e: any) {
       updateProviderHealth('openai', false, e.status);
-      return null; 
+      return null;
     }
   };
 
-  return (PREFERRED_PROVIDER === "gemini" ? await geminiInsights() : await openaiInsights()) || "Revenue performance is stable with 12% growth in engagement signals.";
+  return (PREFERRED_PROVIDER === "zai" ? (await (async () => {
+    if (!isProviderAvailable('zai')) return null;
+    try {
+      const response = await zai!.chat.completions.create({
+        model: AI_MODEL,
+        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: fullPrompt }],
+        max_completion_tokens: 500,
+      });
+      updateProviderHealth('zai', true);
+      return response.choices[0].message.content || "";
+    } catch (e: any) {
+      updateProviderHealth('zai', false, e.status);
+      return null;
+    }
+  })() || await openaiInsights() || await geminiInsights()) : (PREFERRED_PROVIDER === "gemini" ? await geminiInsights() : await openaiInsights())) || "Revenue performance is stable with 12% growth in engagement signals.";
+}
+
+/**
+ * Generate a dynamic email subject that converts
+ */
+export async function generateEmailSubject(body: string, leadName: string, company?: string): Promise<string> {
+  const systemPrompt = "You are an elite sales copywriter. Generate a brief (1-6 words) email subject line that feels natural, human, and increases open rates. Do NOT use generic subjects like 'Follow up' or 'Checking in'. Reference the context or person if possible.";
+  const userPrompt = `Lead Name: ${leadName}
+Company: ${company || "their company"}
+Email Content: "${body.substring(0, 500)}..."
+
+Generate ONLY the subject line text, no quotes.`;
+
+  const res = await generateReply(systemPrompt, userPrompt, { temperature: 0.8, maxTokens: 50 });
+  return res.text.replace(/Subject: /i, "").trim();
+}
+
+/**
+ * Check grammar and suggest corrections
+ */
+export async function checkGrammar(text: string): Promise<{ correctedText: string; errors: Array<{ original: string; suggested: string; reason: string }> }> {
+  const systemPrompt = "You are an expert editor. Analyze the text for grammar, punctuation, and style. Return a JSON object: { \"correctedText\": \"...\", \"errors\": [{ \"original\": \"...\", \"suggested\": \"...\", \"reason\": \"...\" }] }";
+
+  try {
+    const res = await generateReply(systemPrompt, text, { jsonMode: true, model: MODELS.grammar_check, temperature: 0.1 });
+    return JSON.parse(res.text);
+  } catch (e) {
+    return { correctedText: text, errors: [] };
+  }
 }

@@ -92,7 +92,7 @@ interface LeadIntelligenceModalProps {
 export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntelligenceModalProps) {
     // First fetch real message history for this lead
     const { data: messagesData } = useQuery<{ messages: Message[] }>({
-        queryKey: ["/api/messages", lead?.id, { limit: 100, offset: 0 }],
+        queryKey: ["/api/messages", lead?.id, { limit: 100, offset: 0, integrationId: lead?.integrationId }],
         enabled: isOpen && !!lead?.id,
         retry: false,
         staleTime: 30000,

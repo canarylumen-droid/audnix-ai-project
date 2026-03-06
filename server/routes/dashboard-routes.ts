@@ -105,10 +105,13 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
     const softBounces = recentBounces.filter(b => b.bounceType === 'soft').length;
     const spamBounces = recentBounces.filter(b => b.bounceType === 'spam').length;
 
-    let reputationScore = 100;
+    // Start with 98 instead of 100 to avoid "perfect" look, move towards real data
+    let reputationScore = stats.totalLeads > 0 ? 98 : 0;
+
     if (stats.totalLeads > 0) {
-      const bouncePenalty = (hardBounces * 5) + (softBounces * 2) + (spamBounces * 5);
-      reputationScore = Math.max(0, 100 - bouncePenalty);
+      const bounceRate = ((hardBounces + spamBounces) / stats.totalLeads) * 100;
+      const bouncePenalty = (hardBounces * 8) + (softBounces * 3) + (spamBounces * 12);
+      reputationScore = Math.max(0, 99 - bouncePenalty - (bounceRate * 2));
     }
 
     const unverifiedDomains = domainVerifications.filter(v => {

@@ -1387,14 +1387,14 @@ export class DrizzleStorage implements IStorage {
       leadsReplied: sql<number>`count(*) filter (where status in ('replied', 'converted', 'booked', 'warm'))`,
     })
       .from(leads)
-      .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate), integrationId ? sql`${leads.metadata}->>'integrationId' = ${integrationId}` : undefined));
+      .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate), integrationId ? eq(leads.integrationId, integrationId) : undefined));
 
     const statusResults = await db.select({
       status: leads.status,
       count: sql<number>`count(*)`,
     })
       .from(leads)
-      .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate), integrationId ? sql`${leads.metadata}->>'integrationId' = ${integrationId}` : undefined))
+      .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate), integrationId ? eq(leads.integrationId, integrationId) : undefined))
       .groupBy(leads.status);
 
     const channelResults = await db.select({
@@ -1402,7 +1402,7 @@ export class DrizzleStorage implements IStorage {
       count: sql<number>`count(*)`,
     })
       .from(leads)
-      .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate), integrationId ? sql`${leads.metadata}->>'integrationId' = ${integrationId}` : undefined))
+      .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate), integrationId ? eq(leads.integrationId, integrationId) : undefined))
       .groupBy(leads.channel);
 
     const hourResults = await db.select({
@@ -1410,7 +1410,7 @@ export class DrizzleStorage implements IStorage {
       count: sql<number>`count(*)`,
     })
       .from(leads)
-      .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate), not(isNull(leads.lastMessageAt)), integrationId ? sql`${leads.metadata}->>'integrationId' = ${integrationId}` : undefined))
+      .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate), not(isNull(leads.lastMessageAt)), integrationId ? eq(leads.integrationId, integrationId) : undefined))
       .groupBy(sql`extract(hour from last_message_at)`)
       .orderBy(desc(sql`count(*)`))
       .limit(1);
@@ -1421,7 +1421,7 @@ export class DrizzleStorage implements IStorage {
       conversions: sql<number>`count(*) filter (where status in ('converted', 'booked'))`,
     })
       .from(leads)
-      .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate), integrationId ? sql`${leads.metadata}->>'integrationId' = ${integrationId}` : undefined))
+      .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate), integrationId ? eq(leads.integrationId, integrationId) : undefined))
       .groupBy(sql`to_char(created_at, 'YYYY-MM-DD')`)
       .orderBy(sql`to_char(created_at, 'YYYY-MM-DD')`);
 
@@ -1434,7 +1434,7 @@ export class DrizzleStorage implements IStorage {
       negative: sql<number>`count(*) filter (where status in ('not_interested', 'cold'))`,
     })
       .from(leads)
-      .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate), integrationId ? sql`${leads.metadata}->>'integrationId' = ${integrationId}` : undefined));
+      .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate), integrationId ? eq(leads.integrationId, integrationId) : undefined));
 
     const positiveCount = Number(sentimentSummary?.positive || 0);
     const negativeCount = Number(sentimentSummary?.negative || 0);

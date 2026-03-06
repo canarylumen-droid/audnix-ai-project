@@ -110,7 +110,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
         if (data.followUpSubject2) setFollowUpSubject2(data.followUpSubject2);
         if (data.followUpBody2) setFollowUpBody2(data.followUpBody2);
         if (data.autoReplyBody) setAutoReplyBody(data.autoReplyBody);
-        if (data.dailyLimit) setDailyLimit(data.dailyLimit);
+        if (data.totalDailyVolume) { /* managed via mailboxLimits */ }
         if (data.followUpDays) setFollowUpDays(data.followUpDays);
       } catch (e) {
         console.error("Failed to load campaign draft", e);
@@ -126,12 +126,12 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
         followUpSubject, followUpBody,
         followUpSubject2, followUpBody2,
         autoReplyBody,
-        dailyLimit, followUpDays,
+        totalDailyVolume, followUpDays,
         excludeWeekends
       };
       localStorage.setItem("campaign_draft", JSON.stringify(draft));
     }
-  }, [campaignName, subject, body, followUpSubject, followUpBody, followUpSubject2, followUpBody2, autoReplyBody, dailyLimit, followUpDays, excludeWeekends, isOpen]);
+  }, [campaignName, subject, body, followUpSubject, followUpBody, followUpSubject2, followUpBody2, autoReplyBody, totalDailyVolume, followUpDays, excludeWeekends, isOpen]);
 
   // "RE: " Logic for Follow-up Subjects
   useEffect(() => {
@@ -740,7 +740,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                           </div>
                           <div className="space-y-1">
                             <div className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-1">Volume Rate</div>
-                            <div className="text-3xl font-black tracking-tighter italic">{dailyLimit * Math.max(1, selectedMailboxes.length)} <span className="text-xs uppercase not-italic font-bold text-foreground/80 ml-1">/day</span></div>
+                            <div className="text-3xl font-black tracking-tighter italic">{totalDailyVolume} <span className="text-xs uppercase not-italic font-bold text-foreground/80 ml-1">/day</span></div>
                           </div>
                           <div className="space-y-1 hidden md:block">
                             <div className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-1">Sequence</div>

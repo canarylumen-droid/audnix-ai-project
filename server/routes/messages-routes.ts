@@ -74,20 +74,29 @@ router.post("/:leadId", requireAuth, async (req: Request, res: Response): Promis
           res.status(400).json({ error: "Lead has no email address" });
           return;
         }
-        // Use provided subject exactly as is
-        const emailSubject = subject || `Conversation with ${lead.name || lead.email}`;
-        
+        let emailSubject = subject;
+        if (!emailSubject) {
+          // Z AI: Craft a killer subject based on the email body and lead context
+          try {
+            const { generateEmailSubject } = await import('../lib/ai/ai-service.js');
+            emailSubject = await generateEmailSubject(messageBody, lead.name, lead.company || undefined);
+          } catch (e) {
+            // Fast fallback — never block send
+            emailSubject = `Re: ${lead.company || lead.name}`;
+          }
+        }
+
         // Generate professional tracking ID
         const { generateTrackingToken } = await import('../lib/email/email-tracking.js');
         trackingId = generateTrackingToken();
 
-        await sendEmail(userId, lead.email, messageBody, emailSubject, { 
+        await sendEmail(userId, lead.email, messageBody, emailSubject, {
           isRaw: true,
           isHtml: true, // Force HTML for tracking pixel
           trackingId,
           leadId: lead.id
         });
-        
+
         // metadata should include trackingId for consistency if storage doesn't auto-handle it
         // and we will update the message record created below
       } else if (selectedChannel === 'instagram') {
@@ -130,8 +139,8 @@ router.post("/:leadId", requireAuth, async (req: Request, res: Response): Promis
       subject: subject || undefined, // Store subject if provided
       audioUrl: null,
       trackingId: selectedChannel === 'email' ? trackingId : undefined,
-      metadata: { 
-        manual: true, 
+      metadata: {
+        manual: true,
         sentAt: new Date(),
         ...(trackingId ? { trackingId } : {})
       },
@@ -180,7 +189,7 @@ router.post("/:leadId/read", requireAuth, async (req: Request, res: Response): P
 
     // Mark all notifications for this lead as read
     const notifications = await storage.getNotifications(userId);
-    const leadNotifications = notifications.filter((n: any) => 
+    const leadNotifications = notifications.filter((n: any) =>
       n.metadata && (n.metadata as any).leadId === leadId && !n.read
     );
     for (const n of leadNotifications) {

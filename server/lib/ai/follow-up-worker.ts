@@ -1,7 +1,7 @@
 import { db } from '../../db.js';
 import { followUpQueue, leads, messages, users, brandEmbeddings, integrations, contentLibrary } from '../../../shared/schema.js';
 import { eq, and, lte, asc } from 'drizzle-orm';
-import { generateReply } from './ai-service.js';
+import { generateReply, generateEmailSubject } from './ai-service.js';
 import { InstagramOAuth } from '../oauth/instagram.js';
 import { sendInstagramMessage } from '../channels/instagram.js';
 
@@ -241,17 +241,21 @@ export class FollowUpWorker {
         updatedAt: dbLead.updatedAt
       };
 
-      // CHECK: User has opted out of AI messages
+      // CHECK 1: Global Autonomous Mode
+      const userResults = await db.select().from(users).where(eq(users.id, job.userId)).limit(1);
+      const user = userResults[0];
+      const globalAutonomousMode = (user?.config as any)?.autonomousMode !== false;
+
+      if (!globalAutonomousMode) {
+        console.log(`[FOLLOW_UP] Global Autonomous Mode is OFF for user ${job.userId}. Skipping follow-up.`);
+        await db.update(followUpQueue).set({ status: 'completed', processedAt: new Date() }).where(eq(followUpQueue.id, job.id));
+        return;
+      }
+
+      // CHECK 2: Lead-level opt-out
       if (lead.aiPaused) {
-        console.log(`⏸️  Skipping follow-up for lead ${lead.name} (AI paused by user)`);
-        // Mark job as completed without sending
-        await db
-          .update(followUpQueue)
-          .set({
-            status: 'completed',
-            processedAt: new Date()
-          })
-          .where(eq(followUpQueue.id, job.id));
+        console.log(`⏸️  Skipping follow-up for lead ${lead.name} (AI paused for this lead)`);
+        await db.update(followUpQueue).set({ status: 'completed', processedAt: new Date() }).where(eq(followUpQueue.id, job.id));
         return;
       }
 
@@ -276,11 +280,11 @@ export class FollowUpWorker {
 
       if (customAutoReply) {
         console.log(`[FOLLOW_UP_WORKER] Using custom auto-reply template for lead ${lead.email}`);
-        
+
         // Basic template variable substitution
         const firstName = lead.name.split(' ')[0] || 'there';
         const company = (lead.metadata as any)?.company || 'your company';
-        
+
         aiReply = customAutoReply
           .replace(/{{firstName}}/g, firstName)
           .replace(/{{name}}/g, lead.name)
@@ -711,9 +715,9 @@ Generate a natural follow-up message:`;
                 const origSub = (originalOutward as any).metadata?.subject;
                 subject = origSub.startsWith('RE:') ? origSub : `RE: ${origSub}`;
               } else {
-                // Try to extract from first line of first message if no metadata
-                const firstMsg = history[0]?.body || '';
-                if (firstMsg && firstMsg.length < 50) subject = `RE: ${firstMsg}`;
+                // No existing thread or subject found? Generate one that converts!
+                subject = await generateEmailSubject(content, lead.name, (lead.metadata as any)?.company);
+                console.log(`[FOLLOW_UP] Generated converting subject: "${subject}" for ${lead.email}`);
               }
 
               await sendEmail(userId, lead.email, content, subject);
@@ -824,13 +828,17 @@ Generate a natural follow-up message:`;
 
     // Standard sequence relative to lead creation: Day 3, Day 7
     const followUpCount = (lead.metadata as Record<string, unknown>)?.follow_up_count as number || 0;
-    
+
     let nextDayMarker = 0;
     if (followUpCount === 1) {
       nextDayMarker = 7; // Previously sent Day 3, next is Day 7
     } else if (followUpCount >= 2) {
-      console.log(`[FOLLOW_UP] Lead ${lead.name} has finished 3/7 sequence. No more automated follow-ups.`);
-      return; 
+      // PERSISTENT: Continue sequence even after initial campaign
+      // Gradually increase delays: 14, 30, 60, 90...
+      const progression = [14, 30, 60, 90, 120, 180, 240, 365];
+      const progIndex = Math.min(progression.length - 1, followUpCount - 2);
+      nextDayMarker = progression[progIndex];
+      console.log(`[FOLLOW_UP] Lead ${lead.name} in persistent nurturing stage. Step: ${followUpCount}. Delay: Day ${nextDayMarker}`);
     } else {
       nextDayMarker = 3;
     }
@@ -957,7 +965,7 @@ export async function scheduleInitialFollowUp(
     // Strictly Day 3 Relative to Lead Creation
     const [lead] = await db.select().from(leads).where(eq(leads.id, leadId)).limit(1);
     const creationTime = lead?.createdAt?.getTime() || Date.now();
-    
+
     // Day 3 = 72 hours
     const scheduledAt = new Date(creationTime + 3 * 24 * 60 * 60 * 1000);
 

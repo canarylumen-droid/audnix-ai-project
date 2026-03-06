@@ -418,8 +418,8 @@ export default function IntegrationsPage() {
   };
 
   const getMailboxLimit = () => {
-    const tier = userData?.user?.subscriptionTier || 'trial';
-    return getPlanCapabilities(tier).mailboxLimit;
+    const tier = (userData as any)?.user?.subscriptionTier || 'trial';
+    return (getPlanCapabilities(tier) as any).mailboxLimit || 3;
   };
 
   const connectedMailboxesCount = (customEmailStatus?.integrations?.length || 0) +
@@ -751,7 +751,7 @@ export default function IntegrationsPage() {
                       <div className="space-y-2 max-w-sm">
                         <h3 className="text-xl font-black tracking-tight">Plan Limit Reached</h3>
                         <p className="text-sm font-medium text-muted-foreground leading-relaxed px-4">
-                          Your {userData?.user?.subscriptionTier || 'Starter'} plan supports up to {getMailboxLimit()} mailbox{getMailboxLimit() > 1 ? 'es' : ''}.
+                          Your {(userData as any)?.user?.subscriptionTier || 'Starter'} plan supports up to {getMailboxLimit()} mailbox{getMailboxLimit() > 1 ? 'es' : ''}.
                           Disconnect an existing account to add another.
                         </p>
                       </div>

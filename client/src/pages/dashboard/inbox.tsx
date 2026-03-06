@@ -71,6 +71,9 @@ import {
   ArrowRight,
   Filter,
   Zap,
+  Wand2,
+  CheckCircle,
+  AlertCircle
 } from "lucide-react";
 import {
   Accordion,
@@ -102,8 +105,13 @@ export default function InboxPage() {
   const queryClient = useQueryClient();
   const { selectedMailboxId } = useMailbox();
   const [searchQuery, setSearchQuery] = useState("");
+  const [grammarErrors, setGrammarErrors] = useState<any[]>([]);
+  const [isCheckingGrammar, setIsCheckingGrammar] = useState(false);
+  const [isPolishing, setIsPolishing] = useState(false);
   const [filterChannel, setFilterChannel] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all"); // Added status filter
+  const [allLeads, setAllLeads] = useState<any[]>([]);
+  const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
 
   // Handle Global Search params
   useEffect(() => {
@@ -115,8 +123,6 @@ export default function InboxPage() {
       // window.history.replaceState({}, '', '/dashboard/inbox'); 
     }
   }, []);
-  const [allLeads, setAllLeads] = useState<any[]>([]);
-  const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
   const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
   const [processLead, setProcessLead] = useState<any>(null);
 
@@ -164,7 +170,7 @@ export default function InboxPage() {
 
   const { contextConfig, handleContextMenu, closeMenu } = useContextMenu();
 
-  const { data: user } = useQuery<{ id: string }>({ queryKey: ["/api/user/profile"] });
+  const { data: user } = useQuery<any>({ queryKey: ["/api/user/profile"] });
 
   const { socket } = useRealtime();
 
@@ -261,6 +267,12 @@ export default function InboxPage() {
         }
       }
     };
+
+    const handleLeadsUpdated = () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+    };
+
+    let leadsTimeout: NodeJS.Timeout;
 
     socket.on('messages_updated', handleMessagesUpdated);
     socket.on('leads_updated', handleLeadsUpdated);
@@ -378,6 +390,7 @@ export default function InboxPage() {
 
       // Always refresh notifications when a lead is opened
       queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      setGrammarErrors([]); // Reset grammar on lead switch
 
       // Load specific lead draft from local storage
       const savedDraft = localStorage.getItem(`draft_${leadId}`);
@@ -457,6 +470,50 @@ export default function InboxPage() {
       </span>
     );
   }, []);
+
+  // Real-time Grammar Check Logic
+  useEffect(() => {
+    if (!replyMessage || replyMessage.length < 5) {
+      setGrammarErrors([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsCheckingGrammar(true);
+      try {
+        const res = await apiRequest("POST", "/api/ai/check-grammar", { text: replyMessage });
+        const data = await res.json();
+        setGrammarErrors(data.errors || []);
+      } catch (err) {
+        console.error("Grammar check failed:", err);
+      } finally {
+        setIsCheckingGrammar(false);
+      }
+    }, 1500); // 1.5s debounce
+
+    return () => clearTimeout(timer);
+  }, [replyMessage]);
+
+  const handleMagicPencil = async () => {
+    if (!replyMessage.trim()) return;
+    setIsPolishing(true);
+    try {
+      const res = await apiRequest("POST", "/api/ai/magic-pencil", {
+        text: replyMessage,
+        tone: user?.replyTone || "professional",
+        context: `Replying to lead ${activeLead?.name} at company ${activeLead?.company || "the team"}. lead status: ${activeLead?.status}`
+      });
+      const data = await res.json();
+      if (data.rewrittenText) {
+        setReplyMessage(data.rewrittenText);
+        toast({ title: "Message Polished", description: "AI enhanced your draft for better conversion." });
+      }
+    } catch (err) {
+      toast({ title: "Magic Pencil Error", description: "Failed to polish message", variant: "destructive" });
+    } finally {
+      setIsPolishing(false);
+    }
+  };
 
   const sendMutation = useMutation({
     mutationFn: (content: string) => {
@@ -1482,15 +1539,30 @@ export default function InboxPage() {
                           placeholder="Compose a response..."
                           className="w-full bg-muted/30 border border-border/50 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary/50 min-h-[56px] max-h-40 resize-none transition-all overflow-y-auto"
                         />
-                        <Button
-                          size="icon"
-                          onClick={handleAiReply}
-                          disabled={isGenerating}
-                          className="absolute right-3 bottom-0 mb-3 h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-purple-600 text-white shadow-lg hover:shadow-primary/25 hover:scale-105 transition-all"
-                          title="Generate AI Reply"
-                        >
-                          {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 fill-white/20" />}
-                        </Button>
+                        <div className="absolute right-3 bottom-0 mb-3 flex gap-2">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={handleMagicPencil}
+                            disabled={isPolishing || !replyMessage.trim()}
+                            className={cn(
+                              "h-8 w-8 rounded-lg transition-all",
+                              isPolishing ? "animate-pulse bg-primary/10" : "hover:bg-primary/10 text-primary"
+                            )}
+                            title="AI Magic Pencil: Polish & Rewrite"
+                          >
+                            {isPolishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                          </Button>
+                          <Button
+                            size="icon"
+                            onClick={handleAiReply}
+                            disabled={isGenerating}
+                            className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-purple-600 text-white shadow-lg hover:shadow-primary/25 hover:scale-105 transition-all"
+                            title="Generate AI Reply"
+                          >
+                            {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 fill-white/20" />}
+                          </Button>
+                        </div>
                       </div>
                       <Button
                         onClick={() => sendMutation.mutate(replyMessage)}
@@ -1500,7 +1572,35 @@ export default function InboxPage() {
                         {sendMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
                       </Button>
                     </div>
-                    <p className="text-center text-[10px] text-muted-foreground/40 mt-3 font-medium">Shift + Enter for new line. AI suggestions enabled.</p>
+                    <div className="max-w-5xl mx-auto mt-2 px-1">
+                      {grammarErrors.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                          {grammarErrors.slice(0, 3).map((err, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => {
+                                const newText = replyMessage.replace(err.original, err.suggestion);
+                                setReplyMessage(newText);
+                                setGrammarErrors(prev => prev.filter((_, i) => i !== idx));
+                              }}
+                              className="flex items-center gap-1.5 px-2.5 py-1 bg-red-500/10 border border-red-500/20 rounded-full text-[10px] text-red-600 font-bold hover:bg-red-500/20 transition-all group"
+                            >
+                              <AlertCircle className="w-3 h-3" />
+                              <span className="line-through opacity-50">{err.original}</span>
+                              <ChevronRight className="w-2.5 h-2.5 opacity-30" />
+                              <span className="text-emerald-600">{err.suggestion}</span>
+                              <span className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity">Apply</span>
+                            </button>
+                          ))}
+                          {grammarErrors.length > 3 && (
+                            <span className="text-[10px] text-muted-foreground self-center italic font-medium">
+                              +{grammarErrors.length - 3} more corrections suggested
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      <p className="text-center text-[10px] text-muted-foreground/40 font-medium">Shift + Enter for new line. AI suggestions enabled.</p>
+                    </div>
                   </div>
                 )}
               </div>

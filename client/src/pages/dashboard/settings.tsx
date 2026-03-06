@@ -83,11 +83,11 @@ export default function SettingsPage() {
       const { autonomousMode, ...rest } = data;
       const payload = {
         ...rest,
-        ...(autonomousMode !== undefined && { 
-          config: { 
-            ...((user as any)?.config || {}), 
-            autonomousMode 
-          } 
+        ...(autonomousMode !== undefined && {
+          config: {
+            ...((user as any)?.config || {}),
+            autonomousMode
+          }
         })
       };
       return apiRequest("PUT", "/api/user/profile", payload);
@@ -181,10 +181,10 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="profile" className="w-full" onValueChange={setActiveTab}>
-        <TabsList className="bg-muted p-1 rounded-xl mb-8">
-          <TabsTrigger value="profile" className="rounded-lg px-8 py-2 font-bold text-sm">Profile</TabsTrigger>
-          <TabsTrigger value="brand" className="rounded-lg px-8 py-2 font-bold text-sm">Intelligence Memory</TabsTrigger>
-          <TabsTrigger value="ai" className="rounded-lg px-8 py-2 font-bold text-sm">Automation</TabsTrigger>
+        <TabsList className="bg-muted p-1 rounded-xl mb-8 w-full flex overflow-x-auto no-scrollbar justify-start md:justify-center">
+          <TabsTrigger value="profile" className="flex-1 rounded-lg px-4 md:px-8 py-2 font-bold text-xs md:text-sm whitespace-nowrap">Profile</TabsTrigger>
+          <TabsTrigger value="brand" className="flex-1 rounded-lg px-4 md:px-8 py-2 font-bold text-xs md:text-sm whitespace-nowrap">Intelligence Memory</TabsTrigger>
+          <TabsTrigger value="ai" className="flex-1 rounded-lg px-4 md:px-8 py-2 font-bold text-xs md:text-sm whitespace-nowrap">Automation</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="space-y-6">
@@ -344,9 +344,9 @@ export default function SettingsPage() {
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold">Test Send</Button>
                       <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold">Edit</Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="h-8 text-[10px] font-bold"
                         onClick={async () => {
                           try {
@@ -386,47 +386,52 @@ export default function SettingsPage() {
               <CardDescription>Manage how the system interact with leads.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center justify-between p-6 bg-primary/5 rounded-xl border border-primary/20">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 bg-gradient-to-br from-primary/5 to-purple-500/5 rounded-2xl border border-primary/20 hover:border-primary/40 transition-all gap-4">
                 <div className="flex gap-4">
-                  <div className="p-3 rounded-xl bg-background border border-primary/20 text-primary">
-                    <Activity className="w-8 h-8" />
+                  <div className="p-3 rounded-2xl bg-primary/10 border border-primary/20 shrink-0">
+                    <Brain className="w-8 h-8 text-primary" />
                   </div>
                   <div>
-                    <h4 className="font-bold flex items-center gap-2">
-                      Autonomous Engine
-                      <Badge className="bg-primary hover:bg-primary text-black text-[9px] font-bold">Recommended</Badge>
+                    <h4 className="font-black text-base uppercase tracking-tight flex items-center gap-2">
+                      AI Autonomous Orchestrator
+                      <Badge className="bg-primary text-black text-[9px] font-black uppercase px-2 py-0 border-0">V3.5</Badge>
                     </h4>
-                    <p className="text-sm text-muted-foreground max-w-md">
-                      Enable the global AI engine to handle outreach, replies, and follow-ups autonomously.
+                    <p className="text-sm text-muted-foreground max-w-md leading-relaxed">
+                      Enable the global AI engine to handle outreach, replies, and follow-ups 24/7.
                     </p>
                   </div>
                 </div>
-                <Switch
-                  checked={formData.autonomousMode}
-                  onCheckedChange={c => handleFieldChange('autonomousMode', c)}
-                />
+                <div className="sm:shrink-0 w-full sm:w-auto flex justify-end">
+                  <Switch
+                    checked={formData.autonomousMode}
+                    onCheckedChange={c => handleFieldChange('autonomousMode', c)}
+                    className="data-[state=checked]:bg-primary"
+                  />
+                </div>
               </div>
 
-              <div className="flex items-center justify-between p-6 bg-muted/30 rounded-xl border border-border">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 bg-muted/30 rounded-2xl border border-border hover:border-border/80 transition-all gap-4">
                 <div className="flex gap-4">
-                  <div className="p-3 rounded-xl bg-background border border-border">
+                  <div className="p-3 rounded-2xl bg-background border border-border shrink-0">
                     <VoiceIcon className="w-8 h-8" />
                   </div>
                   <div>
-                    <h4 className="font-bold flex items-center gap-2">
+                    <h4 className="font-bold text-base flex items-center gap-2">
                       Voice Engagement
                       {canAccessVoiceNotes ? <Badge className="bg-primary hover:bg-primary text-black text-[9px] font-bold">Pro Feature</Badge> : <Lock className="h-3 w-3 text-muted-foreground" />}
                     </h4>
-                    <p className="text-sm text-muted-foreground max-w-md">
-                      AI-generated voice notes for Instagram engagement.
+                    <p className="text-sm text-muted-foreground max-w-md leading-relaxed">
+                      AI-generated voice notes for personalized Instagram engagement.
                     </p>
                   </div>
                 </div>
-                <Switch
-                  checked={formData.voiceNotesEnabled && canAccessVoiceNotes}
-                  onCheckedChange={c => canAccessVoiceNotes && handleFieldChange('voiceNotesEnabled', c)}
-                  disabled={!canAccessVoiceNotes}
-                />
+                <div className="sm:shrink-0 w-full sm:w-auto flex justify-end">
+                  <Switch
+                    checked={formData.voiceNotesEnabled && canAccessVoiceNotes}
+                    onCheckedChange={c => canAccessVoiceNotes && handleFieldChange('voiceNotesEnabled', c)}
+                    disabled={!canAccessVoiceNotes}
+                  />
+                </div>
               </div>
 
               <div className="p-6 bg-muted/30 rounded-xl border border-border">

@@ -150,7 +150,7 @@ Return ONLY valid JSON, no explanation.`;
     });
 
     // Log intent analysis to audit trail
-    await AuditTrailService.logIntentAnalysis(lead.id.toString(), analysis.sentiment, analysis.suggestedAction);
+    await AuditTrailService.logIntentDetected(lead.id.toString(), lead.id.toString(), analysis.sentiment, analysis.confidence);
 
     return analysis;
 

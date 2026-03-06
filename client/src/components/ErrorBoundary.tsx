@@ -1,54 +1,94 @@
-
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertCircle } from 'lucide-react';
-import { Button } from './ui/button';
-import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import React from "react";
+import { AlertCircle, RefreshCw, Home, ShieldAlert, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Props {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
 interface State {
   hasError: boolean;
-  error: Error | null;
+  error?: Error;
 }
 
-export class ErrorBoundary extends Component<Props, State> {
-  public state: State = {
-    hasError: false,
-    error: null,
-  };
+export class ErrorBoundary extends React.Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+    this.state = { hasError: false };
+  }
 
-  public static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ErrorBoundary caught error:', error, errorInfo);
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("ErrorBoundary caught an error", error, errorInfo);
   }
-
-  private handleReset = () => {
-    this.setState({ hasError: false, error: null });
-    // Use replace to avoid keeping the error page in history
-    window.location.replace('/dashboard');
-  };
 
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-          <Alert variant="destructive" className="max-w-lg">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Something went wrong</AlertTitle>
-            <AlertDescription className="mt-2">
-              <p className="mb-4 text-sm text-muted-foreground">
-                We encountered an unexpected issue. Our team has been notified.
-              </p>
-              <Button onClick={this.handleReset} variant="outline">
-                Return to Dashboard
-              </Button>
-            </AlertDescription>
-          </Alert>
+        <div className="min-h-screen w-full flex items-center justify-center bg-[#020202] p-6 relative overflow-hidden">
+          {/* Neural Gradient Orbs */}
+          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/10 blur-[150px] rounded-full" />
+          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-red-500/5 blur-[120px] rounded-full" />
+
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative z-10 w-full max-w-lg"
+          >
+            <div className="bg-card/30 backdrop-blur-3xl border border-white/5 rounded-[3rem] p-12 shadow-2xl relative overflow-hidden group">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500/50 to-transparent opacity-50" />
+
+              <div className="mb-10 flex flex-col items-center text-center">
+                <div className="h-24 w-24 rounded-[2rem] bg-primary/10 flex items-center justify-center text-primary mb-8 border border-primary/20 shadow-[0_0_50px_rgba(var(--primary),0.2)]">
+                  <ShieldAlert className="h-12 w-12" />
+                </div>
+
+                <h2 className="text-4xl font-black text-white tracking-[1.5%] mb-4 uppercase">
+                  System Isolation <span className="text-primary italic">Active</span>
+                </h2>
+
+                <div className="p-6 rounded-[2rem] bg-black/40 border border-white/5 w-full mb-10 backdrop-blur-md">
+                  <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/60 mb-3">Neural Diagnostic Report</p>
+                  <p className="text-sm font-bold text-muted-foreground/90 uppercase tracking-tight">
+                    {this.state.error?.message || "Internal Neural State Decoherence"}
+                  </p>
+                </div>
+
+                <p className="text-muted-foreground/60 text-lg font-medium leading-[1.4] mb-12">
+                  Our autonomous safeguards have successfully isolated a processing anomaly. <br />
+                  <span className="text-white italic">Your campaign integrity and data are fully secured.</span>
+                </p>
+
+                <div className="flex flex-col sm:flex-row gap-5 w-full">
+                  <Button
+                    onClick={() => window.location.reload()}
+                    className="flex-1 h-16 rounded-[1.25rem] bg-primary text-black hover:bg-primary/90 font-black uppercase tracking-[0.2em] text-[10px] shadow-[0_0_30px_rgba(var(--primary),0.3)] transition-all duration-500"
+                  >
+                    <RefreshCw className="mr-3 h-4 w-4" /> Re-Initialize Neural Bridge
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    onClick={() => window.location.href = "/"}
+                    className="flex-1 h-16 rounded-[1.25rem] border-white/10 bg-white/5 hover:bg-white/10 text-white font-black uppercase tracking-[0.2em] text-[10px] transition-all duration-500"
+                  >
+                    <Home className="mr-3 h-4 w-4 opacity-50" /> Emergency Override
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-center gap-2 opacity-20">
+                <Sparkles className="h-3 w-3 text-primary" />
+                <span className="text-[9px] font-black uppercase tracking-[0.6em] text-white">Audnix AI Safeguard 2.0</span>
+              </div>
+            </div>
+          </motion.div>
+
+          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.02] pointer-events-none" />
         </div>
       );
     }

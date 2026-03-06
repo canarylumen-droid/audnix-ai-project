@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Check, Loader2, Zap, ShieldCheck, Activity, TrendingUp, Sparkles } from "lucide-react";
+import { Check, Loader2, Zap, ShieldCheck, Activity, TrendingUp, Sparkles, Mail } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
