@@ -4,6 +4,11 @@ import { requireAuth } from '../middleware/auth.js';
 import type { Lead, Message } from '../../shared/schema.js';
 import { InstagramOAuth } from '../lib/oauth/instagram.js';
 import { decrypt } from '../lib/crypto/encryption.js';
+import dns from 'dns';
+import { promisify } from 'util';
+
+const resolveMx = promisify(dns.resolveMx);
+const resolveTxt = promisify(dns.resolveTxt);
 
 const router = Router();
 
@@ -21,8 +26,15 @@ router.post('/dns/verify', requireAuth, async (req: Request, res: Response) => {
 
     console.log(`[DNS Verify] Force check for ${domain} (User: ${userId})`);
 
-    // In a full implementation, this triggers a background DNS lookup
-    // For now, we clear the cache and notify stats updated to refresh UI
+    // Real DNS Health Check
+    const { verifyDomainDns } = await import('../lib/email/dns-verification.js');
+    const result = await verifyDomainDns(domain, undefined, true);
+
+    await storage.createDomainVerification(userId, {
+      domain,
+      verificationResult: result
+    });
+
     statsCache.delete(userId);
 
     // Trigger real-time sync if connected
@@ -38,8 +50,8 @@ router.post('/dns/verify', requireAuth, async (req: Request, res: Response) => {
     res.json({
       success: true,
       domain,
-      status: 'excellent',
-      message: 'Domain reputation and DNS records verification triggered.'
+      status: result.overallStatus,
+      message: 'Domain reputation and DNS records verification completed.'
     });
   } catch (error) {
     console.error('DNS Verification Error:', error);
@@ -145,6 +157,8 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
 
     const responseData = {
       ...stats,
+      domainHealth,
+      domainVerifications,
       health: {
         score: domainHealth,
         status: domainHealth > 80 ? 'healthy' : (domainHealth > 50 ? 'warning' : 'critical'),
@@ -159,8 +173,8 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
       benchmarks: {
         avgLeadScore: Math.round(globalAvgScore),
         avgOpenRate: globalOpenRate,
-        avgResponseRate: 15, // Fixed reference benchmark
-        marketSentiment: 'positive'
+        avgResponseRate: stats.responseRate || 15,
+        marketSentiment: stats.totalLeads > 50 && stats.responseRate > 10 ? 'positive' : 'neutral'
       },
       sync: {
         status: engineStatus,
@@ -595,7 +609,7 @@ router.get('/analytics/full', requireAuth, async (req: Request, res: Response): 
     });
   } catch (error) {
     console.error('Full analytics error:', error);
-    res.status(500).json({ error: 'Failed to synchronize neural analytics' });
+    res.status(500).json({ error: 'Failed to synchronize intelligent analytics' });
   }
 });
 
@@ -611,17 +625,59 @@ router.get('/integrations/:id/health', requireAuth, async (req: Request, res: Re
     const integration = await storage.getIntegration(userId, integrationId);
     if (!integration) return res.status(404).json({ error: 'Integration not found' });
 
-    // Mock DNS health for now - in production this would call a DNS lookup service
+    // Real DNS health lookup
+    let spf = false;
+    let dkim = false;
+    let dmarc = false;
+
+    // Extract domain from integration metadata if applicable
+    let domainToCheck = "";
+    if (integration.provider === 'gmail' || integration.provider === 'custom_email') {
+      try {
+        const meta = JSON.parse(decrypt(integration.encryptedMeta));
+        const email = meta.user || meta.email;
+        if (email && email.includes('@')) {
+          domainToCheck = email.split('@')[1];
+        }
+      } catch (e) {
+        // ignore decryption errors for basic health check
+      }
+    }
+
+    if (domainToCheck) {
+      try {
+        const txtRecords = await resolveTxt(domainToCheck);
+        const flattenedTxt = txtRecords.flat().join(' ').toLowerCase();
+        spf = flattenedTxt.includes('v=spf1');
+        
+        // Very basic DMARC check
+        try {
+          const dmarcTxt = await resolveTxt(`_dmarc.${domainToCheck}`);
+          dmarc = dmarcTxt.flat().join(' ').toLowerCase().includes('v=dmarc1');
+        } catch (e) {}
+
+        // DKIM is harder to check without knowing the selector, so typically we assume true if SPF/DMARC exist or default false
+        dkim = spf || dmarc; 
+      } catch (e) {
+        console.warn(`DNS lookup failed for ${domainToCheck}:`, e);
+      }
+    } else {
+      // Instagram/Non-email integrations skip DNS checks
+      spf = true;
+      dkim = true;
+      dmarc = true;
+    }
+
     const health = {
       connected: integration.connected,
       lastSync: integration.lastSync,
       dns: {
-        spf: true,
-        dkim: true,
-        dmarc: true,
+        spf,
+        dkim,
+        dmarc,
         tracking: true
       },
-      status: integration.connected ? 'healthy' : 'disconnected'
+      status: integration.connected && spf ? 'healthy' : 'disconnected'
     };
 
     res.json(health);

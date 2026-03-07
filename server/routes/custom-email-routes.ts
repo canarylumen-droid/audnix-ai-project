@@ -218,8 +218,20 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
     // inline because it can take 60-120s and would timeout the serverless function.
     try {
       const { imapIdleManager } = await import('../lib/email/imap-idle-manager.js');
-      // Fire-and-forget: triggers background IMAP connection + email import
+      // Fire-and-forget: triggers background IMAP connection
       imapIdleManager.syncConnections();
+      
+      // Implement background, real-time fetching of full inbox history (quietly)
+      setTimeout(() => {
+          const integrations = storage.getIntegrations(userId) as any;
+          integrations.then((ints: any[]) => {
+              const customEmail = ints.find((i: any) => i.provider === 'custom_email' && i.accountType === email);
+              if (customEmail) {
+                  imapIdleManager.syncHistoricalEmails(userId, customEmail.id, 30).catch(console.error);
+              }
+          });
+      }, 5000); // Give connection time to establish
+
       console.log(`[Email Connect] Background sync triggered for user ${userId}`);
     } catch (idleErr) {
       console.warn('[Email Connect] Could not trigger background sync:', idleErr);

@@ -38,8 +38,7 @@ router.post('/preview', requireAuth, async (req, res) => {
       preview
     });
   } catch (error) {
-    console.error('Preview error:', error);
-    res.status(500).json({ error: 'Failed to generate neural preview' });
+    res.status(500).json({ error: 'Failed to generate AI preview' });
   }
 });
 
@@ -75,7 +74,7 @@ router.post('/campaigns', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Missing required campaign data' });
     }
 
-    // Default config and template if missing (for the "Neural Filter" style calls)
+    // Default config and template if missing (for the "AI Filter" style calls)
     const campaignConfig = config || { dailyLimit: 50 };
     const campaignTemplate = template || { subject: 'Re connecting', body: 'Hey {lead_name}, reaching out.' };
 
@@ -760,4 +759,3 @@ router.get('/click/:trackingId', async (req, res) => {
 });
 
 export default router;
-

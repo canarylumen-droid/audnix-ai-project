@@ -142,6 +142,7 @@ export interface IStorage {
   // Reputation & Delivery
   getRecentBounces(userId: string, hours?: number): Promise<any[]>;
   getDomainVerifications(userId: string, limit?: number): Promise<any[]>;
+  createDomainVerification(userId: string, data: any): Promise<any>;
 
   // Permanent Email Storage
   createEmailMessage(message: InsertEmailMessage): Promise<EmailMessage>;
@@ -769,6 +770,7 @@ export class MemStorage implements IStorage {
       clickedAt: message.clickedAt || null,
       repliedAt: message.repliedAt || null,
       isRead: message.isRead ?? (message.direction === 'outbound'),
+      externalId: message.externalId || null,
       metadata: message.metadata || {},
       createdAt: now,
     };
@@ -1021,6 +1023,10 @@ export class MemStorage implements IStorage {
 
   async getDomainVerifications(userId: string, limit: number = 10): Promise<any[]> {
     return [];
+  }
+
+  async createDomainVerification(userId: string, data: any): Promise<any> {
+    return null;
   }
 
   // Onboarding methods

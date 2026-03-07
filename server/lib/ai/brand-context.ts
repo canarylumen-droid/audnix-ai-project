@@ -24,6 +24,7 @@ export interface BrandContext {
   // Booking automation preference: 'link' (just send link) or 'autonomous' (suggest slots)
   bookingPreference?: 'link' | 'autonomous';
   signature?: string;
+  brandKnowledge?: string;
 }
 
 /**
@@ -65,6 +66,7 @@ export async function getBrandContext(userId: string): Promise<BrandContext> {
       contactPhone: metadata.contact_phone || null,
       bookingPreference: metadata.booking_preference || 'autonomous', // Default to autonomous for premium feel
       signature: metadata.signature || metadata.email_signature || `\n\nBest regards,\n${user.businessName || 'The Team'}`,
+      brandKnowledge: await storage.getBrandKnowledge(userId) || user.brandGuidelinePdfText || ''
     };
   } catch (error) {
     console.error("Error fetching brand context:", error);
@@ -159,7 +161,11 @@ Company: ${brand.companyName}`;
       prompt += `\nAvoid using: ${brand.brandLanguage.avoid.join(", ")}`;
     }
   }
-
+  
+  if (brand.brandKnowledge) {
+    prompt += `\n\n# Advanced Brand Knowledge (from PDF/Scraping):\n${brand.brandKnowledge}`;
+  }
+  
   prompt += `\n\n# Tone: Always sound like ${brand.companyName}, but better.`;
 
   return prompt;

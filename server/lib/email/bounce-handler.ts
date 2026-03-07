@@ -71,13 +71,58 @@ class BounceHandler {
       console.log(`📧 ${event.bounceType.toUpperCase()} bounce recorded: ${event.email}`);
 
       // Stop any active campaign for this lead
-      const { campaignLeads } = await import('../../../shared/schema.js');
-      await db.update(campaignLeads)
+      const { campaignLeads, outreachCampaigns } = await import('../../../shared/schema.js');
+      const affectedCampaignLeads = await db.update(campaignLeads)
         .set({ 
           status: 'failed', 
           error: `${event.bounceType.toUpperCase()} bounce: ${event.reason || 'No reason provided'}` 
         })
-        .where(eq(campaignLeads.leadId, event.leadId));
+        .where(eq(campaignLeads.leadId, event.leadId))
+        .returning({ campaignId: campaignLeads.campaignId });
+
+      // Track reputation and pause entire campaign if spam risks appear
+      const { sql: dbsql } = await import('drizzle-orm');
+      for (const cl of affectedCampaignLeads) {
+        if (!cl.campaignId) continue;
+        
+        try {
+          // Re-evaluate campaign health
+          const stats = await db.execute(dbsql`
+            SELECT 
+              COUNT(*) as total,
+              SUM(CASE WHEN status = 'failed' AND error LIKE '%SPAM bounce%' THEN 1 ELSE 0 END) as spam_count,
+              SUM(CASE WHEN status = 'failed' AND error LIKE '%HARD bounce%' THEN 1 ELSE 0 END) as hard_count
+            FROM campaign_leads 
+            WHERE campaign_id = ${cl.campaignId}
+          `);
+          
+          const row = stats.rows[0];
+          const spamCount = Number(row?.spam_count || 0);
+          const hardCount = Number(row?.hard_count || 0);
+          
+          // Conditions to auto-pause: >= 2 SPAM complaints OR >= 10 HARD bounces
+          if (spamCount >= 2 || hardCount >= 10) {
+            const [pausedCampaign] = await db.update(outreachCampaigns)
+              .set({ status: 'paused', updatedAt: new Date() })
+              .where(and(eq(outreachCampaigns.id, cl.campaignId), eq(outreachCampaigns.status, 'active')))
+              .returning();
+              
+            if (pausedCampaign) {
+              console.log(`⚠️ Campaign ${pausedCampaign.id} auto-paused due to reputation protection (Spam: ${spamCount}, Hard: ${hardCount})`);
+              wsSync.notifyCampaignsUpdated(event.userId);
+              
+              await storage.createNotification({
+                userId: event.userId,
+                type: 'system',
+                title: '🛡️ Campaign Auto-Paused',
+                message: `Campaign "${pausedCampaign.name}" was paused automatically due to elevated bounce/spam rates to protect your email reputation.`,
+              });
+            }
+          }
+        } catch (err) {
+          console.error('[BounceHandler] Failed to evaluate campaign reputation:', err);
+        }
+      }
 
       // Notify UI in real-time
       wsSync.notifyActivityUpdated(event.userId, {

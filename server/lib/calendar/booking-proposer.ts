@@ -1,12 +1,12 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import { getCalendlySlots, createCalendlyEvent } from "./calendly.js";
 import { db } from "../../db.js";
 import { calendarSettings, integrations } from "../../../shared/schema.js";
 import { eq } from "drizzle-orm";
 
-import { GEMINI_STABLE_MODEL } from "../ai/model-config.js";
+import { GENAI_STABLE_MODEL } from "../ai/model-config.js";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 export class BookingProposer {
     private userId: string;
@@ -33,7 +33,6 @@ export class BookingProposer {
             }
 
             // 2. Use AI to extract requested time range
-            const model = genAI.getGenerativeModel({ model: GEMINI_STABLE_MODEL });
             const prompt = `
                 Extract the user's preferred meeting times from this message: "${userInput}"
                 
@@ -53,8 +52,8 @@ export class BookingProposer {
                 }
             `;
 
-            const result = await model.generateContent(prompt);
-            const extraction = JSON.parse(result.response.text().replace(/```json|```/g, "").trim());
+            const result = await genAI.models.generateContent({ model: GENAI_STABLE_MODEL, contents: prompt });
+            const extraction = JSON.parse((result.text || "").replace(/```json|```/g, "").trim());
 
             if (extraction.confidence < 0.5) {
                 return { suggestedSlots: [], parsedIntent: extraction.parsedIntent, needsClarification: true };
@@ -80,8 +79,8 @@ export class BookingProposer {
                 }
             `;
 
-            const matchResult = await model.generateContent(matchingPrompt);
-            const matches = JSON.parse(matchResult.response.text().replace(/```json|```/g, "").trim());
+            const matchResult = await genAI.models.generateContent({ model: GENAI_STABLE_MODEL, contents: matchingPrompt });
+            const matches = JSON.parse((matchResult.text || "").replace(/```json|```/g, "").trim());
 
             return {
                 suggestedSlots: matches.matches,

@@ -753,7 +753,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                             <div className="flex items-center gap-4">
                               <div className="p-2.5 bg-emerald-500/10 rounded-xl"><Sparkles className="h-5 w-5 text-emerald-500" /></div>
                               <div>
-                                <div className="text-[10px] font-black uppercase tracking-widest mb-0.5">Neural Filter</div>
+                                <div className="text-[10px] font-black uppercase tracking-widest mb-0.5">AI Filter</div>
                                 <div className="text-[9px] text-muted-foreground font-bold italic">AI intent detection</div>
                               </div>
                             </div>

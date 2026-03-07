@@ -2,8 +2,8 @@ import { getDatabase } from "../server/db.js";
 import { prospects } from "../shared/schema.js";
 import { eq } from "drizzle-orm";
 import { EmailVerifier } from "../server/lib/scraping/email-verifier.js";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { GEMINI_LATEST_MODEL } from "../server/lib/ai/model-config.js";
+import { GoogleGenAI } from "@google/genai";
+import { GENAI_STABLE_MODEL } from "../server/lib/ai/model-config.js";
 import 'dotenv/config';
 
 async function performIntensiveCleanup() {
@@ -15,8 +15,7 @@ async function performIntensiveCleanup() {
     }
 
     const verifier = new EmailVerifier();
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-    const model = genAI.getGenerativeModel({ model: GEMINI_LATEST_MODEL });
+    const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
     // 1. Fetch all leads
     const allLeads = await db.select().from(prospects);
@@ -50,8 +49,8 @@ async function performIntensiveCleanup() {
                 `;
 
                 try {
-                    const recoveryResult = await model.generateContent(recoveryPrompt);
-                    const correctedEmail = recoveryResult.response.text().trim();
+                    const recoveryResult = await genAI.models.generateContent({ model: GENAI_STABLE_MODEL, contents: recoveryPrompt });
+                    const correctedEmail = (recoveryResult.text || "").trim();
 
                     if (correctedEmail !== 'NONE' && correctedEmail !== lead.email && correctedEmail.includes('@')) {
                         console.log(`   ✨ Neural Discovery found candidate: ${correctedEmail}`);
@@ -94,8 +93,8 @@ async function performIntensiveCleanup() {
                 // ... same domain audit logic but update status to 'hardened'
                 const auditPrompt = `ENTITY: ${lead.entity}\nWEBSITE: ${lead.website}\nCorrect? Return JSON: {"is_correct": boolean, "suggested": "string|null"}`;
                 try {
-                    const auditRes = await model.generateContent(auditPrompt);
-                    const audit = JSON.parse(auditRes.response.text().replace(/```json|```/g, "").trim());
+                    const auditRes = await genAI.models.generateContent({ model: GENAI_STABLE_MODEL, contents: auditPrompt });
+                    const audit = JSON.parse((auditRes.text || "").replace(/```json|```/g, "").trim());
                     if (!audit.is_correct && audit.suggested) {
                         console.log(`   🛠️ Updating Domain: ${lead.website} -> ${audit.suggested}`);
                         await db.update(prospects).set({ website: audit.suggested }).where(eq(prospects.id, lead.id));

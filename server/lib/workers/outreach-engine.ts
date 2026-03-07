@@ -372,7 +372,19 @@ export class OutreachEngine {
    */
   private async isMailboxReadyToSend(userId: string, integration: Integration, campaign?: any, isHighPriority: boolean = false): Promise<boolean> {
     const meta = decryptToJSON(integration.encryptedMeta) || {};
-    const mailboxDailyLimit = meta.dailyLimit || 50;
+    
+    // Default safe limits by provider type
+    let defaultLimit = 50;
+    if (integration.provider === 'custom_email') defaultLimit = 250;
+    else if (integration.provider === 'outlook') defaultLimit = 50;
+    else if (integration.provider === 'gmail') defaultLimit = 50;
+    
+    let mailboxDailyLimit = meta.dailyLimit ? Number(meta.dailyLimit) : defaultLimit;
+    
+    // Override with campaign-specific limit if provided
+    if (campaign?.config?.mailboxLimits && campaign.config.mailboxLimits[integration.id]) {
+      mailboxDailyLimit = Number(campaign.config.mailboxLimits[integration.id]);
+    }
 
     // High Priority (Follow-ups/Auto-Replies) can vastly exceed the initial send limit (e.g., up to 300)
     // To ensure active fluid conversations don't get stuck due to initial outreach limits.
@@ -382,7 +394,6 @@ export class OutreachEngine {
 
     // Calculate safe dynamic rate for non-stop delivery over 24 hours
     let finalMailboxLimit = mailboxDailyLimit;
-    if (meta?.dailyLimit) finalMailboxLimit = Number(meta.dailyLimit);
 
     // --- Peak Hour Analysis ---
     const now = new Date();
@@ -453,13 +464,14 @@ export class OutreachEngine {
 
     // 3. Global/User Daily Limits & Autonomous Mode
     try {
-      const userResult = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-      if (userResult[0]) {
-        const config = (userResult[0].config as any) || {};
-        const isAutonomousMode = config.autonomousMode === true;
-        const isManualCampaign = campaign?.config?.isManual === true;
-
-        if (!isAutonomousMode && !isManualCampaign) return false;
+      if (!campaign) {
+        // Only enforce autonomous mode check for fully autonomous tick (no specific campaign)
+        const userResult = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+        if (userResult[0]) {
+          const config = (userResult[0].config as any) || {};
+          const isAutonomousMode = config.autonomousMode === true;
+          if (!isAutonomousMode) return false;
+        }
       }
     } catch (e) { }
 

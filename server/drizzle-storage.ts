@@ -1593,6 +1593,21 @@ export class DrizzleStorage implements IStorage {
     }
   }
 
+  async createDomainVerification(userId: string, data: any): Promise<any> {
+    checkDatabase();
+    try {
+      const result = await db.execute(sql`
+        INSERT INTO domain_verifications (user_id, domain, verification_result)
+        VALUES (${userId}, ${data.domain}, ${JSON.stringify(data.verificationResult)}::jsonb)
+        RETURNING *
+      `);
+      return result.rows[0];
+    } catch (e) {
+      console.error('Failed to create domain verification', e);
+      return null;
+    }
+  }
+
   async getSmtpSettings(userId: string): Promise<SmtpSettings[]> {
     checkDatabase();
     return await db.select().from(smtpSettings).where(eq(smtpSettings.userId, userId));

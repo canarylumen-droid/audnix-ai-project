@@ -1,9 +1,8 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { EmailVerifier } from './email-verifier.js';
 
-// Active Neural Proxy Mesh (Global Residential Cluster)
+// Active Intelligent Proxy Mesh (Global Residential Cluster)
 // Free proxy rotation (simulated for dev, use PROXY_URL for enterprise scraping)
 let PROXY_POOL: any[] = [
     { protocol: 'http', host: '159.203.87.130', port: 3128 },
@@ -28,7 +27,7 @@ async function scrapePublicProxies(): Promise<any[]> {
     ];
 
     const results: any[] = [];
-    console.log("🛰️ Synchronizing Neural Proxy Mesh from global open-source nodes...");
+    console.log("🛰️ Synchronizing Intelligent Proxy Mesh from global open-source nodes...");
 
     const fetchTasks = sources.map(async (source) => {
         try {
@@ -64,9 +63,6 @@ async function scrapePublicProxies(): Promise<any[]> {
 // Set default envs for proxy mesh if not present
 if (!process.env.USE_PROXIES) process.env.USE_PROXIES = 'true';
 
-import { GEMINI_LATEST_MODEL } from '../ai/model-config.js';
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 export interface RawLead {
     entity: string;
@@ -209,7 +205,7 @@ export class AdvancedCrawler {
     }
 
     /**
-     * Resilient Request Wrapper (Neural Unblocker v5)
+     * Resilient Request Wrapper (Intelligent Unblocker v5)
      */
     private async fetchPage(url: string, options: any = {}): Promise<any> {
         await this.ensureProxies();
@@ -254,7 +250,7 @@ export class AdvancedCrawler {
             ? ['USA', 'UK', 'Canada', 'Australia', 'Europe', 'UAE']
             : [location];
 
-        this.log(`[Neural Link] Scale mode active. Target: ${limit} | Multi-Location: ${locations.join(', ')}`, 'info');
+        this.log(`[Intelligent Link] Scale mode active. Target: ${limit} | Multi-Location: ${locations.join(', ')}`, 'info');
         this.log(`[Pulse] Rotating high-resolution endpoints for ${niche} domain...`, 'info');
 
         const results: RawLead[] = [];
@@ -303,7 +299,7 @@ export class AdvancedCrawler {
             unique = this.deduplicateLeads([...unique, ...socialDeep]);
         }
 
-        this.log(`[Neural Gateway] Discovery converged. ${unique.length} live signals extracted.`, 'success');
+        this.log(`[Intelligent Gateway] Discovery converged. ${unique.length} live signals extracted.`, 'success');
         return unique.slice(0, limit);
     }
 
@@ -728,7 +724,7 @@ export class AdvancedCrawler {
                 this.log(`[Deep Scan] Scraping Instagram bio for @${parsedUrl.pathname.split('/').filter(Boolean).pop()} via proxy mesh...`, 'info');
                 this.log(`[Intelligence] Extracting email patterns and IG verification data...`, 'raw');
             } else if (hostname === 'linkedin.com' || hostname.endsWith('.linkedin.com')) {
-                this.log(`[Neural Path] Extracting LinkedIn profile metadata and role intent...`, 'info');
+                this.log(`[Intelligent Path] Extracting LinkedIn profile metadata and role intent...`, 'info');
             } else if (hostname === 'youtube.com' || hostname.endsWith('.youtube.com')) {
                 this.log(`[Deep Scan] Analyzing YouTube channel descriptions and video tags...`, 'info');
             }
@@ -1129,7 +1125,7 @@ export class AdvancedCrawler {
         ];
 
         const results: RawLead[] = [];
-        this.log(`[Neural Link] Starting Specialized AI Agency Extraction...`, 'info');
+        this.log(`[Intelligent Link] Starting Specialized AI Agency Extraction...`, 'info');
 
         for (const query of queries) {
             try {

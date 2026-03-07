@@ -130,6 +130,14 @@ export const leads = pgTable("leads", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const domainVerifications = pgTable("domain_verifications", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  domain: text("domain").notNull(),
+  verificationResult: jsonb("verification_result").$type<Record<string, any>>().notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 
 
 export const leadSocialDetails = pgTable("lead_social_details", {
@@ -165,6 +173,7 @@ export const messages = pgTable("messages", {
   body: text("body").notNull(),
   audioUrl: text("audio_url"),
   trackingId: text("tracking_id"),
+  externalId: text("external_id"),
   openedAt: timestamp("opened_at"),
   clickedAt: timestamp("clicked_at"),
   repliedAt: timestamp("replied_at"),

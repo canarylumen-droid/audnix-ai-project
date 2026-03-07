@@ -45,7 +45,6 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "wouter";
-import { io } from "socket.io-client";
 import {
   Tooltip,
   TooltipContent,

@@ -103,6 +103,8 @@ export class InstagramOAuth {
 
     return data;
   }
+  
+
 
   /**
    * Get Instagram Business account linked to user's pages
@@ -335,14 +337,27 @@ export class InstagramOAuth {
   }>> {
     try {
       const fields = 'id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,username,like_count,comments_count';
-      const response = await fetch(
-        `https://graph.instagram.com/me/media?fields=${fields}&limit=${limit}&access_token=${accessToken}`
-      );
-      const data = await response.json();
-      if (data.error) {
-        throw new Error(data.error.message || 'Failed to get media');
+      let allMedia: any[] = [];
+      let url = `https://graph.instagram.com/me/media?fields=${fields}&limit=${Math.min(limit, 100)}&access_token=${accessToken}`;
+
+      while (url && allMedia.length < limit) {
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.error) {
+          throw new Error(data.error.message || 'Failed to get media');
+        }
+
+        if (data.data && data.data.length > 0) {
+          allMedia = [...allMedia, ...data.data];
+        } else {
+          break;
+        }
+
+        url = data.paging?.next || null;
       }
-      return data.data || [];
+      
+      return allMedia.slice(0, limit);
     } catch (error) {
       console.error('Failed to get Instagram media:', error);
       return [];
@@ -352,7 +367,7 @@ export class InstagramOAuth {
   /**
    * Get all messages from a conversation thread
    */
-  async getAllMessages(accessToken: string, conversationId: string): Promise<Array<{
+  async getAllMessages(accessToken: string, conversationId: string, limit: number = 100): Promise<Array<{
     id: string;
     message?: string;
     from?: { id: string };
@@ -361,14 +376,27 @@ export class InstagramOAuth {
     attachments?: Array<unknown>;
   }>> {
     try {
-      const response = await fetch(
-        `https://graph.instagram.com/${conversationId}/messages?fields=id,message,from,created_time&access_token=${accessToken}`
-      );
-      const data = await response.json();
-      if (data.error) {
-        throw new Error(data.error.message || 'Failed to get messages');
+      let allMessages: any[] = [];
+      let url = `https://graph.instagram.com/${conversationId}/messages?fields=id,message,from,created_time,attachments&limit=${Math.min(limit, 50)}&access_token=${accessToken}`;
+
+      while (url && allMessages.length < limit) {
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.error) {
+          throw new Error(data.error.message || 'Failed to get messages');
+        }
+
+        if (data.data && data.data.length > 0) {
+          allMessages = [...allMessages, ...data.data];
+        } else {
+          break;
+        }
+
+        url = data.paging?.next || null;
       }
-      return data.data || [];
+
+      return allMessages.slice(0, limit);
     } catch (error) {
       console.error('Failed to get Instagram messages:', error);
       return [];

@@ -17,13 +17,17 @@ import {
   Filter,
   Activity,
   Plus,
-  Download
+  Download,
+  Sparkles
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
+import { useEffect, useState } from "react";
+import { useRealtime } from "@/hooks/use-realtime";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { PremiumLoader } from "@/components/ui/premium-loader";
+import { apiRequest } from "@/lib/queryClient";
 
 interface Deal {
   id: string;
@@ -64,6 +68,31 @@ const channelIcons: Record<string, typeof Instagram | typeof Mail> = {
 export default function DealsPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
+  const [filter, setFilter] = useState<string>("all");
+  const { socket } = useRealtime();
+
+  useEffect(() => {
+    if (!socket) return;
+    
+    let timeout: NodeJS.Timeout;
+    const handleUpdate = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/deals"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/deals/analytics"] });
+      }, 50);
+    };
+
+    socket.on('deals_updated', handleUpdate);
+    socket.on('leads_updated', handleUpdate); // Some lead status changes affect pipeline
+
+    return () => {
+      socket.off('deals_updated', handleUpdate);
+      socket.off('leads_updated', handleUpdate);
+      clearTimeout(timeout);
+    };
+  }, [socket, queryClient]);
   const { data: dealsData, isLoading } = useQuery<DealsApiResponse>({
     queryKey: ["/api/deals"],
 
@@ -76,10 +105,10 @@ export default function DealsPage() {
     retry: false,
   });
 
-  const deals: Deal[] = dealsData?.deals || [];
-  const totalValue = deals.reduce((sum: number, deal: Deal) => sum + (deal.value || 0), 0);
-  const convertedDeals = deals.filter((d: Deal) => d.status === "converted" || d.status === "closed_won");
-  const pendingDeals = deals.filter((d: Deal) => d.status === "pending" || d.status === "open");
+  const deals: Deal[] = (dealsData?.deals || []).filter(d => filter === 'all' || d.status === filter);
+  const totalValue = (dealsData?.deals || []).reduce((sum: number, deal: Deal) => sum + (deal.value || 0), 0);
+  const convertedDeals = (dealsData?.deals || []).filter((d: Deal) => d.status === "converted" || d.status === "closed_won");
+  const pendingDeals = (dealsData?.deals || []).filter((d: Deal) => d.status === "pending" || d.status === "open");
 
   // Calculate Avg Value
   const avgDealValue = deals.length > 0 ? Math.round(totalValue / deals.length) : 0;
@@ -105,6 +134,25 @@ export default function DealsPage() {
     return new Date(dateString).toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
+  const syncDeals = async () => {
+    try {
+      const res = await apiRequest('POST', '/api/deals/sync');
+      const data = await res.json();
+      toast({
+        title: "AI Analysis Complete",
+        description: `Analyzed ${data.analyzedCount} deals from conversation history.`
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/deals"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/deals/analytics"] });
+    } catch (err) {
+      toast({
+        title: "Sync Failed",
+        description: "Could not refine deals with AI.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const exportDeals = () => {
     if (deals.length === 0) {
       toast({
@@ -119,11 +167,11 @@ export default function DealsPage() {
     const csvContent = [
       headers.join(","),
       ...deals.map(d => [
-        `"${d.leadName || "Unknown"}"`,
+        `"${String(d.leadName || "Unknown").replace(new RegExp('"', 'g'), '""')}"`,
         d.value || 0,
-        `"${d.status || ""}"`,
-        `"${d.channel || ""}"`,
-        `"${new Date(d.createdAt).toLocaleString()}"`
+        `"${String(d.status || "").replace(new RegExp('"', 'g'), '""')}"`,
+        `"${String(d.channel || "").replace(new RegExp('"', 'g'), '""')}"`,
+        `"${new Date(d.createdAt).toLocaleString().replace(new RegExp('"', 'g'), '""')}"`
       ].join(","))
     ].join("\n");
 
@@ -163,17 +211,26 @@ export default function DealsPage() {
             Monitor your sales performance and active deals.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" className="hidden sm:flex">
-            <Filter className="mr-2 h-4 w-4" /> Filter
-          </Button>
+          <div className="relative group">
+            <Button variant="outline" className="flex">
+              <Filter className="mr-2 h-4 w-4" /> {filter === 'all' ? 'All Deals' : (filter as string).replace('_', ' ')}
+            </Button>
+            <div className="absolute right-0 mt-2 w-48 bg-card border rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+               <button onClick={() => setFilter('all')} className="w-full text-left px-4 py-2 hover:bg-muted text-sm">All Deals</button>
+               <button onClick={() => setFilter('open')} className="w-full text-left px-4 py-2 hover:bg-muted text-sm">Open</button>
+               <button onClick={() => setFilter('converted')} className="w-full text-left px-4 py-2 hover:bg-muted text-sm">Converted</button>
+               <button onClick={() => setFilter('closed_lost')} className="w-full text-left px-4 py-2 hover:bg-muted text-sm">Closed Lost</button>
+            </div>
+          </div>
           <Button variant="outline" onClick={exportDeals}>
             <Download className="mr-2 h-4 w-4" /> Export
+          </Button>
+          <Button onClick={syncDeals} className="bg-primary/20 text-primary border-primary/30 hover:bg-primary/30">
+            <Sparkles className="mr-2 h-4 w-4" /> Refine with AI
           </Button>
           <Button onClick={() => setLocation('/dashboard/conversations')}>
             <Plus className="mr-2 h-4 w-4" /> Add Deal
           </Button>
-        </div>
       </div>
 
       {/* Stats Grid */}
@@ -326,7 +383,7 @@ export default function DealsPage() {
                           {formatDate(deal.createdAt)}
                         </td>
                         <td className="p-4 align-middle text-right">
-                          <Link href={`/dashboard/conversations/${deal.leadId}`}>
+                          <Link href={`/dashboard/inbox/${deal.leadId}`}>
                             <Button variant="ghost" size="sm">View</Button>
                           </Link>
                         </td>

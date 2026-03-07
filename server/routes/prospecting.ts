@@ -9,7 +9,7 @@ import { requireAuth } from '../middleware/auth.js';
 const router = Router();
 
 /**
- * Start Neural Scan (NO MOCK DATA)
+ * Start Intelligent Scan (NO MOCK DATA)
  */
 router.post('/scan', requireAuth, async (req: Request, res: Response) => {
     try {
@@ -25,13 +25,13 @@ router.post('/scan', requireAuth, async (req: Request, res: Response) => {
         // Pass integrationId to ingestor if needed or handle it in the results
 
         // Run in background, respond immediately
-        ingestor.startNeuralScan(query).catch(error => {
-            console.error('Neural scan error:', error);
+        ingestor.startIntelligentScan(query).catch(error => {
+            console.error('Intelligent scan error:', error);
         });
 
         res.json({
             success: true,
-            message: 'Neural scan initiated. Watch real-time progress in the modal.'
+            message: 'Intelligent scan initiated. Watch real-time progress in the modal.'
         });
 
     } catch (error) {

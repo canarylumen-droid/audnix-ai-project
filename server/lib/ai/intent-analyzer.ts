@@ -121,7 +121,7 @@ Return ONLY valid JSON, no explanation.`;
 
     const analysis = JSON.parse(response) as IntentAnalysis;
 
-    // Neural Tagging Integration
+    // Intelligent Tagging Integration
     const tags = await suggestLeadTags(lead, message, analysis);
 
     // Determine new status based on intent
@@ -246,7 +246,7 @@ Rules:
 
     const completion = await openai.chat.completions.create({
       model: MODELS.intent_classification,
-      messages: [{ role: 'system', content: 'You are a neural lead tagger.' }, { role: 'user', content: prompt }],
+      messages: [{ role: 'system', content: 'You are an intelligent lead tagger.' }, { role: 'user', content: prompt }],
       response_format: { type: 'json_object' }
     });
 

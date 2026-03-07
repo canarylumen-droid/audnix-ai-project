@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import { MODELS, OPENAI_INTELLIGENCE_MODEL } from "./model-config.js";
 
 // Initialize OpenAI conditionally
@@ -7,9 +7,9 @@ const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
-// Initialize Gemini conditionally
-const gemini = process.env.GEMINI_API_KEY
-  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+// Initialize Google GenAI conditionally
+const genai = process.env.GEMINI_API_KEY
+  ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
   : null;
 
 // Initialize Z-AI (GLM) conditionally (OpenAI-compatible)
@@ -23,7 +23,7 @@ const zai = process.env.Z_AI_API_KEY
 /**
  * Determine primary provider: Z-AI > OpenAI > Gemini > None (Demo)
  */
-const PREFERRED_PROVIDER = process.env.Z_AI_API_KEY ? "zai" : (process.env.OPENAI_API_KEY ? "openai" : (process.env.GEMINI_API_KEY ? "gemini" : "demo"));
+const PREFERRED_PROVIDER = process.env.Z_AI_API_KEY ? "zai" : (process.env.OPENAI_API_KEY ? "openai" : (process.env.GEMINI_API_KEY ? "genai" : "demo"));
 const AI_MODEL = process.env.Z_AI_API_KEY ? MODELS.sales_reasoning : (process.env.OPENAI_MODEL || OPENAI_INTELLIGENCE_MODEL);
 
 console.log(`[AI Service] Unified initialization with provider: ${PREFERRED_PROVIDER}`);
@@ -34,13 +34,13 @@ console.log(`[AI Service] Unified initialization with provider: ${PREFERRED_PROV
 const PROVIDER_STATUS = {
   zai: { cooldownUntil: 0, consecutiveErrors: 0 },
   openai: { cooldownUntil: 0, consecutiveErrors: 0 },
-  gemini: { cooldownUntil: 0, consecutiveErrors: 0 },
+  genai: { cooldownUntil: 0, consecutiveErrors: 0 },
 };
 
 const COOLDOWN_BASE_MS = 60000; // 1 minute
 const MAX_COOLDOWN_MS = 3600000; // 1 hour
 
-function updateProviderHealth(provider: 'openai' | 'gemini' | 'zai', isSuccess: boolean, errorStatus?: number) {
+function updateProviderHealth(provider: 'openai' | 'genai' | 'zai', isSuccess: boolean, errorStatus?: number) {
   const status = PROVIDER_STATUS[provider];
   if (isSuccess) {
     status.consecutiveErrors = 0;
@@ -56,10 +56,10 @@ function updateProviderHealth(provider: 'openai' | 'gemini' | 'zai', isSuccess: 
   }
 }
 
-function isProviderAvailable(provider: 'openai' | 'gemini' | 'zai'): boolean {
+function isProviderAvailable(provider: 'openai' | 'genai' | 'zai'): boolean {
   if (provider === 'zai' && !zai) return false;
   if (provider === 'openai' && !openai) return false;
-  if (provider === 'gemini' && !gemini) return false;
+  if (provider === 'genai' && !genai) return false;
   return Date.now() >= PROVIDER_STATUS[provider].cooldownUntil;
 }
 
@@ -98,16 +98,20 @@ export async function embed(text: string): Promise<number[]> {
     }
   }
 
-  // 2. Try Gemini (768 dims -> padded to 1536)
-  if (isProviderAvailable('gemini')) {
+  // 2. Try GenAI (768 dims -> padded to 1536)
+  if (isProviderAvailable('genai')) {
     try {
-      const model = gemini!.getGenerativeModel({ model: "text-embedding-004" });
-      const result = await model.embedContent(text);
-      updateProviderHealth('gemini', true);
-      return normalizeEmbedding(result.embedding.values);
+      const result = await genai!.models.embedContent({
+        model: "text-embedding-004",
+        contents: text
+      });
+      updateProviderHealth('genai', true);
+      const values = result.embeddings?.[0]?.values;
+      if (!values) throw new Error("GenAI returned no embeddings");
+      return normalizeEmbedding(values as number[]);
     } catch (error: any) {
-      console.error("[AI Service] Gemini embedding error:", error.message);
-      updateProviderHealth('gemini', false, error.status);
+      console.error("[AI Service] GenAI embedding error:", error.message);
+      updateProviderHealth('genai', false, error.status);
     }
   }
 
@@ -182,31 +186,30 @@ export async function generateReply(
     }
   };
 
-  const tryGemini = async () => {
-    if (!isProviderAvailable('gemini')) return null;
+  const tryGenAI = async () => {
+    if (!isProviderAvailable('genai')) return null;
     try {
       const modelName = options?.model?.includes("gemini") ? options.model : MODELS.content_generation || "gemini-1.5-pro";
-      const model = gemini!.getGenerativeModel({
+      
+      const result = await genai!.models.generateContent({
         model: modelName,
-        generationConfig: {
+        contents: userPrompt,
+        config: {
           temperature: options?.temperature || 0.7,
           maxOutputTokens: options?.maxTokens || 1000,
           responseMimeType: options?.jsonMode ? "application/json" : "text/plain",
-        },
-        systemInstruction: systemPrompt
+          systemInstruction: systemPrompt
+        }
       });
 
-      const result = await model.generateContent(userPrompt);
-      const data = result.response;
-
-      updateProviderHealth('gemini', true);
+      updateProviderHealth('genai', true);
       return {
-        text: data.text(),
-        tokensUsed: data.usageMetadata?.totalTokenCount || 0
+        text: result.text || "",
+        tokensUsed: result.usageMetadata?.totalTokenCount || 0
       };
     } catch (error: any) {
-      console.error("[AI Service] Gemini error:", error.message);
-      updateProviderHealth('gemini', false, error.status);
+      console.error("[AI Service] GenAI error:", error.message);
+      updateProviderHealth('genai', false, error.status);
       return null;
     }
   };
@@ -243,17 +246,17 @@ export async function generateReply(
     if (res) return res;
     const openaiRes = await tryOpenAI();
     if (openaiRes) return openaiRes;
-    const geminiRes = await tryGemini();
-    if (geminiRes) return geminiRes;
+    const genaiRes = await tryGenAI();
+    if (genaiRes) return genaiRes;
   } else if (PREFERRED_PROVIDER === "openai") {
     const res = await tryOpenAI();
     if (res) return res;
     const zaiRes = await tryZAI();
     if (zaiRes) return zaiRes;
-    const geminiRes = await tryGemini();
-    if (geminiRes) return geminiRes;
-  } else {
-    const res = await tryGemini();
+    const genaiRes = await tryGenAI();
+    if (genaiRes) return genaiRes;
+  } else { // PREFERRED_PROVIDER === "genai" or "demo"
+    const res = await tryGenAI();
     if (res) return res;
     const zaiRes = await tryZAI();
     if (zaiRes) return zaiRes;
@@ -281,19 +284,21 @@ export async function classify(
 ): Promise<{ category: string; confidence: number }> {
   const systemPrompt = `Classify text into: ${categories.join(", ")}. Respond JSON: { "category": "...", "confidence": 0.0-1.0 }`;
 
-  const geminiClassify = async () => {
-    if (!isProviderAvailable('gemini')) return null;
+  const genaiClassify = async () => {
+    if (!isProviderAvailable('genai')) return null;
     try {
-      const model = gemini!.getGenerativeModel({
+      const result = await genai!.models.generateContent({
         model: MODELS.intent_classification?.includes("gemini") ? MODELS.intent_classification : "gemini-1.5-flash",
-        generationConfig: { responseMimeType: "application/json" },
-        systemInstruction: systemPrompt
+        contents: text,
+        config: {
+          responseMimeType: "application/json",
+          systemInstruction: systemPrompt
+        }
       });
-      const result = await model.generateContent(text);
-      updateProviderHealth('gemini', true);
-      return JSON.parse(result.response.text());
+      updateProviderHealth('genai', true);
+      return JSON.parse(result.text || "{}");
     } catch (e) {
-      updateProviderHealth('gemini', false);
+      updateProviderHealth('genai', false);
       return null;
     }
   };
@@ -332,9 +337,9 @@ export async function classify(
     }
   };
 
-  const result = PREFERRED_PROVIDER === "zai" ? (await zaiClassify() || await openaiClassify() || await geminiClassify()) :
-    (PREFERRED_PROVIDER === "gemini" ? (await geminiClassify() || await zaiClassify() || await openaiClassify()) :
-      (await openaiClassify() || await zaiClassify() || await geminiClassify()));
+  const result = PREFERRED_PROVIDER === "zai" ? (await zaiClassify() || await openaiClassify() || await genaiClassify()) :
+    (PREFERRED_PROVIDER === "genai" ? (await genaiClassify() || await zaiClassify() || await openaiClassify()) :
+      (await openaiClassify() || await zaiClassify() || await genaiClassify()));
 
   return {
     category: result?.category || categories[0] || "unknown",
@@ -349,15 +354,20 @@ export async function generateInsights(data: any, prompt: string): Promise<strin
   const fullPrompt = `${prompt}\n\nData: ${JSON.stringify(data)}`;
   const systemPrompt = "Analyze data and generate concise, actionable insights.";
 
-  const geminiInsights = async () => {
-    if (!isProviderAvailable('gemini')) return null;
+  const genaiInsights = async () => {
+    if (!isProviderAvailable('genai')) return null;
     try {
-      const model = gemini!.getGenerativeModel({ model: "gemini-1.5-flash", systemInstruction: systemPrompt });
-      const result = await model.generateContent(fullPrompt);
-      updateProviderHealth('gemini', true);
-      return result.response.text();
+      const result = await genai!.models.generateContent({
+        model: "gemini-1.5-flash",
+        contents: fullPrompt,
+        config: {
+          systemInstruction: systemPrompt
+        }
+      });
+      updateProviderHealth('genai', true);
+      return result.text || "";
     } catch (e) {
-      updateProviderHealth('gemini', false);
+      updateProviderHealth('genai', false);
       return null;
     }
   };
@@ -392,7 +402,7 @@ export async function generateInsights(data: any, prompt: string): Promise<strin
       updateProviderHealth('zai', false, e.status);
       return null;
     }
-  })() || await openaiInsights() || await geminiInsights()) : (PREFERRED_PROVIDER === "gemini" ? await geminiInsights() : await openaiInsights())) || "Revenue performance is stable with 12% growth in engagement signals.";
+  })() || await openaiInsights() || await genaiInsights()) : (PREFERRED_PROVIDER === "genai" ? await genaiInsights() : await openaiInsights())) || "Revenue performance is stable with 12% growth in engagement signals.";
 }
 
 /**

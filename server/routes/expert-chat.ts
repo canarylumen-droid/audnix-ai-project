@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { GEMINI_STABLE_MODEL, GEMINI_FALLBACK_MODEL } from "../lib/ai/model-config.js";
+import { GoogleGenAI } from "@google/genai";
+import { GENAI_STABLE_MODEL } from "../lib/ai/model-config.js";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 const router = Router();
 
@@ -12,7 +12,7 @@ You are the Audnix Support Assistant. You provide helpful, clear, and profession
 
 IDENTITY & VOICE:
 - Tone: Professional, helpful, and standard SaaS support style.
-- Language: Plain English. Avoid overly technical jargon or "neural" metaphors unless necessary.
+- Language: Plain English. Avoid overly technical jargon or "AI-driven" metaphors unless necessary.
 - Style: Direct and insight-driven.
 
 DEEP KNOWLEDGE:
@@ -54,30 +54,21 @@ router.post(['/chat', '/chat-v2'], async (req: Request, res: Response) => {
         if (!process.env.GEMINI_API_KEY) {
             console.warn("[AI] Expert Chat: GEMINI_API_KEY is missing. Falling back to static knowledge.");
             return res.json({
-                content: "I am currently in disconnected mode (API Sync Required). However, I can tell you that Audnix is the world's most advanced autonomous salesRepresentative. You should visit the Access Protocol (Signup) to initialize the full neural brain."
+                content: "I am currently in disconnected mode (API Sync Required). However, I can tell you that Audnix is the world's most advanced autonomous salesRepresentative. You should visit the Access Protocol (Signup) to initialize the full AI brain."
             });
         }
 
-        // Use standardized stable model with fallback
-        let model;
-        try {
-            model = genAI.getGenerativeModel({
-                model: GEMINI_STABLE_MODEL,
-                systemInstruction: AUDNIX_KNOWLEDGE
-            });
-        } catch (e) {
-            console.warn(`[AI] ${GEMINI_STABLE_MODEL} failed, falling back to ${GEMINI_FALLBACK_MODEL}`);
-            model = genAI.getGenerativeModel({
-                model: GEMINI_FALLBACK_MODEL,
-                systemInstruction: AUDNIX_KNOWLEDGE
-            });
-        }
+        // Use standardized stable model
+        let chat = genAI.chats.create({
+            model: GENAI_STABLE_MODEL,
+            config: { systemInstruction: AUDNIX_KNOWLEDGE }
+        });
 
         // Preset Answers for standard SaaS support
         const PRESET_ANSWERS: Record<string, string> = {
             "pricing": "Audnix offers flexible plans: Starter, Pro, and Enterprise. Check the 'Billing' section in your Command Center for details.",
             "smtp": "To initialize your revenue stream, navigate to Settings > Email Integration and provide your SMTP/IMAP credentials.",
-            "leads": "You can upload leads via CSV or PDF. Our Neural Lead Scoring will then analyze and verify them automatically.",
+            "leads": "You can upload leads via CSV or PDF. Our AI Lead Scoring will then analyze and verify them automatically.",
         };
 
         const lowerMessage = message.toLowerCase();
@@ -97,10 +88,6 @@ router.post(['/chat', '/chat-v2'], async (req: Request, res: Response) => {
             sanitizedHistory = sanitizedHistory.slice(1);
         }
 
-        const chat = model.startChat({
-            history: sanitizedHistory,
-        });
-
         // Add a retry mechanism for 429 errors
         let result;
         let retryCount = 0;
@@ -108,6 +95,15 @@ router.post(['/chat', '/chat-v2'], async (req: Request, res: Response) => {
 
         while (retryCount <= maxRetries) {
             try {
+                // To maintain history context we can pass it down if SDK supports it in sendMessage
+                // or just append as messages array, but genAI.chats handles it if we created it with history.
+                // Re-create chat with history since we instantiated it without history above
+                chat = genAI.chats.create({
+                    model: GENAI_STABLE_MODEL,
+                    config: { systemInstruction: AUDNIX_KNOWLEDGE },
+                    history: sanitizedHistory
+                });
+                
                 result = await chat.sendMessage(message);
                 break;
             } catch (err: any) {
@@ -124,8 +120,7 @@ router.post(['/chat', '/chat-v2'], async (req: Request, res: Response) => {
 
         if (!result) throw new Error("Failed to get AI response after retries");
 
-        const response = await result.response;
-        const content = response.text() || "Neural processing interrupted. Please re-send your inquiry.";
+        const content = result.text || "AI processing interrupted. Please re-send your inquiry.";
 
         res.json({ content });
     } catch (error: any) {

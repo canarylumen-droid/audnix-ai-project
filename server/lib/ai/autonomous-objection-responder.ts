@@ -170,8 +170,8 @@ export async function generateAutonomousObjectionResponse(
   confidence: number;
   nextAction: string;
 }> {
-  // Step 1: Identify objection neurally
-  const objection = await neuralIdentifyObjection(leadMessage, context);
+  // Step 1: Identify objection intelligently
+  const objection = await intelligentIdentifyObjection(leadMessage, context);
 
   // Step 2: Generate tailored response using GPT-4
   const prompt = buildObjectionResponsePrompt(
@@ -235,10 +235,10 @@ Your goal is to TURN THIS OBJECTION INTO A DEAL.
  * IDENTIFY WHICH OBJECTION THIS IS
  */
 /**
- * NEURAL OBJECTION IDENTIFIER
+ * INTELLIGENT OBJECTION IDENTIFIER
  * Uses GPT-4o to identify the REAL objection even if hidden
  */
-async function neuralIdentifyObjection(leadMessage: string, context: LeadObjectionContext) {
+async function intelligentIdentifyObjection(leadMessage: string, context: LeadObjectionContext) {
   try {
     const prompt = `Identify the real sales objection in this message.
     
@@ -259,7 +259,7 @@ async function neuralIdentifyObjection(leadMessage: string, context: LeadObjecti
 
     const completion = await openai.chat.completions.create({
       model: MODELS.objection_handling,
-      messages: [{ role: 'system', content: 'You are a neural sales analyst.' }, { role: 'user', content: prompt }],
+      messages: [{ role: 'system', content: 'You are an intelligent sales analyst.' }, { role: 'user', content: prompt }],
       response_format: { type: 'json_object' }
     });
 

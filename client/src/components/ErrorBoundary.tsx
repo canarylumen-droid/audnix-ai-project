@@ -30,7 +30,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen w-full flex items-center justify-center bg-[#020202] p-6 relative overflow-hidden">
-          {/* Neural Gradient Orbs */}
+          {/* AI Gradient Orbs */}
           <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/10 blur-[150px] rounded-full" />
           <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-red-500/5 blur-[120px] rounded-full" />
 
@@ -52,9 +52,9 @@ export class ErrorBoundary extends React.Component<Props, State> {
                 </h2>
 
                 <div className="p-6 rounded-[2rem] bg-black/40 border border-white/5 w-full mb-10 backdrop-blur-md">
-                  <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/60 mb-3">Neural Diagnostic Report</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/60 mb-3">Platform Diagnostic Report</p>
                   <p className="text-sm font-bold text-muted-foreground/90 uppercase tracking-tight">
-                    {this.state.error?.message || "Internal Neural State Decoherence"}
+                    {this.state.error?.message || "Internal Platform State Error"}
                   </p>
                 </div>
 
@@ -68,7 +68,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
                     onClick={() => window.location.reload()}
                     className="flex-1 h-16 rounded-[1.25rem] bg-primary text-black hover:bg-primary/90 font-black uppercase tracking-[0.2em] text-[10px] shadow-[0_0_30px_rgba(var(--primary),0.3)] transition-all duration-500"
                   >
-                    <RefreshCw className="mr-3 h-4 w-4" /> Re-Initialize Neural Bridge
+                    <RefreshCw className="mr-3 h-4 w-4" /> Re-Initialize Platform Bridge
                   </Button>
 
                   <Button

@@ -12,10 +12,10 @@ export class AudnixIngestor {
     /**
      * Search existing scraped leads
      */
-    async startNeuralScan(query: string) {
+    async startIntelligentScan(query: string) {
         // Instead of calling an AI, we search the REAL verified leads in the DB
         // This makes the UI feel fast and accurate
-        console.log(`[NeuralScan] Searching for keywords: ${query}`);
+        console.log(`[IntelligentScan] Searching for keywords: ${query}`);
 
         // Simulating background work/logs via Socket.io would go here
         // For now, we just ensure the DB has data.

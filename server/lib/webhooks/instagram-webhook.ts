@@ -7,6 +7,7 @@ import { scheduleAutomatedDMReply, checkUserAutomationSettings } from '../ai/dm-
 import { analyzeInboundMessage } from '../ai/inbound-message-analyzer.js';
 import { storage } from "../../storage.js";
 import { type Lead } from "../../../shared/schema.js";
+import { InstagramOAuth } from '../oauth/instagram.js';
 
 interface InstagramMessage {
   sender: { id: string };
@@ -14,7 +15,11 @@ interface InstagramMessage {
   timestamp: number;
   message?: {
     mid: string;
-    text: string;
+    text?: string;
+    attachments?: Array<{
+      type: string;
+      payload: { url: string };
+    }>;
     is_echo?: boolean;
   };
   postback?: {
@@ -219,8 +224,10 @@ async function processInstagramMessage(message: InstagramMessage): Promise<void>
   const isEcho = message.message?.is_echo || false;
   const customerId = isEcho ? message.recipient.id : message.sender.id;
   const messageText = message.message?.text || '';
+  const attachments = message.message?.attachments || [];
 
-  if (!messageText) return;
+  if (!messageText && attachments.length === 0) return;
+
 
   try {
 
@@ -266,10 +273,11 @@ async function processInstagramMessage(message: InstagramMessage): Promise<void>
       leadId: lead.id,
       direction: isEcho ? 'outbound' : 'inbound',
       provider: 'instagram',
-      body: messageText,
+      body: messageText || (attachments.length > 0 ? `[Media: ${attachments[0].type}]` : ''),
       metadata: {
         external_id: message.message?.mid,
-        is_echo: isEcho
+        is_echo: isEcho,
+        attachments: attachments
       }
     });
 
@@ -514,13 +522,54 @@ async function fetchInstagramProfile(userId: string, appUserId: string): Promise
     const response = await fetch(url.toString());
 
     if (!response.ok) {
-      // If unauthorized, token might be expired. We should refresh it?
-      // Logic for refresh is complex here, skipping for now.
       console.error('Instagram API error:', response.status, response.statusText);
+      
+      // If unauthorized (401), attempt to refresh the token once
+      if (response.status === 401 && tokenData.accessToken) {
+        try {
+          console.log('[IG_AUTH] Attempting to refresh expired long-lived token...');
+          const instagramOAuth = new InstagramOAuth();
+          const refreshed = await instagramOAuth.refreshLongLivedToken(tokenData.accessToken);
+          
+          if (refreshed && refreshed.access_token) {
+            await storage.saveOAuthAccount({
+              ...tokenData,
+              accessToken: refreshed.access_token,
+              expiresAt: refreshed.expires_in ? new Date(Date.now() + refreshed.expires_in * 1000) : tokenData.expiresAt,
+              updatedAt: new Date()
+            });
+            
+            // Retry the profile fetch with new token
+            const retryRes = await fetch(`https://${allowedHost}/${userId}?fields=name,username&access_token=${refreshed.access_token}`);
+            if (retryRes.ok) {
+              return await retryRes.json() as InstagramProfile;
+            }
+          }
+        } catch (refreshError) {
+          console.error('[IG_AUTH] Token refresh failed:', refreshError);
+        }
+      }
       return { username: 'Instagram User' };
     }
 
     const profile = await response.json() as InstagramProfile;
+    
+    // Preventive Refresh: If token is valid but older than 50 days, refresh it in the background
+    const tokenAgeDays = tokenData.updatedAt ? (Date.now() - new Date(tokenData.updatedAt).getTime()) / (1000 * 60 * 60 * 24) : 0;
+    if (tokenAgeDays > 50) {
+      console.log(`[IG_AUTH] Token for user ${appUserId} is ${Math.round(tokenAgeDays)} days old. Refreshing in background...`);
+      const instagramOAuth = new InstagramOAuth();
+      instagramOAuth.refreshLongLivedToken(tokenData.accessToken).then(async (newTokens) => {
+        await storage.saveOAuthAccount({
+          ...tokenData,
+          accessToken: newTokens.access_token,
+          expiresAt: newTokens.expires_in ? new Date(Date.now() + newTokens.expires_in * 1000) : tokenData.expiresAt,
+          updatedAt: new Date()
+        });
+        console.log(`[IG_AUTH] Background refresh successful for user ${appUserId}`);
+      }).catch(err => console.error('[IG_AUTH] Background refresh failed:', err));
+    }
+
     return profile;
   } catch (error) {
     console.error('Error fetching Instagram profile:', error);

@@ -585,7 +585,7 @@ export default function DashboardHome() {
                               <span className="text-[11px] text-muted-foreground shrink-0 ml-4 font-bold uppercase opacity-50 italic">{formatTimeAgo(activity.time || activity.timestamp || new Date())}</span>
                             </div>
                             <p className="text-xs md:text-sm text-muted-foreground leading-relaxed line-clamp-2">
-                              {activity.type === 'campaign_started' ? `Neural outreach campaign "${activity.metadata?.name || 'Inbound Strategy'}" launched with ${activity.metadata?.configuredLeads || 0} prospects.` :
+                              {activity.type === 'campaign_started' ? `AI outreach campaign "${activity.metadata?.name || 'Inbound Strategy'}" launched with ${activity.metadata?.configuredLeads || 0} prospects.` :
                                 activity.type === 'campaign_completed' ? `Outreach campaign completed successfully. All scheduled messages delivered.` :
                                   activity.message}
                             </p>

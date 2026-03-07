@@ -1,5 +1,5 @@
 import { generateReply } from './ai-service.js';
-import { GoogleGenerativeAI } from "@google/generative-ai";
+
 import OpenAI from "openai";
 
 // Mocking dependencies if possible, or just testing the logic via exports

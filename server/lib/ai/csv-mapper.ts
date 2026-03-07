@@ -3,7 +3,7 @@
  * Automatically maps user CSV columns to the leads table schema using AI
  */
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import OpenAI from "openai";
 
 // Target schema for leads table
@@ -40,7 +40,7 @@ export interface MappingResult {
 
 // Initialize AI clients
 const genAI = process.env.GEMINI_API_KEY
-    ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+    ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
     : null;
 
 const openai = process.env.OPENAI_API_KEY
@@ -99,9 +99,8 @@ IMPORTANT: The "mapping" keys must be exactly from our TARGET SCHEMA. Values mus
     try {
         // Try Gemini first
         if (genAI) {
-            const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-            const result = await model.generateContent(prompt);
-            const text = result.response.text();
+            const result = await genAI.models.generateContent({ model: "gemini-2.0-flash", contents: prompt });
+            const text = result.text || "";
 
             // Extract JSON from response
             const jsonMatch = text.match(/\{[\s\S]*\}/);

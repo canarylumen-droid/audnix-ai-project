@@ -115,12 +115,11 @@ export async function processPDF(
             // Neural Recovery Path (Optional for PDF leads, but let's be consistent)
             if (leadData.company || leadData.name) {
               try {
-                const { GoogleGenerativeAI } = await import("@google/generative-ai");
-                const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-                const recoveryModel = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+                const { GoogleGenAI } = await import("@google/genai");
+                const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
                 const recoveryPrompt = `BUSINESS: ${leadData.company || leadData.name}\nEMAIL: ${leadData.email}\nDeliverability failed. Is there a more likely valid business email or domain for this business? Return ONLY the corrected email string or "NONE".`;
-                const recoveryResult = await recoveryModel.generateContent(recoveryPrompt);
-                const correctedEmail = recoveryResult.response.text().trim();
+                const recoveryResult = await genAI.models.generateContent({ model: "gemini-2.0-flash", contents: recoveryPrompt });
+                const correctedEmail = (recoveryResult.text || "").trim();
 
                 if (correctedEmail !== 'NONE' && correctedEmail !== leadData.email && correctedEmail.includes('@')) {
                   const secondaryVerification = await verifier.verify(correctedEmail);

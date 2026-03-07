@@ -15,7 +15,7 @@ export default function FoundersPage() {
             ]}
             features={[
                 { title: "Surgical Qualification", desc: "The AI grills leads on budget and timeline before they ever see your calendar link.", icon: Target },
-                { title: "Founder-Level Logic", desc: "It doesn't just read a script. It uses your past successful calls to navigate complex negotiations.", icon: Crown },
+                { title: "Intelligent Closer Logic", desc: "It doesn't just read a script. It uses your past successful calls to navigate complex negotiations.", icon: Crown },
                 { title: "Instant Response", desc: "Leads are contacted within seconds of interest, drastically increasing conversion rates over human SDRs.", icon: Zap },
             ]}
             useCases={[

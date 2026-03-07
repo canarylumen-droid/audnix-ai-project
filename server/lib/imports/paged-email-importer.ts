@@ -133,8 +133,9 @@ async function processEmailForLead(
 
     const existingMessages = await storage.getMessages(lead.id);
     const existingMessage = existingMessages.find(m =>
-      Math.abs(new Date(m.createdAt).getTime() - new Date(email.date).getTime()) < 2000 &&
-      m.body === (email.text || email.html || '')
+      (m.externalId && email.messageId && m.externalId === email.messageId) ||
+      (Math.abs(new Date(m.createdAt).getTime() - new Date(email.date).getTime()) < 2000 &&
+      m.body === (email.text || email.html || ''))
     );
 
     if (existingMessage) {
@@ -172,6 +173,7 @@ async function processEmailForLead(
       body: email.text || email.html || '', // Prefer text, fallback html
       provider: 'email',
       isRead: email.isRead || direction === 'outbound', // Sent emails are usually considered read
+      externalId: email.messageId || undefined,
       metadata: {
         subject: email.subject,
         html: email.html, // Store full HTML in metadata if needed

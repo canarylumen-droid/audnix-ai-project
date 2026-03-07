@@ -39,7 +39,7 @@ export default function NotFound() {
           className="space-y-4"
         >
           <h2 className="text-2xl md:text-4xl font-bold text-white tracking-tight">
-            Lost in the Neural Network?
+            Lost in the AI Network?
           </h2>
           <p className="text-muted-foreground/60 text-lg max-w-lg mx-auto font-medium leading-relaxed">
             The resource you're tracking has moved or decohered from our current mapping. Let's redirect your focus.

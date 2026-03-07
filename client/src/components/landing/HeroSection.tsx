@@ -68,7 +68,7 @@ const AIEngineMockup = () => {
       </div>
 
       <div className="flex-1 space-y-4 overflow-hidden">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/20">Live Neural Stream</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/20">Live AI Stream</p>
         {systemLogs.map((log, i) => (
           <motion.div
             key={i}

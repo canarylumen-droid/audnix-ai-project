@@ -30,12 +30,10 @@ import { processPDF } from "../lib/pdf-processor.js";
 import { EmailVerifier } from "../lib/scraping/email-verifier.js";
 import { mapCSVColumnsToSchema, extractLeadFromRow, extractExtraFieldsAsMetadata, type LeadColumnMapping } from "../lib/ai/csv-mapper.js";
 import { parseEmailBody } from "../lib/ai/body-parser.js";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { GEMINI_LATEST_MODEL } from "../lib/ai/model-config.js";
 import { checkGrammar, generateReply } from "../lib/ai/ai-service.js";
+import { evaluateLeadDealValue } from "../lib/ai/deal-evaluator.js";
 
 const verifier = new EmailVerifier();
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 // Robust verification of key presence and format
 if (!process.env.GEMINI_API_KEY) {
   console.error("GEMINI_API_KEY is missing from environment variables");
@@ -540,6 +538,12 @@ router.patch("/:leadId", requireAuth, async (req: Request, res: Response): Promi
       ...allowedUpdates
     });
 
+    if (updates.status && (updates.status === 'converted' || updates.status === 'booked' || updates.status === 'closed_won')) {
+      evaluateLeadDealValue(userId, leadId as string).catch(err => 
+        console.error("Deal evaluation failed:", err)
+      );
+    }
+
     // Notify via WebSocket
     const { wsSync } = await import('../lib/websocket-sync.js');
     wsSync.notifyLeadsUpdated(userId, { type: 'lead_updated', lead: updatedLead });
@@ -661,6 +665,12 @@ router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response): 
     const { wsSync } = await import('../lib/websocket-sync.js');
     wsSync.notifyMessagesUpdated(userId, { leadId: leadId as string, message });
     wsSync.notifyLeadsUpdated(userId, { type: 'lead_updated', lead: updatedLead });
+
+    if ((newStatus as string) === 'converted' || (newStatus as string) === 'booked' || (newStatus as string) === 'closed_won') {
+      evaluateLeadDealValue(userId, leadId as string).catch(err => 
+        console.error("Deal evaluation failed in auto-reply:", err)
+      );
+    }
 
     if (oldStatus !== newStatus) {
       let notificationTitle = '';

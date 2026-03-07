@@ -1,7 +1,7 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { GEMINI_STABLE_MODEL } from "./model-config.js";
+import { GoogleGenAI } from "@google/genai";
+import { GENAI_STABLE_MODEL } from "./model-config.js";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 export interface ParsedEmailBody {
     name: string;
@@ -18,8 +18,6 @@ export interface ParsedEmailBody {
  * Parses raw email body into structured JSON using AI
  */
 export async function parseEmailBody(body: string): Promise<ParsedEmailBody> {
-    const model = genAI.getGenerativeModel({ model: GEMINI_STABLE_MODEL });
-
     const prompt = `
     Extract structured lead information from the following email body. 
     Return ONLY a JSON object with the following fields:
@@ -39,9 +37,8 @@ export async function parseEmailBody(body: string): Promise<ParsedEmailBody> {
   `;
 
     try {
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
+        const result = await genAI.models.generateContent({ model: GENAI_STABLE_MODEL, contents: prompt });
+        const text = result.text || "";
 
         // Clean up response text to ensure it's valid JSON
         const jsonMatch = text.match(/\{[\s\S]*\}/);
