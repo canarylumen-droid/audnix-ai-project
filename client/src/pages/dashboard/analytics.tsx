@@ -132,13 +132,8 @@ export default function AnalyticsPage() {
         };
     };
 
-    // Filtered metrics based on channelFilter
-    const filteredMetrics = analytics?.metrics ? {
-        ...analytics.metrics,
-        sent: channelFilter === 'email' ? analytics.metrics.sent : (channelFilter === 'instagram' ? 0 : analytics.metrics.sent), // Placeholder logic, adjust as needed
-        replied: channelFilter === 'email' ? analytics.metrics.replied : (channelFilter === 'instagram' ? 0 : analytics.metrics.replied), // Placeholder logic
-        // Add more filtering logic for other metrics if necessary
-    } : undefined;
+    // Use server-filtered metrics directly
+    const filteredMetrics = analytics?.metrics;
 
     if (isLoading && !analytics) return (
         <div className="flex h-[50vh] items-center justify-center">

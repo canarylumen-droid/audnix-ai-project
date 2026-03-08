@@ -24,6 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { useEffect, useState } from "react";
+import { useMailbox } from "@/hooks/use-mailbox";
 import { useRealtime } from "@/hooks/use-realtime";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { PremiumLoader } from "@/components/ui/premium-loader";
@@ -93,14 +94,15 @@ export default function DealsPage() {
       clearTimeout(timeout);
     };
   }, [socket, queryClient]);
+  const { selectedMailboxId } = useMailbox();
   const { data: dealsData, isLoading } = useQuery<DealsApiResponse>({
-    queryKey: ["/api/deals"],
+    queryKey: ["/api/deals", { integrationId: selectedMailboxId }],
 
     retry: false,
   });
 
   const { data: revenueAnalytics } = useQuery<RevenueAnalyticsResponse>({
-    queryKey: ["/api/deals/analytics"],
+    queryKey: ["/api/deals/analytics", { integrationId: selectedMailboxId }],
 
     retry: false,
   });

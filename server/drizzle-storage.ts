@@ -1011,13 +1011,14 @@ export class DrizzleStorage implements IStorage {
 
 
 
-  async getDeals(userId: string): Promise<any[]> {
+  async getDeals(userId: string, integrationId?: string): Promise<any[]> {
     checkDatabase();
+    const integrationFilter = integrationId ? sql`AND l.integration_id = ${integrationId}` : sql``;
     const result = await db.execute(sql`
       SELECT d.*, l.name as lead_name 
       FROM deals d
       LEFT JOIN leads l ON d.lead_id = l.id
-      WHERE d.user_id = ${userId}
+      WHERE d.user_id = ${userId} ${integrationFilter}
       ORDER BY d.created_at DESC
     `);
     return result.rows as any[];
@@ -1058,14 +1059,19 @@ export class DrizzleStorage implements IStorage {
     return result[0];
   }
 
-  async calculateRevenue(userId: string): Promise<{ total: number; thisMonth: number; deals: Deal[] }> {
+  async calculateRevenue(userId: string, integrationId?: string): Promise<{ total: number; thisMonth: number; deals: Deal[] }> {
     checkDatabase();
     // Use raw SQL to avoid referencing the 'deal_value' column which may not exist in the DB.
-    // Only select columns that are guaranteed to exist.
+    // Filter by integrationId if provided, linking through leads
+    const integrationFilter = integrationId ? sql`AND l.integration_id = ${integrationId}` : sql``;
+    
     let allDeals: any[] = [];
     try {
       const result = await db.execute(
-        sql`SELECT id, status, value, converted_at FROM deals WHERE user_id = ${userId}`
+        sql`SELECT d.id, d.status, d.value, d.converted_at, d.metadata 
+            FROM deals d
+            LEFT JOIN leads l ON d.lead_id = l.id
+            WHERE d.user_id = ${userId} ${integrationFilter}`
       );
       allDeals = (result as any).rows || result || [];
     } catch (e) {
@@ -1709,6 +1715,7 @@ export class DrizzleStorage implements IStorage {
       hardenedLeads: sql<number>`count(*) filter (where verified = true)`,
       bouncyLeads: sql<number>`count(*) filter (where status = 'bouncy')`,
       recoveredLeads: sql<number>`count(*) filter (where status = 'recovered')`,
+      repliedLeads: sql<number>`count(*) filter (where status = 'replied')`,
       queuedLeads: sql<number>`count(*) filter (where status = 'new' and ai_paused = false)`,
     })
       .from(leads)
@@ -1761,7 +1768,7 @@ export class DrizzleStorage implements IStorage {
       pipelineValue: Number(dealsStats?.pipelineValue || 0) + Number(predictedStats?.value || 0),
       closedRevenue: Number(dealsStats?.closedRevenue || 0),
       openRate: Number(messagesStats?.totalSent || 0) > 0 ? Math.round((Number(messagesStats?.opened || 0) / Number(messagesStats?.totalSent || 0)) * 100) : 0,
-      responseRate: Number(leadsStats?.totalLeads || 0) > 0 ? Math.round((Number(messagesStats?.replied || 0) / Number(leadsStats?.totalLeads || 0)) * 100) : 0,
+      responseRate: Number(leadsStats?.totalLeads || 0) > 0 ? Math.min(100, Math.round((Number(leadsStats?.repliedLeads || 0) / Number(leadsStats?.totalLeads || 0)) * 100)) : 0,
       averageResponseTime,
       queuedLeads: Number(leadsStats?.queuedLeads || 0),
       undeliveredLeads: Number(leadsStats?.bouncyLeads || 0),
@@ -1809,7 +1816,7 @@ export class DrizzleStorage implements IStorage {
     }
   }
 
-  async getAnalyticsFull(userId: string, days: number): Promise<{
+  async getAnalyticsFull(userId: string, days: number, integrationId?: string): Promise<{
     metrics: {
       sent: number;
       opened: number;
@@ -1838,28 +1845,35 @@ export class DrizzleStorage implements IStorage {
     checkDatabase();
 
     // 1. Basic Metrics
+    const leadWhere = and(eq(leads.userId, userId), integrationId ? eq(leads.integrationId, integrationId) : undefined);
+    const msgWhere = and(eq(messages.userId, userId), integrationId ? eq(messages.integrationId, integrationId) : undefined);
+
     const [counts] = await db.select({
       totalLeads: sql<number>`count(*)`,
       conversions: sql<number>`count(*) filter (where status in ('converted', 'booked'))`,
-      replied: sql<number>`count(*) filter (where status in ('replied', 'converted', 'booked', 'warm'))`,
-    }).from(leads).where(eq(leads.userId, userId));
+      replied: sql<number>`count(*) filter (where status = 'replied')`,
+    }).from(leads).where(leadWhere);
 
     const [msgCounts] = await db.select({
       sent: sql<number>`count(*) filter (where direction = 'outbound')`,
       opened: sql<number>`count(*) filter (where direction = 'outbound' and opened_at is not null)`,
-    }).from(messages).where(eq(messages.userId, userId));
+    }).from(messages).where(msgWhere);
+
+    const dealWhere = integrationId 
+      ? and(eq(deals.userId, userId), sql`exists (select 1 from leads where leads.id = deals.lead_id and leads.integration_id = ${integrationId})`)
+      : eq(deals.userId, userId);
 
     const [dealsStats] = await db.select({
-      pipelineValue: sql<number>`coalesce(sum(value), 0)`,
-      closedRevenue: sql<number>`coalesce(sum(case when status = 'closed_won' then value else 0 end), 0)`,
-    }).from(deals).where(eq(deals.userId, userId));
+      pipelineValue: sql<number>`coalesce(sum(coalesce(cast(ai_analysis->>'offerPrice' as numeric), cast(ai_analysis->>'offer_price' as numeric), value)), 0)`,
+      closedRevenue: sql<number>`coalesce(sum(case when status in ('closed_won', 'converted') then coalesce(cast(ai_analysis->>'offerPrice' as numeric), cast(ai_analysis->>'offer_price' as numeric), value) else 0 end), 0)`,
+    }).from(deals).where(dealWhere as any);
 
     const [predictedStats] = await db.select({
       value: sql<number>`coalesce(sum(cast(metadata->'intelligence'->'predictions'->>'predictedAmount' as numeric)), 0)`
     })
       .from(leads)
       .where(and(
-        eq(leads.userId, userId),
+        leadWhere,
         sql`metadata->'intelligence'->'predictions'->>'predictedAmount' is not null`,
         sql`not exists (select 1 from deals where deals.lead_id = leads.id)`
       ));
@@ -1873,7 +1887,7 @@ export class DrizzleStorage implements IStorage {
     const replied = Number(counts?.replied || 0);
     const sent = Number(msgCounts?.sent || 0);
     const opened = Number(msgCounts?.opened || 0);
-    const averageResponseTime = await this.calculateAverageResponseTime(userId);
+    const averageResponseTime = await this.calculateAverageResponseTime(userId, integrationId);
 
     // 2. Time Series
     // We'll calculate this in JS loop but using targeted SQL counts to avoid loading all objects
@@ -1891,13 +1905,13 @@ export class DrizzleStorage implements IStorage {
         sent_email: sql<number>`count(*) filter (where direction = 'outbound' and provider = 'email')`,
         sent_instagram: sql<number>`count(*) filter (where direction = 'outbound' and provider = 'instagram')`,
         opened: sql<number>`count(*) filter (where direction = 'outbound' and opened_at is not null)`,
-      }).from(messages).where(and(eq(messages.userId, userId), gte(messages.createdAt, dayStart), lte(messages.createdAt, dayEnd)));
+      }).from(messages).where(and(msgWhere, gte(messages.createdAt, dayStart), lte(messages.createdAt, dayEnd)));
 
       const [dayLeads] = await db.select({
-        replied_email: sql<number>`count(*) filter (where status in ('replied', 'converted', 'booked', 'warm') and channel = 'email')`,
-        replied_instagram: sql<number>`count(*) filter (where status in ('replied', 'converted', 'booked', 'warm') and channel = 'instagram')`,
+        replied_email: sql<number>`count(*) filter (where status = 'replied' and channel = 'email')`,
+        replied_instagram: sql<number>`count(*) filter (where status = 'replied' and channel = 'instagram')`,
         booked: sql<number>`count(*) filter (where status in ('converted', 'booked'))`
-      }).from(leads).where(and(eq(leads.userId, userId), gte(leads.updatedAt, dayStart), lte(leads.updatedAt, dayEnd)));
+      }).from(leads).where(and(leadWhere, gte(leads.updatedAt, dayStart), lte(leads.updatedAt, dayEnd)));
 
       timeSeries.push({
         name: dayStr,
@@ -1914,7 +1928,7 @@ export class DrizzleStorage implements IStorage {
     const channelStats = await db.select({
       channel: leads.channel,
       value: sql<number>`count(*)`,
-    }).from(leads).where(eq(leads.userId, userId)).groupBy(leads.channel);
+    }).from(leads).where(leadWhere).groupBy(leads.channel);
 
     // 4. Recent Events
     const recentLeads = await db.select({
@@ -1925,7 +1939,7 @@ export class DrizzleStorage implements IStorage {
       createdAt: leads.createdAt
     })
       .from(leads)
-      .where(eq(leads.userId, userId))
+      .where(leadWhere)
       .orderBy(desc(leads.updatedAt))
       .limit(5);
 
@@ -1937,7 +1951,7 @@ export class DrizzleStorage implements IStorage {
         booked: conversions,
         leadsFiltered: user?.filteredLeadsCount || 0,
         conversionRate: totalLeads > 0 ? Math.round((conversions / totalLeads) * 100) : 0,
-        responseRate: totalLeads > 0 ? Math.round((replied / totalLeads) * 100) : 0,
+        responseRate: totalLeads > 0 ? Math.min(100, Math.round((replied / totalLeads) * 100)) : 0,
         openRate: sent > 0 ? Math.round((opened / sent) * 100) : 0,
         closedRevenue: Number(dealsStats?.closedRevenue || 0),
         pipelineValue: Number(dealsStats?.pipelineValue || 0) + Number(predictedStats?.value || 0),

@@ -13,7 +13,8 @@ router.get('/', requireAuth, async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    const deals = await storage.getDeals(userId);
+    const integrationId = req.query.integrationId as string;
+    const deals = await storage.getDeals(userId, integrationId);
     // Mapper for UI (converts snake_case to camelCase)
     const formattedDeals = deals.map((d: any) => ({
       ...d,
@@ -36,7 +37,8 @@ router.get('/analytics', requireAuth, async (req: Request, res: Response): Promi
       return;
     }
 
-    const revenue = await storage.calculateRevenue(userId);
+    const integrationId = req.query.integrationId as string;
+    const revenue = await storage.calculateRevenue(userId, integrationId);
     const deals = revenue.deals || [];
 
     const openDeals = deals.filter((d: any) => d.status === 'open');

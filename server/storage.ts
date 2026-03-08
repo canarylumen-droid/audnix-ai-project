@@ -92,10 +92,10 @@ export interface IStorage {
   getBrandKnowledge(userId: string): Promise<string>;
 
   // Deal tracking methods
-  getDeals(userId: string): Promise<any[]>;
+  getDeals(userId: string, integrationId?: string): Promise<any[]>;
   createDeal(data: any): Promise<any>;
   updateDeal(id: string, userId: string, updates: any): Promise<any>;
-  calculateRevenue(userId: string): Promise<{ total: number; thisMonth: number; deals: any[] }>;
+  calculateRevenue(userId: string, integrationId?: string): Promise<{ total: number; thisMonth: number; deals: any[] }>;
 
   // Payment methods
   createPayment(data: InsertPayment): Promise<Payment>;
@@ -213,7 +213,7 @@ export interface IStorage {
 
   getIntegrationSentCount(userId: string, integrationId: string, since: Date): Promise<number>;
 
-  getAnalyticsFull(userId: string, days: number): Promise<{
+  getAnalyticsFull(userId: string, days: number, integrationId?: string): Promise<{
     metrics: {
       sent: number;
       opened: number;
@@ -738,6 +738,17 @@ export class MemStorage implements IStorage {
 
   // ========== Message Methods ==========
 
+  async getDeals(userId: string, integrationId?: string): Promise<any[]> {
+    return Array.from(this.deals.values())
+      .filter(d => {
+        const matchesUser = d.userId === userId;
+        const lead = d.leadId ? this.leads.get(d.leadId) : null;
+        const matchesIntegration = !integrationId || (lead && lead.integrationId === integrationId);
+        return matchesUser && matchesIntegration;
+      })
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
   async getMessagesByLeadId(leadId: string): Promise<Message[]> {
     return Array.from(this.messages.values())
       .filter((msg) => msg.leadId === leadId)
@@ -992,8 +1003,13 @@ export class MemStorage implements IStorage {
     return updated;
   }
 
-  async calculateRevenue(userId: string): Promise<{ total: number; thisMonth: number; deals: any[] }> {
-    const deals = await this.getDeals(userId);
+  async calculateRevenue(userId: string, integrationId?: string): Promise<{ total: number; thisMonth: number; deals: Deal[] }> {
+    const deals = Array.from(this.deals.values()).filter(d => {
+      const matchesUser = d.userId === userId;
+      const lead = d.leadId ? this.leads.get(d.leadId) : null;
+      const matchesIntegration = !integrationId || (lead && lead.integrationId === integrationId);
+      return matchesUser && matchesIntegration;
+    });
     const closedDeals = deals.filter(d => d.status === 'closed_won');
 
     const now = new Date();
@@ -1343,7 +1359,7 @@ export class MemStorage implements IStorage {
       pipelineValue: explicitDealValue + predictedDealValue,
       closedRevenue: deals.filter(d => d.status === 'converted' || d.status === 'closed_won').reduce((sum, d) => sum + (Number(d.value) || 0), 0),
       openRate: messages.filter(m => m.direction === 'outbound' && m.openedAt).length / (messages.filter(m => m.direction === 'outbound').length || 1) * 100,
-      responseRate: leads.length > 0 ? (leads.filter(l => l.status === 'replied' || l.status === 'converted').length / leads.length) * 100 : 0,
+      responseRate: leads.length > 0 ? Math.min(100, Math.round((leads.filter(l => l.status === 'replied').length / leads.length) * 100)) : 0,
       averageResponseTime: this.calculateAverageResponseTime(userId, messages),
       queuedLeads: leads.filter(l => l.status === 'new' && !l.aiPaused).length,
       undeliveredLeads: leads.filter(l => l.status === 'bouncy').length,
@@ -1384,7 +1400,7 @@ export class MemStorage implements IStorage {
     return `${hours.toFixed(1)}h`;
   }
 
-  async getAnalyticsFull(userId: string, days: number): Promise<{
+  async getAnalyticsFull(userId: string, days: number, integrationId?: string): Promise<{
     metrics: {
       sent: number;
       opened: number;
@@ -1410,13 +1426,18 @@ export class MemStorage implements IStorage {
     channelPerformance: Array<{ channel: string; value: number }>;
     recentEvents: Array<{ id: string; type: string; description: string; time: string; isNew: boolean }>;
   }> {
-    const leads = Array.from(this.leads.values()).filter(l => l.userId === userId);
-    const allMessages = Array.from(this.messages.values()).filter(m => m.userId === userId);
-    const deals = Array.from(this.deals.values()).filter(d => d.userId === userId);
+    const leads = Array.from(this.leads.values()).filter(l => l.userId === userId && (!integrationId || l.integrationId === integrationId));
+    const allMessages = Array.from(this.messages.values()).filter(m => m.userId === userId && (!integrationId || m.integrationId === integrationId));
+    const deals = Array.from(this.deals.values()).filter(d => {
+      const matchesUser = d.userId === userId;
+      const lead = d.leadId ? this.leads.get(d.leadId) : null;
+      const matchesIntegration = !integrationId || (lead && lead.integrationId === integrationId);
+      return matchesUser && matchesIntegration;
+    });
     const user = Array.from(this.users.values()).find(u => u.id === userId);
 
     const conversions = leads.filter(l => l.status === 'converted').length;
-    const replied = leads.filter(l => l.status === 'replied' || l.status === 'converted').length;
+    const replied = leads.filter(l => l.status === 'replied').length;
     const sent = allMessages.filter(m => m.direction === 'outbound').length;
     const opened = allMessages.filter(m => m.direction === 'outbound' && m.openedAt).length;
 
@@ -1450,9 +1471,9 @@ export class MemStorage implements IStorage {
         booked: conversions,
         leadsFiltered: user?.filteredLeadsCount || 0,
         conversionRate: leads.length > 0 ? Math.round((conversions / leads.length) * 100) : 0,
-        responseRate: leads.length > 0 ? Math.round((replied / leads.length) * 100) : 0,
+        responseRate: leads.length > 0 ? Math.min(100, Math.round((replied / leads.length) * 100)) : 0,
         openRate: sent > 0 ? Math.round((opened / sent) * 100) : 0,
-        closedRevenue: deals.filter((d: Deal) => d.status === 'closed_won').reduce((sum: number, d: Deal) => sum + (Number(d.value) || 0), 0),
+        closedRevenue: deals.filter((d: Deal) => d.status === 'closed_won' || d.status === 'converted').reduce((sum: number, d: Deal) => sum + (Number(d.value) || 0), 0),
         pipelineValue: deals.reduce((sum: number, d: Deal) => sum + (Number(d.value) || 0), 0) + leads
           .filter(l => !deals.some(d => d.leadId === l.id))
           .reduce((sum, l) => sum + (Number((l.metadata as any)?.intelligence?.predictions?.predictedAmount) || 0), 0),

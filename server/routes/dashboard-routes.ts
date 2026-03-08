@@ -609,7 +609,8 @@ router.get('/analytics/full', requireAuth, async (req: Request, res: Response): 
     const userId = req.session?.userId!;
     const range = parseInt(req.query.days as string) || 7;
 
-    const analytics = await storage.getAnalyticsFull(userId, range);
+    const integrationId = req.query.integrationId as string;
+    const analytics = await storage.getAnalyticsFull(userId, range, integrationId);
 
     // Connection mapping
     const integrations = await storage.getIntegrations(userId);
