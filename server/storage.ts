@@ -983,9 +983,6 @@ export class MemStorage implements IStorage {
   // Deal tracking
   private deals: Map<string, any> = new Map();
 
-  async getDeals(userId: string): Promise<any[]> {
-    return Array.from(this.deals.values()).filter(d => d.userId === userId);
-  }
 
   async createDeal(data: any): Promise<any> {
     const id = randomUUID();
@@ -1473,7 +1470,7 @@ export class MemStorage implements IStorage {
         conversionRate: leads.length > 0 ? Math.round((conversions / leads.length) * 100) : 0,
         responseRate: leads.length > 0 ? Math.min(100, Math.round((replied / leads.length) * 100)) : 0,
         openRate: sent > 0 ? Math.round((opened / sent) * 100) : 0,
-        closedRevenue: deals.filter((d: Deal) => d.status === 'closed_won' || d.status === 'converted').reduce((sum: number, d: Deal) => sum + (Number(d.value) || 0), 0),
+        closedRevenue: deals.filter((d: Deal) => d.status === 'closed_won').reduce((sum: number, d: Deal) => sum + (Number(d.value) || 0), 0),
         pipelineValue: deals.reduce((sum: number, d: Deal) => sum + (Number(d.value) || 0), 0) + leads
           .filter(l => !deals.some(d => d.leadId === l.id))
           .reduce((sum, l) => sum + (Number((l.metadata as any)?.intelligence?.predictions?.predictedAmount) || 0), 0),

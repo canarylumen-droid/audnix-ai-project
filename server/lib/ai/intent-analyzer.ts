@@ -3,6 +3,7 @@ import { MODELS } from './model-config.js';
 import { storage } from '../../storage.js';
 import { type Message } from '../../../shared/schema.js';
 import { AuditTrailService } from '../audit-trail-service.js';
+import { wsSync } from '../websocket-sync.js';
 
 export interface IntentAnalysis {
   isInterested: boolean;
@@ -19,6 +20,8 @@ export interface IntentAnalysis {
   style: 'formal' | 'casual' | 'blunt' | 'warm';
   suggestedAction: string;
   keywords: string[];
+  productMentioned?: string;
+  offeredPrice?: number;
 }
 
 export interface Lead {
@@ -53,9 +56,29 @@ export async function analyzeLeadIntent(
   lead: Lead
 ): Promise<IntentAnalysis> {
   try {
-    const conversationContext = '';
+    let conversationContext = '';
+    let brandKnowledgeCtx = '';
+    let fullLead: any = null;
 
-    const prompt = `Analyze this lead message for sales intent and sentiment.
+    try {
+      fullLead = await storage.getLead(lead.id.toString());
+      const messages = await storage.getMessagesByLeadId(lead.id.toString());
+      
+      if (messages && messages.length > 0) {
+        // Grab the last 15 messages for deep pipeline context
+        conversationContext = messages.slice(-15).map(m => 
+          `${m.direction === 'inbound' ? 'Lead' : 'Sales/AI'}: ${m.body}`
+        ).join('\n\n');
+      }
+
+      if (fullLead && fullLead.userId) {
+        brandKnowledgeCtx = await storage.getBrandKnowledge(fullLead.userId);
+      }
+    } catch (e) {
+      console.error('Failed to fetch conversation context and brand knowledge for AI', e);
+    }
+
+    const prompt = `Analyze this lead message for sales intent, sentiment, and pipeline data.
 
 Lead Information:
 - Name: ${lead.name}
@@ -63,12 +86,15 @@ Lead Information:
 - Current Status: ${lead.status}
 - Tags: ${lead.tags?.join(', ') || 'none'}
 
+Brand/Product Context (From Uploaded PDFs):
+${brandKnowledgeCtx || 'None provided'}
+
 Conversation History:
 ${conversationContext || 'No prior conversation'}
 
 Latest Message: "${message}"
 
-Analyze and return a JSON object with these exact fields:
+Analyze the entire thread context and the latest message. Return a JSON object with these exact fields:
 {
   "isInterested": boolean,
   "isNegative": boolean,
@@ -83,19 +109,21 @@ Analyze and return a JSON object with these exact fields:
   "urgency": "high" | "medium" | "low",
   "style": "formal" | "casual" | "blunt" | "warm",
   "suggestedAction": string,
-  "keywords": string[]
+  "keywords": string[],
+  "productMentioned": string | null, // If a specific product/service is discussed
+  "offeredPrice": number | null // Extract explicit pricing or quoted amount if negotiation occurred
 }
 
 Focus on buying signals like:
 - "interested", "love it", "perfect", "need this"
-  - "how much", "pricing", "cost", "payment"
-  - "when can we", "schedule", "meet", "call", "demo"
-  - "sign up", "get started", "purchase", "buy"
+- "how much", "pricing", "cost", "payment" (Extract number to offeredPrice)
+- "when can we", "schedule", "meet", "call", "demo"
+- "sign up", "get started", "purchase", "buy"
 
 Negative signals:
 - "not interested", "no thanks", "unsubscribe", "stop"
-  - "too expensive", "can't afford", "not now"
-  - "already have", "using another", "competitor"
+- "too expensive", "can't afford", "not now"
+- "already have", "using another", "competitor"
 
 Return ONLY valid JSON, no explanation.`;
 
@@ -140,6 +168,50 @@ Return ONLY valid JSON, no explanation.`;
       newStatus = 'not_interested';
     } else {
       newStatus = 'replied';
+    }
+
+    // Pipeline automation: Auto-create or Update Deal based on AI
+    try {
+      if (fullLead && fullLead.userId) {
+        const userId = fullLead.userId;
+        const deals = await storage.getDeals(userId);
+        const existingDeal = deals.find(d => d.leadId === fullLead.id);
+
+        const dealValue = analysis.offeredPrice || Number((fullLead.metadata as any)?.intelligence?.predictions?.predictedAmount) || 500;
+        
+        // Let's only create/update if there's clear intent or an offered price
+        if (analysis.offeredPrice || analysis.readyToBuy || analysis.wantsToSchedule || analysis.isInterested) {
+          if (existingDeal) {
+            // Update existing deal if status advanced or price changed
+            const updates: any = {};
+            if (analysis.offeredPrice && existingDeal.value !== analysis.offeredPrice) {
+               updates.amount = analysis.offeredPrice;
+               updates.metadata = { ...existingDeal.metadata, aiUpdatedPrice: true };
+            }
+            if ((analysis.readyToBuy || analysis.wantsToSchedule) && existingDeal.status === 'open') {
+               updates.status = 'closed_won';
+            }
+            if (Object.keys(updates).length > 0) {
+              await storage.updateDeal(existingDeal.id.toString(), userId, updates);
+              wsSync.notifyDealsUpdated(userId);
+            }
+          } else {
+            // Create a new deal based on AI intelligence
+            await storage.createDeal({
+              userId,
+              leadId: fullLead.id,
+              title: `AI Deal: ${fullLead.name} - ${analysis.productMentioned || 'Service'}`,
+              amount: dealValue,
+              status: (analysis.readyToBuy || analysis.wantsToSchedule) ? 'closed_won' : 'open',
+              source: 'ai_extraction',
+              metadata: { aiExtracted: true, intentAnalysis: analysis }
+            });
+            wsSync.notifyDealsUpdated(userId);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to auto-update deal pipeline from AI intent:', e);
     }
 
     // Store analysis, tags, and update status via Drizzle storage
@@ -217,7 +289,9 @@ function performBasicIntentAnalysis(message: string): IntentAnalysis {
     keywords: [],
     emotion: 'neutral',
     urgency: 'low',
-    style: 'casual'
+    style: 'casual',
+    productMentioned: undefined,
+    offeredPrice: undefined
   };
 }
 
