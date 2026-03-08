@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { storage } from '../storage.js';
 import { requireAuth } from '../middleware/auth.js';
+import { getAIStatus } from "../lib/ai/ai-service.js";
+import { learnUserStyle } from "../lib/ai/personality-learner.js";
 import type { Lead, Message } from '../../shared/schema.js';
 import { InstagramOAuth } from '../lib/oauth/instagram.js';
 import { decrypt } from '../lib/crypto/encryption.js';
@@ -117,13 +119,24 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
     const softBounces = recentBounces.filter(b => b.bounceType === 'soft').length;
     const spamBounces = recentBounces.filter(b => b.bounceType === 'spam').length;
 
-    // Start with 98 instead of 100 to avoid "perfect" look, move towards real data
-    let reputationScore = stats.totalLeads > 0 ? 98 : 0;
+    // Dynamic Reputation Score Logic (0-100)
+    // We base it on actual data rather than just a high starting point
+    let reputationScore = 0;
 
     if (stats.totalLeads > 0) {
       const bounceRate = ((hardBounces + spamBounces) / stats.totalLeads) * 100;
-      const bouncePenalty = (hardBounces * 8) + (softBounces * 3) + (spamBounces * 12);
-      reputationScore = Math.max(0, 99 - bouncePenalty - (bounceRate * 2));
+      const bouncePenalty = (hardBounces * 10) + (softBounces * 2) + (spamBounces * 15);
+      
+      // Start from 100 and subtract penalties based on performance
+      reputationScore = Math.max(0, 100 - bouncePenalty - (bounceRate * 3));
+      
+      // If they have good volume and low bounces, they earn a 'trust' bonus
+      if (stats.totalLeads > 100 && bounceRate < 2) {
+        reputationScore = Math.min(100, reputationScore + 5);
+      }
+    } else {
+      // If no leads sent yet, it's a "neutral" 100 until proven otherwise
+      reputationScore = 100;
     }
 
     const unverifiedDomains = domainVerifications.filter(v => {
@@ -700,6 +713,29 @@ router.get('/integrations/:id/stats', requireAuth, async (req: Request, res: Res
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch integration stats' });
   }
+});
+
+/**
+ * GET /api/dashboard/ai/status
+ * Get health status of AI providers
+ */
+router.get('/ai/status', requireAuth, async (req: Request, res: Response) => {
+    const status = getAIStatus();
+    res.json(status);
+});
+
+/**
+ * POST /api/dashboard/ai/learn-style
+ * Manually trigger style learning from past messages
+ */
+router.post('/ai/learn-style', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const userId = req.session?.userId!;
+        const markers = await learnUserStyle(userId);
+        res.json({ success: !!markers, markers });
+    } catch (error: any) {
+        res.status(500).json({ success: false, error: error.message });
+    }
 });
 
 export default router;

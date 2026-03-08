@@ -9,12 +9,13 @@ import { optimizeSalesLanguage } from './sales-language-optimizer.js';
 import { getBrandContext, formatBrandContextForPrompt } from './brand-context.js';
 import { appendLinkIfNeeded, detectAndGenerateLinkResponse } from './link-intent-detector.js';
 import { BookingProposer } from '../calendar/booking-proposer.js';
-import { analyzeLeadIntent } from './intent-analyzer.js';
+import { analyzeLeadIntent, type IntentAnalysis } from './intent-analyzer.js';
 import { generateAutonomousObjectionResponse } from './autonomous-objection-responder.js';
 import { universalSalesAI } from './universal-sales-agent.js';
 import { evaluateAndLogDecision } from './decision-engine.js';
 import { formatReplyForChannel } from './channel-reply-formatter.js';
 import { generateReply } from './ai-service.js';
+import { getStyleMarkers, type StyleMarkers } from './personality-learner.js';
 
 const isDemoMode = false;
 
@@ -244,8 +245,8 @@ export async function generateAIReply(
   const allMessages = [...memoryMessages, ...conversationHistory];
   const lastLeadMessage = conversationHistory.filter(m => m.direction === 'inbound').pop();
 
-  // --- SMART INTENT ANALYSIS ---
-  const intent = lastLeadMessage
+  // --- SMART INTENT & EMOTION ANALYSIS ---
+  const intent: IntentAnalysis | null = lastLeadMessage
     ? await analyzeLeadIntent(lastLeadMessage.body, {
       id: lead.id,
       name: lead.name || "Lead",
@@ -254,6 +255,9 @@ export async function generateAIReply(
       tags: lead.tags || []
     })
     : null;
+
+  // --- STYLE LEARNING ---
+  const styleMarkers = await getStyleMarkers(lead.userId);
 
   // --- OBJECTION HANDLING LOOP ---
   if (intent?.hasObjection || intent?.isNegative) {
@@ -298,6 +302,25 @@ export async function generateAIReply(
     ? `\n\nCONVERSATION INSIGHTS:\n${memoryResult.context}`
     : '';
 
+  // --- STYLE & EMOTION INJECTION ---
+  const stylePrompt = `
+Your writing style must match these markers:
+- Tone: ${styleMarkers.tone}
+- Sentence Length: ${styleMarkers.avgSentenceLength}
+- Greetings to use: ${styleMarkers.commonGreetings.join(', ')}
+- Signoffs to use: ${styleMarkers.commonSignoffs.join(', ')}
+- Vocabulary: ${styleMarkers.vocabularyComplexity}
+- Use Emojis: ${styleMarkers.useOfEmojis ? 'Yes' : 'No'}
+- Use Exclamations: ${styleMarkers.useOfExclamation ? 'Yes' : 'No'}
+`;
+
+  const emotionPrompt = intent ? `
+Lead Emotion: ${intent.emotion}
+Lead Urgency: ${intent.urgency}
+Lead Style: ${intent.style}
+Adapt your response to match their energy. If they are frustrated, be empathetic. If they are excited, be enthusiastic. If they are blunt/urgent, be direct and fast.
+` : '';
+
   const leadIntelContext = `
 LEAD PROFILE:
 - Name: ${lead.name}
@@ -322,6 +345,10 @@ ${brandGuidelines}
 ${brandPromptSection}
 
 ${leadIntelContext}
+
+${stylePrompt}
+
+${emotionPrompt}
 
 Platform: ${platform}
 Tone: ${platformTone[platform]}

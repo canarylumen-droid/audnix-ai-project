@@ -232,13 +232,6 @@ export default function IntegrationsPage() {
   });
   const { data: userData } = useQuery<UserData>({ queryKey: ["/api/user/profile"] });
 
-  const [tickerTime, setTickerTime] = useState(Date.now());
-
-  useEffect(() => {
-    const timer = setInterval(() => setTickerTime(Date.now()), 47); // ~21fps for high-fidelity ticker
-    return () => clearInterval(timer);
-  }, []);
-
   const getDailyLimit = () => {
     const tier = userData?.user?.subscriptionTier?.toLowerCase();
     if (tier === 'enterprise') return 500;
@@ -558,30 +551,36 @@ export default function IntegrationsPage() {
                           {connectedMailboxesCount} / {getMailboxLimit()} Limit
                         </Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground">Manage your outreach accounts and their health.</p>
+                      <p className="text-xs text-muted-foreground">
+                        {connectedMailboxesCount >= getMailboxLimit() && userData?.user?.subscriptionTier !== 'enterprise'
+                          ? "Limit reached. Upgrade or disconnect a mailbox to add more."
+                          : "Manage your outreach accounts and their health."}
+                      </p>
                     </div>
-                    {isAtMailboxLimit ? (
-                      getNextPlan() ? (
+                    <div className="flex items-center gap-3">
+                      {userData?.user?.subscriptionTier !== 'enterprise' && isAtMailboxLimit && getNextPlan() && (
                         <Link href="/dashboard/pricing">
                           <Button size="sm" variant="outline" className="rounded-full gap-2 border-primary/20 text-primary hover:bg-primary/5">
                             <Zap className="h-3.5 w-3.5 fill-primary" /> Upgrade for More
                           </Button>
                         </Link>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-500 border-emerald-500/20 bg-emerald-500/5">
-                            Full Capacity
-                          </Badge>
-                          <Button size="sm" className="rounded-full gap-2 shadow-lg shadow-primary/20" onClick={() => setIsEditingCustomEmail(true)}>
-                            <Plus className="h-4 w-4" /> Add Mailbox
-                          </Button>
-                        </div>
-                      )
-                    ) : (
-                      <Button size="sm" className="rounded-full gap-2 shadow-lg shadow-primary/20" onClick={() => setIsEditingCustomEmail(true)}>
-                        <Plus className="h-4 w-4" /> Add Mailbox
-                      </Button>
-                    )}
+                      )}
+                      {(!isAtMailboxLimit || userData?.user?.subscriptionTier === 'enterprise') && (
+                        <Button
+                          size="sm"
+                          className="rounded-full gap-2 shadow-lg shadow-primary/20"
+                          onClick={() => setIsEditingCustomEmail(true)}
+                          disabled={userData?.user?.subscriptionTier === 'enterprise' && connectedMailboxesCount >= 10}
+                        >
+                          <Plus className="h-4 w-4" /> Add Mailbox
+                        </Button>
+                      )}
+                      {userData?.user?.subscriptionTier === 'enterprise' && connectedMailboxesCount >= 10 && (
+                        <Badge variant="outline" className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-500 border-emerald-500/20 bg-emerald-500/5">
+                          Full Capacity
+                        </Badge>
+                      )}
+                    </div>
                   </div>
 
                   <div className="space-y-4">
@@ -594,9 +593,7 @@ export default function IntegrationsPage() {
                           <div className="space-y-0.5">
                             <div className="flex items-center gap-2">
                               <h4 className="text-sm font-bold text-foreground">
-                                {mailbox.provider === 'custom_email'
-                                  ? (mailbox as any).metadata?.from_name || (mailbox.email || '').split('@')[0]
-                                  : (mailbox.email || mailbox.provider)}
+                                {mailbox.email || mailbox.provider}
                               </h4>
                               <Badge className="bg-emerald-500/10 text-emerald-500 border-0 text-[8px] font-black uppercase tracking-widest px-1.5 py-0">Active</Badge>
                             </div>
@@ -782,7 +779,7 @@ export default function IntegrationsPage() {
                                   onClick={() => setCustomEmailConfig({
                                     ...customEmailConfig,
                                     smtpHost: 'smtp.gmail.com',
-                                    smtpPort: '587',
+                                    smtpPort: '465',
                                     imapHost: 'imap.gmail.com',
                                     imapPort: '993'
                                   })}
@@ -791,7 +788,7 @@ export default function IntegrationsPage() {
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p className="text-xs">Quick-fill settings for personal @gmail.com accounts</p>
+                                <p className="text-xs">Pre-fill for personal @gmail.com (Use App Password)</p>
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>

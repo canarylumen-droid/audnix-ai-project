@@ -14,6 +14,9 @@ export interface IntentAnalysis {
   needsMoreInfo: boolean;
   confidence: number;
   sentiment: 'positive' | 'negative' | 'neutral';
+  emotion: 'curious' | 'skeptical' | 'frustrated' | 'excited' | 'neutral' | 'urgent';
+  urgency: 'high' | 'medium' | 'low';
+  style: 'formal' | 'casual' | 'blunt' | 'warm';
   suggestedAction: string;
   keywords: string[];
 }
@@ -67,17 +70,20 @@ Latest Message: "${message}"
 
 Analyze and return a JSON object with these exact fields:
 {
-  "isInterested": boolean(shows buying interest),
-    "isNegative": boolean(rejection or complaint),
-      "hasQuestion": boolean(asking for information),
-        "hasObjection": boolean(price, timing, feature concerns),
-          "wantsToSchedule": boolean(wants meeting / call / demo),
-            "readyToBuy": boolean(ready to purchase / sign up),
-              "needsMoreInfo": boolean(needs education),
-                "confidence": number(0 - 1 confidence in analysis),
-                  "sentiment": "positive" | "negative" | "neutral",
-                    "suggestedAction": string(next best action),
-                      "keywords": string[](important keywords / phrases)
+  "isInterested": boolean,
+  "isNegative": boolean,
+  "hasQuestion": boolean,
+  "hasObjection": boolean,
+  "wantsToSchedule": boolean,
+  "readyToBuy": boolean,
+  "needsMoreInfo": boolean,
+  "confidence": number,
+  "sentiment": "positive" | "negative" | "neutral",
+  "emotion": "curious" | "skeptical" | "frustrated" | "excited" | "neutral" | "urgent",
+  "urgency": "high" | "medium" | "low",
+  "style": "formal" | "casual" | "blunt" | "warm",
+  "suggestedAction": string,
+  "keywords": string[]
 }
 
 Focus on buying signals like:
@@ -208,7 +214,10 @@ function performBasicIntentAnalysis(message: string): IntentAnalysis {
       hasScheduling ? 'Schedule meeting' :
         hasPositive ? 'Send more info' :
           hasNegative ? 'Remove from list' : 'Continue nurturing',
-    keywords: []
+    keywords: [],
+    emotion: 'neutral',
+    urgency: 'low',
+    style: 'casual'
   };
 }
 

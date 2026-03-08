@@ -21,6 +21,9 @@ class ImapIdleManager {
     private folders: Map<string, { inbox: string[], sent: string[], spam: string[] }> = new Map(); // Key: integrationId
     private syncing: Set<string> = new Set(); // Key: integrationId
     private isRunning = false;
+    private backoffDelays: Map<string, number> = new Map(); // Key: integrationId
+    private readonly MIN_BACKOFF = 30000; // 30s
+    private readonly MAX_BACKOFF = 30 * 60 * 1000; // 30m
 
     /**
      * Start the IMAP IDLE manager
@@ -29,10 +32,18 @@ class ImapIdleManager {
         if (this.isRunning) return;
         this.isRunning = true;
         console.log('🚀 IMAP IDLE Manager starting (Multi-Mailbox mode)...');
+        // Initial sync
         await this.syncConnections();
 
-        // Periodically sync connections to pick up new accounts or handle drops
-        setInterval(() => this.syncConnections(), 5 * 60 * 1000); // Every 5 minutes
+        // Use BullMQ for periodic connection management instead of simple setInterval
+        // This ensures transparency and reliability across restarts
+        const { emailSyncQueue } = await import('../queues/email-sync-queue.js');
+        await emailSyncQueue.add('sync-connections', { type: 'discovery' }, {
+            repeat: {
+                every: 5 * 60 * 1000 // Every 5 minutes
+            },
+            jobId: 'discovery-cycle'
+        });
     }
 
     /**
@@ -300,7 +311,7 @@ class ImapIdleManager {
                 if (this.connections.get(integrationId) === imap) {
                     this.syncAccountFolders(integrationId, imap, userId);
                 }
-            }, 1000); // 1s sync speed
+            }, 30 * 1000); // 30s sync safety net (IDLE handles real-time)
         });
         } catch (e) {
             console.error(`[IMAP] Failed to initiate openBox for ${primaryInbox}:`, e);
@@ -425,7 +436,7 @@ class ImapIdleManager {
                         console.error(`[IMAP] Fetch error for ${folderName}:`, fetchError.message);
                     } else if (emails.length > 0) {
                         console.log(`📥 Processing ${emails.length} ${direction} emails from ${folderName} for integration ${integrationId} (Spam: ${isSpam})`);
-                        await pagedEmailImport(userId, emails.map(e => ({
+                        const importRes = await pagedEmailImport(userId, emails.map(e => ({
                             from: e.from?.split('<')[1]?.split('>')[0] || e.from,
                             to: e.to?.split('<')[1]?.split('>')[0] || e.to,
                             subject: e.subject,
@@ -438,6 +449,44 @@ class ImapIdleManager {
                             integrationId: integrationId,
                             isSpam: isSpam
                         })), undefined, direction);
+
+                        if (importRes.imported > 0 && direction === 'inbound') {
+                            const { wsSync } = await import('../websocket-sync.js');
+                            wsSync.notifyMessagesUpdated(userId, { event: 'INSERT', count: importRes.imported });
+
+                            // Trigger autonomous AI reply for new inbound messages
+                            try {
+                                const { scheduleAutomatedEmailReply } = await import('../ai/email-automation.js');
+                                const { analyzeLeadIntent } = await import('../ai/intent-analyzer.js');
+
+                                for (const email of emails) {
+                                  if (email.direction === 'inbound' && !email.isSpam) {
+                                      const lead = await storage.getLeadByEmail(email.from?.split('<')[1]?.split('>')[0] || email.from, userId);
+                                      if (lead && !lead.aiPaused) {
+                                          const intent = await analyzeLeadIntent(email.text, {
+                                              id: lead.id,
+                                              name: lead.name,
+                                              channel: 'email',
+                                              status: lead.status,
+                                              tags: lead.tags || []
+                                          });
+
+                                          await scheduleAutomatedEmailReply(
+                                              userId,
+                                              lead.id,
+                                              email.from,
+                                              email.subject,
+                                              email.text,
+                                              intent,
+                                              email.threadId
+                                          );
+                                      }
+                                  }
+                                }
+                            } catch (aiErr) {
+                                console.error('[IMAP] AI trigger error:', aiErr);
+                            }
+                        }
 
                         // Real-time propagation to UI
                         wsSync.notifyMessagesUpdated(userId);
@@ -534,14 +583,18 @@ class ImapIdleManager {
     private reconnect(integrationId: string, integration: Integration): void {
         if (!this.isRunning) return;
 
+        const currentDelay = this.backoffDelays.get(integrationId) || this.MIN_BACKOFF;
+        const nextDelay = Math.min(currentDelay * 2, this.MAX_BACKOFF);
+        this.backoffDelays.set(integrationId, nextDelay);
+
         this.connections.delete(integrationId);
-        console.log(`🔄 Attempting to reconnect IMAP for integration ${integrationId} in 30s...`);
+        console.log(`🔄 Attempting to reconnect IMAP for ${integrationId} in ${Math.round(currentDelay / 1000)}s (Next attempt in ${Math.round(nextDelay / 1000)}s)...`);
 
         setTimeout(() => {
             if (this.isRunning && !this.connections.has(integrationId)) {
                 this.setupConnection(integrationId, integration);
             }
-        }, 30000);
+        }, currentDelay);
     }
 
     stop(): void {

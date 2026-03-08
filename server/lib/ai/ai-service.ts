@@ -56,11 +56,31 @@ function updateProviderHealth(provider: 'openai' | 'genai' | 'zai', isSuccess: b
   }
 }
 
-function isProviderAvailable(provider: 'openai' | 'genai' | 'zai'): boolean {
+export function isProviderAvailable(provider: 'openai' | 'genai' | 'zai'): boolean {
   if (provider === 'zai' && !zai) return false;
   if (provider === 'openai' && !openai) return false;
   if (provider === 'genai' && !genai) return false;
   return Date.now() >= PROVIDER_STATUS[provider].cooldownUntil;
+}
+
+/**
+ * Get current health and status of all AI providers
+ */
+export function getAIStatus() {
+  return {
+    activeProvider: PREFERRED_PROVIDER,
+    providers: Object.keys(PROVIDER_STATUS).reduce((acc, key) => {
+        const provider = key as keyof typeof PROVIDER_STATUS;
+        const available = isProviderAvailable(provider);
+        acc[provider] = {
+            available,
+            cooldownUntil: PROVIDER_STATUS[provider].cooldownUntil,
+            consecutiveErrors: PROVIDER_STATUS[provider].consecutiveErrors,
+            configured: !!(provider === 'zai' ? zai : (provider === 'openai' ? openai : genai))
+        };
+        return acc;
+    }, {} as Record<string, any>)
+  };
 }
 
 /**

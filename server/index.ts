@@ -35,6 +35,7 @@ import { emailSyncWorker } from "./lib/email/email-sync-worker.js";
 import { paymentAutoApprovalWorker } from "./lib/billing/payment-auto-approval-worker.js";
 import { outreachEngine } from "./lib/workers/outreach-engine.js";
 import { outreachWorker } from "./lib/queues/outreach-queue.js";
+import { emailSyncWorkerModule } from "./lib/queues/email-sync-queue.js";
 import { leadExpiryWorker } from "./lib/workers/lead-expiry-worker.js";
 import { reputationWorker } from "./lib/workers/reputation-worker.js";
 import { apiLimiter, authLimiter } from "./middleware/rate-limit.js";
@@ -426,7 +427,7 @@ async function runMigrations() {
     const { setupVite } = await import("./vite.js");
     await setupVite(app, server);
   } else {
-    const { serveStatic } = await import("./vite.js");
+    const { serveStatic } = await import("./static.js");
     serveStatic(app);
   }
   if (!process.env.VERCEL) {
@@ -469,6 +470,20 @@ async function runMigrations() {
       // Real-time IMAP IDLE Manager
       const { imapIdleManager } = await import("./lib/email/imap-idle-manager.js");
       startWorker("IMAP IDLE", () => imapIdleManager.start());
+      startWorker("Email sync queue", () => {
+        // Just need to ensure it's imported to register the worker
+        console.log("Registered email sync queue worker");
+      });
+
+      // AI Provider Smoke Test
+      const { getAIStatus } = await import("./lib/ai/ai-service.js");
+      const aiStatus = getAIStatus();
+      console.log(`🤖 AI Engine initialized. Active Provider: ${aiStatus.activeProvider}`);
+      Object.entries(aiStatus.providers).forEach(([p, s]: [string, any]) => {
+          if (s.configured) {
+              console.log(`   - ${p}: ${s.available ? '✅ Online' : '⚠️ Offline/Cooldown'}`);
+          }
+      });
     }
   }
 })();

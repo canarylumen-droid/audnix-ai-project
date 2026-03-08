@@ -65,37 +65,52 @@ export function MailboxSwitcher({ className, value, onValueChange }: MailboxSwit
                     handleMailboxChange(val);
                 }}
             >
-                <SelectTrigger className="w-[240px] h-10 rounded-2xl border-border/40 bg-card/40 backdrop-blur-md font-bold text-[10px] uppercase tracking-wider text-muted-foreground/80 hover:text-foreground transition-colors group">
-                    <div className="flex items-center gap-2 truncate">
-                        <Mail className="h-3.5 w-3.5 text-primary shrink-0" />
+                <SelectTrigger className="w-[280px] h-11 rounded-2xl border-border/40 bg-card/40 backdrop-blur-md font-bold text-[11px] uppercase tracking-wider text-muted-foreground/80 hover:text-foreground transition-all group shadow-sm hover:shadow-primary/5">
+                    <div className="flex items-center gap-2.5 truncate">
+                        <div className="p-1.5 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                            <Mail className="h-3.5 w-3.5 text-primary shrink-0" />
+                        </div>
                         <SelectValue>
-                            {selectedMailbox?.email || selectedMailbox?.provider || "My Mailbox"}
+                            {selectedMailbox?.email || (selectedMailbox?.provider === 'custom_email' ? 'Custom Email' : selectedMailbox?.provider) || "Switch Mailbox"}
                         </SelectValue>
                     </div>
                 </SelectTrigger>
-                <SelectContent className="rounded-2xl border-border/40 bg-card/95 backdrop-blur-xl shadow-2xl min-w-[260px]">
+                <SelectContent className="rounded-2xl border-border/40 bg-card/95 backdrop-blur-xl shadow-2xl min-w-[280px] p-2">
+                    <div className="px-3 py-2 text-[9px] font-black text-muted-foreground/50 uppercase tracking-[0.2em]">Connected Accounts</div>
                     {mailboxes.map((mailbox) => (
                         <SelectItem
                             key={mailbox.id}
                             value={mailbox.id}
-                            className="font-bold text-[10px] uppercase tracking-widest py-3 cursor-pointer"
+                            className="font-bold text-[10px] uppercase tracking-widest py-3.5 px-3 cursor-pointer rounded-xl hover:bg-primary/5 transition-all focus:bg-primary/10"
                         >
-                            <div className="flex items-center gap-2">
-                                <Mail className="h-3.5 w-3.5 text-indigo-400 shrink-0" />
-                                <span className="truncate max-w-[180px]">
-                                    {mailbox.email || mailbox.provider}
-                                </span>
-                                {mailbox.connected && <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />}
+                            <div className="flex items-center justify-between w-full gap-4">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <div className={cn(
+                                        "h-2 w-2 rounded-full shrink-0",
+                                        mailbox.connected ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" : "bg-muted"
+                                    )} />
+                                    <span className="truncate text-foreground/90 font-black">
+                                        {mailbox.email || (mailbox.provider === 'custom_email' ? 'Custom Email' : mailbox.provider)}
+                                    </span>
+                                </div>
+                                {mailbox.id === currentMailboxId && (
+                                    <CheckCircle2 className="h-3 w-3 text-primary shrink-0" />
+                                )}
                             </div>
                         </SelectItem>
                     ))}
 
-                    <div className="h-px bg-border/40 my-1" />
+                    <div className="h-px bg-border/20 my-2 mx-2" />
 
-                    <SelectItem value="add_new" className="font-bold text-[10px] uppercase tracking-widest py-3 cursor-pointer text-primary bg-primary/5 hover:bg-primary/10">
-                        <div className="flex items-center gap-2">
-                            <PlusCircle className="h-3.5 w-3.5" />
-                            Add Mailbox
+                    <SelectItem 
+                        value="add_new" 
+                        className="font-black text-[10px] uppercase tracking-widest py-3.5 px-3 cursor-pointer rounded-xl text-primary bg-primary/5 hover:bg-primary/10 focus:bg-primary/15 transition-all mb-1"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="p-1 rounded-md bg-primary/10">
+                                <PlusCircle className="h-3.5 w-3.5" />
+                            </div>
+                            <span>Add New Integration</span>
                         </div>
                     </SelectItem>
                 </SelectContent>
