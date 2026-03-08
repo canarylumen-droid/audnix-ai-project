@@ -597,6 +597,126 @@ class ImapIdleManager {
         }, currentDelay);
     }
 
+    /**
+     * Sync a local action (archive/delete) to the remote IMAP server
+     */
+    public async syncRemoteAction(userId: string, leadId: string, action: 'archive' | 'unarchive' | 'delete'): Promise<void> {
+        try {
+            const lead = await storage.getLeadById(leadId);
+            if (!lead || !lead.email) return;
+
+            // Find the integration for this user and lead
+            const integrations = await storage.getIntegrations(userId);
+            const emailIntegrations = integrations.filter((i: Integration) => 
+                i.connected && (i.provider === 'gmail' || i.provider === 'outlook' || i.provider === 'custom_email')
+            );
+
+            // In a better architecture, we'd know which integration a lead belongs to.
+            // For now, we try to find messages for this lead to identify the integration.
+            const messages = await storage.getMessagesByLeadId(leadId);
+            const integrationId = messages.find(m => m.integrationId)?.integrationId;
+
+            if (!integrationId) {
+                console.warn(`[IMAP Sync] Could not identify integration for lead ${leadId} to perform ${action}`);
+                return;
+            }
+
+            const integration = emailIntegrations.find((i: Integration) => i.id === integrationId);
+            if (!integration) return;
+
+            const credentialsStr = await decrypt(integration.encryptedMeta!);
+            const config = JSON.parse(credentialsStr) as EmailConfig;
+
+            const imapHost = config.imap_host || config.smtp_host?.replace('smtp', 'imap') || '';
+            const imapPort = config.imap_port || 993;
+
+            const imap = new Imap({
+                user: config.smtp_user!,
+                password: config.smtp_pass!,
+                host: imapHost,
+                port: imapPort,
+                tls: imapPort === 993,
+                tlsOptions: { rejectUnauthorized: false }
+            });
+
+            return new Promise((resolve, reject) => {
+                const cleanup = () => {
+                    if (imap.state !== 'disconnected') imap.end();
+                };
+
+                imap.once('ready', () => {
+                    const folders = this.folders.get(integrationId) || { inbox: ['INBOX'], sent: [] };
+                    const primaryInbox = folders.inbox[0] || 'INBOX';
+
+                    imap.openBox(primaryInbox, false, (err) => {
+                        if (err) {
+                            cleanup();
+                            return resolve();
+                        }
+
+                        // Search for messages with this lead's email
+                        imap.search([['FROM', lead.email]], (err, uids) => {
+                            if (err || !uids || uids.length === 0) {
+                                cleanup();
+                                return resolve();
+                            }
+
+                            if (action === 'archive') {
+                                // For Gmail, archiving is removing '\Inbox' label (moving to All Mail)
+                                // For standard IMAP, it's moving to an 'Archive' folder
+                                const archiveFolder = 'Archive'; // Standard name
+                                imap.move(uids, archiveFolder, (moveErr) => {
+                                    if (moveErr) {
+                                        console.warn(`[IMAP Sync] Move to Archive failed for ${lead.email}:`, moveErr.message);
+                                    } else {
+                                        console.log(`✅ [IMAP Sync] Archived ${uids.length} messages for ${lead.email}`);
+                                    }
+                                    cleanup();
+                                    resolve();
+                                });
+                            } else if (action === 'unarchive') {
+                                // Move back to INBOX
+                                const folders = this.folders.get(integrationId) || { inbox: ['INBOX'], sent: [] };
+                                const primaryInbox = folders.inbox[0] || 'INBOX';
+                                imap.move(uids, primaryInbox, (moveErr) => {
+                                    if (moveErr) {
+                                        console.warn(`[IMAP Sync] Move to INBOX failed for ${lead.email}:`, moveErr.message);
+                                    } else {
+                                        console.log(`✅ [IMAP Sync] Unarchived ${uids.length} messages for ${lead.email}`);
+                                    }
+                                    cleanup();
+                                    resolve();
+                                });
+                            } else if (action === 'delete') {
+                                // Add \Deleted flag and expunge
+                                imap.addFlags(uids, '\\Deleted', (delErr) => {
+                                    if (delErr) {
+                                        console.warn(`[IMAP Sync] Delete failed for ${lead.email}:`, delErr.message);
+                                    } else {
+                                        imap.expunge((expErr) => {
+                                            if (!expErr) console.log(`✅ [IMAP Sync] Deleted/Expunged ${uids.length} messages for ${lead.email}`);
+                                        });
+                                    }
+                                    cleanup();
+                                    resolve();
+                                });
+                            }
+                        });
+                    });
+                });
+
+                imap.once('error', (err) => {
+                    cleanup();
+                    resolve();
+                });
+
+                imap.connect();
+            });
+        } catch (error) {
+            console.error(`[IMAP Sync] Remote action ${action} failed:`, error);
+        }
+    }
+
     stop(): void {
         this.isRunning = false;
         for (const imap of this.connections.values()) {

@@ -71,6 +71,7 @@ import {
   ArrowRight,
   Filter,
   Zap,
+  Pencil,
   Wand2,
   CheckCircle,
   AlertCircle
@@ -91,8 +92,8 @@ const statusStyles = {
   new: "bg-primary/20 text-primary border-primary/20",
   open: "bg-primary/10 text-primary border-primary/10",
   replied: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
-  booked: "bg-sky-500/10 text-sky-500 border-sky-500/20",
-  converted: "bg-sky-500/10 text-sky-500 border-sky-500/20",
+  booked: "bg-sky-500/10 text-sky-500 border-sky-500/20 shadow-[0_0_10px_rgba(14,165,233,0.15)]",
+  converted: "bg-primary/20 text-primary border-primary/20 shadow-[0_0_15px_rgba(var(--primary),0.2)]",
   warm: "bg-orange-500/10 text-orange-500 border-orange-500/20",
   not_interested: "bg-muted text-muted-foreground border-muted",
   cold: "bg-muted text-muted-foreground border-muted",
@@ -104,14 +105,13 @@ export default function InboxPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { selectedMailboxId } = useMailbox();
+  const [processLead, setProcessLead] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [grammarErrors, setGrammarErrors] = useState<any[]>([]);
-  const [isCheckingGrammar, setIsCheckingGrammar] = useState(false);
-  const [isPolishing, setIsPolishing] = useState(false);
   const [filterChannel, setFilterChannel] = useState<string>("all");
-  const [filterStatus, setFilterStatus] = useState<string>("all"); // Added status filter
+  const [filterStatus, setFilterStatus] = useState<string>("all");
   const [allLeads, setAllLeads] = useState<any[]>([]);
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
+  const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
 
   // Handle Global Search params
   useEffect(() => {
@@ -123,14 +123,15 @@ export default function InboxPage() {
       // window.history.replaceState({}, '', '/dashboard/inbox'); 
     }
   }, []);
-  const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
-  const [processLead, setProcessLead] = useState<any>(null);
 
   // Message Thread State
   const [replyMessage, setReplyMessage] = useState("");
+  const [isPolishing, setIsPolishing] = useState(false);
+  const [showIntelligence, setShowIntelligence] = useState(false);
+  const [grammarErrors, setGrammarErrors] = useState<any[]>([]);
+  const [isCheckingGrammar, setIsCheckingGrammar] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [typedText, setTypedText] = useState("");
-  const [showIntelligence, setShowIntelligence] = useState(false);
   const [showDetails, setShowDetails] = useState(false); // Controls the right sidebar
   const [typingLeadId, setTypingLeadId] = useState<string | null>(null); // Track which lead is typing
   const [localDrafts, setLocalDrafts] = useState<Record<string, string>>({});
@@ -272,7 +273,7 @@ export default function InboxPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
     };
 
-    let leadsTimeout: NodeJS.Timeout;
+    let leadsTimeout: NodeJS.Timeout | null = null;
 
     socket.on('messages_updated', handleMessagesUpdated);
     socket.on('leads_updated', handleLeadsUpdated);
@@ -297,8 +298,8 @@ export default function InboxPage() {
       socket.off("message_received", handleMessagesUpdated);
       socket.off("message_sent", handleMessagesUpdated);
 
-      clearTimeout(leadsTimeout);
-      clearTimeout(notifTimeout);
+      if (leadsTimeout) clearTimeout(leadsTimeout);
+      if (notifTimeout) clearTimeout(notifTimeout);
     };
   }, [socket, leadId, queryClient, toast]);
 
@@ -494,27 +495,6 @@ export default function InboxPage() {
     return () => clearTimeout(timer);
   }, [replyMessage]);
 
-  const handleMagicPencil = async () => {
-    if (!replyMessage.trim()) return;
-    setIsPolishing(true);
-    try {
-      const res = await apiRequest("POST", "/api/ai/magic-pencil", {
-        text: replyMessage,
-        tone: user?.replyTone || "professional",
-        context: `Replying to lead ${activeLead?.name} at company ${activeLead?.company || "the team"}. lead status: ${activeLead?.status}`
-      });
-      const data = await res.json();
-      if (data.rewrittenText) {
-        setReplyMessage(data.rewrittenText);
-        toast({ title: "Message Polished", description: "AI enhanced your draft for better conversion." });
-      }
-    } catch (err) {
-      toast({ title: "Magic Pencil Error", description: "Failed to polish message", variant: "destructive" });
-    } finally {
-      setIsPolishing(false);
-    }
-  };
-
   const sendMutation = useMutation({
     mutationFn: (content: string) => {
       return apiRequest("POST", `/api/messages/${leadId}`, { content, channel: activeLead?.channel });
@@ -558,6 +538,61 @@ export default function InboxPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
     }
   });
+
+  const handleMagicPencil = async () => {
+    if (!replyMessage || isPolishing) return;
+    setIsPolishing(true);
+    try {
+      const res = await fetch("/api/leads/magic-pencil", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          text: replyMessage,
+          tone: activeLead?.metadata?.tone || 'professional',
+          context: activeLead?.name ? `Replying to ${activeLead.name} from ${activeLead.company || 'unknown company'}` : 'Sales reply'
+        })
+      });
+      const data = await res.json();
+      if (data.rewrittenText) {
+        setReplyMessage(data.rewrittenText);
+        toast({ title: "✨ Message Polished", description: "AI has refined your response for maximum conversion." });
+      }
+    } catch (err) {
+      console.error("Magic Pencil Error:", err);
+      toast({ variant: "destructive", title: "Pencil Failed", description: "Could not refine message at this time." });
+    } finally {
+      setIsPolishing(false);
+    }
+  };
+
+  // Real-time Grammar/Typo Underline Trigger (Debounced)
+  useEffect(() => {
+    if (!replyMessage || replyMessage.length < 10) {
+      setGrammarErrors([]);
+      return;
+    }
+
+    const timeout = setTimeout(async () => {
+      setIsCheckingGrammar(true);
+      try {
+        const res = await fetch("/api/leads/check-grammar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: replyMessage })
+        });
+        const data = await res.json();
+        if (data.errors) {
+          setGrammarErrors(data.errors);
+        }
+      } catch (err) {
+        console.error("Grammar check failed:", err);
+      } finally {
+        setIsCheckingGrammar(false);
+      }
+    }, 1500); // 1.5s debounce
+
+    return () => clearTimeout(timeout);
+  }, [replyMessage]);
 
   const handleAiReply = async () => {
     setIsGenerating(true);
@@ -1128,10 +1163,10 @@ export default function InboxPage() {
                     <Sheet open={showDetails} onOpenChange={setShowDetails}>
                       <SheetTrigger asChild>
                         <Badge
-                          className="bg-emerald-500/10 text-emerald-500 border-none font-bold text-[10px] hidden xl:block px-3 py-1 uppercase tracking-tighter cursor-pointer hover:bg-emerald-500/20 transition-colors"
+                          className="bg-gradient-to-r from-yellow-500 to-amber-600 text-white border-none font-bold text-[10px] hidden xl:block px-3 py-1 uppercase tracking-tighter cursor-pointer hover:shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all animate-pulse"
                           onClick={() => setShowDetails(true)}
                         >
-                          {activeLead?.score || 0}% Engagement Score
+                          {activeLead?.score || 0}% Engagement Insight
                         </Badge>
                       </SheetTrigger>
                       <SheetContent
@@ -1503,9 +1538,8 @@ export default function InboxPage() {
                 ) : (
                   <div className="p-4 md:p-6 border-t bg-background shrink-0 shadow-[0_-4px_15px_-3px_rgba(0,0,0,0.05)] sticky bottom-0 z-20 w-full mb-[env(safe-area-inset-bottom)]">
                     <div className="flex gap-2 md:gap-3 items-end max-w-5xl mx-auto w-full">
-                      <div className="flex-1 relative group">
-                        <textarea
-                          ref={textareaRef}
+                      <div className="flex-1 relative group bg-white/50 dark:bg-black/20 rounded-2xl border border-border/40 focus-within:border-amber-500/50 focus-within:ring-4 focus-within:ring-amber-500/10 transition-all">
+                        <Textarea
                           value={replyMessage}
                           onChange={e => {
                             const newText = e.target.value;
@@ -1544,7 +1578,7 @@ export default function InboxPage() {
                             size="icon"
                             variant="ghost"
                             onClick={handleMagicPencil}
-                            disabled={isPolishing || !replyMessage.trim()}
+                            disabled={!replyMessage || isPolishing}
                             className={cn(
                               "h-8 w-8 rounded-lg transition-all",
                               isPolishing ? "animate-pulse bg-primary/10" : "hover:bg-primary/10 text-primary"
@@ -1557,10 +1591,10 @@ export default function InboxPage() {
                             size="icon"
                             onClick={handleAiReply}
                             disabled={isGenerating}
-                            className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-purple-600 text-white shadow-lg hover:shadow-primary/25 hover:scale-105 transition-all"
+                            className="h-10 w-10 rounded-2xl bg-gradient-to-br from-[#FFD700] via-[#FDB931] to-[#D4AF37] text-black shadow-xl shadow-amber-500/30 hover:shadow-amber-500/50 hover:scale-110 active:scale-90 transition-all border border-amber-400/50 group/ai"
                             title="Generate AI Reply"
                           >
-                            {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 fill-white/20" />}
+                            {isGenerating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5 fill-black/20 group-hover/ai:animate-spin-slow" />}
                           </Button>
                         </div>
                       </div>

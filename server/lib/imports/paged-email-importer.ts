@@ -501,6 +501,12 @@ async function processEmailForLead(
         } else {
           console.log(`[EMAIL_IMPORT] Auto-reply SKIPPED for ${lead.email}. Reasons: Paused=${lead.aiPaused}, RecentOutbound=${hoursSinceLastOutbound < 2}, Status=${lead.status}, IsRecent=${isRecent}`);
         }
+
+        // [PIPELINE ENHANCEMENT] Run deal evaluation in background to update Revenue KPIs
+        const { evaluateLeadDealValue } = await import('../ai/deal-evaluator.js');
+        evaluateLeadDealValue(userId, lead.id).catch(err => 
+          console.error(`[EMAIL_IMPORT] Background deal evaluation failed for lead ${lead.id}:`, err)
+        );
       } catch (autoReplyError) {
         console.warn('Auto-reply scheduling failed (non-critical):', autoReplyError);
       }

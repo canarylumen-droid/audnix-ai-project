@@ -207,6 +207,11 @@
   --destructive: 0 84% 60%;
   --destructive-foreground: 210 20% 98%;
 
+  /* Premium Gold Theme */
+  --gold: 45 100% 50%;
+  --gold-foreground: 45 100% 10%;
+  --gold-glow: 45 100% 50% / 0.3;
+
   --input: 217 33% 18%;
   --ring: 191 100% 50%;
   --chart-1: 191 100% 50%;

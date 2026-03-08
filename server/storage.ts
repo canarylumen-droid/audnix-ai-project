@@ -699,6 +699,15 @@ export class MemStorage implements IStorage {
       const lead = this.leads.get(id);
       if (lead && lead.userId === userId) {
         this.leads.set(id, { ...lead, archived, updatedAt: new Date() });
+
+        // Trigger IMAP Sync if channel is email
+        if (lead.channel === 'email') {
+          import('./lib/email/imap-idle-manager.js').then(({ imapIdleManager }) => {
+            imapIdleManager.syncRemoteAction(userId, id, archived ? 'archive' : 'unarchive').catch(err =>
+              console.error(`[Storage] Failed to sync archive action for lead ${id}:`, err)
+            );
+          });
+        }
       }
     }
   }
@@ -707,6 +716,14 @@ export class MemStorage implements IStorage {
     for (const id of ids) {
       const lead = this.leads.get(id);
       if (lead && lead.userId === userId) {
+        // Trigger IMAP Sync if channel is email BEFORE deleting
+        if (lead.channel === 'email') {
+          import('./lib/email/imap-idle-manager.js').then(({ imapIdleManager }) => {
+            imapIdleManager.syncRemoteAction(userId, id, 'delete').catch(err =>
+              console.error(`[Storage] Failed to sync delete action for lead ${id}:`, err)
+            );
+          });
+        }
         this.leads.delete(id);
       }
     }

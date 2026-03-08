@@ -21,10 +21,12 @@ export async function evaluateLeadDealValue(userId: string, leadId: string): Pro
     ).join('\n');
 
     // Retrieve brand knowledge to check for default pricing
-    const brandKnowledge = await storage.getBrandKnowledge(userId);
+    const user = await storage.getUserById(userId);
+    const brandKnowledge = user?.brandGuidelinePdfText || await storage.getBrandKnowledge(userId);
+    const brandMetadata = user?.metadata?.extracted_brand || {};
     
     // We want the AI to return just a number, representing the final estimated deal value in USD
-    const systemPrompt = `You are an expert revenue intelligence analyst specializing in extracting finalized commercial deal values from negotiation conversations.
+    const systemPrompt = `You are an elite revenue intelligence analyst specializing in extracting finalized commercial deal values from negotiation conversations.
 
 Your task is to analyze a conversation transcript and determine the FINAL agreed or most likely deal value in USD.
 
@@ -32,26 +34,34 @@ Follow these strict rules:
 
 1. Identify explicit monetary amounts mentioned in the conversation.
 2. If multiple values appear, prioritize the FINAL agreed amount or the latest confirmed offer.
-3. If the deal is discussed in a currency other than USD, convert it logically to USD if the value is clearly stated.
-4. If a price range is mentioned, select the value that appears most likely to be accepted based on negotiation context.
-5. If no explicit agreement exists but the conversation strongly implies a likely price, infer the most probable value.
-- The value must be a number (no strings, no symbols, no currency signs).
-
-Example Output:
-{"dealValue": 1500}
+3. Use the Brand Context and Brand Metadata below to understand standard pricing if the conversation is ambiguous but mentions specific products/packages.
+4. If the deal is discussed in a currency other than USD, convert it logically to USD.
+5. If a price range is mentioned, select the value that appears most likely to be accepted based on negotiation intent (interest level, urgency).
+6. If no explicit agreement exists, infer the most probable value based on the Brand's standard offers.
+- The output MUST be valid JSON.
 
 Brand Context:
-${brandKnowledge ? brandKnowledge.substring(0, 1000) : 'None'}
+${brandKnowledge ? brandKnowledge.substring(0, 2000) : 'None'}
+
+Brand Metadata:
+${JSON.stringify(brandMetadata, null, 2)}
 `;
 
 const userPrompt = `Analyze the following negotiation conversation and determine the final deal value.
 
+Lead Name: ${lead.name}
+Lead Company: ${lead.company || 'Unknown'}
+
 Conversation Transcript:
 ${transcript}
 
-Return only the JSON output.`;
+Return only the JSON output: {"dealValue": number, "currency": "USD", "reasoning": "...", "confidence": 0-1}`;
 
-    const aiRes = await generateReply(systemPrompt, userPrompt, { jsonMode: true, temperature: 0.1 });
+    const aiRes = await generateReply(systemPrompt, userPrompt, { 
+      jsonMode: true, 
+      temperature: 0.1,
+      model: "sales-reasoning" // Use high-reasoning model for pipeline analysis
+    });
     if (!aiRes || !aiRes.text) return 0;
 
     const parsed = JSON.parse(aiRes.text);
