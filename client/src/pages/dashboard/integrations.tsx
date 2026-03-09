@@ -256,7 +256,7 @@ export default function IntegrationsPage() {
   }, [customEmailStatus?.connected, customEmailStatus?.email, stats?.domainHealth]);
 
   const integrations = integrationsData?.integrations ?? [];
-  const isCustomEmailConnected = customEmailStatus?.connected || false;
+  const isCustomEmailConnected = (customEmailStatus?.integrations?.length || 0) > 0;
 
   const verifyDomainMutation = useMutation({
     mutationFn: async (domain: string) => {
@@ -410,8 +410,9 @@ export default function IntegrationsPage() {
   };
 
   const getMailboxLimit = () => {
-    const tier = (userData as any)?.user?.subscriptionTier || 'trial';
-    return (getPlanCapabilities(tier) as any).mailboxLimit || 3;
+    const tier = userData?.user?.subscriptionTier?.toLowerCase() || 'starter';
+    const capabilities = getPlanCapabilities(tier);
+    return capabilities.mailboxLimit || 1;
   };
 
   const connectedMailboxesCount = (customEmailStatus?.integrations?.length || 0) +
@@ -539,9 +540,192 @@ export default function IntegrationsPage() {
 
             <Card className={cn(
               "rounded-3xl border-border/50 overflow-hidden transition-all duration-500",
-              isCustomEmailConnected ? "bg-card shadow-2xl shadow-primary/5 border-primary/20" : "bg-muted/20"
+              isCustomEmailConnected || isEditingCustomEmail ? "bg-card shadow-2xl shadow-primary/5 border-primary/20" : "bg-muted/20"
             )}>
-              {isCustomEmailConnected && !isEditingCustomEmail ? (
+              {isEditingCustomEmail ? (
+                <div className="p-8 space-y-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setIsEditingCustomEmail(false)}
+                      className="rounded-full text-xs font-bold gap-2 hover:bg-primary/5"
+                    >
+                      <ArrowRight className="h-4 w-4 rotate-180" /> Back to Mailboxes
+                    </Button>
+                    {isAtMailboxLimit && (
+                       <Badge variant="outline" className="rounded-full text-[10px] text-amber-500 border-amber-500/20 bg-amber-500/5 px-3 py-1">
+                        <AlertCircle className="h-3 w-3 mr-1" /> Plan Limit Reached
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                    <div className="space-y-1">
+                      <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">
+                        Add New Mailbox
+                      </h3>
+                      <p className="text-xs text-muted-foreground">Professional outreach requires a custom SMTP & IMAP connection.</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                       <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 rounded-full text-[10px] font-bold gap-1.5 border-primary/20 bg-primary/5 text-primary hover:bg-primary/10"
+                              onClick={() => setCustomEmailConfig({
+                                ...customEmailConfig,
+                                smtpHost: 'smtp.gmail.com',
+                                smtpPort: '465',
+                                imapHost: 'imap.gmail.com',
+                                imapPort: '993'
+                              })}
+                            >
+                              <SiGoogle className="h-3 w-3" /> Gmail Personal
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-xs">Pre-fill for personal @gmail.com (Use App Password)</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 rounded-full text-[10px] font-bold gap-1.5 border-blue-500/20 bg-blue-500/5 text-blue-500 hover:bg-blue-500/10"
+                              onClick={() => setCustomEmailConfig({
+                                ...customEmailConfig,
+                                smtpHost: 'smtp.office365.com',
+                                smtpPort: '587',
+                                imapHost: 'imap-mail.outlook.com',
+                                imapPort: '993'
+                              })}
+                            >
+                              <Mail className="h-3 w-3" /> Outlook Personal
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-xs">Quick-fill settings for personal @outlook.com accounts</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-1.5 md:col-span-2">
+                      <Label className="text-xs font-semibold text-muted-foreground ml-1">Account Email</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="your@email.com"
+                          value={customEmailConfig.email}
+                          onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, email: e.target.value })}
+                          className="rounded-xl border-border/50 focus:ring-primary/20"
+                        />
+                        <Button
+                          variant="outline"
+                          className="rounded-xl px-4 text-xs font-bold gap-2"
+                          onClick={() => discoverSettingsMutation.mutate(customEmailConfig.email)}
+                          disabled={!customEmailConfig.email.includes('@') || discoverSettingsMutation.isPending}
+                        >
+                          {discoverSettingsMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                          Auto-Discover
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5 md:col-span-2">
+                      <Label className="text-xs font-semibold text-muted-foreground ml-1">From Name (Displayed to recipients)</Label>
+                      <Input
+                        placeholder="John Doe"
+                        value={customEmailConfig.fromName}
+                        onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, fromName: e.target.value })}
+                        className="rounded-xl border-border/50 focus:ring-primary/20"
+                      />
+                    </div>
+                    
+                    {[
+                      { label: "SMTP Host", key: "smtpHost", placeholder: "e.g. smtp.gmail.com" },
+                      { label: "SMTP Port", key: "smtpPort", placeholder: "587" },
+                      { label: "App Password", key: "password", placeholder: "Minimum 16 characters", type: "password" },
+                      { label: "IMAP Host (Optional)", key: "imapHost", placeholder: "e.g. imap.gmail.com" },
+                      { label: "IMAP Port", key: "imapPort", placeholder: "993" }
+                    ].map((field) => (
+                      <div key={field.key} className="space-y-1.5">
+                        <Label className="text-xs font-semibold text-muted-foreground ml-1 flex items-center gap-1.5">
+                          {field.label}
+                          {field.key === 'password' && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <AlertCircle className="h-3 w-3 text-primary animate-pulse cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-[280px] p-4 space-y-3 bg-indigo-950/90 border-primary/20 backdrop-blur-xl">
+                                  <div className="space-y-1">
+                                    <p className="font-black text-[10px] uppercase tracking-widest text-primary flex items-center gap-2">
+                                      <Sparkles className="h-3 w-3" /> Gmail / Outlook Guide
+                                    </p>
+                                    <p className="text-xs leading-relaxed text-foreground/90 italic">Manual connection for personal accounts requires a 16-character <strong>App Password</strong>.</p>
+                                  </div>
+                                  <div className="space-y-2 py-1">
+                                    <div className="flex items-start gap-2">
+                                      <div className="h-4 w-4 rounded-full bg-primary/20 flex items-center justify-center text-[8px] font-bold text-primary mt-0.5 shrink-0">1</div>
+                                      <p className="text-[10px] text-muted-foreground">Enable <strong>IMAP Access</strong> in your email Forwarding/IMAP settings.</p>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                      <div className="h-4 w-4 rounded-full bg-primary/20 flex items-center justify-center text-[8px] font-bold text-primary mt-0.5 shrink-0">2</div>
+                                      <p className="text-[10px] text-muted-foreground">Enable <strong>2-Step Verification</strong> in Security settings.</p>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                      <div className="h-4 w-4 rounded-full bg-primary/20 flex items-center justify-center text-[8px] font-bold text-primary mt-0.5 shrink-0">3</div>
+                                      <p className="text-[10px] text-muted-foreground">Search for <strong>"App Passwords"</strong> and generate a code.</p>
+                                    </div>
+                                  </div>
+                                  <div className="pt-2 border-t border-white/5 space-y-2">
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-orange-500/60">Getting Connection Error?</p>
+                                    <p className="text-[10px] text-muted-foreground leading-snug">Ensure <strong>IMAP</strong> is set to "Enabled" in your email provider. Your regular password will not work.</p>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    className="p-0 h-auto text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/80 hover:bg-transparent"
+                                    onClick={() => window.open('https://myaccount.google.com/apppasswords', '_blank')}
+                                  >
+                                    Open Google Settings <ArrowRight className="ml-1 h-3 w-3" />
+                                  </Button>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </Label>
+                        <Input
+                          type={field.type || "text"}
+                          placeholder={field.placeholder}
+                          value={(customEmailConfig as any)[field.key]}
+                          onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, [field.key]: e.target.value })}
+                          className="rounded-xl border-border/50 focus:ring-primary/20"
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-4 pt-4">
+                    <Button
+                      className="rounded-xl px-8 font-semibold h-11 flex-1"
+                      disabled={connectCustomEmailMutation.isPending}
+                      onClick={() => connectCustomEmailMutation.mutate(customEmailConfig)}
+                    >
+                      {connectCustomEmailMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Add Mailbox
+                    </Button>
+                    <Button variant="outline" className="rounded-xl px-8 font-semibold h-11" onClick={() => setIsEditingCustomEmail(false)}>Cancel</Button>
+                  </div>
+                </div>
+              ) : isCustomEmailConnected ? (
                 <div className="p-8 space-y-8">
                   <div className="flex items-center justify-between pb-4 border-b border-border/50">
                     <div className="space-y-1">
@@ -565,16 +749,16 @@ export default function IntegrationsPage() {
                           </Button>
                         </Link>
                       )}
-                      {(!isAtMailboxLimit || userData?.user?.subscriptionTier === 'enterprise') && (
-                        <Button
-                          size="sm"
-                          className="rounded-full gap-2 shadow-lg shadow-primary/20"
-                          onClick={() => setIsEditingCustomEmail(true)}
-                          disabled={userData?.user?.subscriptionTier === 'enterprise' && connectedMailboxesCount >= 10}
-                        >
-                          <Plus className="h-4 w-4" /> Add Mailbox
-                        </Button>
-                      )}
+                      
+                      <Button
+                        size="sm"
+                        className="rounded-full gap-2 shadow-lg shadow-primary/20"
+                        onClick={() => setIsEditingCustomEmail(true)}
+                        variant={isAtMailboxLimit ? "outline" : "default"}
+                      >
+                        <Plus className="h-4 w-4" /> Add Mailbox
+                      </Button>
+
                       {userData?.user?.subscriptionTier === 'enterprise' && connectedMailboxesCount >= 10 && (
                         <Badge variant="outline" className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-500 border-emerald-500/20 bg-emerald-500/5">
                           Full Capacity
@@ -737,195 +921,24 @@ export default function IntegrationsPage() {
                     </div>
                   </div>
                 </div>
-              ) : (!isCustomEmailConnected || isEditingCustomEmail) && (
-                <div className="p-8 space-y-6">
-                  {isAtMailboxLimit && !isEditingCustomEmail ? (
-                    <div className="flex flex-col items-center text-center py-12 space-y-6">
-                      <div className="h-20 w-20 rounded-[2rem] bg-amber-500/5 flex items-center justify-center border border-amber-500/10 mb-2">
-                        <AlertCircle className="h-10 w-10 text-amber-500" />
-                      </div>
-                      <div className="space-y-2 max-w-sm">
-                        <h3 className="text-xl font-black tracking-tight">Plan Limit Reached</h3>
-                        <p className="text-sm font-medium text-muted-foreground leading-relaxed px-4">
-                          Your {(userData as any)?.user?.subscriptionTier || 'Starter'} plan supports up to {getMailboxLimit()} mailbox{getMailboxLimit() > 1 ? 'es' : ''}.
-                          Disconnect an existing account to add another.
-                        </p>
-                      </div>
-                      {getNextPlan() && (
-                        <Link href="/dashboard/billing">
-                          <Button className="rounded-2xl gap-2 h-12 px-8 bg-primary hover:bg-primary/90 text-primary-foreground font-black uppercase tracking-widest shadow-xl shadow-primary/20">
-                            <Zap className="h-4 w-4 fill-primary-foreground" /> Upgrade to {getNextPlan()}
-                          </Button>
-                        </Link>
-                      )}
+              ) : (
+                <div className="p-12">
+                   <div className="flex flex-col items-center text-center space-y-6">
+                    <div className="h-24 w-24 rounded-[2.5rem] bg-primary/5 flex items-center justify-center border border-primary/10 relative shadow-inner group">
+                      <div className="absolute inset-0 bg-primary/5 blur-xl group-hover:bg-primary/10 transition-all rounded-full" />
+                      <Mail className="h-10 w-10 text-primary relative z-10" />
                     </div>
-                  ) : (
-                    <>
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                        <div className="space-y-1">
-                          <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">
-                            {isEditingCustomEmail ? 'Add New Mailbox' : 'Connect Your Domain'}
-                          </h3>
-                          <p className="text-xs text-muted-foreground">Professional outreach requires a custom SMTP & IMAP connection.</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-8 rounded-full text-[10px] font-bold gap-1.5 border-primary/20 bg-primary/5 text-primary hover:bg-primary/10"
-                                  onClick={() => setCustomEmailConfig({
-                                    ...customEmailConfig,
-                                    smtpHost: 'smtp.gmail.com',
-                                    smtpPort: '465',
-                                    imapHost: 'imap.gmail.com',
-                                    imapPort: '993'
-                                  })}
-                                >
-                                  <SiGoogle className="h-3 w-3" /> Gmail Personal
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="text-xs">Pre-fill for personal @gmail.com (Use App Password)</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-8 rounded-full text-[10px] font-bold gap-1.5 border-blue-500/20 bg-blue-500/5 text-blue-500 hover:bg-blue-500/10"
-                                  onClick={() => setCustomEmailConfig({
-                                    ...customEmailConfig,
-                                    smtpHost: 'smtp.office365.com',
-                                    smtpPort: '587',
-                                    imapHost: 'imap-mail.outlook.com',
-                                    imapPort: '993'
-                                  })}
-                                >
-                                  <Mail className="h-3 w-3" /> Outlook Personal
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="text-xs">Quick-fill settings for personal @outlook.com accounts</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-1.5 md:col-span-2">
-                          <Label className="text-xs font-semibold text-muted-foreground ml-1">Account Email</Label>
-                          <div className="flex gap-2">
-                            <Input
-                              placeholder="your@email.com"
-                              value={customEmailConfig.email}
-                              onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, email: e.target.value })}
-                              className="rounded-xl border-border/50 focus:ring-primary/20"
-                            />
-                            <Button
-                              variant="outline"
-                              className="rounded-xl px-4 text-xs font-bold gap-2"
-                              onClick={() => discoverSettingsMutation.mutate(customEmailConfig.email)}
-                              disabled={!customEmailConfig.email.includes('@') || discoverSettingsMutation.isPending}
-                            >
-                              {discoverSettingsMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-                              Auto-Discover
-                            </Button>
-                          </div>
-                        </div>
-                        <div className="space-y-1.5 md:col-span-2">
-                          <Label className="text-xs font-semibold text-muted-foreground ml-1">From Name (Displayed to recipients)</Label>
-                          <Input
-                            placeholder="John Doe"
-                            value={customEmailConfig.fromName}
-                            onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, fromName: e.target.value })}
-                            className="rounded-xl border-border/50 focus:ring-primary/20"
-                          />
-                        </div>
-                        {[
-                          { label: "SMTP Host", key: "smtpHost", placeholder: "e.g. smtp.gmail.com" },
-                          { label: "SMTP Port", key: "smtpPort", placeholder: "587" },
-                          { label: "App Password", key: "password", placeholder: "Minimum 16 characters", type: "password" },
-                          { label: "IMAP Host (Optional)", key: "imapHost", placeholder: "e.g. imap.gmail.com" },
-                          { label: "IMAP Port", key: "imapPort", placeholder: "993" }
-                        ].map((field) => (
-                          <div key={field.key} className="space-y-1.5">
-                            <Label className="text-xs font-semibold text-muted-foreground ml-1 flex items-center gap-1.5">
-                              {field.label}
-                              {field.key === 'password' && (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <AlertCircle className="h-3 w-3 text-primary animate-pulse cursor-help" />
-                                    </TooltipTrigger>
-                                    <TooltipContent className="max-w-[280px] p-4 space-y-3 bg-indigo-950/90 border-primary/20 backdrop-blur-xl">
-                                      <div className="space-y-1">
-                                        <p className="font-black text-[10px] uppercase tracking-widest text-primary flex items-center gap-2">
-                                          <Sparkles className="h-3 w-3" /> Gmail / Outlook Guide
-                                        </p>
-                                        <p className="text-xs leading-relaxed text-foreground/90 italic">Manual connection for personal accounts requires a 16-character <strong>App Password</strong>.</p>
-                                      </div>
-                                      <div className="space-y-2 py-1">
-                                        <div className="flex items-start gap-2">
-                                          <div className="h-4 w-4 rounded-full bg-primary/20 flex items-center justify-center text-[8px] font-bold text-primary mt-0.5 shrink-0">1</div>
-                                          <p className="text-[10px] text-muted-foreground">Enable <strong>IMAP Access</strong> in your email Forwarding/IMAP settings.</p>
-                                        </div>
-                                        <div className="flex items-start gap-2">
-                                          <div className="h-4 w-4 rounded-full bg-primary/20 flex items-center justify-center text-[8px] font-bold text-primary mt-0.5 shrink-0">2</div>
-                                          <p className="text-[10px] text-muted-foreground">Enable <strong>2-Step Verification</strong> in Security settings.</p>
-                                        </div>
-                                        <div className="flex items-start gap-2">
-                                          <div className="h-4 w-4 rounded-full bg-primary/20 flex items-center justify-center text-[8px] font-bold text-primary mt-0.5 shrink-0">3</div>
-                                          <p className="text-[10px] text-muted-foreground">Search for <strong>"App Passwords"</strong> and generate a code.</p>
-                                        </div>
-                                      </div>
-                                      <div className="pt-2 border-t border-white/5 space-y-2">
-                                        <p className="text-[9px] font-black uppercase tracking-widest text-orange-500/60">Getting Connection Error?</p>
-                                        <p className="text-[10px] text-muted-foreground leading-snug">Ensure <strong>IMAP</strong> is set to "Enabled" in your email provider. Your regular password will not work.</p>
-                                      </div>
-                                      <Button
-                                        variant="ghost"
-                                        className="p-0 h-auto text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/80 hover:bg-transparent"
-                                        onClick={() => window.open('https://myaccount.google.com/apppasswords', '_blank')}
-                                      >
-                                        Open Google Settings <ArrowRight className="ml-1 h-3 w-3" />
-                                      </Button>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
-                            </Label>
-                            <Input
-                              type={field.type || "text"}
-                              placeholder={field.placeholder}
-                              value={(customEmailConfig as any)[field.key]}
-                              onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, [field.key]: e.target.value })}
-                              className="rounded-xl border-border/50 focus:ring-primary/20"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                      <div className="flex gap-4">
-                        <Button
-                          className="rounded-xl px-8 font-semibold h-11 flex-1"
-                          disabled={connectCustomEmailMutation.isPending}
-                          onClick={() => connectCustomEmailMutation.mutate(customEmailConfig)}
-                        >
-                          {connectCustomEmailMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          {isEditingCustomEmail ? 'Add Mailbox' : 'Connect Account'}
-                        </Button>
-                        {isEditingCustomEmail && (
-                          <Button variant="outline" className="rounded-xl px-8 font-semibold h-11" onClick={() => setIsEditingCustomEmail(false)}>Cancel</Button>
-                        )}
-                      </div>
-                    </>
-                  )}
+                    <div className="space-y-2 max-w-sm">
+                      <h3 className="text-2xl font-black tracking-tight">Connect Custom Domain</h3>
+                      <p className="text-sm font-medium text-muted-foreground leading-relaxed px-4">Professional outreach requires a custom SMTP & IMAP connection for high deliverability.</p>
+                    </div>
+                    <Button 
+                      className="rounded-2xl gap-2 h-12 px-8 bg-primary hover:bg-primary/90 text-primary-foreground font-black uppercase tracking-widest shadow-xl shadow-primary/20"
+                      onClick={() => setIsEditingCustomEmail(true)}
+                    >
+                      <Plus className="h-4 w-4" /> Start Connecting
+                    </Button>
+                  </div>
                 </div>
               )}
             </Card>

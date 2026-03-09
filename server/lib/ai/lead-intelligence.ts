@@ -10,28 +10,9 @@
  * - Competitor Mention Alerts
  */
 
-import OpenAI from "openai";
+import { generateReply } from "./ai-service.js";
 import { MODELS } from "./model-config.js";
 import type { ConversationMessage, LeadProfile, BrandContext } from "../../../shared/types.js";
-
-// Initialize Z-AI (GLM) if key is present, otherwise fallback to OpenAI
-const zai = process.env.Z_AI_API_KEY
-  ? new OpenAI({
-    apiKey: process.env.Z_AI_API_KEY,
-    baseURL: "https://open.bigmodel.cn/api/paas/v4"
-  })
-  : null;
-
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
-
-const aiClient = zai || openai;
-const isZAI = !!zai;
-
-if (!aiClient) {
-  console.warn('⚠️ AI API Key missing (Z-AI or OpenAI). Lead Intelligence will use basic scoring.');
-}
 
 export interface IntentDetectionResult {
   intentLevel: "high" | "medium" | "low" | "not_interested";
@@ -123,27 +104,9 @@ export async function detectLeadIntent(
     const company = lead.metadata?.company as string | undefined;
     const industry = lead.metadata?.industry as string | undefined;
 
-    if (!aiClient) {
-      // Fallback: Deterministic Intent Scoring for Local Mode
-      const inboundCount = messages.filter(m => m.direction === 'inbound').length;
-      const score = Math.min(100, inboundCount * 25);
-      return {
-        intentLevel: score >= 75 ? "high" : score >= 25 ? "medium" : "low",
-        intentScore: score,
-        buyerStage: score >= 75 ? "decision" : score >= 25 ? "consideration" : "awareness",
-        signals: inboundCount > 0 ? ["interaction_detected"] : ["no_engagement"],
-        reasoning: "Analysis based on historical interaction volume (Local Mode)"
-      };
-    }
-
-    const response = await aiClient.chat.completions.create({
-      model: isZAI ? MODELS.sales_reasoning : MODELS.sales_reasoning,
-      messages: [
-        {
-          role: "user",
-          content: `Analyze this sales conversation to detect buyer intent.
-
-CONVERSATION:
+    const response = await generateReply(
+      "Analyze this sales conversation to detect buyer intent.",
+      `CONVERSATION:
 ${conversationText}
 
 LEAD PROFILE:
@@ -164,13 +127,15 @@ Format as JSON:
   "signals": ["signal1", "signal2"],
   "reasoning": "why this intent level"
 }`,
-        },
-      ],
-      temperature: 0.3,
-      max_tokens: 400,
-    });
+      {
+        model: MODELS.sales_reasoning,
+        temperature: 0.3,
+        maxTokens: 400,
+        jsonMode: true
+      }
+    );
 
-    const messageContent = response.choices[0]?.message?.content;
+    const messageContent = response.text;
     if (!messageContent) {
       throw new Error("Empty response from OpenAI");
     }
@@ -216,19 +181,9 @@ export async function suggestSmartReply(
     const company = leadProfile.metadata?.company as string | undefined;
     const industry = leadProfile.metadata?.industry as string | undefined;
 
-    if (!openai) {
-      throw new Error("OpenAI not initialized");
-    }
-
-    const response = await openai.chat.completions.create({
-      model: MODELS.sales_reasoning,
-      messages: [
-        {
-          role: "user",
-          content: `You are a sales expert. Lead just said:
-
-"${lastMessageFromLead}"
-
+    const response = await generateReply(
+      "You are a sales expert.",
+      `Lead just said: "${lastMessageFromLead}"
 Lead: ${firstName} at ${company || "their company"} (${industry || "their industry"})
 Your Offer: ${brandContext.productInfo?.name || "Your solution"}
 
@@ -237,7 +192,7 @@ Generate 3 different reply options:
 2. Most consultative/questions
 3. Most ROI-focused
 
-Format as JSON:
+Format as JSON array of objects:
 [
   {
     "reply": "exact text to send",
@@ -247,15 +202,17 @@ Format as JSON:
 ]
 
 Keep replies under 100 words each.`,
-        },
-      ],
-      temperature: 0.7,
-      max_tokens: 600,
-    });
+      {
+        model: MODELS.sales_reasoning,
+        temperature: 0.7,
+        maxTokens: 600,
+        jsonMode: true
+      }
+    );
 
-    const messageContent = response.choices[0]?.message?.content;
+    const messageContent = response.text;
     if (!messageContent) {
-      throw new Error("Empty response from OpenAI");
+      throw new Error("Empty response from AI service");
     }
 
     const replies = JSON.parse(messageContent) as SmartReplyOption[];
@@ -279,18 +236,9 @@ export async function detectObjection(
   messageFromLead: string
 ): Promise<ObjectionDetectionResult> {
   try {
-    if (!openai) {
-      throw new Error("OpenAI not initialized");
-    }
-
-    const response = await openai.chat.completions.create({
-      model: MODELS.sales_reasoning,
-      messages: [
-        {
-          role: "user",
-          content: `Identify the objection in this message:
-
-"${messageFromLead}"
+    const response = await generateReply(
+      "You are an expert in sales objections.",
+      `Identify the objection in this message: "${messageFromLead}"
 
 Determine:
 1. Objection Type (what exactly are they objecting to?)
@@ -305,15 +253,17 @@ Format as JSON:
   "category": "price|timeline|already_using|not_convinced|other",
   "suggestedResponse": "how to overcome this"
 }`,
-        },
-      ],
-      temperature: 0.6,
-      max_tokens: 400,
-    });
+      {
+        model: MODELS.sales_reasoning,
+        temperature: 0.6,
+        maxTokens: 400,
+        jsonMode: true
+      }
+    );
 
-    const messageContent = response.choices[0]?.message?.content;
+    const messageContent = response.text;
     if (!messageContent) {
-      throw new Error(`Empty response from ${isZAI ? 'Z-AI' : 'OpenAI'}`);
+      throw new Error("Empty response from AI service");
     }
 
     const objection = JSON.parse(messageContent) as {

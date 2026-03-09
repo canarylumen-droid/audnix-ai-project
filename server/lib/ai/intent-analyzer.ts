@@ -1,4 +1,4 @@
-import OpenAI from 'openai';
+import { generateReply } from './ai-service.js';
 import { MODELS } from './model-config.js';
 import { storage } from '../../storage.js';
 import { type Message } from '../../../shared/schema.js';
@@ -39,14 +39,7 @@ interface AnalysisRecord {
   analysis: IntentAnalysis;
 }
 
-// Initialize OpenAI if key is present, otherwise use fallback
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
-
-if (!openai) {
-  console.warn('⚠️ OpenAI API Key missing. Intent analysis will use basic keywords.');
-}
+// AI initialization removed in favor of unified ai-service
 
 /**
  * Analyze lead message intent using GPT-4
@@ -72,7 +65,11 @@ export async function analyzeLeadIntent(
       }
 
       if (fullLead && fullLead.userId) {
-        brandKnowledgeCtx = await storage.getBrandKnowledge(fullLead.userId);
+        const user = await storage.getUserById(fullLead.userId);
+        brandKnowledgeCtx = [
+          user?.brandGuidelinePdfText,
+          await storage.getBrandKnowledge(fullLead.userId)
+        ].filter(Boolean).join('\n---\n') || '';
       }
     } catch (e) {
       console.error('Failed to fetch conversation context and brand knowledge for AI', e);
@@ -127,28 +124,18 @@ Negative signals:
 
 Return ONLY valid JSON, no explanation.`;
 
-    if (!openai) {
-      throw new Error("OpenAI not initialized");
-    }
+    const responseBody = await generateReply(
+      'You are an elite sales intent analyzer. Analyze messages and return raw JSON only.',
+      prompt,
+      {
+        model: MODELS.intent_classification,
+        jsonMode: true,
+        temperature: 0.1,
+        maxTokens: 500
+      }
+    );
 
-    const completion = await openai.chat.completions.create({
-      model: MODELS.intent_classification,
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an elite sales intent analyzer. Analyze messages and return raw JSON only.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.1,
-      max_completion_tokens: 500,
-      response_format: { type: 'json_object' }
-    });
-
-    const response = completion.choices[0].message?.content;
+    const response = responseBody.text;
     if (!response) {
       throw new Error('No response from OpenAI');
     }
@@ -323,17 +310,16 @@ Rules:
         Example: ["SaaS", "High Intent", "Decision Maker", "Q1 Timeline"]
     Return JSON: { "tags": ["string"] } `;
 
-    if (!openai) {
-      throw new Error("OpenAI not initialized");
-    }
+    const responseBody = await generateReply(
+      'You are an intelligent lead tagger.',
+      prompt,
+      {
+        model: MODELS.intent_classification,
+        jsonMode: true
+      }
+    );
 
-    const completion = await openai.chat.completions.create({
-      model: MODELS.intent_classification,
-      messages: [{ role: 'system', content: 'You are an intelligent lead tagger.' }, { role: 'user', content: prompt }],
-      response_format: { type: 'json_object' }
-    });
-
-    const result = JSON.parse(completion.choices[0].message?.content || '{"tags": []}');
+    const result = JSON.parse(responseBody.text || '{"tags": []}');
     const newTags = Array.from(new Set([...(lead.tags || []), ...(result.tags || [])]));
     return newTags.slice(0, 10); // Limit to 10 tags
   } catch (error) {

@@ -22,7 +22,10 @@ export async function evaluateLeadDealValue(userId: string, leadId: string): Pro
 
     // Retrieve brand knowledge to check for default pricing
     const user = await storage.getUserById(userId);
-    const brandKnowledge = user?.brandGuidelinePdfText || await storage.getBrandKnowledge(userId);
+    const brandKnowledge = [
+      user?.brandGuidelinePdfText,
+      await storage.getBrandKnowledge(userId)
+    ].filter(Boolean).join('\n---\n') || '';
     const brandMetadata = user?.metadata?.extracted_brand || {};
     
     // We want the AI to return just a number, representing the final estimated deal value in USD

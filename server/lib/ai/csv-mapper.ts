@@ -3,8 +3,8 @@
  * Automatically maps user CSV columns to the leads table schema using AI
  */
 
-import { GoogleGenAI } from "@google/genai";
-import OpenAI from "openai";
+import { generateReply } from "./ai-service.js";
+import { MODELS } from "./model-config.js";
 
 // Target schema for leads table
 export const LEADS_SCHEMA = {
@@ -38,14 +38,7 @@ export interface MappingResult {
     unmappedColumns: string[];
 }
 
-// Initialize AI clients
-const genAI = process.env.GEMINI_API_KEY
-    ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
-    : null;
-
-const openai = process.env.OPENAI_API_KEY
-    ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-    : null;
+// AI initialization removed in favor of unified ai-service
 
 /**
  * Use AI to map CSV headers to leads schema
@@ -97,37 +90,20 @@ Return ONLY a JSON object:
 IMPORTANT: The "mapping" keys must be exactly from our TARGET SCHEMA. Values must be EXACT headers from the USER CSV.`;
 
     try {
-        // Try Gemini first
-        if (genAI) {
-            const result = await genAI.models.generateContent({ model: "gemini-2.0-flash", contents: prompt });
-            const text = result.text || "";
-
-            // Extract JSON from response
-            const jsonMatch = text.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                const parsed = JSON.parse(jsonMatch[0]);
-                return normalizeMapping(parsed, headers);
-            }
-        }
-
-        // Fallback to OpenAI
-        if (openai) {
-            const completion = await openai.chat.completions.create({
-                model: "gpt-4o-mini",
-                messages: [
-                    { role: "system", content: "You are a data mapping expert. Return valid JSON only." },
-                    { role: "user", content: prompt }
-                ],
+        const response = await generateReply(
+            "You are a data mapping expert.",
+            prompt,
+            {
+                model: MODELS.intent_classification,
+                jsonMode: true,
                 temperature: 0.2,
-                max_tokens: 500,
-                response_format: { type: "json_object" }
-            });
-
-            const response = completion.choices[0].message.content;
-            if (response) {
-                const parsed = JSON.parse(response);
-                return normalizeMapping(parsed, headers);
+                maxTokens: 500
             }
+        );
+
+        if (response.text) {
+            const parsed = JSON.parse(response.text);
+            return normalizeMapping(parsed, headers);
         }
     } catch (error) {
         console.warn(`[CSV] AI mapping failed (${error instanceof Error ? error.message : 'Unknown error'}), using robust fallback`);

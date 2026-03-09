@@ -1,16 +1,9 @@
 import { Router, Request, Response } from "express";
 import { requireAuth } from "../middleware/auth.js";
-import OpenAI from "openai";
+import { generateReply } from "../lib/ai/ai-service.js";
+import { MODELS } from "../lib/ai/model-config.js";
 
 const router = Router();
-// Initialize OpenAI if key is present, otherwise use fallback
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
-
-if (!openai) {
-  console.warn('⚠️ OpenAI API Key missing. Sales suggestions will use fallback logic.');
-}
 
 interface LeadProfileInput {
   firstName: string;
@@ -100,18 +93,17 @@ OPTION C (Most ROI-Focused - Best for Decision Makers):
 
 For each, include 2-line reasoning why it works.`;
 
-    if (!openai) {
-      throw new Error("OpenAI not initialized");
-    }
+    const response = await generateReply(
+      "You are a world-class sales closer. Generate the BEST sales-ready message RIGHT NOW.",
+      prompt,
+      {
+        model: MODELS.sales_reasoning,
+        temperature: 0.8,
+        maxTokens: 800
+      }
+    );
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.8,
-      max_tokens: 800,
-    });
-
-    const suggestions = response.choices[0].message.content || "";
+    const suggestions = response.text || "";
 
     res.json({
       success: true,
@@ -154,18 +146,17 @@ Requirements:
 
 Response:`;
 
-    if (!openai) {
-      throw new Error("OpenAI not initialized");
-    }
+    const response = await generateReply(
+      "You are a world-class sales closer.",
+      prompt,
+      {
+        model: MODELS.sales_reasoning,
+        temperature: 0.7,
+        maxTokens: 100
+      }
+    );
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.7,
-      max_tokens: 100,
-    });
-
-    const instantReply = response.choices[0].message.content || "";
+    const instantReply = response.text || "";
 
     res.json({
       success: true,

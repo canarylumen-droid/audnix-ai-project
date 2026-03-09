@@ -1,22 +1,12 @@
 import { storage } from '../storage.js';
 import { scheduleInitialFollowUp } from './ai/follow-up-worker.js';
-import OpenAI from 'openai';
+import { generateReply } from './ai/ai-service.js';
 import { MODELS } from './ai/model-config.js';
 import { EmailVerifier } from './scraping/email-verifier.js';
 import type { PDFProcessingResult } from '../../shared/types.js';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const pdf = require('pdf-parse');
-
-const openaiKey = process.env.OPENAI_API_KEY;
-const openai = openaiKey ? new OpenAI({
-  apiKey: openaiKey,
-}) : null;
-
-if (!openaiKey) {
-  console.error('❌ CRITICAL: OPENAI_API_KEY not set');
-  console.error('📋 PDF analysis and AI features will be disabled');
-}
 
 /**
  * Process PDF file and extract lead information + offer details with AI
@@ -115,10 +105,12 @@ export async function processPDF(
             // Neural Recovery Path (Optional for PDF leads, but let's be consistent)
             if (leadData.company || leadData.name) {
               try {
-                const { GoogleGenAI } = await import("@google/genai");
-                const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
                 const recoveryPrompt = `BUSINESS: ${leadData.company || leadData.name}\nEMAIL: ${leadData.email}\nDeliverability failed. Is there a more likely valid business email or domain for this business? Return ONLY the corrected email string or "NONE".`;
-                const recoveryResult = await genAI.models.generateContent({ model: "gemini-2.0-flash", contents: recoveryPrompt });
+                const recoveryResult = await generateReply(
+                  "You are a lead recovery specialist.",
+                  recoveryPrompt,
+                  { model: "gemini-2.0-flash", temperature: 0.1 }
+                );
                 const correctedEmail = (recoveryResult.text || "").trim();
 
                 if (correctedEmail !== 'NONE' && correctedEmail !== leadData.email && correctedEmail.includes('@')) {
@@ -301,40 +293,24 @@ async function extractOfferAndBrandWithAI(text: string, userId: string): Promise
   }
 
   try {
-    if (!openai) {
-      throw new Error("OpenAI not initialized");
-    }
-    const response = await openai.chat.completions.create({
-      model: MODELS.lead_intelligence,
-      messages: [{
-        role: 'system',
-        content: `You are an elite brand and product analyst. Extract exhaustive product/service and brand identity data from this document. 
+    const response = await generateReply(
+      `You are an elite brand and product analyst. Extract exhaustive product/service and brand identity data from this document. 
 
 Return JSON with two primary objects:
 
 1. "offer": Extract product name, comprehensive description, pricing models, all features mentioned, key benefits, call-to-action text, support/contact emails, and any website/product links.
 2. "brand": Extract ALL brand colors (prioritize hex codes, then RGB, then names), company name (be precise, check headers/footers), tagline, website URL, and visual identity description.
 
-For company name, look for:
-- "Company Name: [Name]"
-- "Business: [Name]"
-- Headers, copyright notices, or logo alt-text patterns.
+Return valid JSON with these fields. Be thorough - missing data reduces sales accuracy.`,
+      text.substring(0, 12000),
+      {
+        model: MODELS.lead_intelligence,
+        jsonMode: true,
+        maxTokens: 1200
+      }
+    );
 
-For colors, scan the text for:
-- Hex patterns like #FFFFFF or #FFF.
-- RGB/RGBA strings.
-- Explicit mentions like "Our primary color is..." or "Brand palette: ...".
-
-Return valid JSON with these fields. Be thorough - missing data reduces sales accuracy.`
-      }, {
-        role: 'user',
-        content: text.substring(0, 12000)
-      }],
-      response_format: { type: 'json_object' },
-      max_completion_tokens: 1200
-    });
-
-    const result = JSON.parse(response.choices[0].message.content || '{}');
+    const result = JSON.parse(response.text || '{}');
     console.log('✅ Brand analysis complete via OpenAI');
 
     // Merge AI-extracted colors with regex-extracted colors for maximum coverage
@@ -496,14 +472,8 @@ async function extractLeadsWithAI(text: string): Promise<Array<{
   }
 
   try {
-    if (!openai) {
-      throw new Error("OpenAI not initialized");
-    }
-    const response = await openai.chat.completions.create({
-      model: MODELS.lead_intelligence,
-      messages: [{
-        role: 'system',
-        content: `You are a world-class lead data extraction engine. Your task is to identify and extract every single lead and contact point from the source text.
+    const response = await generateReply(
+      `You are a world-class lead data extraction engine. Your task is to identify and extract every single lead and contact point from the source text.
 
 RULES:
 1. "name": Extract full human names. If only a username is found, use it.
@@ -513,24 +483,19 @@ RULES:
 5. "phone": Extract phone numbers, cleaning them of non-numeric chars but preserving '+' if present.
 6. "channel": Determine if the lead is best contacted via "email" or "instagram".
 
-PRECISION GUIDELINES:
-- Look for "To:", "Attn:", "From:", "CEO:", or signatures.
-- Avoid mixing up company names with human names.
-- If multiple contacts exist for one company, create separate lead entries.
-
 Return a JSON object with a "leads" array. 
 Example Output: { "leads": [{ "name": "...", "role": "...", "email": "...", "company": "...", "phone": "...", "channel": "..." }] }
 
-Be aggressive - if it looks like a lead, include it.`
-      }, {
-        role: 'user',
-        content: text.substring(0, 10000)
-      }],
-      response_format: { type: 'json_object' },
-      max_completion_tokens: 1000
-    });
+Be aggressive - if it looks like a lead, include it.`,
+      text.substring(0, 10000),
+      {
+        model: MODELS.lead_intelligence,
+        jsonMode: true,
+        maxTokens: 1000
+      }
+    );
 
-    const result = JSON.parse(response.choices[0].message.content || '{}');
+    const result = JSON.parse(response.text || '{}');
     return result.leads || [];
   } catch (error) {
     console.error('AI lead extraction failed:', error);

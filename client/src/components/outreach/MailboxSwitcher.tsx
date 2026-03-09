@@ -71,7 +71,7 @@ export function MailboxSwitcher({ className, value, onValueChange }: MailboxSwit
                             <Mail className="h-3.5 w-3.5 text-primary shrink-0" />
                         </div>
                         <SelectValue>
-                            {selectedMailbox?.email || (selectedMailbox?.provider === 'custom_email' ? 'Custom Email' : selectedMailbox?.provider) || "Switch Mailbox"}
+                            {selectedMailbox?.accountType || selectedMailbox?.email || (selectedMailbox?.provider === 'custom_email' ? 'Custom Email' : selectedMailbox?.provider) || "Switch Mailbox"}
                         </SelectValue>
                     </div>
                 </SelectTrigger>
@@ -90,7 +90,7 @@ export function MailboxSwitcher({ className, value, onValueChange }: MailboxSwit
                                         mailbox.connected ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" : "bg-muted"
                                     )} />
                                     <span className="truncate text-foreground/90 font-black">
-                                        {mailbox.email || (mailbox.provider === 'custom_email' ? 'Custom Email' : mailbox.provider)}
+                                        {mailbox.accountType || mailbox.email || (mailbox.provider === 'custom_email' ? 'Custom Email' : mailbox.provider)}
                                     </span>
                                 </div>
                                 {mailbox.id === currentMailboxId && (

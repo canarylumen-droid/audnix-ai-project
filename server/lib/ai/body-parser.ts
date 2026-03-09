@@ -1,7 +1,5 @@
-import { GoogleGenAI } from "@google/genai";
-import { GENAI_STABLE_MODEL } from "./model-config.js";
-
-const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+import { generateReply } from "./ai-service.js";
+import { MODELS } from "./model-config.js";
 
 export interface ParsedEmailBody {
     name: string;
@@ -37,8 +35,15 @@ export async function parseEmailBody(body: string): Promise<ParsedEmailBody> {
   `;
 
     try {
-        const result = await genAI.models.generateContent({ model: GENAI_STABLE_MODEL, contents: prompt });
-        const text = result.text || "";
+        const response = await generateReply(
+            "You are a structured data extractor.",
+            prompt,
+            {
+                model: MODELS.lead_intelligence,
+                jsonMode: true
+            }
+        );
+        const text = response.text || "";
 
         // Clean up response text to ensure it's valid JSON
         const jsonMatch = text.match(/\{[\s\S]*\}/);

@@ -1,12 +1,9 @@
-import { GoogleGenAI } from "@google/genai";
+import { generateReply } from "../ai/ai-service.js";
+import { MODELS } from "../ai/model-config.js";
 import { getCalendlySlots, createCalendlyEvent } from "./calendly.js";
 import { db } from "../../db.js";
 import { calendarSettings, integrations } from "../../../shared/schema.js";
 import { eq } from "drizzle-orm";
-
-import { GENAI_STABLE_MODEL } from "../ai/model-config.js";
-
-const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 export class BookingProposer {
     private userId: string;
@@ -52,8 +49,15 @@ export class BookingProposer {
                 }
             `;
 
-            const result = await genAI.models.generateContent({ model: GENAI_STABLE_MODEL, contents: prompt });
-            const extraction = JSON.parse((result.text || "").replace(/```json|```/g, "").trim());
+            const result = await generateReply(
+                "You are a calendar assistant.",
+                prompt,
+                {
+                    model: MODELS.sales_reasoning,
+                    jsonMode: true
+                }
+            );
+            const extraction = JSON.parse((result.text || "{}").trim());
 
             if (extraction.confidence < 0.5) {
                 return { suggestedSlots: [], parsedIntent: extraction.parsedIntent, needsClarification: true };
@@ -79,8 +83,15 @@ export class BookingProposer {
                 }
             `;
 
-            const matchResult = await genAI.models.generateContent({ model: GENAI_STABLE_MODEL, contents: matchingPrompt });
-            const matches = JSON.parse((matchResult.text || "").replace(/```json|```/g, "").trim());
+            const matchResult = await generateReply(
+                "You are a calendar matching assistant.",
+                matchingPrompt,
+                {
+                    model: MODELS.sales_reasoning,
+                    jsonMode: true
+                }
+            );
+            const matches = JSON.parse((matchResult.text || "{}").trim());
 
             return {
                 suggestedSlots: matches.matches,

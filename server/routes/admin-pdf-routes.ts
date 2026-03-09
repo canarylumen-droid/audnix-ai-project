@@ -4,7 +4,8 @@ import multer from "multer";
 import { storage } from "../storage.js";
 import { db } from "../db.js";
 import { sql } from "drizzle-orm";
-import OpenAI from "openai";
+import { generateReply } from "../lib/ai/ai-service.js";
+import { MODELS } from "../lib/ai/model-config.js";
 import crypto from "crypto";
 import { detectUVP } from "../lib/ai/universal-sales-agent.js";
 import { createRequire } from 'module';
@@ -52,14 +53,7 @@ interface CachedPdfData {
   created_at: Date;
 }
 
-// Initialize OpenAI if key is present, otherwise use fallback
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
-
-if (!openai) {
-  console.warn('⚠️ OpenAI API Key missing. PDF analysis will use fallback logic.');
-}
+// AI initialization removed in favor of unified ai-service
 
 interface BrandExtraction {
   companyName?: string;
@@ -246,7 +240,11 @@ router.post(
           const updatedMetadata = deepMerge(existingMetadata, brandMetadata);
 
           await storage.updateUser(userId, {
-            metadata: updatedMetadata,
+            metadata: {
+              ...updatedMetadata,
+              brandContext: cached.extracted_text?.substring(0, 50000) || undefined,
+            },
+            brandGuidelinePdfText: cached.extracted_text || undefined,
             businessName: brandContext.companyName || user.businessName,
           });
 
@@ -285,14 +283,10 @@ router.post(
       let analysisScore = 0;
       let analysisItems: any[] = [];
 
-      if (openai) {
+      if (pdfText) {
         try {
-          const completion = await (openai as OpenAI).chat.completions.create({
-            model: "gpt-4-turbo-preview",
-            messages: [
-              {
-                role: "system",
-                content: `You are a brand analyst. Extract the following information from the brand document.
+          const response = await generateReply(
+            `You are a brand analyst. Extract the following information from the brand document.
 Return a JSON object with these fields:
 - companyName: The company/brand name
 - businessDescription: What the business does (1-2 sentences)
@@ -306,21 +300,19 @@ Return a JSON object with these fields:
 - objections: Common objections as key-value pairs {"objection": "response"}
 - brandLanguage: { prefer: ["words to use"], avoid: ["words to avoid"] }
 
-Only include fields you can confidently extract. Return valid JSON only.`
-              },
-              {
-                role: "user",
-                content: `Extract brand context from this document:\n\n${pdfText.substring(0, 8000)}`
-              }
-            ],
-            temperature: 0.3,
-            max_tokens: 2000,
-            response_format: { type: "json_object" }
-          });
+Only include fields you can confidently extract. Return valid JSON only.`,
+            `Extract brand context from this document:\n\n${pdfText.substring(0, 8000)}`,
+            {
+              model: MODELS.lead_intelligence,
+              jsonMode: true,
+              temperature: 0.3,
+              maxTokens: 2000
+            }
+          );
 
-          const response = completion.choices[0].message.content;
-          if (response) {
-            brandContext = JSON.parse(response) as BrandExtraction;
+          const responseText = response.text;
+          if (responseText) {
+            brandContext = JSON.parse(responseText) as BrandExtraction;
 
             // ENHANCED ANALYSIS: Detect UVP and positioning automatically
             try {
@@ -335,7 +327,7 @@ Only include fields you can confidently extract. Return valid JSON only.`
               };
 
               // Add differentiators and "why you win" to objections or a new field
-              if (uvpResult.differentiators?.length > 0) {
+              if (uvpResult.differentiators && uvpResult.differentiators.length > 0) {
                 brandContext.businessDescription = (brandContext.businessDescription || "") +
                   "\n\nKey Differentiators:\n- " + uvpResult.differentiators.join("\n- ");
               }

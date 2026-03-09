@@ -2,11 +2,9 @@ import { storage } from '../../storage.js';
 import { sendEmail } from '../channels/email.js';
 import { scheduleFollowUp } from '../ai/conversation-ai.js';
 import type { Integration } from '../../../shared/schema.js';
-import OpenAI from "openai";
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "",
-});
+import { generateReply } from '../ai/ai-service.js';
+import { MODELS } from '../ai/model-config.js';
+import { getPlanCapabilities } from '../../../shared/plan-utils.js';
 
 export interface OutreachLead {
   name: string;
@@ -66,16 +64,16 @@ Return JSON only:
 }`;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: "You are a helpful sales assistant that generates JSON." },
-        { role: "user", content: prompt }
-      ],
-      response_format: { type: "json_object" }
-    });
+    const response = await generateReply(
+      "You are a helpful sales assistant that generates JSON.",
+      prompt,
+      {
+        model: MODELS.outreach_generation,
+        jsonMode: true
+      }
+    );
 
-    const content = response.choices[0].message.content;
+    const content = response.text;
     const firstNameRaw = (lead.name.split(' ')[0] || "there").trim();
     // Use first name only, capitalize, and truncate if excessively long
     const firstName = firstNameRaw.length > 12
@@ -144,7 +142,8 @@ export async function runOutreachCampaign(
   );
 
   const tier = (user.subscriptionTier || 'free').toLowerCase();
-  const mailboxLimit = tier === 'enterprise' ? 5 : (tier === 'pro' ? 3 : 1);
+  const capabilities = getPlanCapabilities(tier);
+  const mailboxLimit = capabilities.mailboxLimit || 1;
 
   // Daily limits per provider
   const PROVIDER_LIMITS: Record<string, number> = {
@@ -156,22 +155,19 @@ export async function runOutreachCampaign(
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Filter usable mailboxes that haven't hit their daily limit
+  // Filter usable mailboxes
   const emailMailboxes = emailIntegrations.slice(0, mailboxLimit);
-  const usableMailboxes: Array<Integration & { remaining: number }> = [];
+  
+  if (emailMailboxes.length === 0) {
+    throw new Error('No mailboxes connected. Please connect a mailbox in Integrations.');
+  }
 
+  // Pre-calculate mailbox availability for bulk outreach
+  const usableMailboxes: Array<Integration & { sentCount: number; limit: number }> = [];
   for (const mb of emailMailboxes) {
     const sentCount = await storage.getIntegrationSentCount(userId, mb.id, today);
     const limit = PROVIDER_LIMITS[mb.provider] || 50;
-    if (sentCount < limit) {
-      usableMailboxes.push({ ...mb, remaining: limit - sentCount });
-    } else {
-      console.warn(`[Outreach] Mailbox ${mb.id} (${mb.provider}) reached daily limit of ${limit}. Skipping.`);
-    }
-  }
-
-  if (usableMailboxes.length === 0) {
-    throw new Error('All configured mailboxes have reached their daily sending limits. Please wait until tomorrow or connect more mailboxes.');
+    usableMailboxes.push({ ...mb, sentCount, limit });
   }
 
   let mailboxIndex = 0;
@@ -227,17 +223,35 @@ export async function runOutreachCampaign(
         finalSubject = `Re: ${finalSubject}`;
       }
 
-      // Pick next mailbox (rotation) - skip if remaining reached during loop
+      // Pick next mailbox (rotation)
       let currentMailbox = usableMailboxes[mailboxIndex % usableMailboxes.length];
-
-      // If the current mailbox is exhausted *during* the loop (unlikely since we checked above, 
-      // but good for multi-threading resilience), we skip
-      if (currentMailbox.remaining <= 0) {
-        mailboxIndex++;
-        currentMailbox = usableMailboxes[mailboxIndex % usableMailboxes.length];
+      
+      // Autonomous Logic: If it's a follow-up, it can proceed even if the mailbox is at limit.
+      // If it's initial outreach (bulk), it must find an available mailbox.
+      if (!isFollowUp && currentMailbox.sentCount >= currentMailbox.limit) {
+        // Try to find any other mailbox that is NOT at limit
+        const alternative = usableMailboxes.find(m => m.sentCount < m.limit);
+        if (alternative) {
+          currentMailbox = alternative;
+        } else {
+          // No mailboxes available for bulk outreach - skip this lead and log failure
+          console.warn(`[Outreach] 🛑 Skipping bulk outreach for ${lead.email}: All mailboxes reached daily limit.`);
+          results.push({
+            leadId,
+            email: lead.email,
+            name: lead.name,
+            status: 'failed',
+            error: 'All mailboxes reached daily limit for new outreach.'
+          });
+          continue; 
+        }
       }
 
-      currentMailbox.remaining--;
+      if (isFollowUp && currentMailbox.sentCount >= currentMailbox.limit) {
+        console.log(`[Outreach] 🔄 Autonomous Follow-up for ${lead.email}: Bypassing application-level cap on mailbox ${currentMailbox.id}`);
+      }
+
+      currentMailbox.sentCount++; // Keep local track
       mailboxIndex++;
 
       if (simulateOnly) {

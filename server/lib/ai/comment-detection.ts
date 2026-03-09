@@ -1,18 +1,9 @@
-import OpenAI from 'openai';
+import { generateReply } from './ai-service.js';
 import { MODELS } from './model-config.js';
 import { storage } from '../../storage.js';
 import type { Lead, Message } from '../../../shared/schema.js';
 import { formatDMWithButton, formatCommentReply, prepareMetaButton, type DMButton } from './dm-formatter.js';
 import { workerHealthMonitor } from '../monitoring/worker-health.js';
-
-// Initialize OpenAI if key is present, otherwise use fallback
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
-
-if (!openai) {
-  console.warn('⚠️ OpenAI API Key missing. Comment detection will use fallback logic.');
-}
 
 const isDemoMode = false;
 
@@ -56,22 +47,18 @@ Determine:
 
 Return JSON only: { "wantsDM": boolean, "intent": string, "confidence": number }`;
 
-    if (!openai) {
-      throw new Error("OpenAI not initialized");
-    }
+    const response = await generateReply(
+      'You are an expert at analyzing social media engagement patterns.',
+      prompt,
+      {
+        model: MODELS.intent_classification,
+        jsonMode: true,
+        maxTokens: 150,
+        temperature: 0.3
+      }
+    );
 
-    const response = await (openai as OpenAI).chat.completions.create({
-      model: MODELS.intent_classification,
-      messages: [
-        { role: 'system', content: 'You are an expert at analyzing social media engagement patterns.' },
-        { role: 'user', content: prompt }
-      ],
-      response_format: { type: 'json_object' },
-      max_completion_tokens: 150,
-      temperature: 0.3
-    });
-
-    const analysis = JSON.parse(response.choices[0].message.content || '{}');
+    const analysis = JSON.parse(response.text || '{}');
 
     return {
       wantsDM: analysis.wantsDM || false,
@@ -131,21 +118,17 @@ Guidelines:
 
 Generate the DM:`;
 
-    if (!openai) {
-      throw new Error("OpenAI not initialized");
-    }
+    const response = await generateReply(
+      'You are a skilled digital marketer creating personalized DM responses. Never include URLs - they will be added as styled buttons.',
+      prompt,
+      {
+        model: MODELS.intent_classification,
+        maxTokens: 150,
+        temperature: 0.8
+      }
+    );
 
-    const response = await (openai as OpenAI).chat.completions.create({
-      model: MODELS.intent_classification,
-      messages: [
-        { role: 'system', content: 'You are a skilled digital marketer creating personalized DM responses. Never include URLs - they will be added as styled buttons.' },
-        { role: 'user', content: prompt }
-      ],
-      max_completion_tokens: 150,
-      temperature: 0.8
-    });
-
-    const aiMessage = response.choices[0].message.content || `Hey ${leadName}! Thanks for reaching out.`;
+    const aiMessage = response.text || `Hey ${leadName}! Thanks for reaching out.`;
 
     if (ctaButton) {
       return formatDMWithButton(aiMessage, ctaButton);
@@ -210,21 +193,17 @@ Guidelines:
 
 Generate the follow-up:`;
 
-    if (!openai) {
-      throw new Error("OpenAI not initialized");
-    }
+    const response = await generateReply(
+      'You are a skilled sales professional creating thoughtful, context-aware follow-up messages. Always reference specific details from previous conversations when available.',
+      prompt,
+      {
+        model: MODELS.intent_classification,
+        maxTokens: 180,
+        temperature: 0.8
+      }
+    );
 
-    const response = await (openai as OpenAI).chat.completions.create({
-      model: MODELS.intent_classification,
-      messages: [
-        { role: 'system', content: 'You are a skilled sales professional creating thoughtful, context-aware follow-up messages. Always reference specific details from previous conversations when available.' },
-        { role: 'user', content: prompt }
-      ],
-      max_completion_tokens: 180,
-      temperature: 0.8
-    });
-
-    return response.choices[0].message.content || `Hey ${leadName}, did you get a chance to check out what I sent earlier?`;
+    return response.text || `Hey ${leadName}, did you get a chance to check out what I sent earlier?`;
   } catch (error) {
     console.error('Follow-up DM generation error:', error);
     return `Hey ${leadName}, just following up on the ${originalIntent} I shared. Still interested?`;

@@ -10,11 +10,13 @@
  * - Activity Timeline
  */
 
+import { generateReply } from './ai-service.js';
+import { MODELS } from './model-config.js';
+
+const isAIConfigured = !!(process.env.Z_AI_API_KEY || process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY);
+import { storage } from '../../storage.js';
 import type { Lead, Message } from "../../../shared/schema.js";
 import type { MessageDirection } from "../../../shared/types.js";
-import OpenAI from 'openai';
-import { storage } from '../../storage.js';
-import { MODELS } from './model-config.js';
 
 interface ScoringMessage {
   direction: MessageDirection;
@@ -357,9 +359,7 @@ export async function getLeadsInSegment(
 
 const oauth = null; // Placeholder for future use
 
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
+// AI initialization removed in favor of unified ai-service
 
 // ============ BANT QUALIFICATION ============
 
@@ -370,7 +370,7 @@ export async function completeBantQualification(lead: Lead): Promise<BantQualifi
    */
 
   try {
-    if (!openai) {
+    if (!isAIConfigured) {
       throw new Error("OpenAI not initialized");
     }
 
@@ -411,18 +411,18 @@ Return JSON only:
   "qualification_score": number (0-100)
 }`;
 
-    const response = await openai.chat.completions.create({
-      model: MODELS.lead_intelligence,
-      messages: [
-        { role: 'system', content: 'You are a professional sales analyst specializing in BANT qualification.' },
-        { role: 'user', content: prompt }
-      ],
-      response_format: { type: 'json_object' },
-      max_completion_tokens: 150,
-      temperature: 0.3
-    });
+    const response = await generateReply(
+      'You are a professional sales analyst specializing in BANT qualification.',
+      prompt,
+      {
+        model: MODELS.lead_intelligence,
+        jsonMode: true,
+        maxTokens: 150,
+        temperature: 0.3
+      }
+    );
 
-    const analysis = JSON.parse(response.choices[0].message.content || '{}');
+    const analysis = JSON.parse(response.text || '{}');
 
     return {
       budget: analysis.budget || "unknown",

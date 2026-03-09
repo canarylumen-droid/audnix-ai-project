@@ -1,9 +1,7 @@
-import OpenAI from "openai";
+import { generateReply } from "./ai-service.js";
 import { MODELS } from "./model-config.js";
 
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
+const isAIConfigured = !!(process.env.Z_AI_API_KEY || process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY);
 
 export interface FormattedReply {
   message: string;
@@ -46,7 +44,7 @@ async function formatForInstagram(
 ): Promise<FormattedReply> {
   const maxLength = 1000;
 
-  if (!openai) {
+  if (!isAIConfigured) {
     return {
       message: formatInstagramFallback(rawReply, firstName, maxLength),
       channel: "instagram",
@@ -84,17 +82,17 @@ GOOD EXAMPLE: "yo ${firstName}! that's exactly what we help with 🔥 quick q - 
 
 Return ONLY the formatted DM message, nothing else.`;
 
-    const completion = await openai.chat.completions.create({
-      model: MODELS.sales_reasoning,
-      messages: [
-        { role: "system", content: "You are an elite DM copywriter. Write like a real person, not a bot." },
-        { role: "user", content: prompt }
-      ],
-      temperature: 0.8,
-      max_tokens: 200,
-    });
+    const response = await generateReply(
+      "You are an elite DM copywriter. Write like a real person, not a bot.",
+      prompt,
+      {
+        model: MODELS.sales_reasoning,
+        temperature: 0.8,
+        maxTokens: 200,
+      }
+    );
 
-    const formatted = completion.choices[0].message?.content?.trim() || rawReply;
+    const formatted = response.text?.trim() || rawReply;
 
     return {
       message: formatted.substring(0, maxLength),
@@ -126,7 +124,7 @@ async function formatForEmail(
 ): Promise<FormattedReply> {
   const maxLength = 2000;
 
-  if (!openai) {
+  if (!isAIConfigured) {
     return {
       message: formatEmailFallback(rawReply, firstName, maxLength),
       channel: "email",
@@ -171,17 +169,17 @@ GOOD: Short, punchy, value-focused emails
 
 Return ONLY the email body (no subject line, no signature).`;
 
-    const completion = await openai.chat.completions.create({
-      model: MODELS.sales_reasoning,
-      messages: [
-        { role: "system", content: "You are an elite email copywriter. Write emails that get replies." },
-        { role: "user", content: prompt }
-      ],
-      temperature: 0.7,
-      max_tokens: 400,
-    });
+    const response = await generateReply(
+      "You are an elite email copywriter. Write emails that get replies.",
+      prompt,
+      {
+        model: MODELS.sales_reasoning,
+        temperature: 0.7,
+        maxTokens: 400,
+      }
+    );
 
-    const formatted = completion.choices[0].message?.content?.trim() || rawReply;
+    const formatted = response.text?.trim() || rawReply;
 
     return {
       message: formatted.substring(0, maxLength),

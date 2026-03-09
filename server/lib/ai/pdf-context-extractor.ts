@@ -17,17 +17,8 @@
  * - Optimal messaging angles
  */
 
-import OpenAI from "openai";
+import { generateReply } from "./ai-service.js";
 import { MODELS } from "./model-config.js";
-
-// Initialize OpenAI if key is present, otherwise use fallback
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
-
-if (!openai) {
-  console.warn('⚠️ OpenAI API Key missing. PDF extraction will use fallback logic.');
-}
 
 export interface ExtractedPDFContent {
   company_name: string;
@@ -95,18 +86,18 @@ Look for payment links (Stripe, PayPal, Gumroad, invoice details, bank transfer 
 Look for app/signup links if it's a SaaS or software product.
 Be thorough and precise.`;
 
-    if (!openai) {
-      throw new Error("OpenAI not initialized");
-    }
+    const response = await generateReply(
+      "You are a helpful assistant that extracts structured data from PDFs.",
+      extractionPrompt,
+      {
+        model: MODELS.sales_reasoning,
+        jsonMode: true,
+        temperature: 0.3,
+        maxTokens: 1500,
+      }
+    );
 
-    const extractionResponse = await (openai as OpenAI).chat.completions.create({
-      model: MODELS.sales_reasoning,
-      messages: [{ role: "user", content: extractionPrompt }],
-      temperature: 0.3,
-      max_tokens: 1500,
-    });
-
-    const messageContent: string = extractionResponse.choices[0]?.message?.content ?? "{}";
+    const messageContent: string = response.text ?? "{}";
 
     let extracted: Partial<ExtractedPDFContent> = {};
     try {
@@ -199,20 +190,9 @@ export async function performDeepBrandResearch(
   industry_trends: string[];
 }> {
   try {
-    if (!openai) {
-      throw new Error("OpenAI not initialized");
-    }
-
-    const response = await (openai as OpenAI).chat.completions.create({
-      model: MODELS.sales_reasoning,
-      messages: [
-        {
-          role: "system",
-          content: `You are a world-class market research analyst. Research deeply and provide actionable insights.`,
-        },
-        {
-          role: "user",
-          content: `Conduct DEEP research on this business and provide comprehensive analysis:
+    const response = await generateReply(
+      "You are a world-class market research analyst. Research deeply and provide actionable insights.",
+      `Conduct DEEP research on this business and provide comprehensive analysis:
 
 Company: ${companyName}
 Industry: ${industry}
@@ -245,13 +225,15 @@ Return as JSON:
   "competitor_analysis": ["competitor 1: weakness and opportunity", "competitor 2: weakness"],
   "industry_trends": ["trend 1 with implications", "trend 2"]
 }`,
-        },
-      ],
-      temperature: 0.7,
-      max_tokens: 1500,
-    });
+      {
+        model: MODELS.sales_reasoning,
+        jsonMode: true,
+        temperature: 0.7,
+        maxTokens: 1500,
+      }
+    );
 
-    const content = response.choices[0]?.message?.content ?? "{}";
+    const content = response.text ?? "{}";
     try {
       const parsed = JSON.parse(content);
       return {
@@ -282,16 +264,9 @@ export async function researchCompetitivePosition(
   targetAudience: string
 ): Promise<string> {
   try {
-    if (!openai) {
-      throw new Error("OpenAI not initialized");
-    }
-
-    const response = await (openai as OpenAI).chat.completions.create({
-      model: MODELS.sales_reasoning,
-      messages: [
-        {
-          role: "user",
-          content: `Research the competitive landscape for:
+    const responseResult = await generateReply(
+      "You are a competitive positioning expert.",
+      `Research the competitive landscape for:
           
 Business: ${businessName}
 Industry: ${industry}
@@ -304,13 +279,14 @@ Provide:
 4. Messaging recommendations to stand out
 
 Format concisely and actionably.`,
-        },
-      ],
-      temperature: 0.7,
-      max_tokens: 400,
-    });
+      {
+        model: MODELS.sales_reasoning,
+        temperature: 0.7,
+        maxTokens: 400
+      }
+    );
 
-    return response.choices[0]?.message?.content ?? "Standard positioning in market";
+    return responseResult.text ?? "Standard positioning in market";
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("Error researching competitive position:", errorMessage);
@@ -322,16 +298,9 @@ export async function brainstormMessageAngles(
   extractedContent: ExtractedPDFContent
 ): Promise<string[]> {
   try {
-    if (!openai) {
-      throw new Error("OpenAI not initialized");
-    }
-
-    const response = await (openai as OpenAI).chat.completions.create({
-      model: MODELS.sales_reasoning,
-      messages: [
-        {
-          role: "user",
-          content: `Based on this business context, brainstorm 5 KILLER messaging angles for sales outreach:
+    const responseResult = await generateReply(
+      "You are a creative sales copywriter.",
+      `Based on this business context, brainstorm 5 KILLER messaging angles for sales outreach:
 
 Company: ${extractedContent.company_name}
 Industry: ${extractedContent.industry}
@@ -347,13 +316,14 @@ Create 5 punchy messaging angles that:
 4. Drive high response rates
 
 Format as numbered list.`,
-        },
-      ],
-      temperature: 0.8,
-      max_tokens: 500,
-    });
+      {
+        model: MODELS.sales_reasoning,
+        temperature: 0.8,
+        maxTokens: 500
+      }
+    );
 
-    const text: string = response.choices[0]?.message?.content ?? "";
+    const text: string = responseResult.text ?? "";
     return text
       .split("\n")
       .filter((line: string) => line.trim().match(/^\d/))
@@ -369,24 +339,9 @@ export async function generateIndustrySpecificGuidance(
   extractedContent: ExtractedPDFContent
 ): Promise<IndustryGuidance> {
   try {
-    if (!openai) {
-      throw new Error("OpenAI not initialized");
-    }
-
-    const response = await (openai as OpenAI).chat.completions.create({
-      model: MODELS.sales_reasoning,
-      messages: [
-        {
-          role: "user",
-          content: `You are an expert in the ${extractedContent.industry} space.
-
-Context:
-- Company: ${extractedContent.company_name}
-- They help: ${extractedContent.target_audience}
-- Success metric: ${extractedContent.success_metrics[0] ?? "ROI"}
-- Competitive edge: ${extractedContent.competitor_positioning}
-
-Provide industry-specific sales guidance:
+    const responseResult = await generateReply(
+      `You are an expert in the ${extractedContent.industry} space.`,
+      `Provide industry-specific sales guidance:
 
 1. URGENCY DRIVERS - What makes THIS industry prospect take action fast?
 2. COMMON OBJECTIONS - What do prospects in ${extractedContent.industry} typically say?
@@ -395,13 +350,15 @@ Provide industry-specific sales guidance:
 5. CLOSE PATTERNS - How million-dollar closers close in ${extractedContent.industry}
 
 Format as JSON.`,
-        },
-      ],
-      temperature: 0.7,
-      max_tokens: 800,
-    });
+      {
+        model: MODELS.sales_reasoning,
+        jsonMode: true,
+        temperature: 0.7,
+        maxTokens: 800
+      }
+    );
 
-    const text: string = response.choices[0]?.message?.content ?? "{}";
+    const text: string = responseResult.text ?? "{}";
     try {
       return JSON.parse(text) as IndustryGuidance;
     } catch {

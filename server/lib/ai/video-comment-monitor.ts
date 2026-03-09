@@ -1,19 +1,10 @@
-import OpenAI from 'openai';
+import { generateReply } from './ai-service.js';
 import { MODELS } from './model-config.js';
 import { storage } from '../../storage.js';
 import { InstagramProvider } from '../providers/instagram.js';
 import { formatDMWithButton } from './dm-formatter.js';
 import { workerHealthMonitor } from '../monitoring/worker-health.js';
 import type { User, Lead, Integration, VideoMonitor } from '../../../shared/schema.js';
-
-// Initialize OpenAI if key is present, otherwise use fallback
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
-
-if (!openai) {
-  console.warn('⚠️ OpenAI API Key missing. Video comment monitor will use fallback logic.');
-}
 
 const isDemoMode = false;
 
@@ -113,22 +104,18 @@ Return JSON:
   "suggestedResponse": "optional response for handling difficult comments"
 }`;
 
-    if (!openai) {
-      throw new Error("OpenAI not initialized");
-    }
+    const response = await generateReply(
+      'You are a hyper-intelligent sales AI that detects interest from ANY comment - no keywords needed. You understand context, tone, and human behavior.',
+      prompt,
+      {
+        model: MODELS.intent_classification,
+        jsonMode: true,
+        maxTokens: 300,
+        temperature: 0.5
+      }
+    );
 
-    const response = await openai.chat.completions.create({
-      model: MODELS.intent_classification,
-      messages: [
-        { role: 'system', content: 'You are a hyper-intelligent sales AI that detects interest from ANY comment - no keywords needed. You understand context, tone, and human behavior.' },
-        { role: 'user', content: prompt }
-      ],
-      response_format: { type: 'json_object' },
-      max_completion_tokens: 300,
-      temperature: 0.5
-    });
-
-    return JSON.parse(response.choices[0].message.content || '{}') as BuyingIntentResult;
+    return JSON.parse(response.text || '{}') as BuyingIntentResult;
   } catch (error) {
     console.error('Buying intent detection error:', error);
     return {
@@ -199,22 +186,18 @@ Generate JSON:
 
 REMEMBER: Use their REAL username (${leadName}), reference their actual comment, and talk about what THEY want.`;
 
-    if (!openai) {
-      throw new Error("OpenAI not initialized");
-    }
+    const responseBody = await generateReply(
+      'You are a legendary salesperson who creates hyper-personalized DMs that convert. Every message feels like it was written just for that person.',
+      prompt,
+      {
+        model: MODELS.intent_classification,
+        jsonMode: true,
+        maxTokens: 350,
+        temperature: 0.9
+      }
+    );
 
-    const response = await openai.chat.completions.create({
-      model: MODELS.intent_classification,
-      messages: [
-        { role: 'system', content: 'You are a legendary salesperson who creates hyper-personalized DMs that convert. Every message feels like it was written just for that person.' },
-        { role: 'user', content: prompt }
-      ],
-      response_format: { type: 'json_object' },
-      max_completion_tokens: 350,
-      temperature: 0.9
-    });
-
-    const result = JSON.parse(response.choices[0].message.content || '{}') as SalesmanDMResult;
+    const result = JSON.parse(responseBody.text || '{}') as SalesmanDMResult;
     return result;
   } catch (error) {
     console.error('Salesman DM generation error:', error);
@@ -266,21 +249,17 @@ ${askForFollow ? `EXAMPLES:
 
 Generate ONLY the comment reply text (no quotes, no explanations):`;
 
-    if (!openai) {
-      throw new Error("OpenAI not initialized");
-    }
+    const responseBody = await generateReply(
+      'You write natural Instagram comment replies that sound human and capture leads fast.',
+      prompt,
+      {
+        model: MODELS.intent_classification,
+        maxTokens: 50,
+        temperature: 0.9
+      }
+    );
 
-    const response = await openai.chat.completions.create({
-      model: MODELS.intent_classification,
-      messages: [
-        { role: 'system', content: 'You write natural Instagram comment replies that sound human and capture leads fast.' },
-        { role: 'user', content: prompt }
-      ],
-      max_completion_tokens: 50,
-      temperature: 0.9
-    });
-
-    return response.choices[0].message.content?.trim() || "Check your DM! 💬";
+    return responseBody.text?.trim() || "Check your DM! 💬";
   } catch (error) {
     console.error('Comment reply generation error:', error);
     return askForFollow ? `Follow me for the link! 🔥` : "Check your DM! 💬";
@@ -401,7 +380,11 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
         console.log(`⏰ [2/3] Waiting ${Math.round(replyDelay / 60000)} minutes before sending DM to ${comment.username} (status: ${existingLead.status})`);
         await new Promise<void>(resolve => setTimeout(resolve, replyDelay));
 
-        const brandKnowledge: string = await storage.getBrandKnowledge(userId);
+        const user = await storage.getUserById(userId);
+        const brandKnowledge: string = [
+          user?.brandGuidelinePdfText,
+          await storage.getBrandKnowledge(userId)
+        ].filter(Boolean).join('\n---\n') || '';
         const dm: SalesmanDMResult = await generateSalesmanDM(
           comment.username,
           comment.text,

@@ -66,7 +66,10 @@ export async function getBrandContext(userId: string): Promise<BrandContext> {
       contactPhone: metadata.contact_phone || null,
       bookingPreference: metadata.booking_preference || 'autonomous', // Default to autonomous for premium feel
       signature: metadata.signature || metadata.email_signature || `\n\nBest regards,\n${user.businessName || 'The Team'}`,
-      brandKnowledge: await storage.getBrandKnowledge(userId) || user.brandGuidelinePdfText || ''
+      brandKnowledge: [
+        user.brandGuidelinePdfText,
+        await storage.getBrandKnowledge(userId)
+      ].filter(Boolean).join('\n---\n') || ''
     };
   } catch (error) {
     console.error("Error fetching brand context:", error);

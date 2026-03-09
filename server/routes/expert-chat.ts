@@ -1,8 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { GoogleGenAI } from "@google/genai";
-import { GENAI_STABLE_MODEL } from "../lib/ai/model-config.js";
-
-const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+import { generateReply } from '../lib/ai/ai-service.js';
+import { MODELS } from "../lib/ai/model-config.js";
 
 const router = Router();
 
@@ -51,76 +49,20 @@ router.post(['/chat', '/chat-v2'], async (req: Request, res: Response) => {
             });
         }
 
-        if (!process.env.GEMINI_API_KEY) {
-            console.warn("[AI] Expert Chat: GEMINI_API_KEY is missing. Falling back to static knowledge.");
-            return res.json({
-                content: "I am currently in disconnected mode (API Sync Required). However, I can tell you that Audnix is the world's most advanced autonomous salesRepresentative. You should visit the Access Protocol (Signup) to initialize the full AI brain."
-            });
-        }
-
-        // Use standardized stable model
-        let chat = genAI.chats.create({
-            model: GENAI_STABLE_MODEL,
-            config: { systemInstruction: AUDNIX_KNOWLEDGE }
-        });
-
-        // Preset Answers for standard SaaS support
-        const PRESET_ANSWERS: Record<string, string> = {
-            "pricing": "Audnix offers flexible plans: Starter, Pro, and Enterprise. Check the 'Billing' section in your Command Center for details.",
-            "smtp": "To initialize your revenue stream, navigate to Settings > Email Integration and provide your SMTP/IMAP credentials.",
-            "leads": "You can upload leads via CSV or PDF. Our AI Lead Scoring will then analyze and verify them automatically.",
-        };
-
-        const lowerMessage = message.toLowerCase();
-        for (const [key, answer] of Object.entries(PRESET_ANSWERS)) {
-            if (lowerMessage.includes(key)) {
-                return res.json({ content: answer });
+        const responseResult = await generateReply(
+            AUDNIX_KNOWLEDGE,
+            message,
+            {
+                model: MODELS.sales_reasoning,
+                history: history.map((m: any) => ({
+                    role: m.role === 'user' ? 'user' : 'assistant',
+                    content: m.content
+                })),
+                temperature: 0.7
             }
-        }
-
-        // Gemini requires the first message in history to be from the 'user' role.
-        let sanitizedHistory = history.map((m: any) => ({
-            role: m.role === 'user' ? 'user' : 'model',
-            parts: [{ text: String(m.content) }]
-        }));
-
-        if (sanitizedHistory.length > 0 && sanitizedHistory[0].role === 'model') {
-            sanitizedHistory = sanitizedHistory.slice(1);
-        }
-
-        // Add a retry mechanism for 429 errors
-        let result;
-        let retryCount = 0;
-        const maxRetries = 2;
-
-        while (retryCount <= maxRetries) {
-            try {
-                // To maintain history context we can pass it down if SDK supports it in sendMessage
-                // or just append as messages array, but genAI.chats handles it if we created it with history.
-                // Re-create chat with history since we instantiated it without history above
-                chat = genAI.chats.create({
-                    model: GENAI_STABLE_MODEL,
-                    config: { systemInstruction: AUDNIX_KNOWLEDGE },
-                    history: sanitizedHistory
-                });
-                
-                result = await chat.sendMessage(message);
-                break;
-            } catch (err: any) {
-                if (err?.status === 429 && retryCount < maxRetries) {
-                    retryCount++;
-                    const waitTime = Math.pow(2, retryCount) * 1000;
-                    console.warn(`[AI] Quota exceeded, retrying in ${waitTime}ms...`);
-                    await new Promise(resolve => setTimeout(resolve, waitTime));
-                    continue;
-                }
-                throw err;
-            }
-        }
-
-        if (!result) throw new Error("Failed to get AI response after retries");
-
-        const content = result.text || "AI processing interrupted. Please re-send your inquiry.";
+        );
+        
+        const content = responseResult.text || "AI processing interrupted. Please re-send your inquiry.";
 
         res.json({ content });
     } catch (error: any) {

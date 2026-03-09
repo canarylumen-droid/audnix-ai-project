@@ -177,6 +177,7 @@ export async function generateReply(
     maxTokens?: number;
     jsonMode?: boolean;
     model?: string;
+    history?: Array<{ role: "user" | "assistant"; content: string }>;
   }
 ): Promise<{ text: string; tokensUsed: number }> {
 
@@ -187,6 +188,7 @@ export async function generateReply(
         model: options?.model || MODELS.sales_reasoning || AI_MODEL,
         messages: [
           { role: "system", content: systemPrompt },
+          ...(options?.history || []),
           { role: "user", content: userPrompt },
         ],
         response_format: options?.jsonMode ? { type: "json_object" } : undefined,
@@ -213,7 +215,9 @@ export async function generateReply(
       
       const result = await genai!.models.generateContent({
         model: modelName,
-        contents: userPrompt,
+        contents: options?.history 
+          ? options.history.map(m => `${m.role.toUpperCase()}: ${m.content}`).join("\n") + "\n\nUSER: " + userPrompt
+          : userPrompt,
         config: {
           temperature: options?.temperature || 0.7,
           maxOutputTokens: options?.maxTokens || 1000,
@@ -241,6 +245,7 @@ export async function generateReply(
         model: options?.model || MODELS.sales_reasoning || AI_MODEL,
         messages: [
           { role: "system", content: systemPrompt },
+          ...(options?.history || []),
           { role: "user", content: userPrompt },
         ],
         response_format: options?.jsonMode ? { type: "json_object" } : undefined,

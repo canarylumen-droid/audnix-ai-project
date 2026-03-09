@@ -12,22 +12,13 @@
  * NO MORE REJECTIONS - ONLY NEGOTIATIONS
  */
 
-import OpenAI from "openai";
+import { generateReply } from "./ai-service.js";
 import { MODELS } from "./model-config.js";
 import {
   OBJECTIONS_DATABASE,
   getObjectionsByIndustry,
   type Objection
 } from "../sales-engine/objections-database.js";
-
-// Initialize OpenAI if key is present, otherwise use fallback
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
-
-if (!openai) {
-  console.warn('⚠️ OpenAI API Key missing. Objection responder will use fallback logic.');
-}
 
 interface LeadObjectionContext {
   leadName: string;
@@ -182,16 +173,8 @@ export async function generateAutonomousObjectionResponse(
   );
 
   try {
-    if (!openai) {
-      throw new Error("OpenAI not initialized");
-    }
-
-    const completion = await openai.chat.completions.create({
-      model: MODELS.objection_handling,
-      messages: [
-        {
-          role: "system",
-          content: `You are an elite sales closer for ${context.brandName}. 
+    const responseBody = await generateReply(
+      `You are an elite sales closer for ${context.brandName}. 
 Your goal is to TURN THIS OBJECTION INTO A DEAL.
 - Use the reframe strategies provided
 - Tell a short story that makes them realize their mistake
@@ -200,18 +183,15 @@ Your goal is to TURN THIS OBJECTION INTO A DEAL.
 - Match the tone of their response
 - Make it personal to them
 - NO "I understand" - be direct and powerful`,
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      temperature: 0.8,
-      max_tokens: 200,
-    });
+      prompt,
+      {
+        model: MODELS.objection_handling,
+        temperature: 0.8,
+        maxTokens: 200
+      }
+    );
 
-    const response =
-      completion.choices[0].message.content || "Let's talk soon";
+    const response = responseBody.text || "Let's talk soon";
 
     return {
       response,
@@ -253,17 +233,16 @@ async function intelligentIdentifyObjection(leadMessage: string, context: LeadOb
 
     Return JSON: { "category": "string", "hidden": "string", "intensity": 0-100 }`;
 
-    if (!openai) {
-      throw new Error("OpenAI not initialized");
-    }
+    const response = await generateReply(
+      'You are an intelligent sales analyst.',
+      prompt,
+      {
+        model: MODELS.objection_handling,
+        jsonMode: true
+      }
+    );
 
-    const completion = await openai.chat.completions.create({
-      model: MODELS.objection_handling,
-      messages: [{ role: 'system', content: 'You are an intelligent sales analyst.' }, { role: 'user', content: prompt }],
-      response_format: { type: 'json_object' }
-    });
-
-    const result = JSON.parse(completion.choices[0].message.content || '{}');
+    const result = JSON.parse(response.text || '{}');
 
     // Find matching template in database for reframes/stories
     const matched = EXPANDED_OBJECTIONS.find(o => o.category === result.category) ||

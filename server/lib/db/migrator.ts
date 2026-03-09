@@ -94,6 +94,17 @@ export async function runDatabaseMigrations() {
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='notifications' AND column_name='integration_id') THEN
                     ALTER TABLE notifications ADD COLUMN integration_id UUID REFERENCES integrations(id) ON DELETE SET NULL;
                 END IF;
+
+                -- Domain Verifications Table
+                IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='domain_verifications') THEN
+                    CREATE TABLE domain_verifications (
+                        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        domain TEXT NOT NULL,
+                        verification_result JSONB NOT NULL,
+                        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+                    );
+                END IF;
             END $$;
         `);
         console.log("✅ Emergency schema synchronization completed.");

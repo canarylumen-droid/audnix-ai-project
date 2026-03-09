@@ -1,6 +1,7 @@
 import { db } from '../../db.js';
 import { followUpQueue, leads, messages, users, brandEmbeddings, integrations, contentLibrary } from '../../../shared/schema.js';
-import { eq, and, lte, asc } from 'drizzle-orm';
+import { eq, and, lte, asc, or, inArray, isNotNull } from 'drizzle-orm';
+import { campaignLeads } from '../../../shared/schema.js';
 import { generateReply, generateEmailSubject } from './ai-service.js';
 import { InstagramOAuth } from '../oauth/instagram.js';
 import { sendInstagramMessage } from '../channels/instagram.js';
@@ -255,6 +256,28 @@ export class FollowUpWorker {
       // CHECK 2: Lead-level opt-out
       if (lead.aiPaused) {
         console.log(`⏸️  Skipping follow-up for lead ${lead.name} (AI paused for this lead)`);
+        await db.update(followUpQueue).set({ status: 'completed', processedAt: new Date() }).where(eq(followUpQueue.id, job.id));
+        return;
+      }
+
+      // CHECK 3: Active Campaign Protection
+      // If the lead is currently in a campaign that's still 'pending' or 'sent' (not replied yet),
+      // we skip autonomous follow-ups to avoid overlapping with campaign sequence.
+      const activeCampaignLead = await db.select()
+        .from(campaignLeads)
+        .where(
+          and(
+            eq(campaignLeads.leadId, job.leadId),
+            or(
+              eq(campaignLeads.status, 'pending'),
+              and(eq(campaignLeads.status, 'sent'), isNotNull(campaignLeads.nextActionAt))
+            )
+          )
+        )
+        .limit(1);
+
+      if (activeCampaignLead.length > 0) {
+        console.log(`[FOLLOW_UP] skipping autonomous follow-up - lead ${lead.name} is in an active campaign stage: ${activeCampaignLead[0].status}`);
         await db.update(followUpQueue).set({ status: 'completed', processedAt: new Date() }).where(eq(followUpQueue.id, job.id));
         return;
       }

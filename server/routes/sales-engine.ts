@@ -1,13 +1,9 @@
 import { Router, Request, Response } from 'express';
+import { generateReply } from '../lib/ai/ai-service.js';
+import { MODELS } from '../lib/ai/model-config.js';
 import ObjectionHandler from '../lib/sales-engine/objection-handler.js';
 import { requireAuth } from '../middleware/auth.js';
-import OpenAI from 'openai';
 import { LRUCache } from 'lru-cache';
-
-// Initialize OpenAI if key is present, otherwise use fallback
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
 
 const router = Router();
 
@@ -64,41 +60,35 @@ router.post('/analyze-objection', requireAuth, async (req: Request, res: Respons
       return res.json(cachedResult);
     }
 
-    // High Preference: AI Engine (GPT-4o)
-    if (openai) {
-      try {
-        const completion = await (openai as OpenAI).chat.completions.create({
-          model: "gpt-4o",
-          messages: [
-            {
-              role: "system",
-              content: `You are a world-class sales objection handler (Alex Hormozi style but professional).
-              Analyze the objection and return a JSON object with:
-              - category: (timing, price, competitor, trust, authority, fit, social, decision, or general)
-              - hiddenObjection: What they really mean (psychological subtext)
-              - reframes: Array of 3 powerful reframes that shift perspective
-              - powerQuestion: The single best question to ask next
-              - closingTactic: A direct closing line to move the deal forward
-              - story: A brief 2-sentence success story relevant to this objection
-              - identityUpgrade: A statement appealing to their aspirational identity
-              - competitorAngle: How to position against competitors (if relevant)
-              - nextMove: The calculated next step in the sales process
-              - confidence: Number between 80-99 (AI confidence score)
-              
-              Industry context: ${industry}
-              Brand context: Audnix AI
-              `
-            },
-            {
-              role: "user",
-              content: `Objection: "${objectionText}"`
-            }
-          ],
-          response_format: { type: "json_object" },
-          temperature: 0.5, // Lower temperature for more consistent sales logic
-        });
+    // High Preference: AI Engine (Z.ai / GPT-4o)
+    try {
+      const response = await generateReply(
+        `You are a world-class sales objection handler (Alex Hormozi style but professional).
+        Analyze the objection and return a JSON object with:
+        - category: (timing, price, competitor, trust, authority, fit, social, decision, or general)
+        - hiddenObjection: What they really mean (psychological subtext)
+        - reframes: Array of 3 powerful reframes that shift perspective
+        - powerQuestion: The single best question to ask next
+        - closingTactic: A direct closing line to move the deal forward
+        - story: A brief 2-sentence success story relevant to this objection
+        - identityUpgrade: A statement appealing to their aspirational identity
+        - competitorAngle: How to position against competitors (if relevant)
+        - nextMove: The calculated next step in the sales process
+        - confidence: Number between 80-99 (AI confidence score)
+        
+        Industry context: ${industry}
+        Brand context: Audnix AI
+        `,
+        `Objection: "${objectionText}"`,
+        {
+          model: MODELS.sales_reasoning,
+          jsonMode: true,
+          temperature: 0.5
+        }
+      );
 
-        const aiResponse = JSON.parse(completion.choices[0].message.content || "{}");
+      const aiResponse = JSON.parse(response.text || "{}");
+      if (aiResponse.category) {
         const finalResponse = {
           objection: objectionText,
           ...aiResponse
@@ -110,9 +100,9 @@ router.post('/analyze-objection', requireAuth, async (req: Request, res: Respons
         res.setHeader('X-Cache', 'MISS');
         res.setHeader('X-Response-Time', `${Date.now() - startTime}ms`);
         return res.json(finalResponse);
-      } catch (error) {
-        console.error("GPT-4o analysis failed, falling back to rule engine:", error);
       }
+    } catch (error) {
+      console.error("AI analysis failed, falling back to rule engine:", error);
     }
 
     // Zero-Latency Fallback: Deterministic Rule Engine

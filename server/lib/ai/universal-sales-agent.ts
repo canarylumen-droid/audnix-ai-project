@@ -18,19 +18,10 @@
  * - Talks like million-dollar closers
  */
 
-import OpenAI from "openai";
+import { generateReply } from "./ai-service.js";
 import { MODELS } from "./model-config.js";
 import type { BrandContext } from "../../../shared/types.js";
 import { storage } from "../../storage.js";
-
-// Initialize OpenAI if key is present, otherwise use fallback
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
-
-if (!openai) {
-  console.warn('⚠️ OpenAI API Key missing. Universal Sales Agent will use fallback logic.');
-}
 
 export interface SalesLeadProfile {
   id?: string;
@@ -253,18 +244,9 @@ export async function gatherCompetitorIntelligence(
   leadCompany?: string
 ): Promise<CompetitorIntelligence> {
   try {
-    if (!openai) {
-      throw new Error("OpenAI not initialized");
-    }
-
-    const response = await (openai as OpenAI).chat.completions.create({
-      model: MODELS.sales_reasoning,
-      messages: [
-        {
-          role: "user",
-          content: `You are a competitive intelligence expert.
-
-Industry: ${userIndustry}
+    const response = await generateReply(
+      "You are a competitive intelligence expert.",
+      `Industry: ${userIndustry}
 Niche: ${userNiche}
 ${leadCompany ? `Lead Company: ${leadCompany}` : ""}
 
@@ -279,13 +261,14 @@ GAPS: [list]
 OPPORTUNITIES: [list]
 
 Be specific and actionable.`,
-        },
-      ],
-      temperature: 0.7,
-      max_tokens: 500,
-    });
+      {
+        model: MODELS.sales_reasoning,
+        temperature: 0.7,
+        maxTokens: 500,
+      }
+    );
 
-    const text = response.choices[0]?.message?.content || "";
+    const text = response.text || "";
 
     // Parse response
     const competitors = text.match(/COMPETITORS:(.+?)(?=GAPS:|$)/s)?.[1]?.split("\n").filter(Boolean) || [];
@@ -315,16 +298,9 @@ export async function detectUVP(brandContext: SalesBrandContext | BrandContext):
       undefined
     );
 
-    if (!openai) {
-      throw new Error("OpenAI not initialized");
-    }
-
-    const response = await (openai as OpenAI).chat.completions.create({
-      model: MODELS.sales_reasoning,
-      messages: [
-        {
-          role: "user",
-          content: `Based on this brand info, create their UNIQUE VALUE PROPOSITION.
+    const response = await generateReply(
+      "Analyze brand context to determine UVP.",
+      `Based on this brand info, create their UNIQUE VALUE PROPOSITION.
 
 Brand:
 ${JSON.stringify(brandContext, null, 2)}
@@ -339,13 +315,14 @@ Create:
 4. Why they win (emotional + logical)
 
 Make it compelling and specific to their business.`,
-        },
-      ],
-      temperature: 0.8,
-      max_tokens: 400,
-    });
+      {
+        model: MODELS.sales_reasoning,
+        temperature: 0.8,
+        maxTokens: 400,
+      }
+    );
 
-    const text = response.choices[0]?.message?.content || "";
+    const text = response.text || "";
     const positioning = (brandContext as SalesBrandContext).positioning || "mid";
 
     return {
@@ -565,18 +542,17 @@ Write a message that:
 Message:`;
 
   try {
-    if (!openai) {
-      throw new Error("OpenAI not initialized");
-    }
+    const response = await generateReply(
+      "You are a world-class sales closer who closes million-dollar deals.",
+      prompt,
+      {
+        model: MODELS.sales_reasoning,
+        temperature: 0.8,
+        maxTokens: 300,
+      }
+    );
 
-    const response = await (openai as OpenAI).chat.completions.create({
-      model: MODELS.sales_reasoning,
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.8,
-      max_tokens: 300,
-    });
-
-    return response.choices[0]?.message?.content || "";
+    return response.text || "";
   } catch (error) {
     console.error("Error generating message:", error);
     return `Hi ${firstName}, quick question about ${companyName} — are you open to a 5-minute conversation?`;
