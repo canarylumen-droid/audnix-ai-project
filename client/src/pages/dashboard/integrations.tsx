@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useCanAccessVoiceNotes } from "@/hooks/use-access-gate";
+import { useMailbox } from "@/hooks/use-mailbox";
 import {
   Instagram,
   Mail,
@@ -187,6 +188,7 @@ const CircularProgress = ({ value, label, sublabel, color = "primary" }: { value
 export default function IntegrationsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { selectedMailboxId } = useMailbox();
   const [customEmailConfig, setCustomEmailConfig] = useState({
     smtpHost: '',
     smtpPort: '587',
@@ -226,9 +228,9 @@ export default function IntegrationsPage() {
     placeholderData: (prev) => prev,
   });
   const { data: stats } = useQuery<any>({
-    queryKey: ["/api/dashboard/stats"],
-    staleTime: 15000,
-    placeholderData: (prev: any) => prev,
+    queryKey: ["/api/dashboard/stats", selectedMailboxId],
+    staleTime: 300000,
+    refetchInterval: 300000,
   });
   const { data: userData } = useQuery<UserData>({ queryKey: ["/api/user/profile"] });
 
@@ -247,13 +249,18 @@ export default function IntegrationsPage() {
     // Autonomous check: if email connected but no domain health, trigger it
     if (customEmailStatus?.connected && customEmailStatus?.email && stats?.domainHealth === undefined) {
       if (!verifyDomainMutation.isPending) {
-        const domain = getDomainFromEmail(customEmailStatus.email);
+        // If there's a selected mailbox, verify *that* domain, otherwise fallback
+        const targetEmail = selectedMailboxId && customEmailStatus?.integrations?.find(i => i.id === selectedMailboxId)?.email
+          ? customEmailStatus.integrations.find(i => i.id === selectedMailboxId)!.email
+          : customEmailStatus.email;
+
+        const domain = getDomainFromEmail(targetEmail);
         if (domain) {
           verifyDomainMutation.mutate(domain);
         }
       }
     }
-  }, [customEmailStatus?.connected, customEmailStatus?.email, stats?.domainHealth]);
+  }, [customEmailStatus?.connected, customEmailStatus?.email, stats?.domainHealth, selectedMailboxId]);
 
   const integrations = integrationsData?.integrations ?? [];
   const isCustomEmailConnected = (customEmailStatus?.integrations?.length || 0) > 0;
@@ -265,7 +272,7 @@ export default function IntegrationsPage() {
     },
     onSuccess: () => {
       toast({ title: "Check Complete", description: "Domain reputation updated." });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats", selectedMailboxId] });
     },
     onError: (err: any) => toast({ title: "Verification Failed", description: err.message, variant: "destructive" })
   });
@@ -339,7 +346,7 @@ export default function IntegrationsPage() {
     mutationFn: async () => apiRequest("POST", "/api/custom-email/sync-now"),
     onSuccess: () => {
       toast({ title: "Sync Triggered", description: "Fetching new messages in the background..." });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats", selectedMailboxId] });
     },
     onError: (err: any) => toast({ title: "Sync Failed", description: err.message, variant: "destructive" })
   });
@@ -759,7 +766,7 @@ export default function IntegrationsPage() {
                         <Plus className="h-4 w-4" /> Add Mailbox
                       </Button>
 
-                      {userData?.user?.subscriptionTier === 'enterprise' && connectedMailboxesCount >= 10 && (
+                      {userData?.user?.subscriptionTier === 'enterprise' && connectedMailboxesCount >= getMailboxLimit() && (
                         <Badge variant="outline" className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-500 border-emerald-500/20 bg-emerald-500/5">
                           Full Capacity
                         </Badge>
@@ -831,7 +838,10 @@ export default function IntegrationsPage() {
                             size="icon"
                             className="h-6 w-6 rounded-full hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
                             onClick={() => {
-                              const domain = getDomainFromEmail(customEmailStatus?.email || null);
+                              const targetEmail = selectedMailboxId && customEmailStatus?.integrations?.find(i => i.id === selectedMailboxId)?.email
+                                ? customEmailStatus.integrations.find(i => i.id === selectedMailboxId)!.email
+                                : customEmailStatus?.email;
+                              const domain = getDomainFromEmail(targetEmail || null);
                               if (domain) verifyDomainMutation.mutate(domain);
                             }}
                             disabled={verifyDomainMutation.isPending}
@@ -890,9 +900,9 @@ export default function IntegrationsPage() {
                                   <span className="text-[10px] font-bold text-foreground/80">{v.domain}</span>
                                   <Badge className={cn(
                                     "text-[8px] h-4 py-0 uppercase font-black",
-                                    v.result?.overallStatus === 'excellent' || v.result?.overallStatus === 'good' ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"
+                                    v.result?.overallStatus === 'excellent' || v.result?.overallStatus === 'good' || v.result?.overallStatus === 'fair' ? "bg-emerald-500/10 text-emerald-500" : "bg-muted text-muted-foreground"
                                   )}>
-                                    {v.result?.overallStatus || 'unknown'}
+                                    {v.result?.overallStatus || 'Pending'}
                                   </Badge>
                                 </div>
                                 {v.result && (

@@ -61,7 +61,7 @@ router.post('/dns/verify', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-// In-memory cache for dashboard stats (60s)
+// In-memory cache for dashboard stats (300s)
 const statsCache = new Map<string, { data: any, expires: number }>();
 
 /**
@@ -139,7 +139,23 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
       reputationScore = 100;
     }
 
-    const unverifiedDomains = domainVerifications.filter(v => {
+    // Filter verifications to the selected mailbox domain if provided
+    let activeVerifications = domainVerifications;
+    if (integrationId) {
+       const activeIntegration = integrations.find(i => i.id === integrationId);
+       if (activeIntegration) {
+          try {
+             const meta = JSON.parse(decrypt(activeIntegration.encryptedMeta));
+             const email = meta.user || meta.email || (activeIntegration.provider === 'custom_email' ? activeIntegration.email : '');
+             if (email && email.includes('@')) {
+                 const d = email.split('@')[1];
+                 activeVerifications = activeVerifications.filter(v => v.domain === d);
+             }
+          } catch(e) {}
+       }
+    }
+
+    const unverifiedDomains = activeVerifications.filter(v => {
       const result = v.verification_result as any;
       return result && result.overallStatus !== 'excellent' && result.overallStatus !== 'good';
     }).length;
@@ -168,10 +184,23 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
     const healthPenalty = (unverifiedDomains * 15) + (disconnectedIntegrations * 20);
     const domainHealth = Math.max(0, reputationScore - healthPenalty);
 
+    // Map verification results nicely
+    const mappedVerifications = activeVerifications.map(v => {
+       const result = v.verification_result as any;
+       // Remove weird 'unknown' if it's actually partially okay, or keep if completely unknown
+       if (result && !result.overallStatus && (result.spf?.found || result.dkim?.found || result.dmarc?.found)) {
+          result.overallStatus = 'fair'; // Adjust logic so partials don't show as error entirely
+       }
+       return {
+         ...v,
+         result
+       }
+    });
+
     const responseData = {
       ...stats,
       domainHealth,
-      domainVerifications,
+      domainVerifications: mappedVerifications,
       health: {
         score: domainHealth,
         status: domainHealth > 80 ? 'healthy' : (domainHealth > 50 ? 'warning' : 'critical'),
@@ -197,10 +226,10 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
       }
     };
 
-    // Store in cache
+    // Store in cache (5 mins)
     statsCache.set(cacheKey, {
       data: responseData,
-      expires: Date.now() + 60 * 1000
+      expires: Date.now() + 300 * 1000
     });
 
     res.json(responseData);
