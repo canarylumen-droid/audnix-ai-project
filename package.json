@@ -55,7 +55,6 @@
     "@react-three/fiber": "^8.18.0",
     "@remotion/cli": "^4.0.405",
     "@remotion/player": "^4.0.405",
-    "@rollup/rollup-linux-x64-gnu": "^4.24.0",
     "@sentry/node": "^10.39.0",
     "@sentry/react": "^10.39.0",
     "@sentry/tracing": "^7.120.4",
@@ -183,7 +182,8 @@
     "vite": "^6.4.1"
   },
   "optionalDependencies": {
-    "fsevents": "~2.3.2"
+    "fsevents": "~2.3.2",
+    "@rollup/rollup-linux-x64-gnu": "^4.24.0"
   },
   "overrides": {
     "tough-cookie": "^5.0.0",
