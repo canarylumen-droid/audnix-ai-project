@@ -423,25 +423,31 @@ async function runMigrations() {
 (async () => {
   app.get("/health", (_req, res) => res.status(200).json({ status: "ok" }));
   const server = await registerRoutes(app);
-  if (process.env.NODE_ENV !== "production") {
-    const { setupVite } = await import("./vite.js");
-    await setupVite(app, server);
+  
+  if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
+    // SECURITY/VERCEL WORKAROUND: Hide the actual string import to prevent 
+    // @vercel/nft from statically analyzing and bundling vite + rollout native dependencies
+    // into the production lambda container which crashes on startup.
+    const vitePath = './vit' + 'e.js'; 
+    try {
+      const { setupVite } = await import(/* @vite-ignore */ vitePath);
+      await setupVite(app, server);
+    } catch (e) {
+      if (!process.env.VERCEL) {
+        log(`[System] Vite dev server not loaded: ${(e as any)?.message}`);
+      }
+    }
   } else {
     const { serveStatic } = await import("./static.js");
     serveStatic(app);
   }
+  
   if (!process.env.VERCEL) {
     const PORT = parseInt(process.env.PORT || "5000", 10);
     server.listen(PORT, "0.0.0.0", () => {
       log(`🚀 Server running at http://0.0.0.0:${PORT}`);
     });
   }
-
-  if (process.env.NODE_ENV !== "production" && (server as any)._vite) {
-    // If we have access to vite instance via server, we can try to change its HMR port
-    // but typically it's better to just set VITE_HMR_PORT env var
-  }
-
   if (process.env.DATABASE_URL) {
     await runMigrations();
 
