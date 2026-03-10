@@ -19,6 +19,3 @@ uploads/*
 .local
 .replit
 replit.nix
-server/vite.ts
-vite.config.ts
-vite.config.js
