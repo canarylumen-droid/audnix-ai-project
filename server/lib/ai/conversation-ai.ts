@@ -945,11 +945,11 @@ export async function generateCampaignTemplateSequence(
     
     // Fallback template
     return {
-      subject: `{{company}} / ${brandContext.businessName || 'Us'}`,
+      subject: `{{company}} / ${(brandContext as any)?.businessName || 'Us'}`,
       body: `Hey {{firstName}},\n\nNoticed {{company}} is scaling in the {{industry}} space. Most teams miss the 20% shift that drives 80% of revenue right now.\n\nWe deployed a system using ${typeof offer === 'string' ? offer.substring(0, 50) : 'high-velocity optimization'} that fixes this.\n\nOpen to a quick framework overview next week?`,
-      followUpSubject: `Re: {{company}} / ${brandContext.businessName || 'Us'}`,
+      followUpSubject: `Re: {{company}} / ${(brandContext as any)?.businessName || 'Us'}`,
       followUpBody: `Hey {{firstName}},\n\nJust bumping this. If efficiency is a focus for {{company}} this quarter, this would be highly relevant.\n\nLet me know if you're open to the 5-min breakdown.`,
-      followUpSubject2: `Re: {{company}} / ${brandContext.businessName || 'Us'}`,
+      followUpSubject2: `Re: {{company}} / ${(brandContext as any)?.businessName || 'Us'}`,
       followUpBody2: `Hey {{firstName}} - guessing this isn't a priority right now.\n\nI'll stop reaching out. If you ever want to scale your operations without adding headcount, feel free to reach back out.\n\nCheers,`,
       autoReplyBody: `Hey {{firstName}}! Thanks for getting back to me.\n\nI'd love to jump on a quick call to show you exactly how this works for {{company}}.\n\nDo you have 10 mins this week? Let me know a time that works for you.`
     };

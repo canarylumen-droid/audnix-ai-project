@@ -146,7 +146,7 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
        if (activeIntegration) {
           try {
              const meta = JSON.parse(decrypt(activeIntegration.encryptedMeta));
-             const email = meta.user || meta.email || (activeIntegration.provider === 'custom_email' ? activeIntegration.email : '');
+             const email = meta.user || meta.email || (activeIntegration.provider === 'custom_email' ? (activeIntegration as any).email : '');
              if (email && email.includes('@')) {
                  const d = email.split('@')[1];
                  activeVerifications = activeVerifications.filter(v => v.domain === d);

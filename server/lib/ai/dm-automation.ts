@@ -38,42 +38,8 @@ interface Message {
   direction: 'inbound' | 'outbound';
   createdAt: Date;
 }
-  userId: string;
-  leadId: string;
-  recipientId: string;
-  channel: 'instagram';
-  scheduledAt: Date;
-  context: {
-    lastMessage: string;
-    intent?: IntentAnalysis;
-    messageCount: number;
-  };
-}
-
-interface Lead {
-  id: string;
-  userId: string;
-  name: string;
-  channel: string;
-  status: string;
-  externalId: string | null;
-  email?: string | null;
-  phone?: string | null;
-  tags?: string[];
-  aiPaused?: boolean;
-  metadata?: Record<string, unknown>;
-}
-
-interface Message {
-  id: string;
-  body: string;
-  direction: 'inbound' | 'outbound';
-  createdAt: Date;
-}
 
 const pendingReplies = new Map<string, NodeJS.Timeout>();
-
-const instagramOAuth = new InstagramOAuth();
 
 export async function scheduleAutomatedDMReply(
   userId: string,
