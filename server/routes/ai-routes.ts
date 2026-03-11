@@ -740,6 +740,63 @@ router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response): 
 });
 
 /**
+ * Generate AI-drafted reply to a lead (does not send or save to DB)
+ * POST /api/ai/draft-reply/:leadId
+ */
+router.post("/draft-reply/:leadId", requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { leadId } = req.params;
+    const userId = getCurrentUserId(req)!;
+
+    const lead = await storage.getLeadById(leadId as string);
+    if (!lead) {
+      res.status(404).json({ error: "Lead not found" });
+      return;
+    }
+
+    // Allow owner or admin
+    if (lead.userId !== userId) {
+      const user = await storage.getUserById(userId);
+      const isAdmin = user?.role?.toLowerCase() === 'admin';
+      if (!isAdmin) {
+        res.status(403).json({ error: "Unauthorized" });
+        return;
+      }
+    }
+
+    const messages = await storage.getMessagesByLeadId(leadId);
+    const user = await storage.getUserById(userId);
+    
+    // Pass same context as the auto-reply
+    const userContext = {
+      businessName: user?.company || undefined,
+      brandVoice: user?.replyTone || 'professional'
+    };
+    
+    // Inject PDF intel if available (like Expert Outreach)
+    if (user?.brandGuidelinePdfText) {
+      userContext.brandVoice += `\nBRAND PDF GUIDELINES EXCERPT: ${user.brandGuidelinePdfText.substring(0, 1000)}`;
+    }
+
+    const aiResponse = await generateAIReply(
+      lead,
+      messages,
+      lead.channel as ChannelType,
+      userContext
+    );
+
+    res.json({
+      draft: aiResponse.text
+    });
+
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to generate draft";
+    console.error("AI draft generation error:", error);
+    res.status(500).json({ error: errorMessage });
+  }
+});
+
+/**
  * Generate voice note script for warm lead
  * POST /api/ai/voice/:leadId
  */

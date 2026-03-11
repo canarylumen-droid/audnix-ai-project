@@ -248,8 +248,8 @@ export class FollowUpWorker {
       const globalAutonomousMode = (user?.config as any)?.autonomousMode !== false;
 
       if (!globalAutonomousMode) {
-        console.log(`[FOLLOW_UP] Global Autonomous Mode is OFF for user ${job.userId}. Skipping follow-up.`);
-        await db.update(followUpQueue).set({ status: 'completed', processedAt: new Date() }).where(eq(followUpQueue.id, job.id));
+        console.log(`[FOLLOW_UP] Global Autonomous Mode is OFF for user ${job.userId}. Reverting job ${job.id} to pending.`);
+        await db.update(followUpQueue).set({ status: 'pending' }).where(eq(followUpQueue.id, job.id));
         return;
       }
 
@@ -300,6 +300,7 @@ export class FollowUpWorker {
       // Generate AI reply or use custom auto-reply body
       let aiReply = '';
       const customAutoReply = (job.context as any)?.autoReplyBody;
+      const isAutoReply = !!(job.context as any)?.last_message;
 
       if (customAutoReply) {
         console.log(`[FOLLOW_UP_WORKER] Using custom auto-reply template for lead ${lead.email}`);
@@ -312,7 +313,17 @@ export class FollowUpWorker {
           .replace(/{{firstName}}/g, firstName)
           .replace(/{{name}}/g, lead.name)
           .replace(/{{company}}/g, company);
+      } else if (isAutoReply) {
+        console.log(`[FOLLOW_UP_WORKER] Using conversational auto-reply logic for lead ${lead.email}`);
+        const { generateAIReply } = await import('./conversation-ai.js');
+        const aiResult = await generateAIReply(
+          lead as any,
+          conversationHistory as any,
+          job.channel as 'email' | 'instagram'
+        );
+        aiReply = aiResult.text || '';
       } else {
+        console.log(`[FOLLOW_UP_WORKER] Using follow-up sequence logic for lead ${lead.email}`);
         // Generate AI reply with day-aware context and brand personalization
         aiReply = await this.generateFollowUp(lead, conversationHistory, brandContext, campaignDay, lead.createdAt || new Date(), job.userId);
       }

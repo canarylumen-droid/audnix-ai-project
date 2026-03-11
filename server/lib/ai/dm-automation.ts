@@ -1,16 +1,43 @@
-// import { supabaseAdmin } from '../supabase-admin.js'; // Removed
 import { storage } from '../../storage.js';
-import { generateAIReply, calculateReplyDelay, isLeadActivelyReplying } from './conversation-ai.js';
-import { InstagramOAuth } from '../oauth/instagram.js';
-import { sendInstagramMessage } from '../channels/instagram.js';
-import { decryptToJSON } from '../crypto/encryption.js';
 import { db } from '../../db.js';
-import { leads, messages, integrations } from '../../../shared/schema.js';
-import { eq, and } from 'drizzle-orm';
+import { messages } from '../../../shared/schema.js';
+import { eq } from 'drizzle-orm';
 import type { IntentAnalysis } from './intent-analyzer.js';
 import { PredictiveTimingAnalyzer } from './predictive-timing.js';
 
 interface AutomatedReplyJob {
+  userId: string;
+  leadId: string;
+  recipientId: string;
+  channel: 'instagram';
+  scheduledAt: Date;
+  context: {
+    lastMessage: string;
+    intent?: IntentAnalysis;
+    messageCount: number;
+  };
+}
+
+interface Lead {
+  id: string;
+  userId: string;
+  name: string;
+  channel: string;
+  status: string;
+  externalId: string | null;
+  email?: string | null;
+  phone?: string | null;
+  tags?: string[];
+  aiPaused?: boolean;
+  metadata?: Record<string, unknown>;
+}
+
+interface Message {
+  id: string;
+  body: string;
+  direction: 'inbound' | 'outbound';
+  createdAt: Date;
+}
   userId: string;
   leadId: string;
   recipientId: string;
@@ -58,11 +85,6 @@ export async function scheduleAutomatedDMReply(
   try {
     console.log(`[DM_AUTO] Scheduling automated reply for lead ${leadId}`);
 
-    if (pendingReplies.has(leadId)) {
-      console.log(`[DM_AUTO] Reply already pending for lead ${leadId}, skipping duplicate`);
-      return;
-    }
-
     // Check DB for existing pending follow-up
     const existingJob = await storage.getPendingFollowUp(leadId);
 
@@ -78,30 +100,9 @@ export async function scheduleAutomatedDMReply(
     const scheduledAt = new Date(Date.now() + delayMs);
     
     console.log(`[DM_AUTO] Predictive strategy: ${timingResult.followUpStrategy}, Expected ROI: ${timingResult.expectedROI}`);
-
     console.log(`[DM_AUTO] Reply scheduled in ${Math.round(delayMs / 1000)}s at ${scheduledAt.toISOString()}`);
 
-    const timeoutId = setTimeout(async () => {
-      pendingReplies.delete(leadId);
-      await executeAutomatedReply({
-        userId,
-        leadId,
-        recipientId,
-        channel: 'instagram',
-        scheduledAt,
-        context: {
-          lastMessage,
-          intent,
-          messageCount: conversationHistory.length + 1
-        }
-      });
-    }, delayMs);
-
-    pendingReplies.set(leadId, timeoutId);
-
-    pendingReplies.set(leadId, timeoutId);
-
-    // Persist to DB using FollowUpQueue
+    // Persist to DB using FollowUpQueue. The follow-up-worker will handle execution.
     await storage.createFollowUp({
       userId,
       leadId,
@@ -112,9 +113,7 @@ export async function scheduleAutomatedDMReply(
         last_message: lastMessage,
         intent,
         message_count: conversationHistory.length + 1
-      },
-      // recipientId is not in FollowUpQueue schema, context?
-      // schema: context matches.
+      }
     });
 
   } catch (error) {
@@ -237,172 +236,6 @@ function calculateSmartDelay(intent?: IntentAnalysis, history?: Message[]): numb
   return minDelay + Math.random() * (maxDelay - minDelay);
 }
 
-async function executeAutomatedReply(job: AutomatedReplyJob): Promise<void> {
-  try {
-    console.log(`[DM_AUTO] Executing automated reply for lead ${job.leadId}`);
-
-    const lead = await storage.getLeadById(job.leadId);
-    if (!lead) {
-      console.error(`[DM_AUTO] Lead ${job.leadId} not found`);
-      return;
-    }
-
-    const user = await storage.getUserById(job.userId);
-    const config = (user?.config as any) || {};
-    const isAutonomousMode = config.autonomousMode !== false;
-
-    if (!isAutonomousMode) {
-      console.log(`[DM_AUTO] Autonomous Mode disabled for user ${job.userId}, skipping reply`);
-      await updateQueueStatus(job.leadId, 'skipped', 'Autonomous Mode disabled');
-      return;
-    }
-
-    if (lead.aiPaused) {
-      console.log(`[DM_AUTO] AI paused for lead ${lead.name}, skipping reply`);
-      await updateQueueStatus(job.leadId, 'skipped', 'AI paused by user');
-      return;
-    }
-
-    if (lead.status === 'not_interested' || lead.status === 'converted') {
-      console.log(`[DM_AUTO] Lead ${lead.name} is ${lead.status}, skipping reply`);
-      await updateQueueStatus(job.leadId, 'skipped', `Lead status: ${lead.status}`);
-      return;
-    }
-
-    const conversationHistory = await getConversationHistory(job.leadId);
-
-    const aiResult = await generateAIReply(
-      {
-        ...lead,
-        userId: job.userId,
-        externalId: job.recipientId
-      } as any,
-      conversationHistory.map(m => ({
-        ...m,
-        leadId: job.leadId,
-        userId: job.userId,
-        channel: job.channel,
-        metadata: null
-      })) as any[],
-      job.channel as 'instagram' | 'email'
-    );
-
-    if (!aiResult.text || aiResult.text.trim().length === 0) {
-      console.error('[DM_AUTO] Empty AI response generated');
-      await updateQueueStatus(job.leadId, 'failed', 'Empty AI response');
-      return;
-    }
-
-    console.log(`[DM_AUTO] Generated AI reply: "${aiResult.text.substring(0, 100)}..."`);
-
-    const sent = await sendInstagramReply(job.userId, job.recipientId, aiResult.text);
-
-    if (sent) {
-      await storage.createMessage({
-        userId: job.userId,
-        leadId: job.leadId,
-        body: aiResult.text,
-        provider: 'instagram',
-        direction: 'outbound',
-        metadata: {
-          automated: true,
-          intent: job.context.intent,
-          use_voice: aiResult.useVoice
-        }
-      });
-
-      await storage.updateLead(job.leadId, {
-        status: 'replied',
-        lastMessageAt: new Date()
-      });
-
-      await updateQueueStatus(job.leadId, 'completed', null);
-
-      console.log(`[DM_AUTO] Successfully sent automated reply to ${lead.name}`);
-
-      await storage.createAuditLog({
-        userId: job.userId,
-        leadId: job.leadId,
-        action: 'ai_reply_sent',
-        details: {
-          channel: 'instagram',
-          description: `AI sent: "${aiResult.text.substring(0, 50)}..."`,
-          automated: true,
-          reply_delay_seconds: Math.round((Date.now() - job.scheduledAt.getTime()) / 1000),
-          intent: job.context.intent
-        }
-      });
-    } else {
-      console.error('[DM_AUTO] Failed to send Instagram reply');
-      await updateQueueStatus(job.leadId, 'failed', 'Instagram send failed');
-    }
-
-  } catch (error) {
-    console.error('[DM_AUTO] Error executing automated reply:', error);
-    await updateQueueStatus(job.leadId, 'failed', String(error));
-  }
-}
-
-async function sendInstagramReply(userId: string, recipientId: string, message: string): Promise<boolean> {
-  try {
-    const tokenData = await instagramOAuth.getValidToken(userId);
-    if (!tokenData) {
-      console.error('[DM_AUTO] No valid Instagram token for user');
-      return false;
-    }
-
-    const instagramAccountId = await getInstagramAccountId(userId);
-    if (!instagramAccountId) {
-      console.error('[DM_AUTO] No Instagram account ID found for user');
-      return false;
-    }
-
-    await sendInstagramMessage(
-      tokenData,
-      instagramAccountId,
-      recipientId,
-      message
-    );
-
-    return true;
-  } catch (error) {
-    console.error('[DM_AUTO] Instagram send error:', error);
-    return false;
-  }
-}
-
-async function getInstagramAccountId(userId: string): Promise<string | null> {
-  if (!db) return null;
-
-  try {
-    const userIntegrations = await db
-      .select()
-      .from(integrations)
-      .where(and(
-        eq(integrations.userId, userId),
-        eq(integrations.provider, 'instagram'),
-        eq(integrations.connected, true)
-      ))
-      .limit(1);
-
-    if (userIntegrations.length > 0) {
-      const integration = userIntegrations[0];
-      try {
-        const meta = decryptToJSON<{ userId: string }>(integration.encryptedMeta);
-        return meta.userId || null;
-      } catch (e) {
-        console.error('[DM_AUTO] Failed to decrypt integration meta:', e);
-        return null;
-      }
-    }
-
-    return null;
-  } catch (error) {
-    console.error('[DM_AUTO] Error getting Instagram account ID:', error);
-    return null;
-  }
-}
-
 async function getConversationHistory(leadId: string): Promise<Message[]> {
   if (!db) return [];
 
@@ -429,44 +262,6 @@ async function getConversationHistory(leadId: string): Promise<Message[]> {
     console.error('[DM_AUTO] Error getting conversation history:', error);
     return [];
   }
-}
-
-async function updateQueueStatus(leadId: string, status: string, errorMessage: string | null): Promise<void> {
-  // Determine mapped status
-  let mappedStatus: "pending" | "failed" | "processing" | "completed" = "pending";
-  if (status === 'sent' || status === 'completed' || status === 'skipped') mappedStatus = 'completed';
-  else if (status === 'failed') mappedStatus = 'failed';
-  else if (status === 'processing') mappedStatus = 'processing';
-
-  try {
-    const pending = await storage.getPendingFollowUp(leadId);
-    if (!pending) return;
-
-    await storage.updateFollowUp(pending.id, {
-      status: mappedStatus,
-      context: {
-        ...(pending.context as Record<string, any>),
-        error: errorMessage
-      }
-    });
-  } catch (error) {
-    console.log('[DM_AUTO] Queue status update info:', error);
-  }
-}
-
-export function cancelPendingReply(leadId: string): boolean {
-  const timeoutId = pendingReplies.get(leadId);
-  if (timeoutId) {
-    clearTimeout(timeoutId);
-    pendingReplies.delete(leadId);
-    console.log(`[DM_AUTO] Cancelled pending reply for lead ${leadId}`);
-    return true;
-  }
-  return false;
-}
-
-export function getPendingRepliesCount(): number {
-  return pendingReplies.size;
 }
 
 export async function checkUserAutomationSettings(userId: string): Promise<{

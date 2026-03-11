@@ -77,7 +77,7 @@ export const users = pgTable("users", {
   calendarLink: text("calendar_link"),
   brandGuidelinePdfUrl: text("brand_guideline_pdf_url"),
   brandGuidelinePdfText: text("brand_guideline_pdf_text"),
-  config: jsonb("config").default({}),
+  config: jsonb("config").default({ autonomousMode: false }),
   filteredLeadsCount: integer("filtered_leads_count").notNull().default(0),
 });
 

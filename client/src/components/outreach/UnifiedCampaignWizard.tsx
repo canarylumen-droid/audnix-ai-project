@@ -248,6 +248,32 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
     }
   };
 
+  const handleGenerateSequence = async () => {
+    setIsGeneratingAI(true);
+    toast({ title: "AI Generation Started", description: "Analyzing brand context and pdfs..." });
+    try {
+      const res = await apiRequest("POST", "/api/outreach/generate-template", {
+        focus: "high-conversion clickbait style"
+      });
+      const { sequence } = await res.json();
+      if (sequence) {
+        setSubject(sequence.subject || "");
+        setBody(sequence.body || "");
+        setFollowUpSubject(sequence.followUpSubject || "");
+        setFollowUpBody(sequence.followUpBody || "");
+        setFollowUpSubject2(sequence.followUpSubject2 || "");
+        setFollowUpBody2(sequence.followUpBody2 || "");
+        setAutoReplyBody(sequence.autoReplyBody || "");
+        
+        toast({ title: "Sequence Generated!", description: "AI successfully drafted your campaign and reply copy." });
+      }
+    } catch (err: any) {
+      toast({ title: "Generation failed", description: err.message, variant: "destructive" });
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  };
+
   const renderPreview = (subj: string, content: string) => {
     const sampleLead = leads[0] || { name: "Prospect Name", company: "Company Inc." };
     const firstName = sampleLead.name?.trim().split(' ')[0] || 'Prospect';
@@ -322,13 +348,16 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
         <div className="flex flex-1 overflow-hidden relative">
           {/* Main Workspace */}
           <div className={cn(
-            "flex-1 overflow-y-auto w-full transition-all duration-500 ease-in-out pb-24", // Add padding bottom for footer
-            step === 2 && viewMode === 'preview' ? 'hidden md:block' : 'block'
+            "flex-1 flex flex-col w-full transition-all duration-500 ease-in-out relative",
+            step === 2 && viewMode === 'preview' ? 'hidden md:flex' : 'flex'
           )}>
-            <div className="max-w-4xl mx-auto p-6 md:p-10">
-              <AnimatePresence mode="wait">
-                {step === 1 && (
-                  <motion.div key="step1" initial="enter" animate="center" exit="exit" variants={variants} className="space-y-8 pb-10">
+            <div className="flex-1 overflow-y-auto w-full">
+              <div className="max-w-4xl mx-auto p-6 md:p-10 pb-32">
+                <AnimatePresence mode="wait">
+                  {/* Step content starts here */}
+                  {step === 1 && (
+                    <motion.div key="step1" initial="enter" animate="center" exit="exit" variants={variants} className="space-y-8">
+
                     <div className="space-y-2">
                       <h2 className="text-3xl font-black tracking-tighter uppercase">Lead Source</h2>
                       <p className="text-muted-foreground text-sm font-medium">Select existing leads or upload new ones.</p>
@@ -646,6 +675,18 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                         </div>
                       </div>
 
+                      <div className="flex items-center justify-between w-full mb-6">
+                        <Label className="text-xs font-black uppercase tracking-[0.3em] text-primary/60">Email Sequence</Label>
+                        <Button 
+                          onClick={handleGenerateSequence} 
+                          disabled={isGeneratingAI}
+                          className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 font-black uppercase tracking-widest text-[10px] shadow-[0_0_20px_rgba(var(--primary),0.3)] animate-pulse hover:animate-none"
+                        >
+                          {isGeneratingAI ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                          AI Sparkle Generate
+                        </Button>
+                      </div>
+
                       <Tabs defaultValue="initial" className="w-full" key={step}>
                         <TabsList className="h-auto w-full bg-muted/40 p-1.5 rounded-2xl border border-border/10 mb-6 flex flex-wrap sm:flex-nowrap gap-2">
                           <TabsTrigger value="initial" className="flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-md transition-all h-10 sm:h-full">Initial</TabsTrigger>
@@ -801,9 +842,10 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                 )}
               </AnimatePresence>
             </div>
+            </div>
 
             {/* Footer Navigation */}
-            <div className="p-6 md:p-8 border-t border-border/20 bg-card flex items-center justify-between shrink-0">
+            <div className="p-4 md:p-8 border-t border-border/20 bg-card/95 backdrop-blur-xl flex items-center justify-between shrink-0 sticky bottom-0 z-20 pb-20 md:pb-8">
               <Button
                 variant="ghost"
                 onClick={() => step > 1 ? setStep(step - 1) : onClose()}

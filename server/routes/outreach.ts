@@ -7,7 +7,7 @@ import { createOutreachCampaign, validateCampaignSafety, formatCampaignMetrics }
 import { requireAuth } from '../middleware/auth.js';
 import { isValidUUID } from '../lib/utils/validation.js';
 import { verifyDomainDns } from '../lib/email/dns-verification.js';
-import { generateExpertOutreach } from '../lib/ai/conversation-ai.js';
+import { generateExpertOutreach, generateCampaignTemplateSequence } from '../lib/ai/conversation-ai.js';
 import { outreachCampaigns, campaignLeads, messages, campaignEmails, leads as leadsTable } from '../../shared/schema.js';
 import { storage } from '../storage.js';
 import { db } from '../db.js';
@@ -39,6 +39,27 @@ router.post('/preview', requireAuth, async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to generate AI preview' });
+  }
+});
+
+/**
+ * POST /api/outreach/generate-template
+ * Generate a complete AI-driven sequence using Brand PDF context
+ */
+router.post('/generate-template', requireAuth, async (req, res) => {
+  try {
+    const userId = req.session?.userId!;
+    const { focus } = req.body;
+    
+    // Will use the user's uploaded PDF & Brand Guide context natively inside conversation-ai
+    const sequence = await generateCampaignTemplateSequence(userId, focus);
+    
+    return res.json({
+      success: true,
+      sequence
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to generate campaign sequence', details: error.message });
   }
 });
 
@@ -336,6 +357,35 @@ router.post('/campaigns/:id/resume', requireAuth, async (req, res) => {
       .returning();
 
     if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+
+    wsSync.notifyCampaignsUpdated(userId);
+    res.json({ success: true, campaign });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/outreach/campaigns/:id/abort
+ * Abort a campaign
+ */
+router.post('/campaigns/:id/abort', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const [campaign] = await db.update(outreachCampaigns)
+      .set({ status: 'aborted', updatedAt: new Date() })
+      .where(and(eq(outreachCampaigns.id, id), eq(outreachCampaigns.userId, userId)))
+      .returning();
+
+    if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+
+    // Stop all pending follow-ups instantly
+    await db.update(campaignLeads)
+      .set({ status: 'aborted', updatedAt: new Date() })
+      .where(and(eq(campaignLeads.campaignId, id), eq(campaignLeads.status, 'pending')));
 
     wsSync.notifyCampaignsUpdated(userId);
     res.json({ success: true, campaign });

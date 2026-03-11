@@ -27,6 +27,7 @@ import { useMailbox } from "@/hooks/use-mailbox";
 import { LeadIntelligenceModal } from "@/components/dashboard/LeadIntelligenceModal";
 import { CustomContextMenu, useContextMenu } from "@/components/ui/interactive/CustomContextMenu";
 import UnifiedCampaignWizard from "@/components/outreach/UnifiedCampaignWizard";
+import { CampaignListModal } from "@/components/outreach/CampaignListModal";
 import { LeadProcessModal } from "@/components/dashboard/LeadProcessModal";
 import {
   Search,
@@ -112,6 +113,7 @@ export default function InboxPage() {
   const [allLeads, setAllLeads] = useState<any[]>([]);
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
   const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
+  const [isCampaignListOpen, setIsCampaignListOpen] = useState(false);
 
   // Handle Global Search params
   useEffect(() => {
@@ -598,9 +600,9 @@ export default function InboxPage() {
     setIsGenerating(true);
     setTypedText("");
     try {
-      const res = await apiRequest("POST", `/api/ai/reply/${leadId}`);
+      const res = await apiRequest("POST", `/api/ai/draft-reply/${leadId}`);
       const data = await res.json();
-      const aiSuggestion = data.aiSuggestion || data.content || "";
+      const aiSuggestion = data.draft || data.aiSuggestion || data.content || "";
 
       // Typewriter effect from ConversationsPage
       let index = 0;
@@ -612,8 +614,9 @@ export default function InboxPage() {
           clearInterval(interval);
           setReplyMessage(aiSuggestion);
           setIsGenerating(false);
+          setTypedText(""); // clear the overlay text after typing finishes
         }
-      }, 20);
+      }, 10); // Sped up typing
     } catch (err) {
       toast({ title: "AI Error", description: "Failed to generate reply", variant: "destructive" });
       setIsGenerating(false);
@@ -852,7 +855,7 @@ export default function InboxPage() {
                   variant="outline"
                   size="sm"
                   className="h-8 px-3 gap-1.5 text-xs font-medium"
-                  onClick={() => setIsCampaignModalOpen(true)}
+                  onClick={() => setIsCampaignListOpen(true)}
                 >
                   <Send className="h-3.5 w-3.5" />
                   Campaign
@@ -1412,20 +1415,40 @@ export default function InboxPage() {
                       </SheetContent>
                     </Sheet>
 
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={cn(
-                        "h-9 rounded-xl font-bold text-[10px] px-4 transition-all shadow-sm border",
-                        !activeLead?.aiPaused
-                          ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
-                          : "bg-muted text-muted-foreground border-border/50 hover:bg-muted/80"
-                      )}
-                      onClick={() => activeLead && toggleAi.mutate({ id: leadId!, paused: !activeLead.aiPaused })}
-                    >
-                      <div className={cn("w-2 h-2 rounded-full mr-2 animate-pulse", !activeLead?.aiPaused ? "bg-emerald-500" : "bg-muted-foreground")} />
-                      <span className="hidden sm:inline">{!activeLead?.aiPaused ? "AUTONOMOUS MODE: ON" : "AUTONOMOUS MODE: OFF"}</span>
-                    </Button>
+                    {/* Autonomous Toggle */}
+                    {(() => {
+                      const isGlobalAiEngineOn = user?.config?.autonomousMode !== false;
+                      const isEffectivelyPaused = !isGlobalAiEngineOn || activeLead?.aiPaused;
+                      
+                      return (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className={cn(
+                            "h-9 rounded-xl font-bold text-[10px] px-4 transition-all shadow-sm border",
+                            !isEffectivelyPaused
+                              ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
+                              : "bg-muted text-muted-foreground border-border/50 hover:bg-muted/80"
+                          )}
+                          onClick={() => {
+                            if (!isGlobalAiEngineOn) {
+                              toast({ title: "AI Engine is OFF", description: "Turn on the Global AI Engine in the sidebar to enable autonomous mode.", variant: "destructive" });
+                              return;
+                            }
+                            if (activeLead) {
+                              toggleAi.mutate({ id: leadId!, paused: !activeLead.aiPaused });
+                            }
+                          }}
+                        >
+                          <div className={cn("w-2 h-2 rounded-full mr-2", !isEffectivelyPaused ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground")} />
+                          <span className="hidden sm:inline">
+                            {!isGlobalAiEngineOn 
+                              ? "GLOBAL AI: OFF" 
+                              : (!activeLead?.aiPaused ? "AUTONOMOUS MODE: ON" : "AUTONOMOUS MODE: OFF")}
+                          </span>
+                        </Button>
+                      );
+                    })()}
 
                     {!showDetails && (
                       <Button
@@ -1657,6 +1680,11 @@ export default function InboxPage() {
         config={contextConfig}
         onClose={closeMenu}
         onAction={handleMenuAction}
+      />
+      <CampaignListModal
+        isOpen={isCampaignListOpen}
+        onClose={() => setIsCampaignListOpen(false)}
+        onNewCampaign={() => setIsCampaignModalOpen(true)}
       />
       <UnifiedCampaignWizard
         isOpen={isCampaignModalOpen}

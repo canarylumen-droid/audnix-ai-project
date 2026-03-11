@@ -865,3 +865,93 @@ export async function generateExpertOutreach(
     };
   }
 }
+
+/**
+ * Generate a full 4-part AI Campaign Template Sequence
+ * Uses Brand PDF context to create high-conversion, clickbait-style templates with placeholders.
+ */
+export async function generateCampaignTemplateSequence(
+  userId: string,
+  focus?: string // Optional specific instruction from user
+): Promise<{
+  subject: string;
+  body: string;
+  followUpSubject: string;
+  followUpBody: string;
+  followUpSubject2: string;
+  followUpBody2: string;
+  autoReplyBody: string;
+}> {
+  const brandContext = await getBrandContext(userId);
+  const user = await storage.getUserById(userId);
+  
+  // Combine brand config and PDF vector text if available
+  const pdfIntel = user?.brandGuidelinePdfText 
+    ? `BRAND PDF INTEL EXCERPTS: ${user.brandGuidelinePdfText.substring(0, 1500)}` 
+    : "No PDF intel provided.";
+    
+  const offer = brandContext.offer || "your premium solution";
+  const customFocus = focus ? `USER REQUESTED FOCUS: ${focus}` : "";
+
+  try {
+    const systemPrompt = `You are an elite high-ticket B2B sales copywriter. You are building out a 3-step Cold Email Sequence plus an active Auto-Reply template.
+    Your objective is to generate highly disruptive, clickbait-style (but professional), curiosity-driven copy that breaks patterns.
+
+    BRAND INTEL:
+    Offer: ${JSON.stringify(offer)}
+    Company Name: ${(brandContext as any)?.businessName || 'Us'}
+    ${pdfIntel}
+    ${customFocus}
+
+    RULES & FORMATTING:
+    1. USE THESE EXACT PLACEHOLDERS: {{firstName}}, {{company}}, {{industry}}.
+    2. THE CURIOSITY GAP: Start the first email bluntly. "Is {{company}} prepared for the shift in {{industry}}?"
+    3. NO FLUFF: No "Hope you are doing well" or "My name is...".
+    4. FOLLOW UP 1: Short, value-add bump. 
+    5. FOLLOW UP 2: The break-up/final chance. Provocative but polite.
+    6. AUTO-REPLY: A conversational message that gets sent immediately after they reply, pushing to a meeting.
+    
+    OUTPUT JSON FORMAT EXACTLY:
+    {
+      "subject": "Email 1 Subject (short, lowercase, FOMO)",
+      "body": "Email 1 Body",
+      "followUpSubject": "Re: Email 1 Subject",
+      "followUpBody": "Follow Up 1 Body",
+      "followUpSubject2": "Re: Email 1 Subject",
+      "followUpBody2": "Follow Up 2 Body (break up)",
+      "autoReplyBody": "Auto-Reply Body (when they reply)"
+    }`;
+
+    const aiResponse = await generateReply(systemPrompt, "Draft the 4-part master sequence now.", {
+      model: MODELS.sales_reasoning,
+      jsonMode: true
+    });
+
+    const result = JSON.parse(aiResponse.text || '{}');
+
+    if (!result.subject || !result.body) throw new Error("Incomplete Campaign Sequence Generation");
+
+    return {
+      subject: result.subject || "quick question about {{company}}",
+      body: result.body,
+      followUpSubject: result.followUpSubject || `Re: ${result.subject}`,
+      followUpBody: result.followUpBody,
+      followUpSubject2: result.followUpSubject2 || `Re: ${result.subject}`,
+      followUpBody2: result.followUpBody2,
+      autoReplyBody: result.autoReplyBody
+    };
+  } catch (error: any) {
+    console.error("Template Sequence Generation Error:", error);
+    
+    // Fallback template
+    return {
+      subject: `{{company}} / ${brandContext.businessName || 'Us'}`,
+      body: `Hey {{firstName}},\n\nNoticed {{company}} is scaling in the {{industry}} space. Most teams miss the 20% shift that drives 80% of revenue right now.\n\nWe deployed a system using ${typeof offer === 'string' ? offer.substring(0, 50) : 'high-velocity optimization'} that fixes this.\n\nOpen to a quick framework overview next week?`,
+      followUpSubject: `Re: {{company}} / ${brandContext.businessName || 'Us'}`,
+      followUpBody: `Hey {{firstName}},\n\nJust bumping this. If efficiency is a focus for {{company}} this quarter, this would be highly relevant.\n\nLet me know if you're open to the 5-min breakdown.`,
+      followUpSubject2: `Re: {{company}} / ${brandContext.businessName || 'Us'}`,
+      followUpBody2: `Hey {{firstName}} - guessing this isn't a priority right now.\n\nI'll stop reaching out. If you ever want to scale your operations without adding headcount, feel free to reach back out.\n\nCheers,`,
+      autoReplyBody: `Hey {{firstName}}! Thanks for getting back to me.\n\nI'd love to jump on a quick call to show you exactly how this works for {{company}}.\n\nDo you have 10 mins this week? Let me know a time that works for you.`
+    };
+  }
+}

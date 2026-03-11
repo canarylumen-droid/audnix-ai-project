@@ -299,6 +299,8 @@ async function processEmailForLead(
     results.imported++;
 
     // AUTO-REPLY TRIGGER & CAMPAIGN MANAGEMENT
+    let aiShouldWait = false; // Flag to determine if AI should hold off
+
     if (direction === 'inbound') {
       try {
         // 1. MARK CAMPAIGN AS REPLIED: Stop follow-ups if lead replied
@@ -307,7 +309,7 @@ async function processEmailForLead(
         try {
           const { campaignLeads, outreachCampaigns } = await import('../../../shared/schema.js');
           const { db } = await import('../../db.js');
-          const { eq, and, sql } = await import('drizzle-orm');
+          const { eq, and, or, sql } = await import('drizzle-orm');
 
           // DEEP LINKING: Try to find campaign via inReplyTo header
           if (email.inReplyTo) {
@@ -318,42 +320,69 @@ async function processEmailForLead(
             }
           }
 
-          // Find the campaign lead entry (preferably the one linked, otherwise the most recent 'sent' one)
+          // Find the campaign lead entry (preferably the one linked, otherwise any active 'sent'/'pending' one)
           const campaignLeadEntries = await db.select()
             .from(campaignLeads)
             .where(
               and(
                 eq(campaignLeads.leadId, lead.id),
-                linkedCampaignId ? eq(campaignLeads.campaignId, linkedCampaignId) : eq(campaignLeads.status, 'sent')
+                linkedCampaignId ? eq(campaignLeads.campaignId, linkedCampaignId) : or(eq(campaignLeads.status, 'sent'), eq(campaignLeads.status, 'pending'), eq(campaignLeads.status, 'replied'))
               )
             )
+            .orderBy(sql`${campaignLeads.createdAt} DESC`)
             .limit(1);
 
           if (campaignLeadEntries.length > 0) {
             const entry = campaignLeadEntries[0];
-            const randomDelayMinutes = 2 + Math.random() * 2; // 2-4 minutes
-            const nextActionAt = new Date(Date.now() + randomDelayMinutes * 60 * 1000);
+            
+            // Fetch the campaign to see if it has an auto-reply configured
+            const campaigns = await db.select()
+              .from(outreachCampaigns)
+              .where(eq(outreachCampaigns.id, entry.campaignId))
+              .limit(1);
+            
+            const activeCampaign = campaigns.length > 0 ? campaigns[0] : null;
+            const hasCampaignAutoReply = activeCampaign ? !!(activeCampaign.template as any)?.autoReplyBody : false;
 
-            await db.update(campaignLeads)
-              .set({
-                status: 'replied',
-                nextActionAt,
-                metadata: {
-                  ...(entry.metadata as Record<string, any> || {}),
-                  pendingAutoReply: true
+            const isFirstReply = entry.status !== 'replied';
+
+            if (isFirstReply) {
+                // First time replying to this campaign sequence.
+                const randomDelayMinutes = 2 + Math.random() * 2; // 2-4 minutes
+                const nextActionAt = new Date(Date.now() + randomDelayMinutes * 60 * 1000);
+                
+                // If it has a campaign auto reply, trigger it. 
+                // AI should wait during this!
+                const pendingAutoReply = hasCampaignAutoReply;
+                if (pendingAutoReply) {
+                    aiShouldWait = true;
                 }
-              })
-              .where(eq(campaignLeads.id, entry.id));
 
-            console.log(`[EMAIL_IMPORT] Lead ${lead.email} marked as 'replied' in campaign ${entry.campaignId}`);
+                await db.update(campaignLeads)
+                  .set({
+                    status: 'replied',
+                    ...(pendingAutoReply ? { nextActionAt } : {}), // only update nextActionAt if we are queuing an auto-reply
+                    metadata: {
+                      ...(entry.metadata as Record<string, any> || {}),
+                      ...(pendingAutoReply ? { pendingAutoReply: true } : {})
+                    }
+                  })
+                  .where(eq(campaignLeads.id, entry.id));
 
-            // NEW: Increment replied stat in outreachCampaigns
-            await db.update(outreachCampaigns)
-              .set({
-                stats: sql`jsonb_set(stats, '{replied}', (COALESCE((stats->>'replied')::int, 0) + 1)::text::jsonb)`,
-                updatedAt: new Date()
-              })
-              .where(eq(outreachCampaigns.id, entry.campaignId));
+                console.log(`[EMAIL_IMPORT] Lead ${lead.email} marked as 'replied' in campaign ${entry.campaignId}. pendingAutoReply: ${pendingAutoReply}`);
+
+                // NEW: Increment replied stat in outreachCampaigns
+                await db.update(outreachCampaigns)
+                  .set({
+                    stats: sql`jsonb_set(stats, '{replied}', (COALESCE((stats->>'replied')::int, 0) + 1)::text::jsonb)`,
+                    updatedAt: new Date()
+                  })
+                  .where(eq(outreachCampaigns.id, entry.campaignId));
+            } else {
+                // Lead has already replied previously. Let AI take over because campaign is "done".
+                aiShouldWait = false; 
+                console.log(`[EMAIL_IMPORT] Lead ${lead.email} replied AGAIN. AI taking over.`);
+            }
 
             // UNIFIED TRACKING: Record reply in tracking engine for global KPIs
             try {
@@ -395,7 +424,7 @@ async function processEmailForLead(
               console.error('Failed to notify reply activity:', notifyErr);
             }
 
-            // NEW: Log to emailReplyStore
+            // Log to emailReplyStore
             try {
               await db.insert(emailReplyStore).values({
                 messageId: email.messageId || `reply_${Date.now()}_${Math.random()}`,
@@ -410,16 +439,6 @@ async function processEmailForLead(
               });
             } catch (replyLogErr) { }
 
-            // Fetch the campaign to get the auto-reply template
-            const campaigns = await db.select()
-              .from(outreachCampaigns)
-              .where(eq(outreachCampaigns.id, entry.campaignId))
-              .limit(1);
-
-            let activeCampaign: any = null;
-            if (campaigns.length > 0) {
-              activeCampaign = campaigns[0];
-            }
           }
         } catch (campaignStatusError) {
           console.warn('[EMAIL_IMPORT] Failed to update campaign status:', campaignStatusError);
@@ -453,12 +472,14 @@ async function processEmailForLead(
         // 2. We haven't replied in the last 2 hours (avoid rapid back-and-forth)
         // 3. Lead is not converted or not_interested
         // 4. Email is RECENT (within last 1 hour) - SAFETY CHECK for imports
+        // 5. The campaign is not currently handling the auto-reply (!aiShouldWait)
         const isRecent = new Date(email.date).getTime() > Date.now() - 1000 * 60 * 60;
 
         if (!lead.aiPaused &&
           hoursSinceLastOutbound > 2 &&
           !['converted', 'not_interested'].includes(lead.status) &&
-          isRecent) {
+          isRecent &&
+          !aiShouldWait) {
 
           // Schedule QUICK follow-up (2-4 minutes like Instagram DMs)
           // This is different from initial outreach which uses 2-4 hours
@@ -468,16 +489,6 @@ async function processEmailForLead(
           if (followUpDb) {
             const quickDelay = (2 + Math.random() * 2) * 60 * 1000; // 2-4 minutes random delay
             const scheduledTime = new Date(Date.now() + quickDelay);
-
-            // Extract custom auto-reply body if it exists
-            const { outreachCampaigns } = await import('../../../shared/schema.js');
-            const [activeCampaign] = await followUpDb
-              .select()
-              .from(outreachCampaigns)
-              .where(and(eq(outreachCampaigns.userId, userId), eq(outreachCampaigns.status, 'active')))
-              .limit(1);
-
-            const autoReplyBody = (activeCampaign?.template as any)?.autoReplyBody;
 
             await followUpDb.insert(followUpQueue).values({
               userId,
@@ -492,14 +503,14 @@ async function processEmailForLead(
                 sequence_number: 1,
                 inbound_message: email.text?.substring(0, 200) || email.html?.substring(0, 200) || '',
                 quick_reply: true,
-                autoReplyBody: autoReplyBody || null // Pass the custom body to the worker
+                autoReplyBody: null // purely AI generated now
               }
             });
 
-            console.log(`🤖 [EMAIL_IMPORT] Quick auto-reply queued for inbound email from ${lead.name} (${Math.round(quickDelay / 60000)}min)${autoReplyBody ? ' using custom template' : ' using AI'}`);
+            console.log(`🤖 [EMAIL_IMPORT] Quick AI auto-reply queued for inbound email from ${lead.name} (${Math.round(quickDelay / 60000)}min)`);
           }
         } else {
-          console.log(`[EMAIL_IMPORT] Auto-reply SKIPPED for ${lead.email}. Reasons: Paused=${lead.aiPaused}, RecentOutbound=${hoursSinceLastOutbound < 2}, Status=${lead.status}, IsRecent=${isRecent}`);
+          console.log(`[EMAIL_IMPORT] Auto-reply SKIPPED for ${lead.email}. Reasons: Paused=${lead.aiPaused}, RecentOutbound=${hoursSinceLastOutbound < 2}, Status=${lead.status}, IsRecent=${isRecent}, aiShouldWait=${aiShouldWait}`);
         }
 
         // [PIPELINE ENHANCEMENT] Run deal evaluation in background to update Revenue KPIs

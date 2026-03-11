@@ -1009,4 +1009,39 @@ router.post('/set-username', async (req: Request, res: Response): Promise<void> 
   }
 });
 
+/**
+ * PATCH /api/user/config
+ * Update user configuration (e.g., autonomousMode)
+ */
+router.patch('/config', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.session?.userId;
+    if (!userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    const updates = req.body;
+    const user = await storage.getUserById(userId);
+    
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+    
+    const currentConfig = (user.config as Record<string, any>) || { autonomousMode: false };
+    const newConfig = { ...currentConfig, ...updates };
+    
+    await storage.updateUser(userId, { config: newConfig });
+    
+    res.json({
+      success: true,
+      config: newConfig,
+    });
+  } catch (error: unknown) {
+    console.error('Update config error:', error);
+    res.status(500).json({ error: 'Failed to update config' });
+  }
+});
+
 export default router;
