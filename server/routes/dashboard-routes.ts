@@ -155,6 +155,15 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
        }
     }
 
+    // Deduplicate verifications by domain to only keep the latest check per domain
+    const uniqueVerifications = new Map();
+    for (const v of activeVerifications) {
+      if (!uniqueVerifications.has(v.domain)) {
+        uniqueVerifications.set(v.domain, v);
+      }
+    }
+    activeVerifications = Array.from(uniqueVerifications.values());
+
     const unverifiedDomains = activeVerifications.filter(v => {
       const result = v.verification_result as any;
       return result && result.overallStatus !== 'excellent' && result.overallStatus !== 'good';
