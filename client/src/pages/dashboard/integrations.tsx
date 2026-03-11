@@ -228,7 +228,7 @@ export default function IntegrationsPage() {
     placeholderData: (prev) => prev,
   });
   const { data: stats } = useQuery<any>({
-    queryKey: ["/api/dashboard/stats", selectedMailboxId],
+    queryKey: ["/api/dashboard/stats", { integrationId: selectedMailboxId }],
     staleTime: 300000,
     refetchInterval: 300000,
   });
@@ -272,7 +272,7 @@ export default function IntegrationsPage() {
     },
     onSuccess: () => {
       toast({ title: "Check Complete", description: "Domain reputation updated." });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats", selectedMailboxId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats", { integrationId: selectedMailboxId }] });
     },
     onError: (err: any) => toast({ title: "Verification Failed", description: err.message, variant: "destructive" })
   });
@@ -346,7 +346,7 @@ export default function IntegrationsPage() {
     mutationFn: async () => apiRequest("POST", "/api/custom-email/sync-now"),
     onSuccess: () => {
       toast({ title: "Sync Triggered", description: "Fetching new messages in the background..." });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats", selectedMailboxId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats", { integrationId: selectedMailboxId }] });
     },
     onError: (err: any) => toast({ title: "Sync Failed", description: err.message, variant: "destructive" })
   });
