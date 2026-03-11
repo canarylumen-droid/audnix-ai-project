@@ -212,7 +212,7 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
       domainVerifications: mappedVerifications,
       health: {
         score: domainHealth,
-        status: domainHealth > 80 ? 'healthy' : (domainHealth > 50 ? 'warning' : 'critical'),
+        status: domainHealth >= 70 ? 'healthy' : (domainHealth >= 55 ? 'fair' : (domainHealth >= 30 ? 'poor' : 'critical')),
         reputation: reputationScore,
         bounces: {
           hard: hardBounces,

@@ -388,7 +388,75 @@ export class OutreachEngine {
 
     // High Priority (Follow-ups/Auto-Replies) can vastly exceed the initial send limit (e.g., up to 300)
     // To ensure active fluid conversations don't get stuck due to initial outreach limits.
-    const effectiveLimit = isHighPriority ? Math.max(300, mailboxDailyLimit * 5) : mailboxDailyLimit;
+    const baseEffectiveLimit = isHighPriority ? Math.max(300, mailboxDailyLimit * 5) : mailboxDailyLimit;
+
+    // --- Autonomous Adaptive Reputation Limits ---
+    let effectiveLimit = baseEffectiveLimit;
+    if (integration.provider !== 'instagram') {
+      try {
+        // Fetch real-time health for this specific integration/mailbox
+        const domainVerifications = await storage.getDomainVerifications(userId, 10);
+        let activeVerifications = domainVerifications;
+        if (integration.encryptedMeta) {
+           const meta = decryptToJSON(integration.encryptedMeta) || {};
+           const email = meta.user || meta.email || '';
+           if (email && email.includes('@')) {
+               const d = email.split('@')[1];
+               activeVerifications = activeVerifications.filter(v => v.domain === d);
+           }
+        }
+        
+        // Deduplicate the same way the dashboard does
+        const uniqueVerifications = new Map();
+        for (const v of activeVerifications) {
+          if (!uniqueVerifications.has(v.domain)) {
+            uniqueVerifications.set(v.domain, v);
+          }
+        }
+        activeVerifications = Array.from(uniqueVerifications.values());
+        
+        const unverifiedDomains = activeVerifications.filter(v => {
+          const result = v.verification_result as any;
+          return result && result.overallStatus !== 'excellent' && result.overallStatus !== 'good';
+        }).length;
+        
+        let recentBounces = [];
+        try {
+          recentBounces = await storage.getRecentBounces(userId, 168);
+        } catch (e) {}
+        
+        const hardBounces = recentBounces.filter(b => b.bounceType === 'hard').length;
+        const softBounces = recentBounces.filter(b => b.bounceType === 'soft').length;
+        const spamBounces = recentBounces.filter(b => b.bounceType === 'spam').length;
+        
+        let reputationScore = 100;
+        const stats = await storage.getDashboardStats(userId, { integrationId: integration.id });
+        if (stats.totalLeads > 0) {
+          const bounceRate = ((hardBounces + spamBounces) / stats.totalLeads) * 100;
+          const bouncePenalty = (hardBounces * 10) + (softBounces * 2) + (spamBounces * 15);
+          reputationScore = Math.max(0, 100 - bouncePenalty - (bounceRate * 3));
+          if (stats.totalLeads > 100 && bounceRate < 2) {
+            reputationScore = Math.min(100, reputationScore + 5);
+          }
+        }
+        
+        const healthPenalty = (unverifiedDomains * 15);
+        const domainHealth = Math.max(0, reputationScore - healthPenalty);
+        
+        // Apply Autonomous Adaptive Thresholds
+        if (domainHealth < 30) {
+           // CRITICAL OVERRIDE: Automatically restrict to 5 safely
+           effectiveLimit = Math.min(5, effectiveLimit);
+           console.log(`[OutreachEngine] ⚠️ CRITICAL DOMAIN HEALTH (${domainHealth}) for ${integration.id}. Sending drastically reduced to ${effectiveLimit}.`);
+        } else if (domainHealth < 55) {
+           // POOR/CAUTIOUS OVERRIDE: Automatically restrict by half safely
+           effectiveLimit = Math.max(5, Math.floor(effectiveLimit / 2));
+           console.log(`[OutreachEngine] ⚠️ CAUTIOUS DOMAIN HEALTH (${domainHealth}) for ${integration.id}. Sending auto-reduced to ${effectiveLimit}.`);
+        }
+      } catch (err) {
+        console.error(`[OutreachEngine] Error assessing domain health for limit adaptation:`, err);
+      }
+    }
 
     const channel = integration.provider === 'instagram' ? 'instagram' : 'email';
 
