@@ -5,7 +5,8 @@
   "license": "MIT",
   "scripts": {
     "dev": "cross-env NODE_ENV=development tsx server/index.ts",
-    "build": "vite build && node scripts/migrate-manual.js",
+    "build": "vite build",
+    "db:migrate": "node scripts/migrate-manual.js",
     "start": "NODE_ENV=production tsx server/index.ts",
     "check": "node --max-old-space-size=4096 node_modules/typescript/bin/tsc --noEmit",
     "db:push": "drizzle-kit push",
