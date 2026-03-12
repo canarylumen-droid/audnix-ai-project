@@ -80,7 +80,10 @@ export default defineConfig({
     fs: {
       strict: false,
     },
-    allowedHosts: true,
+    allowedHosts: [
+      "audnixai.com",
+      ".railway.app"
+    ],
     middlewareMode: false,
   },
   preview: {
