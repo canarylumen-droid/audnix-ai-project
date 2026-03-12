@@ -105,6 +105,17 @@ export async function runDatabaseMigrations() {
                         created_at TIMESTAMP NOT NULL DEFAULT NOW()
                     );
                 END IF;
+
+                -- Ensure session table exists if missing
+                IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='user_sessions') THEN
+                     CREATE TABLE "user_sessions" (
+                      "sid" varchar NOT NULL COLLATE "default",
+                      "sess" json NOT NULL,
+                      "expire" timestamp(6) NOT NULL,
+                      CONSTRAINT "user_sessions_pkey" PRIMARY KEY ("sid")
+                    ) WITH (OIDS=FALSE);
+                    CREATE INDEX "IDX_session_expire" ON "user_sessions" ("expire");
+                END IF;
             END $$;
         `);
         console.log("✅ Emergency schema synchronization completed.");

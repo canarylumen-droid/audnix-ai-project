@@ -35,14 +35,20 @@ async function runMigration() {
 
     console.log('Connecting to database...');
     const dbUrl = new URL(DATABASE_URL);
+    
+    // Neon-specific optimizations and SSL enforcement
     if (DATABASE_URL.includes('neon.tech')) {
-        dbUrl.searchParams.set('sslmode', 'verify-full');
+        dbUrl.searchParams.set('sslmode', 'require');
+        dbUrl.searchParams.set('uselibpqcompat', 'true');
     }
+    
     const connectionString = dbUrl.toString();
 
     const client = new pg.Client({
         connectionString,
-        ssl: DATABASE_URL.includes('neon.tech') ? { rejectUnauthorized: true } : { rejectUnauthorized: false }
+        ssl: DATABASE_URL.includes('neon.tech') || process.env.NODE_ENV === "production"
+            ? { rejectUnauthorized: false } 
+            : false
     });
 
     const migrationsFolder = resolve(__dirname, '../migrations');
