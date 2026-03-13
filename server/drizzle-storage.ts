@@ -347,6 +347,30 @@ export class DrizzleStorage implements IStorage {
     }
 
     let conditions = [eq(leads.userId, userId)];
+    
+    // Add campaign-based sharing if integrationId is provided
+    if (options.integrationId) {
+      // Find campaigns this integration is part of
+      const campaignSubquery = db
+        .select({ campaignId: campaignLeads.campaignId })
+        .from(campaignLeads)
+        .where(eq(campaignLeads.integrationId, options.integrationId));
+      
+      // Leads shared are:
+      // 1. Leads directly assigned to this integration
+      // 2. Leads that are part of a campaign that this integration is also participating in
+      const sharedLeadIdsSubquery = db
+        .select({ leadId: campaignLeads.leadId })
+        .from(campaignLeads)
+        .where(inArray(campaignLeads.campaignId, campaignSubquery));
+
+      conditions.push(
+        or(
+          eq(leads.integrationId, options.integrationId),
+          inArray(leads.id, sharedLeadIdsSubquery)
+        ) as any
+      );
+    }
 
     if (!options.includeArchived) {
       conditions.push(eq(leads.archived, false));
@@ -605,7 +629,23 @@ export class DrizzleStorage implements IStorage {
     }
 
     if (options?.integrationId) {
-      conditions.push(eq(messages.integrationId, options.integrationId));
+      // Find leads shared with this integration via campaigns
+      const campaignSubquery = db
+        .select({ campaignId: campaignLeads.campaignId })
+        .from(campaignLeads)
+        .where(eq(campaignLeads.integrationId, options.integrationId));
+      
+      const sharedLeadIdsSubquery = db
+        .select({ leadId: campaignLeads.leadId })
+        .from(campaignLeads)
+        .where(inArray(campaignLeads.campaignId, campaignSubquery));
+
+      conditions.push(
+        or(
+          eq(messages.integrationId, options.integrationId),
+          inArray(messages.leadId, sharedLeadIdsSubquery)
+        ) as any
+      );
     }
 
     // Build query with combined conditions
@@ -1980,7 +2020,24 @@ export class DrizzleStorage implements IStorage {
     if (opts?.dateFrom) conditions.push(gte(notifications.createdAt, opts.dateFrom));
     if (opts?.dateTo) conditions.push(lte(notifications.createdAt, opts.dateTo));
     if (opts?.integrationId) {
-      conditions.push(or(eq(notifications.integrationId, opts.integrationId), isNull(notifications.integrationId)) as any);
+      // Find leads shared with this integration via campaigns
+      const campaignSubquery = db
+        .select({ campaignId: campaignLeads.campaignId })
+        .from(campaignLeads)
+        .where(eq(campaignLeads.integrationId, opts.integrationId));
+      
+      const sharedLeadIdsSubquery = db
+        .select({ leadId: campaignLeads.leadId })
+        .from(campaignLeads)
+        .where(inArray(campaignLeads.campaignId, campaignSubquery));
+
+      conditions.push(
+        or(
+          eq(notifications.integrationId, opts.integrationId),
+          isNull(notifications.integrationId),
+          inArray(sql`${notifications.metadata}->>'leadId'`, sharedLeadIdsSubquery)
+        ) as any
+      );
     }
 
     return await db.select()

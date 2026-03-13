@@ -65,6 +65,34 @@ const playNotificationSound = () => {
   }
 };
 
+const playSentSound = () => {
+  try {
+    const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    // Higher pitch, shorter duration for "sent"
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1500, audioCtx.currentTime + 0.1);
+    
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+    
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.2);
+  } catch (err) {
+    console.log('Sent sound synthesis error');
+  }
+};
+
 // Format relative time
 const getRelativeTime = (timestamp: string | Date): string => {
   const now = Date.now();
@@ -334,6 +362,10 @@ export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
     socketInstance.on('activity_updated', (payload: any) => {
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/activity'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+      
+      if (payload.type === 'email_sent') {
+        playSentSound();
+      }
     });
 
     // STATS UPDATES (instant KPI refresh)

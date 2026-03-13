@@ -161,6 +161,15 @@ router.post("/:leadId", requireAuth, async (req: Request, res: Response): Promis
     const { wsSync } = await import('../lib/websocket-sync.js');
     wsSync.notifyMessagesUpdated(userId, { leadId: leadId as string, message });
     wsSync.notifyLeadsUpdated(userId, { type: 'lead_updated', lead: updatedLead });
+    
+    // Explicit notification for Real-time Feedback (Sound / Animation)
+    if (selectedChannel === 'email') {
+      wsSync.notifyEmailSent(userId, { 
+        leadId: leadId as string, 
+        messageId: message.id,
+        subject: message.subject || undefined
+      });
+    }
 
     res.json({
       message,

@@ -236,6 +236,19 @@ export default function InboxPage() {
       }
 
       // Invalidate specific lead's messages for consistency
+      if (payload.event === 'DELETE' && payload.messageIds) {
+        queryClient.setQueriesData(
+          { queryKey: ["/api/messages", targetLeadId] },
+          (oldData: any) => {
+            if (!oldData || !oldData.messages) return oldData;
+            return {
+              ...oldData,
+              messages: oldData.messages.filter((m: any) => !payload.messageIds.includes(m.id))
+            };
+          }
+        );
+      }
+
       queryClient.invalidateQueries({ queryKey: ["/api/messages", targetLeadId] });
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
 
@@ -271,7 +284,10 @@ export default function InboxPage() {
       }
     };
 
-    const handleLeadsUpdated = () => {
+    const handleLeadsUpdated = (payload: any) => {
+      if (payload?.event === 'BULK_DELETE' && payload.leadIds) {
+        setAllLeads(prev => prev.filter(l => !payload.leadIds.includes(l.id)));
+      }
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
     };
 
@@ -350,20 +366,10 @@ export default function InboxPage() {
   useEffect(() => {
     if (leadsData?.leads) {
       setTypingLeadId(null); // Clear typing indicator generally when leads bulk update
-      setAllLeads(prev => {
-        const newLeads = [...prev];
-        leadsData.leads.forEach((lead: any) => {
-          const index = newLeads.findIndex(l => l.id === lead.id);
-          if (index > -1) {
-            // Update existing lead
-            newLeads[index] = lead;
-          } else {
-            // Append new lead
-            newLeads.push(lead);
-          }
-        });
-        return newLeads;
-      });
+      
+      // SYNC: Only keep leads that are actually in the returned leadsData from the server
+      // This prevents "ghost" leads that were deleted from persisting in the local state.
+      setAllLeads(leadsData.leads);
     } else if (leadsData?.leads?.length === 0) {
       setAllLeads([]); // Clear if no leads for this mailbox
     }

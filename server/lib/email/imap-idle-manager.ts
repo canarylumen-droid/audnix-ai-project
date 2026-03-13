@@ -526,14 +526,14 @@ class ImapIdleManager {
         try {
             const { db } = await import('../../db.js');
             const { messages } = await import('../../../shared/schema.js');
-            const { eq, and, desc } = await import('drizzle-orm');
+            const { eq, and, desc, inArray } = await import('drizzle-orm');
 
-            // Check recent inbound messages
-            const recentDbMessages = await db.query.messages.findMany({
-                where: and(eq(messages.userId, userId), eq(messages.direction, 'inbound')),
-                orderBy: [desc(messages.createdAt)],
-                limit: 50
-            });
+            // Find recent messages in our DB for this user that MIGHT have been deleted
+            const recentDbMessages = await db.select()
+                .from(messages)
+                .where(and(eq(messages.userId, userId), eq(messages.integrationId, integrationId)))
+                .orderBy(desc(messages.createdAt))
+                .limit(100);
 
             if (recentDbMessages.length === 0) return;
 
@@ -543,34 +543,42 @@ class ImapIdleManager {
                     return;
                 }
 
-                const fetchRange = box.messages.total < 100 ? '1:*' : `${box.messages.total - 99}:*`;
-                const fetch = imap.seq.fetch(fetchRange, { bodies: 'HEADER.FIELDS (MESSAGE-ID)', struct: false });
+                // Fetch UIDs and Message-IDs for the last 150 messages in the folder
+                const fetchRange = box.messages.total < 150 ? '1:*' : `${box.messages.total - 149}:*`;
+                const fetch = imap.seq.fetch(fetchRange, { struct: false, bodies: 'HEADER.FIELDS (MESSAGE-ID)' });
                 const imapMessageIds = new Set<string>();
 
                 fetch.on('message', (msg: any) => {
                     msg.on('body', (stream: any) => {
-                        simpleParser(stream, (err: any, parsed: any) => {
-                            if (parsed && parsed.messageId) imapMessageIds.add(parsed.messageId);
+                        let buffer = '';
+                        stream.on('data', (chunk: any) => buffer += chunk.toString());
+                        stream.on('end', () => {
+                            const match = buffer.match(/Message-ID:\s*(<[^>]+>)/i);
+                            if (match && match[1]) {
+                                imapMessageIds.add(match[1]);
+                            }
                         });
                     });
                 });
 
                 fetch.once('end', async () => {
-                    let deletedCount = 0;
-                    let lastDeletedLeadId: string | null = null;
-
+                    const toDelete: string[] = [];
                     for (const dbMsg of recentDbMessages) {
-                        if (dbMsg.messageId && !imapMessageIds.has(dbMsg.messageId)) {
-                            console.log(`🧹 Removing deleted message ${dbMsg.messageId} from database`);
-                            await db.delete(messages).where(eq(messages.id, dbMsg.id));
-                            deletedCount++;
-                            lastDeletedLeadId = dbMsg.leadId || null;
+                        // If we have a Message-ID but it's not in the folder anymore, it's likely deleted
+                        if (dbMsg.provider === 'email' && dbMsg.metadata && (dbMsg.metadata as any).messageId) {
+                            const mid = (dbMsg.metadata as any).messageId;
+                            if (!imapMessageIds.has(mid)) {
+                                console.log(`🧹 Sync deletion: ${mid} not found in ${folderName}`);
+                                toDelete.push(dbMsg.id);
+                            }
                         }
                     }
-                    if (deletedCount > 0) {
-                        wsSync.notifyMessagesUpdated(userId);
+
+                    if (toDelete.length > 0) {
+                        await db.delete(messages).where(inArray(messages.id, toDelete));
+                        wsSync.notifyMessagesUpdated(userId, { event: 'DELETE', messageIds: toDelete });
                         wsSync.notifyStatsUpdated(userId);
-                        wsSync.notifyLeadsUpdated(userId); // Update lead list snippets if affected
+                        wsSync.notifyLeadsUpdated(userId);
                     }
                     try { if (typeof (imap as any).idle === 'function') (imap as any).idle(); } catch (e) { }
                 });

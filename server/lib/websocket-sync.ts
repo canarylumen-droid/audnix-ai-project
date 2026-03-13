@@ -112,6 +112,15 @@ class WebSocketSyncServer {
     this.emitToUser(userId, 'stats_updated', { ...data, timestamp: new Date().toISOString() });
   }
 
+  notifyEmailSent(userId: string, data: { leadId: string; messageId?: string; subject?: string }) {
+    this.emitToUser(userId, 'activity_updated', {
+      type: 'email_sent',
+      title: 'Email Sent',
+      message: `Message sent to lead`,
+      ...data
+    });
+  }
+
   notifyDesktopNotification(userId: string, data: { title: string; message: string; url?: string; tag?: string }) {
     this.emitToUser(userId, 'desktop_notification', data);
   }
