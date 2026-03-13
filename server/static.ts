@@ -66,8 +66,13 @@ export function serveStatic(app: Express) {
 
   // Handle all other routes by serving index.html (SPA)
   app.get('*', viteLimiter, (req, res) => {
-    // CRITICAL: Never serve index.html for API or Webhook routes
-    if (req.path.startsWith('/api/') || req.path.startsWith('/webhook/') || req.path === '/health') {
+    // CRITICAL: Never serve index.html for API, Webhook, or Platform-specific internal routes
+    const isInternalPlatformRoute = 
+      req.path.startsWith('/_vercel/') || 
+      req.path.startsWith('/_next/') || 
+      req.path.startsWith('/.well-known/');
+
+    if (req.path.startsWith('/api/') || req.path.startsWith('/webhook/') || req.path === '/health' || isInternalPlatformRoute) {
       if (req.path === '/health') {
         return res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
       }

@@ -18,13 +18,16 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { CookieConsent } from "@/components/landing/CookieConsent";
 import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
+import { useUser } from "@/hooks/use-user";
 import { Card } from "@/components/ui/card";
 
 gsap.registerPlugin(ScrollTrigger);
 
 export default function Landing() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [, setLocation] = useLocation();
+  const { data: user, isLoading: userLoading } = useUser();
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, {
     stiffness: 100,
@@ -64,6 +67,14 @@ export default function Landing() {
 
     return () => ctx.revert();
   }, []);
+  
+  // 3. User Redirection
+  useEffect(() => {
+    if (!userLoading && user) {
+      console.log("🚀 Authenticated user detected on landing - redirecting to dashboard");
+      setLocation("/dashboard");
+    }
+  }, [user, userLoading, setLocation]);
 
   return (
     <div ref={containerRef} className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-black overflow-x-hidden font-sans">
