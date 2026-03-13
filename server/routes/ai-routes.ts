@@ -53,7 +53,7 @@ const router = Router();
 router.get("/", requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    const { channel, status, limit = "50", offset = "0", search, includeArchived, integrationId } = req.query;
+    const { channel, status, limit = "50", offset = "0", search, includeArchived, integrationId, excludeActiveCampaignLeads } = req.query;
 
     const limitNum = Math.min(parseInt(limit as string) || 50, 500);
     const offsetNum = parseInt(offset as string) || 0;
@@ -66,6 +66,7 @@ router.get("/", requireAuth, async (req: Request, res: Response): Promise<void> 
       search: search as string | undefined,
       includeArchived: includeArchived === 'true',
       integrationId: integrationId as string | undefined,
+      excludeActiveCampaignLeads: excludeActiveCampaignLeads === 'true',
       limit: limitNum,
       offset: offsetNum
     });

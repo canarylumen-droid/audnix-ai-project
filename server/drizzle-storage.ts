@@ -338,6 +338,7 @@ export class DrizzleStorage implements IStorage {
     offset?: number;
     includeArchived?: boolean;
     integrationId?: string;
+    excludeActiveCampaignLeads?: boolean;
   }): Promise<Lead[]> {
     checkDatabase();
     // Ensure userId is a string, not an object
@@ -348,28 +349,9 @@ export class DrizzleStorage implements IStorage {
 
     let conditions = [eq(leads.userId, userId)];
     
-    // Add campaign-based sharing if integrationId is provided
+    // Strict Isolation by Mailbox
     if (options.integrationId) {
-      // Find campaigns this integration is part of
-      const campaignSubquery = db
-        .select({ campaignId: campaignLeads.campaignId })
-        .from(campaignLeads)
-        .where(eq(campaignLeads.integrationId, options.integrationId));
-      
-      // Leads shared are:
-      // 1. Leads directly assigned to this integration
-      // 2. Leads that are part of a campaign that this integration is also participating in
-      const sharedLeadIdsSubquery = db
-        .select({ leadId: campaignLeads.leadId })
-        .from(campaignLeads)
-        .where(inArray(campaignLeads.campaignId, campaignSubquery));
-
-      conditions.push(
-        or(
-          eq(leads.integrationId, options.integrationId),
-          inArray(leads.id, sharedLeadIdsSubquery)
-        ) as any
-      );
+      conditions.push(eq(leads.integrationId, options.integrationId));
     }
 
     if (!options.includeArchived) {
@@ -391,8 +373,8 @@ export class DrizzleStorage implements IStorage {
       conditions.push(eq(leads.channel, options.channel as any));
     }
 
-    if (options.integrationId) {
-      conditions.push(eq(leads.integrationId, options.integrationId));
+    if (options.channel) {
+      conditions.push(eq(leads.channel, options.channel as any));
     }
 
     if (options.search) {
@@ -629,23 +611,7 @@ export class DrizzleStorage implements IStorage {
     }
 
     if (options?.integrationId) {
-      // Find leads shared with this integration via campaigns
-      const campaignSubquery = db
-        .select({ campaignId: campaignLeads.campaignId })
-        .from(campaignLeads)
-        .where(eq(campaignLeads.integrationId, options.integrationId));
-      
-      const sharedLeadIdsSubquery = db
-        .select({ leadId: campaignLeads.leadId })
-        .from(campaignLeads)
-        .where(inArray(campaignLeads.campaignId, campaignSubquery));
-
-      conditions.push(
-        or(
-          eq(messages.integrationId, options.integrationId),
-          inArray(messages.leadId, sharedLeadIdsSubquery)
-        ) as any
-      );
+      conditions.push(eq(messages.integrationId, options.integrationId));
     }
 
     // Build query with combined conditions

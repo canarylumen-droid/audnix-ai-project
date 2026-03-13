@@ -38,6 +38,8 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [previewDevice, setPreviewDevice] = useState<"ios" | "android">("ios");
   const [viewMode, setViewMode] = useState<"edit" | "preview">("edit");
+  const [cleanMode, setCleanMode] = useState(false);
+  const [campaignType, setCampaignType] = useState<'shared' | 'independent'>('shared');
 
   // Step 1: Import State
   const [sourceType, setSourceType] = useState<'upload' | 'database'>('upload');
@@ -198,7 +200,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
   const handleFetchLeads = async () => {
     setIsLoadingLeads(true);
     try {
-      const res = await apiRequest("GET", "/api/leads?limit=1000");
+      const res = await apiRequest("GET", "/api/leads?limit=1000&excludeActiveCampaignLeads=true");
       const data = await res.json();
       if (data.leads && Array.isArray(data.leads)) {
         setLeads(data.leads);
@@ -343,6 +345,18 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
               </div>
             </div>
           </div>
+
+          <div className="flex items-center gap-6">
+            <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-muted/30 rounded-2xl border border-border/10">
+              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Clean Mode</span>
+              <Switch checked={cleanMode} onCheckedChange={setCleanMode} className="scale-75" />
+            </div>
+            <DialogClose asChild>
+              <Button variant="ghost" size="icon" className="rounded-full hover:bg-muted/50">
+                <Loader2 className="h-5 w-5 opacity-40" />
+              </Button>
+            </DialogClose>
+          </div>
         </div>
 
         <div className="flex flex-1 overflow-hidden relative">
@@ -360,45 +374,47 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
 
                     <div className="space-y-2">
                       <h2 className="text-3xl font-black tracking-tighter uppercase">Lead Source</h2>
-                      <p className="text-muted-foreground text-sm font-medium">Select existing leads or upload new ones.</p>
+                      {!cleanMode && <p className="text-muted-foreground text-sm font-medium">Select existing leads or upload new ones.</p>}
                     </div>
 
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <Label className="text-xs font-black uppercase tracking-widest text-primary/60">Select Source</Label>
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-6 text-[10px] font-bold uppercase gap-1.5 opacity-60 hover:opacity-100">
-                              <Sparkles className="w-3 h-3" /> Syntax Guide
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-md bg-card/95 backdrop-blur-xl border-border/40">
-                            <DialogHeader>
-                              <DialogTitle className="text-xl font-black uppercase italic italic">Personalization Tags</DialogTitle>
-                              <DialogDescription>Use these dynamic variables in your message templates to maximize engagement.</DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4 mt-4">
-                              <div className="grid grid-cols-2 gap-3">
-                                {[
-                                  { tag: "{{firstName}}", desc: "Lead's first name" },
-                                  { tag: "{{company}}", desc: "Target company name" },
-                                  { tag: "{{name}}", desc: "Lead's full name" },
-                                  { tag: "{{industry}}", desc: "Detected niche" }
-                                ].map(item => (
-                                  <div key={item.tag} className="p-3 bg-muted/30 rounded-xl border border-border/10">
-                                    <code className="text-primary font-bold text-xs">{item.tag}</code>
-                                    <p className="text-[10px] text-muted-foreground mt-1 uppercase font-black opacity-50">{item.desc}</p>
-                                  </div>
-                                ))}
+                        {!cleanMode && (
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-6 text-[10px] font-bold uppercase gap-1.5 opacity-60 hover:opacity-100">
+                                <Sparkles className="w-3 h-3" /> Syntax Guide
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-md bg-card/95 backdrop-blur-xl border-border/40">
+                              <DialogHeader>
+                                <DialogTitle className="text-xl font-black uppercase italic italic">Personalization Tags</DialogTitle>
+                                <DialogDescription>Use these dynamic variables in your message templates to maximize engagement.</DialogDescription>
+                              </DialogHeader>
+                              <div className="space-y-4 mt-4">
+                                <div className="grid grid-cols-2 gap-3">
+                                  {[
+                                    { tag: "{{firstName}}", desc: "Lead's first name" },
+                                    { tag: "{{company}}", desc: "Target company name" },
+                                    { tag: "{{name}}", desc: "Lead's full name" },
+                                    { tag: "{{industry}}", desc: "Detected niche" }
+                                  ].map(item => (
+                                    <div key={item.tag} className="p-3 bg-muted/30 rounded-xl border border-border/10">
+                                      <code className="text-primary font-bold text-xs">{item.tag}</code>
+                                      <p className="text-[10px] text-muted-foreground mt-1 uppercase font-black opacity-50">{item.desc}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                                  <p className="text-[11px] leading-relaxed">
+                                    <span className="font-bold text-primary">Pro Tip:</span> Always include a fallback like {"\"Hi {{firstName || 'there'}}\""} for the most human feel.
+                                  </p>
+                                </div>
                               </div>
-                              <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
-                                <p className="text-[11px] leading-relaxed">
-                                  <span className="font-bold text-primary">Pro Tip:</span> Always include a fallback like {"\"Hi {{firstName || 'there'}}\""} for the most human feel.
-                                </p>
-                              </div>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
+                            </DialogContent>
+                          </Dialog>
+                        )}
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <button
@@ -502,6 +518,27 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                         <h2 className="text-3xl font-black tracking-tighter">CAMPAIGN DESIGN</h2>
                         <p className="text-muted-foreground text-sm font-medium">Construct your outreach sequence with AI assistance.</p>
                       </div>
+                      
+                      {!cleanMode && (
+                        <div className="flex items-center gap-3 p-1.5 bg-muted/30 rounded-2xl border border-border/10">
+                          <Button 
+                            variant={campaignType === 'shared' ? 'default' : 'ghost'} 
+                            size="sm" 
+                            className="rounded-xl text-[10px] uppercase font-black tracking-widest h-8"
+                            onClick={() => setCampaignType('shared')}
+                          >
+                            Shared
+                          </Button>
+                          <Button 
+                            variant={campaignType === 'independent' ? 'default' : 'ghost'} 
+                            size="sm" 
+                            className="rounded-xl text-[10px] uppercase font-black tracking-widest h-8"
+                            onClick={() => setCampaignType('independent')}
+                          >
+                            Independent
+                          </Button>
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-6">
@@ -517,7 +554,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                         </div>
 
                         {/* Distribution Preview Card */}
-                        {selectedMailboxes.length > 1 && (
+                        {selectedMailboxes.length > 1 && !cleanMode && (
                           <div className="p-6 rounded-[2rem] bg-muted/20 border border-border/10 space-y-4">
                             <div className="flex items-center justify-between">
                               <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Allocation Forecast</span>
@@ -578,7 +615,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                                       </div>
 
                                       <AnimatePresence>
-                                        {isSelected && (
+                                        {isSelected && !cleanMode && (
                                           <motion.div
                                             initial={{ height: 0, opacity: 0 }}
                                             animate={{ height: "auto", opacity: 1 }}
@@ -661,16 +698,18 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                               </div>
                             </div>
 
-                            <div className="p-5 bg-primary/5 rounded-3xl border border-primary/10 space-y-2">
-                              <div className="flex items-center gap-2 text-primary">
-                                <Sparkles className="w-3.5 h-3.5" />
-                                <span className="text-[10px] font-black uppercase tracking-widest">Distribution Summary</span>
+                            {!cleanMode && (
+                              <div className="p-5 bg-primary/5 rounded-3xl border border-primary/10 space-y-2">
+                                <div className="flex items-center gap-2 text-primary">
+                                  <Sparkles className="w-3.5 h-3.5" />
+                                  <span className="text-[10px] font-black uppercase tracking-widest">Distribution Summary</span>
+                                </div>
+                                <p className="text-[11px] leading-relaxed text-muted-foreground/80">
+                                  This campaign will utilize <span className="text-primary font-black">{selectedMailboxes.length} mailboxes</span> to engagement <span className="text-primary font-black">{leads.length} leads</span>.
+                                  Total daily volume is capped at <span className="text-primary font-black">{totalDailyVolume} messages/day</span>.
+                                </p>
                               </div>
-                              <p className="text-[11px] leading-relaxed text-muted-foreground/80">
-                                This campaign will utilize <span className="text-primary font-black">{selectedMailboxes.length} mailboxes</span> to engagement <span className="text-primary font-black">{leads.length} leads</span>.
-                                Total daily volume is capped at <span className="text-primary font-black">{totalDailyVolume} messages/day</span>.
-                              </p>
-                            </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -764,7 +803,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                   <motion.div key="step3" initial="enter" animate="center" exit="exit" variants={variants} className="space-y-8 pb-10">
                     <div className="space-y-2">
                       <h2 className="text-3xl font-black tracking-tighter text-emerald-500 uppercase">Deployment Core</h2>
-                      <p className="text-muted-foreground text-sm font-medium">Review the campaign parameters and initiate the sending core.</p>
+                      {!cleanMode && <p className="text-muted-foreground text-sm font-medium">Review the campaign parameters and initiate the sending core.</p>}
                     </div>
 
                     <div className="grid grid-cols-1 gap-8">
@@ -782,10 +821,6 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                           <div className="space-y-1">
                             <div className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-1">Volume Rate</div>
                             <div className="text-3xl font-black tracking-tighter italic">{totalDailyVolume} <span className="text-xs uppercase not-italic font-bold text-foreground/80 ml-1">/day</span></div>
-                          </div>
-                          <div className="space-y-1 hidden md:block">
-                            <div className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-1">Sequence</div>
-                            <div className="text-3xl font-black tracking-tighter italic">3 <span className="text-xs uppercase not-italic font-bold text-foreground/80 ml-1">Steps</span></div>
                           </div>
                         </div>
 

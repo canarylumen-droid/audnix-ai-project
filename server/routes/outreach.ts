@@ -263,6 +263,22 @@ router.post('/campaigns', requireAuth, async (req, res) => {
         await db.insert(campaignLeads).values(leadLinks.slice(i, i + batchSize)).onConflictDoNothing();
       }
 
+      // --- Lead Redistribution (Isolate leads per assigned mailbox) ---
+      const mailboxAssignments: Record<string, string[]> = {};
+      leadLinks.forEach(ll => {
+        if (!ll.integrationId) return;
+        if (!mailboxAssignments[ll.integrationId]) mailboxAssignments[ll.integrationId] = [];
+        mailboxAssignments[ll.integrationId].push(ll.leadId);
+      });
+
+      for (const [mbId, leadIds] of Object.entries(mailboxAssignments)) {
+        if (leadIds.length > 0) {
+          await db.update(leads)
+            .set({ integrationId: mbId })
+            .where(inArray(leads.id, leadIds));
+        }
+      }
+
       // Update total leads count in campaign stats
       await db.update(outreachCampaigns)
         .set({
