@@ -13,9 +13,9 @@ const genai = process.env.GEMINI_API_KEY
   : null;
 
 // Initialize Z-AI (GLM) conditionally (OpenAI-compatible)
-const zai = process.env.Z_AI_API_KEY
+const zai = process.env.ZAI_API_KEY
   ? new OpenAI({
-    apiKey: process.env.Z_AI_API_KEY,
+    apiKey: process.env.ZAI_API_KEY,
     baseURL: "https://open.bigmodel.cn/api/paas/v4/"
   })
   : null;
