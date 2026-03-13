@@ -23,6 +23,7 @@ export async function setupVite(app: Express, server: Server) {
       },
     },
     server: {
+      ...viteConfig.server,
       middlewareMode: true,
       hmr: {
         port: parseInt(process.env.VITE_HMR_PORT || "24679"),
