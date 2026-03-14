@@ -198,6 +198,7 @@ router.post('/campaigns', requireAuth, async (req, res) => {
           } catch (err) {
             console.error(`[Campaign] Failed to auto-upsert/dedupe lead ${email}:`, err);
           }
+        }
       }
 
       // --- Auto-include Orphan Leads (Phase 2 Requirement) ---
