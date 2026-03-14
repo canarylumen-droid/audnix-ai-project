@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 interface PendingPayment {
   id: string;
@@ -26,64 +28,37 @@ interface Stats {
 }
 
 export default function PaymentApprovalsPage() {
-  const [pending, setPending] = useState<PendingPayment[]>([]);
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [autoApproving, setAutoApproving] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [autoApproving, setAutoApproving] = useState<Record<string, boolean>>({});
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Fetch pending payments
-        const pendingRes = await fetch("/api/payment-approval/pending");
-        if (pendingRes.ok) {
-          const pendingData = await pendingRes.json();
-          setPending(pendingData.pending || []);
-        }
+  const { data: pendingData, isLoading: pendingLoading } = useQuery<{ pending: PendingPayment[] }>({
+    queryKey: ["/api/payment-approval/pending"],
+  });
 
-        // Fetch stats
-        const statsRes = await fetch("/api/payment-approval/stats");
-        if (statsRes.ok) {
-          const statsData = await statsRes.json();
-          setStats(statsData.stats);
-        }
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load payment data",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
+  const { data: statsData, isLoading: statsLoading } = useQuery<{ stats: Stats }>({
+    queryKey: ["/api/payment-approval/stats"],
+  });
 
-    fetchData();
-    // Refresh every 5 seconds
-    const interval = setInterval(fetchData, 5000);
-    return () => clearInterval(interval);
-  }, []);
+  const pending = pendingData?.pending || [];
+  const stats = statsData?.stats || null;
+  const loading = pendingLoading || statsLoading;
 
   const approvePayment = async (userId: string) => {
     setAutoApproving((prev) => ({ ...prev, [userId]: true }));
 
     try {
-      const response = await fetch(`/api/payment-approval/approve/${userId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: "Auto-approved from admin dashboard" }),
+      const response = await apiRequest("POST", `/api/payment-approval/approve/${userId}`, {
+        reason: "Auto-approved from admin dashboard"
       });
 
       if (response.ok) {
-        setPending((prev) => prev.filter((p) => p.id !== userId));
+        queryClient.invalidateQueries({ queryKey: ["/api/payment-approval/pending"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/payment-approval/stats"] });
         toast({
           title: "Approved ✅",
           description: "User has been upgraded",
         });
-      } else {
-        throw new Error("Failed to approve");
       }
     } catch (error) {
       console.error("Error approving payment:", error);
@@ -99,20 +74,17 @@ export default function PaymentApprovalsPage() {
 
   const rejectPayment = async (userId: string) => {
     try {
-      const response = await fetch(`/api/payment-approval/reject/${userId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: "Admin rejected from dashboard" }),
+      const response = await apiRequest("POST", `/api/payment-approval/reject/${userId}`, {
+        reason: "Admin rejected from dashboard"
       });
 
       if (response.ok) {
-        setPending((prev) => prev.filter((p) => p.id !== userId));
+        queryClient.invalidateQueries({ queryKey: ["/api/payment-approval/pending"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/payment-approval/stats"] });
         toast({
           title: "Rejected",
           description: "Payment has been rejected",
         });
-      } else {
-        throw new Error("Failed to reject");
       }
     } catch (error) {
       console.error("Error rejecting payment:", error);

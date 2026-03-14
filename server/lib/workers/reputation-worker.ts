@@ -57,6 +57,7 @@ export class ReputationWorker {
                             await storage.createAuditLog({
                                 userId: user.id,
                                 leadId: "system", // Required field
+                                integrationId: integration.id,
                                 action: 'domain_reputation_check',
                                 details: { domain, result, autonomous: true },
                                 createdAt: new Date()

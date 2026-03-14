@@ -340,9 +340,17 @@ export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
       }
     });
 
+    // DEALS UPDATES
+    socketInstance.on('deals_updated', () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/deals'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+    });
+
     // SETTINGS/USER UPDATES
     socketInstance.on('settings_updated', () => {
       queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/integrations'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/channels/all'] });
     });
 
     socketInstance.on('insights_updated', (payload: any) => {
@@ -363,8 +371,24 @@ export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/activity'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
       
+      // If activity involves a specific lead (like tracking events), refresh that lead
+      if (payload.leadId) {
+        queryClient.invalidateQueries({ queryKey: ['/api/leads'] });
+        queryClient.invalidateQueries({ queryKey: ["/api/messages", payload.leadId] });
+      } else {
+        // Generic activities (like external deletions) should also refresh high-level data
+        queryClient.invalidateQueries({ queryKey: ['/api/leads'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/conversations'] });
+      }
+
       if (payload.type === 'email_sent') {
         playSentSound();
+      } else if (payload.type === 'email_received' || payload.type === 'message_received') {
+        playNotificationSound();
+      } else if (payload.type === 'email_deleted_externally') {
+        // Refresh all relevant views for consistency
+        queryClient.invalidateQueries({ queryKey: ['/api/leads'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/conversations'] });
       }
     });
 
@@ -372,6 +396,7 @@ export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
     socketInstance.on('stats_updated', () => {
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats/previous'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/email/stats'] });
     });
 
     // CAMPAIGN UPDATES

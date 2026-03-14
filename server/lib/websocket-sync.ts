@@ -57,12 +57,29 @@ class WebSocketSyncServer {
     console.log('✅ Socket.IO server initialized');
   }
 
+  private lastEmissions = new Map<string, number>();
+
   private emitToUser(userId: string, event: MessageType, data: any) {
     if (!this.io) return;
+
+    // Simple throttling: Don't emit the same event to the same user twice within 500ms
+    // Exception: leads_updated, messages_updated, and campaign_stats_updated are usually critical and infrequent enough
+    const bypassThrottle = ['leads_updated', 'messages_updated', 'campaign_stats_updated', 'notification', 'TERMINATE_SESSION'];
+    const throttleKey = `${userId}:${event}`;
+    const now = Date.now();
+
+    if (!bypassThrottle.includes(event)) {
+      const lastTime = this.lastEmissions.get(throttleKey) || 0;
+      if (now - lastTime < 500) {
+        return;
+      }
+      this.lastEmissions.set(throttleKey, now);
+    }
+
     const message: SyncMessage = {
       type: event,
       data,
-      timestamp: new Date().toISOString()
+      timestamp: new Date(now).toISOString()
     };
 
     // Emit 'message' event for generic listeners (legacy support)
@@ -70,6 +87,14 @@ class WebSocketSyncServer {
 
     // Emit specific event for precise listeners
     this.io.to(`user:${userId}`).emit(event, data);
+
+    // Cleanup old entries from lastEmissions periodically (roughly every 100 emissions)
+    if (this.lastEmissions.size > 1000) {
+      const expiry = now - 10000; // 10s
+      for (const [key, time] of this.lastEmissions.entries()) {
+        if (time < expiry) this.lastEmissions.delete(key);
+      }
+    }
   }
 
   notifyLeadsUpdated(userId: string, data?: any) {

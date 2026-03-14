@@ -19,6 +19,7 @@ interface EmailConfig {
 class ImapIdleManager {
     private connections: Map<string, Imap> = new Map(); // Key: integrationId
     private folders: Map<string, { inbox: string[], sent: string[], spam: string[] }> = new Map(); // Key: integrationId
+    private syncIntervals: Map<string, NodeJS.Timeout> = new Map(); // Key: integrationId
     private syncing: Set<string> = new Set(); // Key: integrationId
     private isRunning = false;
     private backoffDelays: Map<string, number> = new Map(); // Key: integrationId
@@ -69,6 +70,13 @@ class ImapIdleManager {
             for (const [integrationId, imap] of this.connections.entries()) {
                 if (!activeIntegrationIds.has(integrationId)) {
                     console.log(`🔌 Closing IMAP connection for integration ${integrationId}`);
+                    
+                    // Clear sync interval
+                    if (this.syncIntervals.has(integrationId)) {
+                        clearInterval(this.syncIntervals.get(integrationId)!);
+                        this.syncIntervals.delete(integrationId);
+                    }
+
                     imap.end();
                     this.connections.delete(integrationId);
                     this.folders.delete(integrationId);
@@ -299,7 +307,7 @@ class ImapIdleManager {
             });
 
             imap.on('expunge', (seqno: number) => {
-                console.log(`🗑️ Integration ${integrationId} expunged message (Seq: ${seqno})`);
+                console.log(`🗑️ Integration ${integrationId} expunged message (Seq: ${seqno}). Triggering full sync to maintain consistency.`);
                 this.syncDeletedMessages(integrationId, imap, userId, primaryInbox);
             });
 
@@ -307,11 +315,18 @@ class ImapIdleManager {
                 (imap as any).idle();
             }
 
-            setInterval(async () => {
+            // Clear existing interval if any to avoid leaks
+            if (this.syncIntervals.has(integrationId)) {
+                clearInterval(this.syncIntervals.get(integrationId)!);
+            }
+
+            const interval = setInterval(async () => {
                 if (this.connections.get(integrationId) === imap) {
                     this.syncAccountFolders(integrationId, imap, userId);
                 }
-            }, 30 * 1000); // 30s sync safety net (IDLE handles real-time)
+            }, 5 * 60 * 1000); // 5m sync safety net (IDLE handles real-time)
+            
+            this.syncIntervals.set(integrationId, interval);
         });
         } catch (e) {
             console.error(`[IMAP] Failed to initiate openBox for ${primaryInbox}:`, e);
@@ -568,7 +583,7 @@ class ImapIdleManager {
                         if (dbMsg.provider === 'email' && dbMsg.metadata && (dbMsg.metadata as any).messageId) {
                             const mid = (dbMsg.metadata as any).messageId;
                             if (!imapMessageIds.has(mid)) {
-                                console.log(`🧹 Sync deletion: ${mid} not found in ${folderName}`);
+                                console.log(`🧹 Sync deletion: ${mid} not found in ${folderName}. Remote deletion detected.`);
                                 toDelete.push(dbMsg.id);
                             }
                         }
@@ -576,9 +591,17 @@ class ImapIdleManager {
 
                     if (toDelete.length > 0) {
                         await db.delete(messages).where(inArray(messages.id, toDelete));
+                        console.log(`✅ Synced ${toDelete.length} remote deletions for user ${userId}`);
                         wsSync.notifyMessagesUpdated(userId, { event: 'DELETE', messageIds: toDelete });
                         wsSync.notifyStatsUpdated(userId);
                         wsSync.notifyLeadsUpdated(userId);
+                        
+                        // Notify activity feed as requested
+                        wsSync.notifyActivityUpdated(userId, {
+                            type: 'email_deleted_externally',
+                            title: 'Emails Deleted Externally',
+                            message: `${toDelete.length} message(s) removed from server sync.`
+                        });
                     }
                     try { if (typeof (imap as any).idle === 'function') (imap as any).idle(); } catch (e) { }
                 });
@@ -727,6 +750,13 @@ class ImapIdleManager {
 
     stop(): void {
         this.isRunning = false;
+        
+        // Clear all sync intervals
+        for (const interval of this.syncIntervals.values()) {
+            clearInterval(interval);
+        }
+        this.syncIntervals.clear();
+
         for (const imap of this.connections.values()) {
             imap.end();
         }

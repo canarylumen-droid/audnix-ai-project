@@ -199,6 +199,7 @@ export async function analyzeInboundMessage(
     await storage.createAuditLog({
       userId: lead.userId,
       leadId,
+      integrationId: message.integrationId || lead.integrationId,
       action: 'intent_detected',
       details: {
         message: `AI detected ${deepIntent?.intentLevel || 'neutral'} intent from ${lead.name}`,

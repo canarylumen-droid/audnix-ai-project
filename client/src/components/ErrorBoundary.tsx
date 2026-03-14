@@ -65,7 +65,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
                 <div className="flex flex-col sm:flex-row gap-5 w-full">
                   <Button
-                    onClick={() => window.location.reload()}
+                    onClick={() => this.setState({ hasError: false, error: undefined })}
                     className="flex-1 h-16 rounded-[1.25rem] bg-primary text-black hover:bg-primary/90 font-black uppercase tracking-[0.2em] text-[10px] shadow-[0_0_30px_rgba(var(--primary),0.3)] transition-all duration-500"
                   >
                     <RefreshCw className="mr-3 h-4 w-4" /> Re-Initialize Platform Bridge

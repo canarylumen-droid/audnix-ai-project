@@ -209,7 +209,7 @@ export default function IntegrationsPage() {
 
   const { data: integrationsData, isLoading } = useQuery<IntegrationsResponse>({
     queryKey: ["/api/integrations"],
-    staleTime: 30000,
+    staleTime: 60000,
     placeholderData: (prev: any) => prev,
   });
   const { data: customEmailStatus, refetch: refetchStatus } = useQuery<{
@@ -218,7 +218,7 @@ export default function IntegrationsPage() {
     integrations: Array<{ id: string; email: string; connected: boolean; provider: string }>;
   }>({
     queryKey: ["/api/custom-email/status"],
-    staleTime: 30000,
+    staleTime: 60000,
     placeholderData: (prev) => prev,
   });
 
@@ -230,7 +230,7 @@ export default function IntegrationsPage() {
   const { data: stats } = useQuery<any>({
     queryKey: ["/api/dashboard/stats", { integrationId: selectedMailboxId }],
     staleTime: 300000,
-    refetchInterval: 300000,
+    staleTime: 60000,
   });
   const { data: userData } = useQuery<UserData>({ queryKey: ["/api/user/profile"] });
 

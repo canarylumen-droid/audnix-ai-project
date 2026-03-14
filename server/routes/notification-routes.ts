@@ -44,12 +44,12 @@ router.patch("/:id/read", requireAuth, async (req, res) => {
             return res.status(401).json({ error: "Unauthorized" });
         }
 
-        await storage.markNotificationAsRead(notificationId as string, userId);
+        const updatedNotification = await storage.markNotificationAsRead(notificationId as string, userId);
 
         // Notify client to update UI immediately
         wsSync.notifyNotification(userId, { type: 'update', action: 'read', id: notificationId });
 
-        res.json({ success: true });
+        res.json({ success: true, notification: updatedNotification });
     } catch (error: any) {
         console.error("Mark notification read error:", error);
         res.status(500).json({ error: error.message });

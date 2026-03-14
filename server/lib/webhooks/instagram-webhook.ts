@@ -350,6 +350,7 @@ async function processInstagramMessage(message: InstagramMessage): Promise<void>
     await storage.createAuditLog({
       userId: integration.userId,
       leadId: lead.id,
+      integrationId: integration.id,
       action: 'message_received',
       details: {
         channel: 'instagram',

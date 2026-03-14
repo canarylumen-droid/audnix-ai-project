@@ -404,6 +404,7 @@ async function processEmailForLead(
               await storage.createAuditLog({
                 userId,
                 leadId: lead.id,
+                integrationId: integration.id,
                 action: 'lead_reply',
                 details: {
                   message: `Received email reply from ${lead.name}`,

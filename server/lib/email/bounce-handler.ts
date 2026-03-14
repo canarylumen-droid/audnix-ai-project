@@ -136,6 +136,7 @@ class BounceHandler {
       await storage.createAuditLog({
         userId: event.userId,
         leadId: event.leadId,
+        integrationId: lead.integrationId,
         action: 'email_bounce',
         details: {
           message: `${event.bounceType.toUpperCase()} bounce from ${event.email}`,

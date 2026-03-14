@@ -47,7 +47,7 @@ export function InternetConnectionBanner() {
               You're offline — data may not be up to date
             </p>
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => queryClient.refetchQueries()}
               className="ml-2 flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-bold hover:bg-white/30 transition-colors"
             >
               <RefreshCw className="h-3 w-3" /> Retry

@@ -327,7 +327,7 @@ export default function InboxPage() {
 
   const { data: leadsData, isLoading: leadsLoading } = useQuery<any>({
     queryKey: ["/api/leads", { limit: PAGE_SIZE, offset: page * PAGE_SIZE, includeArchived: showArchived, integrationId: selectedMailboxId }],
-    staleTime: 50, // Ultra-live: 50ms stale time
+    staleTime: 1000 * 60, // 1 minute: Rely on WebSockets for live updates, reduce API hits
     placeholderData: (prev: any) => prev,
   });
 
@@ -447,9 +447,9 @@ export default function InboxPage() {
       }
 
       const matchesArchived = showArchived ? lead.archived : !lead.archived;
-      // Strict Isolation: Only show leads assigned to the selected mailbox
-      // If no mailbox is selected (e.g. initial load), don't show any leads to prevent bleed
-      const matchesMailbox = selectedMailboxId ? lead.integrationId === selectedMailboxId : false;
+      // Visibility Logic: Show leads assigned to the selected mailbox OR orphans (unassigned leads)
+      // If no specific mailbox is selected, show all leads to prevent an empty initial state.
+      const matchesMailbox = !selectedMailboxId || lead.integrationId === selectedMailboxId || !lead.integrationId;
 
       return matchesSearch && matchesChannel && matchesStatus && matchesArchived && matchesMailbox;
     }).sort((a: any, b: any) => {

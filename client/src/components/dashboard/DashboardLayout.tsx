@@ -655,8 +655,20 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                           size="sm"
                           className="h-10 text-[10px] font-black uppercase tracking-[0.2em] flex-1 rounded-2xl border-primary/20 hover:bg-primary/5 transition-all"
                           onClick={async () => {
-                            await apiRequest('POST', '/api/notifications/mark-all-read');
-                            queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+                            const queryKey = ["/api/notifications", { integrationId: selectedMailboxId }];
+                            queryClient.setQueryData(queryKey, (old: any) => {
+                              if (!old) return old;
+                              return {
+                                ...old,
+                                notifications: old.notifications.map((n: any) => ({ ...n, isRead: true })),
+                                unreadCount: 0
+                              };
+                            });
+                            try {
+                              await apiRequest('POST', '/api/notifications/mark-all-read');
+                            } finally {
+                              queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+                            }
                           }}
                         >
                           <Check className="w-4 h-4 mr-2 text-primary" />
@@ -728,14 +740,26 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="h-8 w-8 rounded-xl opacity-0 group-hover:opacity-100 transition-all bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
+                                      className="h-8 w-8 rounded-xl transition-all bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
                                       onClick={async (e) => {
                                         e.stopPropagation();
+                                        const queryKey = ["/api/notifications", { integrationId: selectedMailboxId }];
+                                        queryClient.setQueryData(queryKey, (old: any) => {
+                                          if (!old) return old;
+                                          return {
+                                            ...old,
+                                            notifications: old.notifications.map((n: any) => 
+                                              n.id === notification.id ? { ...n, isRead: true } : n
+                                            ),
+                                            unreadCount: Math.max(0, old.unreadCount - 1)
+                                          };
+                                        });
                                         try {
                                           await apiRequest('PATCH', `/api/notifications/${notification.id}/read`, {});
-                                          queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
                                         } catch (err) {
                                           console.error("Failed to mark notification as read", err);
+                                        } finally {
+                                          queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
                                         }
                                       }}
                                     >
@@ -745,7 +769,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8 rounded-xl opacity-0 group-hover:opacity-100 transition-all bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/20"
+                                    className="h-8 w-8 rounded-xl transition-all bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/20"
                                     onClick={async (e) => {
                                       e.stopPropagation();
                                       deleteNotification.mutate(notification.id);

@@ -349,9 +349,10 @@ export class DrizzleStorage implements IStorage {
 
     let conditions = [eq(leads.userId, userId)];
     
-    // Strict Isolation by Mailbox
+    // Isolation and Pre-campaign visibility
     if (options.integrationId) {
-      conditions.push(eq(leads.integrationId, options.integrationId));
+      // Show leads assigned to this mailbox OR orphans (unassigned leads)
+      conditions.push(or(eq(leads.integrationId, options.integrationId), isNull(leads.integrationId)) as any);
     }
 
     if (!options.includeArchived) {
@@ -367,10 +368,6 @@ export class DrizzleStorage implements IStorage {
       conditions.push(eq(leads.status, 'cold'));
     } else if (options.status && options.status !== 'all') {
       conditions.push(eq(leads.status, options.status as any));
-    }
-
-    if (options.channel) {
-      conditions.push(eq(leads.channel, options.channel as any));
     }
 
     if (options.channel) {
@@ -611,7 +608,8 @@ export class DrizzleStorage implements IStorage {
     }
 
     if (options?.integrationId) {
-      conditions.push(eq(messages.integrationId, options.integrationId));
+      // Show messages assigned to this mailbox OR orphans (unassigned)
+      conditions.push(or(eq(messages.integrationId, options.integrationId), isNull(messages.integrationId)) as any);
     }
 
     // Build query with combined conditions
@@ -1019,7 +1017,7 @@ export class DrizzleStorage implements IStorage {
 
   async getDeals(userId: string, integrationId?: string): Promise<any[]> {
     checkDatabase();
-    const integrationFilter = integrationId ? sql`AND l.integration_id = ${integrationId}` : sql``;
+    const integrationFilter = integrationId ? sql`AND (l.integration_id = ${integrationId} OR l.integration_id IS NULL)` : sql``;
     const result = await db.execute(sql`
       SELECT d.*, l.name as lead_name 
       FROM deals d
@@ -1069,7 +1067,7 @@ export class DrizzleStorage implements IStorage {
     checkDatabase();
     // Use raw SQL to avoid referencing the 'deal_value' column which may not exist in the DB.
     // Filter by integrationId if provided, linking through leads
-    const integrationFilter = integrationId ? sql`AND l.integration_id = ${integrationId}` : sql``;
+    const integrationFilter = integrationId ? sql`AND (l.integration_id = ${integrationId} OR l.integration_id IS NULL)` : sql``;
     
     let allDeals: any[] = [];
     try {
@@ -1698,10 +1696,10 @@ export class DrizzleStorage implements IStorage {
       dealsWhere = and(dealsWhere, lte(deals.createdAt, options.end))!;
     }
     if (options?.integrationId) {
-      messagesWhere = and(messagesWhere, eq(messages.integrationId, options.integrationId))!;
+      messagesWhere = and(messagesWhere, or(eq(messages.integrationId, options.integrationId), isNull(messages.integrationId)))!;
 
-      // Filter leads associated with this integration
-      leadsWhere = and(leadsWhere, eq(leads.integrationId, options.integrationId))!;
+      // Filter leads associated with this integration or unassigned (orphans)
+      leadsWhere = and(leadsWhere, or(eq(leads.integrationId, options.integrationId), isNull(leads.integrationId)))!;
 
       // Filter deals associated with this integration
       // Decisions: Filter deals by the lead's integrationId or the associated message's integrationId?
@@ -1709,7 +1707,7 @@ export class DrizzleStorage implements IStorage {
       dealsWhere = and(dealsWhere, sql`exists (
         select 1 from ${leads} 
         where ${leads.id} = ${deals.leadId} 
-        and ${leads.integrationId} = ${options.integrationId}
+        and (${leads.integrationId} = ${options.integrationId} or ${leads.integrationId} is null)
       )`)!;
     }
 
@@ -1851,8 +1849,14 @@ export class DrizzleStorage implements IStorage {
     checkDatabase();
 
     // 1. Basic Metrics
-    const leadWhere = and(eq(leads.userId, userId), integrationId ? eq(leads.integrationId, integrationId) : undefined);
-    const msgWhere = and(eq(messages.userId, userId), integrationId ? eq(messages.integrationId, integrationId) : undefined);
+    const leadWhere = and(
+      eq(leads.userId, userId), 
+      integrationId ? or(eq(leads.integrationId, integrationId), isNull(leads.integrationId)) : undefined
+    );
+    const msgWhere = and(
+      eq(messages.userId, userId), 
+      integrationId ? or(eq(messages.integrationId, integrationId), isNull(messages.integrationId)) : undefined
+    );
 
     const [counts] = await db.select({
       totalLeads: sql<number>`count(*)`,
@@ -1866,7 +1870,14 @@ export class DrizzleStorage implements IStorage {
     }).from(messages).where(msgWhere);
 
     const dealWhere = integrationId 
-      ? and(eq(deals.userId, userId), sql`exists (select 1 from leads where leads.id = deals.lead_id and leads.integration_id = ${integrationId})`)
+      ? and(
+          eq(deals.userId, userId), 
+          sql`exists (
+            select 1 from leads 
+            where leads.id = deals.lead_id 
+            and (leads.integration_id = ${integrationId} or leads.integration_id is null)
+          )`
+        )
       : eq(deals.userId, userId);
 
     const [dealsStats] = await db.select({

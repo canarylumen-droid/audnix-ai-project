@@ -11,9 +11,10 @@ import { generateExpertOutreach, generateCampaignTemplateSequence } from '../lib
 import { outreachCampaigns, campaignLeads, messages, campaignEmails, leads as leadsTable } from '../../shared/schema.js';
 import { storage } from '../storage.js';
 import { db } from '../db.js';
-import { eq, and, desc, sql, ne } from 'drizzle-orm';
+import { eq, and, desc, sql, ne, inArray } from 'drizzle-orm';
 import { AuditTrailService } from '../lib/audit-trail-service.js';
 import { wsSync } from '../lib/websocket-sync.js';
+import { isNull } from 'drizzle-orm';
 import validator from 'validator';
 
 const router = Router();
@@ -197,6 +198,22 @@ router.post('/campaigns', requireAuth, async (req, res) => {
           } catch (err) {
             console.error(`[Campaign] Failed to auto-upsert/dedupe lead ${email}:`, err);
           }
+      }
+
+      // --- Auto-include Orphan Leads (Phase 2 Requirement) ---
+      // Distribute leads that haven't been assigned to any mailbox yet
+      const orphanLeads = await db.select({ id: leadsTable.id })
+        .from(leadsTable)
+        .where(and(
+          eq(leadsTable.userId, userId),
+          isNull(leadsTable.integrationId),
+          eq(leadsTable.archived, false),
+          eq(leadsTable.channel, 'email')
+        ));
+      
+      for (const orphan of orphanLeads) {
+        if (!finalLeadIds.includes(orphan.id)) {
+          finalLeadIds.push(orphan.id);
         }
       }
 
@@ -273,10 +290,15 @@ router.post('/campaigns', requireAuth, async (req, res) => {
 
       for (const [mbId, leadIds] of Object.entries(mailboxAssignments)) {
         if (leadIds.length > 0) {
-          await db.update(leads)
+          await db.update(leadsTable)
             .set({ integrationId: mbId })
-            .where(inArray(leads.id, leadIds));
+            .where(inArray(leadsTable.id, leadIds));
         }
+      }
+
+      // Trigger UI refresh for leads redistribution
+      if (finalLeadIds.length > 0) {
+        wsSync.notifyLeadsUpdated(userId, { event: 'BULK_UPDATE', leadIds: finalLeadIds });
       }
 
       // Update total leads count in campaign stats
@@ -654,6 +676,7 @@ router.get('/track/:trackingId', async (req, res) => {
       await storage.createAuditLog({
         userId: message.userId,
         leadId: message.leadId!,
+        integrationId: message.integrationId,
         action: 'email_opened',
         details: {
           message: `Email opened by ${leadName}`,
@@ -762,6 +785,7 @@ router.get('/click/:trackingId', async (req, res) => {
       await storage.createAuditLog({
         userId: message.userId,
         leadId: message.leadId!,
+        integrationId: message.integrationId,
         action: 'email_clicked',
         details: {
           message: `Link clicked by ${leadName}`,

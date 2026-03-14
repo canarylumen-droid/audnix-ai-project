@@ -133,7 +133,7 @@ export default function DashboardHome() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const { socket } = useRealtime();
-  const [selectedIntegrationId, setSelectedIntegrationId] = useState<string | undefined>(undefined);
+  const { selectedMailboxId: selectedIntegrationId, setSelectedMailboxId: setSelectedIntegrationId } = useMailbox();
 
   // Listen for socket updates
   useEffect(() => {
@@ -230,7 +230,7 @@ export default function DashboardHome() {
       if (!res.ok) throw new Error("Failed to fetch stats");
       return res.json();
     },
-    staleTime: 50, // Ultra-fast 20ms-feel refreshes
+    staleTime: 60000, // 1 min cache prevents excessive API requests
     placeholderData: (previousData) => previousData,
   });
 
@@ -262,7 +262,7 @@ export default function DashboardHome() {
     },
     refetchOnWindowFocus: true,
     retry: false,
-    staleTime: 50, // Keep activity ultra-fresh
+    staleTime: 30000,
     placeholderData: (previousData) => previousData,
   });
 
