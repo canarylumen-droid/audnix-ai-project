@@ -34,7 +34,7 @@ export interface IStorage {
   removeTeamMember(orgId: string, userId: string): Promise<void>;
 
   // Lead methods
-  getLeads(options: { userId: string; status?: string; channel?: string; search?: string; limit?: number; offset?: number; includeArchived?: boolean; integrationId?: string }): Promise<Lead[]>;
+  getLeads(options: { userId: string; status?: string; channel?: string; search?: string; limit?: number; offset?: number; includeArchived?: boolean; integrationId?: string; excludeActiveCampaignLeads?: boolean }): Promise<Lead[]>;
   getLead(id: string): Promise<Lead | undefined>;
   getLeadById(id: string): Promise<Lead | undefined>;
   getLeadByEmail(email: string, userId: string): Promise<Lead | undefined>;

@@ -233,6 +233,16 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
       }, 5000); // Give connection time to establish
 
       console.log(`[Email Connect] Background sync triggered for user ${userId}`);
+
+      // Redistribute orphan leads to this new mailbox
+      const { redistributeOrphanLeads } = await import('../lib/sales-engine/outreach-engine.js');
+      const integrations = await storage.getIntegrations(userId);
+      const customEmail = integrations.find((i: any) => i.provider === 'custom_email' && i.accountType === email);
+      if (customEmail) {
+        redistributeOrphanLeads(userId, customEmail.id).catch(err => 
+          console.error('[Email Connect] Lead redistribution failed:', err)
+        );
+      }
     } catch (idleErr) {
       console.warn('[Email Connect] Could not trigger background sync:', idleErr);
     }

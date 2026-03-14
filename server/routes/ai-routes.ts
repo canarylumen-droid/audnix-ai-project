@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, or, isNull } from "drizzle-orm";
 import { leads as leadsTable } from "../../shared/schema.js";
 import { db } from "../db.js";
 import multer from "multer";

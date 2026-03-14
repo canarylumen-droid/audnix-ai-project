@@ -52,7 +52,7 @@ Allow: /
 User-agent: OAI-SearchBot
 Allow: /
 
-User-agent: Google-Extended
+User-agent: ClaudeBot
 Allow: /
 
 User-agent: Applebot

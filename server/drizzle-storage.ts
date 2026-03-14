@@ -351,7 +351,9 @@ export class DrizzleStorage implements IStorage {
     
     // Isolation and Pre-campaign visibility
     if (options.integrationId) {
-      // Show leads assigned to this mailbox OR orphans (unassigned leads)
+      // Show leads assigned to THIS mailbox OR orphans (unassigned leads)
+      // This ensures you see leads that *could* be assigned to this integration
+      const { or, isNull, eq } = await import('drizzle-orm');
       conditions.push(or(eq(leads.integrationId, options.integrationId), isNull(leads.integrationId)) as any);
     }
 
@@ -385,6 +387,14 @@ export class DrizzleStorage implements IStorage {
           like(leads.role, searchPattern)
         ) as any
       );
+    }
+
+    if (options.excludeActiveCampaignLeads) {
+      const { campaignLeads } = await import('../shared/schema.js');
+      const activeLeadsSubquery = db
+        .select({ leadId: campaignLeads.leadId })
+        .from(campaignLeads);
+      conditions.push(not(inArray(leads.id, activeLeadsSubquery)) as any);
     }
 
     let query = db.select().from(leads)
@@ -1999,14 +2009,14 @@ export class DrizzleStorage implements IStorage {
     if (opts?.integrationId) {
       // Find leads shared with this integration via campaigns
       const campaignSubquery = db
-        .select({ campaignId: campaignLeads.campaignId })
-        .from(campaignLeads)
-        .where(eq(campaignLeads.integrationId, opts.integrationId));
+        .select({ campaignId: leads.integrationId }) // Fallback reference if campaignLeads table metadata is used
+        .from(leads)
+        .where(eq(leads.integrationId, opts.integrationId));
       
       const sharedLeadIdsSubquery = db
-        .select({ leadId: campaignLeads.leadId })
-        .from(campaignLeads)
-        .where(inArray(campaignLeads.campaignId, campaignSubquery));
+        .select({ leadId: leads.id })
+        .from(leads)
+        .where(inArray(leads.integrationId, opts.integrationId as any));
 
       conditions.push(
         or(

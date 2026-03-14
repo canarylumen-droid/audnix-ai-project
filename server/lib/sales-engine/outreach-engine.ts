@@ -275,3 +275,45 @@ export async function triggerAutoOutreach(userId: string): Promise<void> {
     console.error('[AutoOutreach] Error triggering auto-outreach:', error);
   }
 }
+
+/**
+ * Redistributes orphan leads (leads without an active integration)
+ * to a newly connected integration.
+ */
+export async function redistributeOrphanLeads(userId: string, integrationId: string): Promise<void> {
+  try {
+    const { storage } = await import('../../storage.js');
+    const { db } = await import('../../db.js');
+    const { leads } = await import('../../../shared/schema.js');
+    const { eq, and, isNull } = await import('drizzle-orm');
+
+    console.log(`[LeadRedistribution] Starting redistribution for user ${userId} to integration ${integrationId}`);
+
+    // Find leads for this user that don't have an integrationId
+    const orphanLeads = await db.select()
+      .from(leads)
+      .where(and(eq(leads.userId, userId), isNull(leads.integrationId)));
+
+    if (orphanLeads.length === 0) {
+      console.log(`[LeadRedistribution] No orphan leads found for user ${userId}`);
+      return;
+    }
+
+    console.log(`[LeadRedistribution] Found ${orphanLeads.length} orphan leads. Reassigning...`);
+
+    let reassignedCount = 0;
+    for (const lead of orphanLeads) {
+      await storage.updateLead(lead.id, { integrationId });
+      reassignedCount++;
+    }
+
+    console.log(`[LeadRedistribution] Successfully reassigned ${reassignedCount} leads to integration ${integrationId}`);
+
+    // Notify UI
+    const { wsSync } = await import('../websocket-sync.js');
+    wsSync.notifyLeadsUpdated(userId);
+
+  } catch (error) {
+    console.error('[LeadRedistribution] Error redistributing leads:', error);
+  }
+}

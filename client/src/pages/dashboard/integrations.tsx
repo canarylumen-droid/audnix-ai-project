@@ -229,7 +229,6 @@ export default function IntegrationsPage() {
   });
   const { data: stats } = useQuery<any>({
     queryKey: ["/api/dashboard/stats", { integrationId: selectedMailboxId }],
-    staleTime: 300000,
     staleTime: 60000,
   });
   const { data: userData } = useQuery<UserData>({ queryKey: ["/api/user/profile"] });

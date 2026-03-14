@@ -307,8 +307,8 @@ class ImapIdleManager {
             });
 
             imap.on('expunge', (seqno: number) => {
-                console.log(`🗑️ Integration ${integrationId} expunged message (Seq: ${seqno}). Triggering full sync to maintain consistency.`);
-                this.syncDeletedMessages(integrationId, imap, userId, primaryInbox);
+                console.log(`🗑️ Integration ${integrationId} expunged message (Seq: ${seqno}). Triggering deep sync for all folders.`);
+                this.syncAccountFolders(integrationId, imap, userId);
             });
 
             if (typeof (imap as any).idle === 'function') {
@@ -322,9 +322,10 @@ class ImapIdleManager {
 
             const interval = setInterval(async () => {
                 if (this.connections.get(integrationId) === imap) {
+                    console.log(`⏱️ Periodic folder sync for integration ${integrationId} (60s cycle)`);
                     this.syncAccountFolders(integrationId, imap, userId);
                 }
-            }, 5 * 60 * 1000); // 5m sync safety net (IDLE handles real-time)
+            }, 60 * 1000); // 60s sync for better real-time discovery of non-IDLE folders (Sent, Spam)
             
             this.syncIntervals.set(integrationId, interval);
         });
@@ -558,8 +559,8 @@ class ImapIdleManager {
                     return;
                 }
 
-                // Fetch UIDs and Message-IDs for the last 150 messages in the folder
-                const fetchRange = box.messages.total < 150 ? '1:*' : `${box.messages.total - 149}:*`;
+                // Fetch UIDs and Message-IDs for the last 500 messages to ensure deep sync
+                const fetchRange = box.messages.total < 500 ? '1:*' : `${box.messages.total - 499}:*`;
                 const fetch = imap.seq.fetch(fetchRange, { struct: false, bodies: 'HEADER.FIELDS (MESSAGE-ID)' });
                 const imapMessageIds = new Set<string>();
 
