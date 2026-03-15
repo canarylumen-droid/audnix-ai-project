@@ -78,6 +78,16 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
     res.redirect(307, `/api/oauth/instagram/callback${query}`);
   });
 
+  app.get("/", apiLimiter, (_req, res) => {
+    // Serve index.html for all non-api routes to support SPA
+    res.sendFile(path.join(process.cwd(), "client/dist/index.html"), (err) => {
+      if (err) {
+        // Fallback for development
+        res.status(200).send("Landing Page (AudnixAI)");
+      }
+    });
+  });
+
   // Mount all other routes
   app.use("/api/organizations", organizationRouter);
 
