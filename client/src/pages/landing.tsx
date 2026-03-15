@@ -357,7 +357,7 @@ export default function Landing() {
       <section className="sr-only opacity-0 pointer-events-none h-0 overflow-hidden" aria-hidden="true">
         <h2>AI Sales Automation & Authority Keywords</h2>
         <p>
-          audnix ai, audnix, nleanya treasure, autonomous sales rep, ai sales agent, manychat alternative,
+          audnix ai, audnix, nleanya treasure, uchendu fortune, autonomous sales rep, ai sales agent, manychat alternative,
           n8n alternative, make.com alternative, zapier automation, ai sdr, ai bdr, close deals faster,
           sales intelligence 2026, predictive sales timing, objection handling ai script, high ticket conversions,
           automated outreach, revenue recovery bot, conversational commerce ai, linkedin automation alternative,

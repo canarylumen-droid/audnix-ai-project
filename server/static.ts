@@ -19,13 +19,14 @@ export function log(message: string, source = "express") {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(__dirname, "..", "dist", "public");
+  const distPath = path.join(process.cwd(), "dist", "public");
 
   if (!fs.existsSync(distPath)) {
-    throw new Error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`,
-    );
+    log(`⚠️ Build directory not found at ${distPath}. Build the client first.`, "static");
+    return; // Don't throw, just log and continue to allow API to work
   }
+
+  log(`📂 Serving static files from: ${distPath}`, "static");
 
   // Optimized static serving for production
   app.use(express.static(distPath, {
@@ -33,11 +34,15 @@ export function serveStatic(app: Express) {
     index: false,
     maxAge: '1d',
     setHeaders: (res, filePath) => {
+      // CORS headers for assets (needed for crossorigin script tags)
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      
       // Explicit Content-Type for critical assets
       if (filePath.endsWith('.js')) res.setHeader('Content-Type', 'application/javascript');
       if (filePath.endsWith('.css')) res.setHeader('Content-Type', 'text/css');
       if (filePath.endsWith('.json') || filePath.endsWith('.webmanifest')) res.setHeader('Content-Type', 'application/json');
-      // Set permissive cache for assets but no-cache for index/sw
+      
+      // Cache settings
       if (filePath.endsWith('index.html') || filePath.endsWith('sw.js')) {
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       } else {
@@ -46,15 +51,9 @@ export function serveStatic(app: Express) {
     }
   }));
 
-  // Explicit route handlers for PWA/Manifest files with strict path validation
-  app.get(['/sw.js', '/manifest.json', '/favicon.ico', '/robots.txt', '/favicon.svg'], viteLimiter, (req, res) => {
-    const safeFiles = ['sw.js', 'manifest.json', 'favicon.ico', 'robots.txt', 'favicon.svg'];
+  // Explicit route handlers for PWA/Manifest files
+  app.get(['/sw.js', '/manifest.json', '/favicon.ico', '/robots.txt', '/favicon.svg'], (req, res) => {
     const fileName = req.path.substring(1);
-
-    if (!safeFiles.includes(fileName)) {
-      return res.status(404).end();
-    }
-
     const filePath = path.resolve(distPath, fileName);
     if (fs.existsSync(filePath)) {
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -66,19 +65,25 @@ export function serveStatic(app: Express) {
 
   // Handle all other routes by serving index.html (SPA)
   app.get('*', viteLimiter, (req, res) => {
-    // CRITICAL: Never serve index.html for API, Webhook, or Platform-specific internal routes
+    const isAsset = /\.(png|jpg|jpeg|gif|svg|ico|css|js|woff2?|ttf|otf|map|json|webp)$/i.test(req.path) || req.path.includes("/assets/");
     const isInternalPlatformRoute = 
       req.path.startsWith('/_vercel/') || 
       req.path.startsWith('/_next/') || 
       req.path.startsWith('/.well-known/');
 
-    if (req.path.startsWith('/api/') || req.path.startsWith('/webhook/') || req.path === '/health' || isInternalPlatformRoute) {
+    if (isAsset || req.path.startsWith('/api/') || req.path.startsWith('/webhook/') || req.path === '/health' || isInternalPlatformRoute) {
       if (req.path === '/health') {
         return res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
       }
       return res.status(404).json({ error: "Not found" });
     }
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.sendFile(path.resolve(distPath, "index.html"));
+
+    const indexPath = path.resolve(distPath, "index.html");
+    if (fs.existsSync(indexPath)) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.sendFile(indexPath);
+    } else {
+      res.status(404).send("Application shell not found. Please build the client.");
+    }
   });
 }
