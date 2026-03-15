@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { pgTable, text, uuid, timestamp, boolean, integer, jsonb, varchar, real, uniqueIndex, customType } from "drizzle-orm/pg-core";
+import { pgTable, text, uuid, timestamp, boolean, integer, jsonb, varchar, real, uniqueIndex, customType, index } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 
@@ -128,7 +128,12 @@ export const leads = pgTable("leads", {
   metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  leadsUserIdIdx: index("leads_user_id_idx").on(table.userId),
+  leadsIntegrationIdIdx: index("leads_integration_id_idx").on(table.integrationId),
+  leadsStatusIdx: index("leads_status_idx").on(table.status),
+  leadsArchivedIdx: index("leads_archived_idx").on(table.archived),
+}));
 
 export const domainVerifications = pgTable("domain_verifications", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -182,7 +187,11 @@ export const messages = pgTable("messages", {
   targetUrl: text("target_url"),
   metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  msgsUserIdIdx: index("msgs_user_id_idx").on(table.userId),
+  msgsLeadIdIdx: index("msgs_lead_id_idx").on(table.leadId),
+  msgsIntegrationIdIdx: index("msgs_integration_id_idx").on(table.integrationId),
+}));
 
 export const threads = pgTable("threads", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -389,7 +398,10 @@ export const outreachCampaigns = pgTable("outreach_campaigns", {
   replyEmail: text("reply_email"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
-});
+}, (table) => ({
+  campaignsUserIdIdx: index("campaigns_user_id_idx").on(table.userId),
+  campaignsStatusIdx: index("campaigns_status_idx").on(table.status),
+}));
 
 export const userOutreachSettings = pgTable("user_outreach_settings", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -545,7 +557,11 @@ export const emailMessages = pgTable("email_messages", {
   targetUrl: text("target_url"),
   metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  emailMsgsUserIdIdx: index("email_msgs_user_id_idx").on(table.userId),
+  emailMsgsLeadIdIdx: index("email_msgs_lead_id_idx").on(table.leadId),
+  emailMsgsThreadIdIdx: index("email_msgs_thread_id_idx").on(table.threadId),
+}));
 
 export const emailMessagesSelect = createSelectSchema(emailMessages);
 export const emailMessagesInsert = createInsertSchema(emailMessages);

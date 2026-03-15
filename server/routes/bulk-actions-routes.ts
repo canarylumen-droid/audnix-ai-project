@@ -11,10 +11,11 @@ const router = Router();
 router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    const { leads: leadsData, channel = 'email', aiPaused = false } = req.body as {
+    const { leads: leadsData, channel = 'email', aiPaused = false, integrationId } = req.body as {
       leads: Array<{ name?: string; email?: string; phone?: string; company?: string }>;
       channel?: 'email' | 'instagram';
       aiPaused?: boolean;
+      integrationId?: string;
     };
 
     if (!Array.isArray(leadsData) || leadsData.length === 0) {
@@ -87,6 +88,7 @@ router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Pr
           phone: metadata.phone || leadData.phone || null,
           company: metadata.company || leadData.company || null,
           channel: channel as any,
+          integrationId: integrationId || null,
           status: 'new',
           aiPaused: aiPaused,
           metadata: {

@@ -201,9 +201,9 @@ router.post('/campaigns', requireAuth, async (req, res) => {
         }
       }
 
-      // --- Auto-include Orphan Leads (Phase 2 Requirement) ---
+      // --- Auto-include Inventory Leads (Lead Pool Management) ---
       // Distribute leads that haven't been assigned to any mailbox yet
-      const orphanLeads = await db.select({ id: leadsTable.id })
+      const inventoryLeads = await db.select({ id: leadsTable.id })
         .from(leadsTable)
         .where(and(
           eq(leadsTable.userId, userId),
@@ -212,9 +212,9 @@ router.post('/campaigns', requireAuth, async (req, res) => {
           eq(leadsTable.channel, 'email')
         ));
       
-      for (const orphan of orphanLeads) {
-        if (!finalLeadIds.includes(orphan.id)) {
-          finalLeadIds.push(orphan.id);
+      for (const invMatch of inventoryLeads) {
+        if (!finalLeadIds.includes(invMatch.id)) {
+          finalLeadIds.push(invMatch.id);
         }
       }
 

@@ -1,7 +1,7 @@
 import { Server, Socket } from 'socket.io';
 import http from 'http';
 
-type MessageType = 'leads_updated' | 'messages_updated' | 'deals_updated' | 'settings_updated' | 'ping' | 'pong' | 'PROSPECTING_LOG' | 'PROSPECT_FOUND' | 'PROSPECT_UPDATED' | 'notification' | 'calendar_updated' | 'TERMINATE_SESSION' | 'insights_updated' | 'activity_updated' | 'stats_updated' | 'campaigns_updated' | 'campaign_stats_updated' | 'desktop_notification';
+type MessageType = 'leads_updated' | 'messages_updated' | 'deals_updated' | 'settings_updated' | 'ping' | 'pong' | 'PROSPECTING_LOG' | 'PROSPECT_FOUND' | 'PROSPECT_UPDATED' | 'notification' | 'calendar_updated' | 'TERMINATE_SESSION' | 'insights_updated' | 'activity_updated' | 'stats_updated' | 'campaigns_updated' | 'campaign_stats_updated' | 'desktop_notification' | 'SECURITY_ALERT';
 
 interface SyncMessage {
   type: MessageType;
@@ -159,10 +159,13 @@ class WebSocketSyncServer {
     this.emitToUser(userId, message.type as MessageType, message.payload);
   }
 
-  // Admin/System wrappers
+  // Broadcast to all connected users (useful for system-wide security alerts)
+  broadcastToAdmins(data: { type: string; data: any }) {
+      if (!this.io) return;
+      this.io.emit('SECURITY_ALERT', data.data);
+  }
+
   getConnectedUsers(): string[] {
-    // This is expensive in Socket.IO v4+, usually need fetchSockets()
-    // For now, return empty or implement tracking if needed.
     return [];
   }
 }

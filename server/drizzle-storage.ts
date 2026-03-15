@@ -351,7 +351,7 @@ export class DrizzleStorage implements IStorage {
     
     // Isolation and Pre-campaign visibility
     if (options.integrationId) {
-      // Show leads assigned to THIS mailbox OR orphans (unassigned leads)
+      // Show leads assigned to THIS mailbox OR Inventory (unassigned leads)
       // This ensures you see leads that *could* be assigned to this integration
       const { or, isNull, eq } = await import('drizzle-orm');
       conditions.push(or(eq(leads.integrationId, options.integrationId), isNull(leads.integrationId)) as any);
@@ -618,7 +618,7 @@ export class DrizzleStorage implements IStorage {
     }
 
     if (options?.integrationId) {
-      // Show messages assigned to this mailbox OR orphans (unassigned)
+      // Show messages assigned to this mailbox OR Inventory (unassigned)
       conditions.push(or(eq(messages.integrationId, options.integrationId), isNull(messages.integrationId)) as any);
     }
 
@@ -1708,7 +1708,7 @@ export class DrizzleStorage implements IStorage {
     if (options?.integrationId) {
       messagesWhere = and(messagesWhere, or(eq(messages.integrationId, options.integrationId), isNull(messages.integrationId)))!;
 
-      // Filter leads associated with this integration or unassigned (orphans)
+      // Filter leads associated with this integration or unassigned (Inventory)
       leadsWhere = and(leadsWhere, or(eq(leads.integrationId, options.integrationId), isNull(leads.integrationId)))!;
 
       // Filter deals associated with this integration

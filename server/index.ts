@@ -39,6 +39,7 @@ import { emailSyncWorkerModule } from "./lib/queues/email-sync-queue.js";
 import { leadExpiryWorker } from "./lib/workers/lead-expiry-worker.js";
 import { reputationWorker } from "./lib/workers/reputation-worker.js";
 import { apiLimiter, authLimiter } from "./middleware/rate-limit.js";
+import { sentinel } from "./middleware/sentinel.js";
 import { fileURLToPath } from "url";
 import fs from "fs";
 import * as path from "path";
@@ -83,6 +84,7 @@ if (!process.env.VERCEL) {
 }
 
 const app = express();
+app.use(sentinel);
 app.use(hpp());
 
 function log(message: string, source = "express") {
@@ -198,24 +200,24 @@ if (process.env.DATABASE_URL) {
       process.env.DATABASE_URL.includes('neon.tech') || process.env.NODE_ENV === "production"
         ? { rejectUnauthorized: false }
         : false,
-    max: 10,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 10000,
+    max: 20, // Increased for performance
+    idleTimeoutMillis: 10000,
+    connectionTimeoutMillis: 5000,
   });
 
   sessionStore = new PgSession({
     pool: pool,
     tableName: "user_sessions",
     createTableIfMissing: true,
-    pruneSessionInterval: 60 * 15,
+    pruneSessionInterval: 60 * 30, // Less frequent pruning
     schemaName: "public",
   });
-  console.log("✅ Using PostgreSQL session store with SSL (persistent)");
+  console.log("✅ Using PostgreSQL session store with SSL (optimized)");
 }
 
 const sessionConfig: session.SessionOptions = {
   secret: sessionSecret,
-  resave: true, // Set to true for serverless stability to ensure session is saved back
+  resave: false, // Changed to false for better performance if store supports touch
   saveUninitialized: false,
   name: "audnix.sid",
   cookie: {
@@ -226,7 +228,7 @@ const sessionConfig: session.SessionOptions = {
     path: "/",
   },
   store: sessionStore,
-  rolling: true,
+  rolling: false, // Changed to false to avoid updating cookie/store on every request unless needed
   proxy: true,
 };
 
@@ -424,10 +426,12 @@ async function runMigrations() {
   app.get("/health", (_req, res) => res.status(200).json({ status: "ok" }));
   const server = await registerRoutes(app);
   
-  if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
-    // SECURITY/VERCEL WORKAROUND: Hide the actual string import to prevent 
+  const isProduction = process.env.NODE_ENV === "production" || process.env.VERCEL === "1" || !!process.env.RAILWAY_STATIC_URL;
+  
+  if (!isProduction) {
+    // SECURITY/RAILWAY WORKAROUND: Hide the actual string import to prevent 
     // @vercel/nft from statically analyzing and bundling vite + rollout native dependencies
-    // into the production lambda container which crashes on startup.
+    // into the production container which crashes on startup.
     const vitePath = './vit' + 'e.js'; 
     try {
       const { setupVite } = await import(/* @vite-ignore */ vitePath);

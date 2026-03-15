@@ -277,43 +277,131 @@ export async function triggerAutoOutreach(userId: string): Promise<void> {
 }
 
 /**
- * Redistributes orphan leads (leads without an active integration)
- * to a newly connected integration.
+ * Distributes leads from the global Lead Inventory pool to available mailboxes.
+ * Respects daily sending limits (Gmail: 50, Custom: meta-specified).
  */
-export async function redistributeOrphanLeads(userId: string, integrationId: string): Promise<void> {
+export async function distributeLeadsFromPool(userId: string, targetIntegrationId?: string): Promise<void> {
   try {
     const { storage } = await import('../../storage.js');
     const { db } = await import('../../db.js');
     const { leads } = await import('../../../shared/schema.js');
     const { eq, and, isNull } = await import('drizzle-orm');
 
-    console.log(`[LeadRedistribution] Starting redistribution for user ${userId} to integration ${integrationId}`);
+    console.log(`[LeadPool] Starting professional distribution for user ${userId}`);
 
-    // Find leads for this user that don't have an integrationId
-    const orphanLeads = await db.select()
-      .from(leads)
-      .where(and(eq(leads.userId, userId), isNull(leads.integrationId)));
+    // Fetch integrations to check capacity
+    const integrations = await storage.getIntegrations(userId);
+    const activeMailboxes = integrations.filter(i => i.connected);
 
-    if (orphanLeads.length === 0) {
-      console.log(`[LeadRedistribution] No orphan leads found for user ${userId}`);
+    if (activeMailboxes.length === 0) {
+      console.log(`[LeadPool] No active mailboxes found for user ${userId}. Leads will remain in Inventory.`);
       return;
     }
 
-    console.log(`[LeadRedistribution] Found ${orphanLeads.length} orphan leads. Reassigning...`);
+    // Find leads in the inventory pool (unassigned)
+    const inventoryLeads = await db.select()
+      .from(leads)
+      .where(and(eq(leads.userId, userId), isNull(leads.integrationId)));
 
-    let reassignedCount = 0;
-    for (const lead of orphanLeads) {
-      await storage.updateLead(lead.id, { integrationId });
-      reassignedCount++;
+    if (inventoryLeads.length === 0) {
+      console.log(`[LeadPool] Lead Inventory is currently empty for user ${userId}`);
+      return;
     }
 
-    console.log(`[LeadRedistribution] Successfully reassigned ${reassignedCount} leads to integration ${integrationId}`);
+    console.log(`[LeadPool] Found ${inventoryLeads.length} leads in Inventory. Processing allocation...`);
+
+    // 1. Fetch User Config & Active Campaigns to prioritize mailboxes
+    const [user] = await db.select({ config: users.config }).from(users).where(eq(users.id, userId));
+    const isAutonomous = (user?.config as any)?.autonomousMode === true;
+
+    const activeCampaigns = await db.select().from(outreachCampaigns)
+      .where(and(eq(outreachCampaigns.userId, userId), eq(outreachCampaigns.status, 'active')));
+    
+    const campaignMailboxIds = new Set<string>();
+    activeCampaigns.forEach(c => {
+      const mbIds = (c.config as any)?.mailboxIds || [];
+      mbIds.forEach((id: string) => campaignMailboxIds.add(id));
+    });
+
+    console.log(`[LeadPool] Found ${activeCampaigns.length} active campaigns. User is in ${isAutonomous ? 'AUTONOMOUS' : 'CAMPAIGN-ONLY'} mode.`);
+
+    const getDailyLimit = (integration: any) => {
+      // Priority: metadata override > provider default (Gmail: 50, SMTP: 500)
+      if (integration.metadata?.dailyLimit) return Number(integration.metadata.dailyLimit);
+      if (integration.provider === 'gmail' || integration.provider === 'outlook') return 50;
+      return 500; 
+    };
+
+    // 2. Calculate capacity for each mailbox
+    const mailboxCapacities = await Promise.all(activeMailboxes.map(async (mb) => {
+      const limit = getDailyLimit(mb);
+      const currentLeads = await db.select()
+        .from(leads)
+        .where(and(eq(leads.integrationId, mb.id), eq(leads.archived, false)));
+      
+      return {
+        id: mb.id,
+        provider: mb.provider,
+        limit,
+        currentCount: currentLeads.length,
+        remainingCapacity: Math.max(0, limit - currentLeads.length)
+      };
+    }));
+
+    // 3. Filter and Group by Priority
+    // P1: Mailboxes actively used in campaigns (Always refill)
+    // P2: Other mailboxes (Refill only if autonomous mode is on)
+    const priority1 = mailboxCapacities.filter(m => campaignMailboxIds.has(m.id) && m.remainingCapacity > 0);
+    const priority2 = isAutonomous 
+      ? mailboxCapacities.filter(m => !campaignMailboxIds.has(m.id) && m.remainingCapacity > 0)
+      : [];
+
+    let eligibleMailboxes = [...priority1, ...priority2];
+    
+    if (targetIntegrationId) {
+      eligibleMailboxes = eligibleMailboxes.filter(m => m.id === targetIntegrationId);
+    }
+
+    if (eligibleMailboxes.length === 0) {
+      console.log(`[LeadPool] No eligible mailboxes need distribution (Capacities full or no active campaigns/autonomous mode).`);
+      return;
+    }
+
+    // 4. Distribute Fairly (Round Robin / Proportional)
+    let poolIndex = 0;
+    let totalDistributed = 0;
+    const leadsToDistribute = inventoryLeads;
+    
+    // Sort eligible mailboxes so Priority 1 always gets leads first in the loop
+    const sortedMailboxes = eligibleMailboxes.sort((a, b) => {
+      const aPrio = campaignMailboxIds.has(a.id) ? 1 : 2;
+      const bPrio = campaignMailboxIds.has(b.id) ? 1 : 2;
+      return aPrio - bPrio;
+    });
+
+    let stillHasCapacity = true;
+    while (poolIndex < leadsToDistribute.length && stillHasCapacity) {
+      stillHasCapacity = false;
+      for (const mb of sortedMailboxes) {
+        if (mb.remainingCapacity > 0 && poolIndex < leadsToDistribute.length) {
+          const lead = leadsToDistribute[poolIndex];
+          await storage.updateLead(lead.id, { integrationId: mb.id });
+          
+          mb.remainingCapacity--;
+          poolIndex++;
+          totalDistributed++;
+          stillHasCapacity = true;
+        }
+      }
+    }
+
+    console.log(`[LeadPool] Distribution complete. ${totalDistributed} leads shared across ${sortedMailboxes.length} mailboxes (Prioritizing Campaign health).`);
 
     // Notify UI
     const { wsSync } = await import('../websocket-sync.js');
     wsSync.notifyLeadsUpdated(userId);
 
   } catch (error) {
-    console.error('[LeadRedistribution] Error redistributing leads:', error);
+    console.error('[LeadPool] Error distributing leads from inventory:', error);
   }
 }

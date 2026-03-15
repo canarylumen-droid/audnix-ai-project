@@ -17,9 +17,9 @@ interface EmailConfig {
 }
 
 class ImapIdleManager {
-    private connections: Map<string, Imap> = new Map(); // Key: integrationId
+    private connections: Map<string, Map<string, Imap>> = new Map(); // Key: integrationId -> folderType (primaryInbox/primarySent)
     private folders: Map<string, { inbox: string[], sent: string[], spam: string[] }> = new Map(); // Key: integrationId
-    private syncIntervals: Map<string, NodeJS.Timeout> = new Map(); // Key: integrationId
+    private syncIntervals: Map<string, Map<string, NodeJS.Timeout>> = new Map(); // Key: integrationId -> folderType
     private syncing: Set<string> = new Set(); // Key: integrationId
     private isRunning = false;
     private backoffDelays: Map<string, number> = new Map(); // Key: integrationId
@@ -67,17 +67,20 @@ class ImapIdleManager {
             const activeIntegrationIds = new Set(integrations.filter(i => i.connected).map(i => i.id));
 
             // Remove connections for integrations no longer active/connected
-            for (const [integrationId, imap] of this.connections.entries()) {
+            for (const [integrationId, folderMap] of this.connections.entries()) {
                 if (!activeIntegrationIds.has(integrationId)) {
-                    console.log(`🔌 Closing IMAP connection for integration ${integrationId}`);
+                    console.log(`🔌 Closing all IMAP connections for integration ${integrationId}`);
                     
-                    // Clear sync interval
-                    if (this.syncIntervals.has(integrationId)) {
-                        clearInterval(this.syncIntervals.get(integrationId)!);
+                    // Clear sync intervals
+                    const intervals = this.syncIntervals.get(integrationId);
+                    if (intervals) {
+                        for (const interval of intervals.values()) clearInterval(interval);
                         this.syncIntervals.delete(integrationId);
                     }
 
-                    imap.end();
+                    for (const imap of folderMap.values()) {
+                        try { imap.end(); } catch (e) {}
+                    }
                     this.connections.delete(integrationId);
                     this.folders.delete(integrationId);
                 }
@@ -218,7 +221,8 @@ class ImapIdleManager {
                 }
             });
 
-            this.connections.set(integrationId, imap);
+            if (!this.connections.has(integrationId)) this.connections.set(integrationId, new Map());
+            this.connections.get(integrationId)!.set('discovery', imap);
 
             const safeEnd = () => {
                 try {
@@ -229,7 +233,20 @@ class ImapIdleManager {
 
             imap.once('ready', async () => {
                 await this.discoverFolders(integrationId, imap);
-                this.openInbox(integrationId, imap, integration.userId);
+                const folders = this.folders.get(integrationId);
+                
+                // This first connection handles INBOX discovery and IDLE
+                const primaryInbox = folders?.inbox[0] || 'INBOX';
+                this.setupPersistentListener(integrationId, primaryInbox, integration, 'inbound');
+
+                // If we have a Sent folder, spawn a second persistent listener for "Real Mail App" 0s discovery
+                const primarySent = folders?.sent[0];
+                if (primarySent) {
+                    this.setupPersistentListener(integrationId, primarySent, integration, 'outbound');
+                }
+
+                // Close this discovery connection as we now have specific persistent ones
+                imap.end();
             });
 
             imap.once('error', async (err: any) => {
@@ -269,9 +286,9 @@ class ImapIdleManager {
             });
 
             imap.once('end', () => {
-                console.log(`IMAP connection ended for integration ${integrationId}`);
-                if (this.connections.get(integrationId) === imap) {
-                    this.reconnect(integrationId, integration);
+                console.log(`IMAP discovery connection ended for integration ${integrationId}`);
+                if (this.connections.get(integrationId)?.get('discovery') === imap) {
+                    this.connections.get(integrationId)!.delete('discovery');
                 }
             });
 
@@ -286,62 +303,75 @@ class ImapIdleManager {
         }
     }
 
-    private openInbox(integrationId: string, imap: Imap, userId: string): void {
-        const folders = this.folders.get(integrationId) || { inbox: ['INBOX'], sent: [] };
-        const primaryInbox = folders.inbox[0] || 'INBOX';
-
+    private async setupPersistentListener(integrationId: string, folderName: string, integration: Integration, direction: 'inbound' | 'outbound'): Promise<void> {
         try {
-            imap.openBox(primaryInbox, false, (err: any) => {
-                if (err) {
-                    console.error(`Failed to open ${primaryInbox} for integration ${integrationId}:`, err.message);
-                    return;
-                }
+            const credentialsStr = await decrypt(integration.encryptedMeta!);
+            const config = JSON.parse(credentialsStr) as EmailConfig;
 
-                console.log(`✅ IMAP IDLE active on ${primaryInbox} for integration ${integrationId} (User: ${userId})`);
+            const imapHost = config.imap_host || config.smtp_host?.replace('smtp', 'imap') || '';
+            const imapPort = config.imap_port || 993;
 
-            this.syncAccountFolders(integrationId, imap, userId);
-
-            imap.on('mail', (numNewMsgs: number) => {
-                console.log(`📬 Integration ${integrationId} received ${numNewMsgs} new messages`);
-                this.syncAccountFolders(integrationId, imap, userId);
+            const imap = new Imap({
+                user: config.smtp_user!,
+                password: config.smtp_pass!,
+                host: imapHost,
+                port: imapPort,
+                tls: imapPort === 993,
+                tlsOptions: { rejectUnauthorized: false },
+                keepalive: { interval: 10000, idleInterval: 300000, forceNoop: true }
             });
 
-            imap.on('expunge', (seqno: number) => {
-                console.log(`🗑️ Integration ${integrationId} expunged message (Seq: ${seqno}). Triggering deep sync for all folders.`);
-                this.syncAccountFolders(integrationId, imap, userId);
+            if (!this.connections.has(integrationId)) this.connections.set(integrationId, new Map());
+            this.connections.get(integrationId)!.set(folderName, imap);
+
+            imap.once('ready', () => {
+                imap.openBox(folderName, false, (err: any) => {
+                    if (err) {
+                        console.error(`[IMAP] Failed to open ${folderName} for integration ${integrationId}:`, err.message);
+                        return;
+                    }
+
+                    console.log(`✅ Real-time IDLE active on '${folderName}' for integration ${integrationId} (${direction})`);
+                    
+                    // Initial sync for this folder
+                    this.fetchNewEmails(integrationId, integration.userId, imap, folderName, direction);
+
+                    imap.on('mail', (num: number) => {
+                        console.log(`📬 [${folderName}] Integration ${integrationId} received ${num} new messages`);
+                        this.fetchNewEmails(integrationId, integration.userId, imap, folderName, direction);
+                    });
+
+                    imap.on('expunge', (seq: number) => {
+                        console.log(`🗑️ [${folderName}] Integration ${integrationId} expunged message. Syncing deletions.`);
+                        this.syncDeletedMessages(integrationId, imap, integration.userId, folderName);
+                    });
+
+                    if (typeof (imap as any).idle === 'function') (imap as any).idle();
+
+                    // Safety heartbeat (10m instead of 60s since we have real-time IDLE)
+                    if (!this.syncIntervals.has(integrationId)) this.syncIntervals.set(integrationId, new Map());
+                    const interval = setInterval(async () => {
+                        if (this.connections.get(integrationId)?.get(folderName) === imap) {
+                            this.fetchNewEmails(integrationId, integration.userId, imap, folderName, direction);
+                        }
+                    }, 10 * 60 * 1000);
+                    this.syncIntervals.get(integrationId)!.set(folderName, interval);
+                });
             });
 
-            if (typeof (imap as any).idle === 'function') {
-                (imap as any).idle();
-            }
+            imap.once('error', (err: any) => {
+                console.error(`[IMAP Persistent] Error on ${folderName} for ${integrationId}:`, err.message);
+                this.reconnect(integrationId, integration); // This will eventually re-setup all connections
+            });
 
-            // Clear existing interval if any to avoid leaks
-            if (this.syncIntervals.has(integrationId)) {
-                clearInterval(this.syncIntervals.get(integrationId)!);
-            }
-
-            const interval = setInterval(async () => {
-                if (this.connections.get(integrationId) === imap) {
-                    console.log(`⏱️ Periodic folder sync for integration ${integrationId} (60s cycle)`);
-                    this.syncAccountFolders(integrationId, imap, userId);
-                }
-            }, 60 * 1000); // 60s sync for better real-time discovery of non-IDLE folders (Sent, Spam)
-            
-            this.syncIntervals.set(integrationId, interval);
-        });
+            imap.connect();
         } catch (e) {
-            console.error(`[IMAP] Failed to initiate openBox for ${primaryInbox}:`, e);
-            if (this.connections.get(integrationId) === imap) {
-                this.syncAccountFolders(integrationId, imap, userId);
-            }
+            console.error(`[IMAP Persistent] Setup failed for ${folderName}:`, e);
         }
     }
 
     private async syncAccountFolders(integrationId: string, imap: Imap, userId: string): Promise<void> {
-        if (imap.state !== 'authenticated') {
-            console.warn(`[IMAP] Skipping sync for ${integrationId} because state is ${imap.state}`);
-            return;
-        }
+        if (imap.state !== 'authenticated') return;
         if (this.syncing.has(integrationId)) return;
         this.syncing.add(integrationId);
 
@@ -349,20 +379,11 @@ class ImapIdleManager {
             const folders = this.folders.get(integrationId);
             if (!folders) return;
 
-            // Sync Inbox
-            for (const inbox of folders.inbox) {
-                await this.fetchNewEmails(integrationId, userId, imap, inbox, 'inbound');
-            }
-
-            // Sync Sent
-            for (const sent of folders.sent) {
-                await this.fetchNewEmails(integrationId, userId, imap, sent, 'outbound');
-            }
-
-            // Sync Spam
-            for (const spam of folders.spam) {
-                await this.fetchNewEmails(integrationId, userId, imap, spam, 'inbound', true);
-            }
+            // Sync all discovered folders using the provided connection
+            // Note: This connection is transient or one of the persistent ones
+            for (const inbox of folders.inbox) await this.fetchNewEmails(integrationId, userId, imap, inbox, 'inbound');
+            for (const sent of folders.sent) await this.fetchNewEmails(integrationId, userId, imap, sent, 'outbound');
+            for (const spam of folders.spam) await this.fetchNewEmails(integrationId, userId, imap, spam, 'inbound', true);
         } catch (error) {
             console.error(`[IMAP] Sync folders failed for ${integrationId}:`, error);
         } finally {
@@ -619,8 +640,16 @@ class ImapIdleManager {
         const nextDelay = Math.min(currentDelay * 2, this.MAX_BACKOFF);
         this.backoffDelays.set(integrationId, nextDelay);
 
+        // Close all current connections for this integration
+        const folderMap = this.connections.get(integrationId);
+        if (folderMap) {
+            for (const imap of folderMap.values()) {
+                try { imap.end(); } catch (e) {}
+            }
+        }
         this.connections.delete(integrationId);
-        console.log(`🔄 Attempting to reconnect IMAP for ${integrationId} in ${Math.round(currentDelay / 1000)}s (Next attempt in ${Math.round(nextDelay / 1000)}s)...`);
+
+        console.log(`🔄 Attempting to reconnect IMAP for ${integrationId} in ${Math.round(currentDelay / 1000)}s...`);
 
         setTimeout(() => {
             if (this.isRunning && !this.connections.has(integrationId)) {
@@ -753,13 +782,15 @@ class ImapIdleManager {
         this.isRunning = false;
         
         // Clear all sync intervals
-        for (const interval of this.syncIntervals.values()) {
-            clearInterval(interval);
+        for (const folderMap of this.syncIntervals.values()) {
+            for (const interval of folderMap.values()) clearInterval(interval);
         }
         this.syncIntervals.clear();
 
-        for (const imap of this.connections.values()) {
-            imap.end();
+        for (const folderMap of this.connections.values()) {
+            for (const imap of folderMap.values()) {
+                try { imap.end(); } catch (e) {}
+            }
         }
         this.connections.clear();
         console.log('🛑 IMAP IDLE Manager stopped');
@@ -836,7 +867,8 @@ class ImapIdleManager {
     }
 
     public async syncHistoricalEmails(userId: string, integrationId: string, limit: number = 5000): Promise<{ success: boolean; count: number; error?: string }> {
-        const imap = this.connections.get(integrationId);
+        const folderMap = this.connections.get(integrationId);
+        const imap = folderMap?.values().next().value; // Use any active connection
         if (!imap || imap.state !== 'authenticated') {
             return { success: false, count: 0, error: 'IMAP connection not active' };
         }

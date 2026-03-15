@@ -455,13 +455,21 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
             .where(eq(aiProcessLogs.id, processLog.id));
 
           // Notify user of completion with summary
-          // Notify user of completion with a clean, positive summary
           await wsSync.notifyNotification(userId, {
             type: 'lead_import',
             title: 'Leads Processed',
             message: `Successfully processed ${leadsToSave.length} new leads.`,
             metadata: { newCount: leadsToSave.length }
           });
+          
+          // Professional Distribution Trigger
+          try {
+            const { distributeLeadsFromPool } = await import('../lib/sales-engine/outreach-engine.js');
+            await distributeLeadsFromPool(userId);
+          } catch (distErr) {
+            console.error('[CSV Import] Lead distribution failed:', distErr);
+          }
+
           wsSync.notifyLeadsUpdated(userId);
           wsSync.notifyStatsUpdated(userId, { integrationId: req.body.integrationId });
 

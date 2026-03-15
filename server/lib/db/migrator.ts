@@ -106,6 +106,35 @@ export async function runDatabaseMigrations() {
                     );
                 END IF;
 
+                -- Users: config and filtered_leads_count
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='config') THEN
+                    ALTER TABLE users ADD COLUMN config jsonb DEFAULT '{"autonomousMode": false}'::jsonb;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='filtered_leads_count') THEN
+                    ALTER TABLE users ADD COLUMN filtered_leads_count INTEGER DEFAULT 0;
+                END IF;
+
+                -- Leads: warm, last_message_at, ai_paused
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='leads' AND column_name='warm') THEN
+                    ALTER TABLE leads ADD COLUMN warm BOOLEAN NOT NULL DEFAULT false;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='leads' AND column_name='last_message_at') THEN
+                    ALTER TABLE leads ADD COLUMN last_message_at TIMESTAMP;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='leads' AND column_name='ai_paused') THEN
+                    ALTER TABLE leads ADD COLUMN ai_paused BOOLEAN NOT NULL DEFAULT true;
+                END IF;
+
+                -- Email Messages: campaign_id, target_url
+                IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='email_messages') THEN
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='email_messages' AND column_name='campaign_id') THEN
+                        ALTER TABLE email_messages ADD COLUMN campaign_id UUID REFERENCES outreach_campaigns(id) ON DELETE SET NULL;
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='email_messages' AND column_name='target_url') THEN
+                        ALTER TABLE email_messages ADD COLUMN target_url TEXT;
+                    END IF;
+                END IF;
+
                 -- Ensure session table exists if missing
                 IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='user_sessions') THEN
                      CREATE TABLE "user_sessions" (
@@ -116,6 +145,76 @@ export async function runDatabaseMigrations() {
                     ) WITH (OIDS=FALSE);
                     CREATE INDEX "IDX_session_expire" ON "user_sessions" ("expire");
                 END IF;
+
+                -- PERFORMANCE INDICES (Latency reduction to 20-50ms)
+                -- Leads
+                IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'leads_user_id_idx') THEN
+                    CREATE INDEX leads_user_id_idx ON leads(user_id);
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'leads_integration_id_idx') THEN
+                    CREATE INDEX leads_integration_id_idx ON leads(integration_id);
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'leads_status_idx') THEN
+                    CREATE INDEX leads_status_idx ON leads(status);
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'leads_archived_idx') THEN
+                    CREATE INDEX leads_archived_idx ON leads(archived);
+                END IF;
+
+                -- Messages
+                IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'msgs_user_id_idx') THEN
+                    CREATE INDEX msgs_user_id_idx ON messages(user_id);
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'msgs_lead_id_idx') THEN
+                    CREATE INDEX msgs_lead_id_idx ON messages(lead_id);
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'msgs_integration_id_idx') THEN
+                    CREATE INDEX msgs_integration_id_idx ON messages(integration_id);
+                END IF;
+
+                -- Integrations
+                IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'integrations_user_id_idx') THEN
+                    CREATE INDEX integrations_user_id_idx ON integrations(user_id);
+                END IF;
+
+                -- Outreach Campaigns
+                IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'campaigns_user_id_idx') THEN
+                    CREATE INDEX campaigns_user_id_idx ON outreach_campaigns(user_id);
+                END IF;
+
+                -- Email Messages (High Volume)
+                IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='email_messages') THEN
+                    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'email_msgs_user_id_idx') THEN
+                        CREATE INDEX email_msgs_user_id_idx ON email_messages(user_id);
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'email_msgs_lead_id_idx') THEN
+                        CREATE INDEX email_msgs_lead_id_idx ON email_messages(lead_id);
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'email_msgs_thread_id_idx') THEN
+                        CREATE INDEX email_msgs_thread_id_idx ON email_messages(thread_id);
+                    END IF;
+                END IF;
+
+                -- Threads
+                IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='threads') THEN
+                    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'threads_user_id_idx') THEN
+                        CREATE INDEX threads_user_id_idx ON threads(user_id);
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'threads_lead_id_idx') THEN
+                        CREATE INDEX threads_lead_id_idx ON threads(lead_id);
+                    END IF;
+                END IF;
+
+                -- Notifications
+                IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='notifications') THEN
+                    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'notif_user_id_idx') THEN
+                        CREATE INDEX notif_user_id_idx ON notifications(user_id);
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'notif_read_idx') THEN
+                        CREATE INDEX notif_read_idx ON notifications(user_id, is_read);
+                    END IF;
+                END IF;
+
             END $$;
         `);
         console.log("✅ Emergency schema synchronization completed.");

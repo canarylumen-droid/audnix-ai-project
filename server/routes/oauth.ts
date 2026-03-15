@@ -210,10 +210,10 @@ router.get('/instagram/callback', async (req: Request, res: Response): Promise<v
     // Notify frontend to update UI immediately
     wsSync.notifySettingsUpdated(stateData.userId);
 
-    // Redistribute orphan leads to this new mailbox
-    const { redistributeOrphanLeads } = await import('../lib/sales-engine/outreach-engine.js');
-    redistributeOrphanLeads(stateData.userId, igAccount.instagramId).catch(err => 
-      console.error('[Instagram OAuth] Lead redistribution failed:', err)
+    // Distribute leads from the global Lead Inventory pool to this new mailbox
+    const { distributeLeadsFromPool } = await import('../lib/sales-engine/outreach-engine.js');
+    distributeLeadsFromPool(stateData.userId, igAccount.instagramId).catch(err =>
+      console.error('[Instagram OAuth] Lead distribution failed:', err)
     );
 
     console.log('[Instagram OAuth] Success! Redirecting...');
@@ -363,14 +363,14 @@ router.get('/gmail/callback', async (req: Request, res: Response): Promise<void>
     // Notify frontend
     wsSync.notifySettingsUpdated(stateData.userId);
 
-    // Redistribute orphan leads to this new mailbox
-    const { redistributeOrphanLeads } = await import('../lib/sales-engine/outreach-engine.js');
+    // Distribute leads from the global Lead Inventory pool to this new mailbox
+    const { distributeLeadsFromPool } = await import('../lib/sales-engine/outreach-engine.js');
     // We need to find the integration ID we just created
     const integrations = await storage.getIntegrations(stateData.userId);
     const gmailInt = integrations.find(i => i.provider === 'gmail' && i.accountType === gmailProfile.emailAddress);
     if (gmailInt) {
-      redistributeOrphanLeads(stateData.userId, gmailInt.id).catch(err =>
-        console.error('[Gmail OAuth] Lead redistribution failed:', err)
+      distributeLeadsFromPool(stateData.userId, gmailInt.id).catch(err =>
+        console.error('[Gmail OAuth] Lead distribution failed:', err)
       );
     }
 

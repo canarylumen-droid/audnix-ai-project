@@ -42,7 +42,8 @@ import {
   Sparkles,
   Trash2,
   DollarSign,
-  Users
+  Users,
+  ShieldAlert
 } from "lucide-react";
 import { MailboxSwitcher } from "@/components/outreach/MailboxSwitcher";
 import { useMailbox } from "@/hooks/use-mailbox";
@@ -139,7 +140,6 @@ const ThemeSwitcher = () => {
 export function DashboardLayout({ children, fullHeight = false }: { children: React.ReactNode, fullHeight?: boolean }) {
   const { data: user, isLoading: isUserLoading } = useQuery<UserProfile | null>({
     queryKey: ["/api/user/profile"],
-    staleTime: 1000 * 60 * 5, // 5 minutes cache
   });
   const { selectedMailboxId } = useMailbox();
   const tourState = useTour(user?.metadata?.onboardingCompleted);
@@ -230,6 +230,18 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
     },
   ];
 
+  // Admin-only groups
+  if (user?.role === 'admin') {
+    const adminSecretPath = 'admin-secret-xyz'; // Constant used in App.tsx
+    navGroups.push({
+      label: "System",
+      items: [
+        { label: "Security Sentinel", icon: ShieldAlert, path: `/${adminSecretPath}/security` },
+        { label: "Admin Console", icon: Shield, path: `/${adminSecretPath}` },
+      ],
+    });
+  }
+
   const isFeatureUnlocked = useCallback((_step?: string): boolean => {
     return true;
   }, []);
@@ -241,12 +253,10 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
 
   const { data: notificationsData } = useQuery<NotificationsData | null>({
     queryKey: ["/api/notifications", { integrationId: selectedMailboxId }],
-    staleTime: 1000 * 60, // 1 minute cache
   });
 
   const { data: dashboardStats } = useQuery<any>({
     queryKey: ["/api/dashboard/stats", { integrationId: selectedMailboxId }],
-    staleTime: 1000 * 30, // 30 seconds cache
   });
 
   const unreadNotifications = notificationsData?.unreadCount || 0;

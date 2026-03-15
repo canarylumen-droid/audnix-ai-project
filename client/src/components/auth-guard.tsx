@@ -28,7 +28,6 @@ export function AuthGuard({ children, adminOnly = false }: AuthGuardProps) {
   const { data: user, isLoading, error } = useQuery<AuthUser>({
     queryKey: ["/api/user/profile"],
     retry: false,
-    staleTime: 1000 * 60 * 5, // 5 minutes cache sharing
   });
 
   useEffect(() => {

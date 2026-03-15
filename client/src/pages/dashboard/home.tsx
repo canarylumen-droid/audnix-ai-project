@@ -231,7 +231,6 @@ export default function DashboardHome() {
       if (!res.ok) throw new Error("Failed to fetch stats");
       return res.json();
     },
-    staleTime: 60000, // 1 min cache prevents excessive API requests
     placeholderData: (previousData) => previousData,
   });
 
@@ -245,7 +244,6 @@ export default function DashboardHome() {
       return res.json();
     },
     retry: false,
-    staleTime: 60000,
     placeholderData: (previousData) => previousData,
   });
 
@@ -261,9 +259,7 @@ export default function DashboardHome() {
       if (!res.ok) throw new Error("Failed to fetch activity");
       return res.json();
     },
-    refetchOnWindowFocus: true,
     retry: false,
-    staleTime: 30000,
     placeholderData: (previousData) => previousData,
   });
 
@@ -277,7 +273,6 @@ export default function DashboardHome() {
     queryKey: ["/api/ai/insights", { period: '7d' }],
     refetchOnWindowFocus: false,
     enabled: !!activities && activities.length > 0 && !!user, // Only fetch inside dashboard if activities exist
-    staleTime: 5 * 60 * 1000 // Cache for 5 mins
   });
 
   const isSmtpConnected = integrations?.some((i: any) => (i.provider === 'gmail' || i.provider === 'outlook' || i.provider === 'custom_email') && i.connected);

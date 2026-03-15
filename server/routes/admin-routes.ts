@@ -1,5 +1,5 @@
-import { Router, Request, Response } from "express";
 import { requireAdmin } from "../middleware/auth.js";
+import { getSecurityLogs } from "../middleware/sentinel.js";
 import { db } from "../db.js";
 import { users, leads, messages, integrations } from "../../shared/schema.js";
 import { eq, desc, sql, and, gte, count } from "drizzle-orm";
@@ -798,6 +798,11 @@ router.get("/whitelist", async (req: Request, res: Response): Promise<void> => {
     console.error("[ADMIN] Error fetching whitelist:", error);
     res.status(500).json({ error: "Internal server error" });
   }
+});
+
+// Get security logs from Sentinel
+router.get("/security-logs", (req: Request, res: Response) => {
+  res.json({ logs: getSecurityLogs() });
 });
 
 // Add email to whitelist

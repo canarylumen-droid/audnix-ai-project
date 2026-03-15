@@ -61,7 +61,6 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
 
   const { data: integrations = [] } = useQuery<any[]>({
     queryKey: ['/api/integrations'],
-    staleTime: 300000
   });
 
   const availableMailboxes = (integrations || []).filter((i: any) =>

@@ -47,7 +47,6 @@ export function useUser(options: { enabled?: boolean } = {}) {
     queryKey: ['user'],
     queryFn: fetchUser,
     retry: false,
-    staleTime: 1000 * 60 * 5,
     enabled: options.enabled ?? true,
   });
 }

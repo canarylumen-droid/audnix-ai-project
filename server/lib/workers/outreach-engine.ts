@@ -117,6 +117,16 @@ export class OutreachEngine {
   private async processUserOutreach(userId: string): Promise<void> {
     this.activeUserProcessing.add(userId);
     try {
+      // --- PART 0: Inventory Distribution ---
+      // Automatically distribute leads from the Inventory pool to mailboxes with capacity.
+      // This ensures mailboxes are always "primed" even without an active campaign.
+      try {
+        const { distributeLeadsFromPool } = await import('../sales-engine/outreach-engine.js');
+        await distributeLeadsFromPool(userId);
+      } catch (distErr) {
+        console.error('[OutreachEngine] Background lead distribution failed:', distErr);
+      }
+
       // --- PART 1: Structured Campaigns ---
       const processedCampaign = await this.tickCampaigns(userId);
       if (processedCampaign) return; // Campaign processing usually uses its own delay logic

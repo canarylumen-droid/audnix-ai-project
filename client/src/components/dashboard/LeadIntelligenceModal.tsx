@@ -95,13 +95,11 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
         queryKey: ["/api/messages", lead?.id, { limit: 100, offset: 0, integrationId: lead?.integrationId }],
         enabled: isOpen && !!lead?.id,
         retry: false,
-        staleTime: 30000,
     });
 
     // Fetch global benchmarks to compare this lead against
     const { data: dashboardStats } = useQuery<any>({
         queryKey: ["/api/dashboard/stats"],
-        staleTime: 300000,
     });
 
     // Then fetch real AI intelligence analysis using actual messages
@@ -141,7 +139,6 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
         },
         enabled: isOpen && !!lead && !!messagesData,
         retry: false,
-        staleTime: 60000,
     });
 
     // Refetch intelligence when messages load

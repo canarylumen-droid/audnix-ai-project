@@ -49,6 +49,7 @@ const ProspectingPage = lazy(() => import("./pages/dashboard/prospecting"));
 
 
 const AdminDashboard = lazy(() => import("./pages/admin"));
+const AdminSecurity = lazy(() => import("./pages/dashboard/security"));
 const AdminUsers = lazy(() => import("./pages/admin/users"));
 const AdminAnalytics = lazy(() => import("./pages/admin/analytics"));
 const AdminLeads = lazy(() => import("./pages/admin/leads"));
@@ -203,6 +204,13 @@ function Router() {
         {() => (
           <AuthGuard adminOnly={true}>
             <AdminUsers />
+          </AuthGuard>
+        )}
+      </Route>
+      <Route path="/admin-secret-xyz/security">
+        {() => (
+          <AuthGuard adminOnly={true}>
+            <AdminSecurity />
           </AuthGuard>
         )}
       </Route>

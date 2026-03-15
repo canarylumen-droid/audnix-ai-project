@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import { useMailbox } from "@/hooks/use-mailbox";
 import { Upload, Loader2, CheckCircle2, Sparkles, Send } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PdfIcon, CsvIcon } from "@/components/ui/CustomIcons";
@@ -22,6 +23,7 @@ import { Label } from "@/components/ui/label";
 export default function LeadImportPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const { selectedMailboxId } = useMailbox();
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [mPreviewOpen, setMPreviewOpen] = useState(false);
@@ -69,7 +71,8 @@ export default function LeadImportPage() {
       setProgress(80);
       const importRes = await apiRequest("POST", "/api/bulk/import-bulk", {
         leads: extractedLeads,
-        aiPaused: !enableAi
+        aiPaused: !enableAi,
+        integrationId: selectedMailboxId
       });
 
       const result = await importRes.json();
@@ -283,7 +286,8 @@ export default function LeadImportPage() {
             ...l.metadata // Include mapped metadata
           })),
           channel: 'email',
-          aiPaused: !enableAi
+          aiPaused: !enableAi,
+          integrationId: selectedMailboxId
         }),
         credentials: 'include'
       });

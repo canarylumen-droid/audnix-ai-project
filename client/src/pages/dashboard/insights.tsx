@@ -80,8 +80,6 @@ export default function InsightsPage() {
   const { canAccess: canAccessFullAnalytics } = useCanAccessFullAnalytics();
   const { data: insightsData, isLoading, error, refetch, isFetching } = useQuery<InsightsApiResponse>({
     queryKey: ["/api/ai/insights"],
-    refetchOnWindowFocus: true,
-    staleTime: 0,
     retry: false,
   });
 
@@ -98,7 +96,6 @@ export default function InsightsPage() {
     },
     enabled: isReportOpen,
     refetchOnWindowFocus: false,
-    staleTime: 5 * 60 * 1000 // Cache for 5 mins
   });
 
   const insights = insightsData?.summary || null;

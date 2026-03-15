@@ -327,7 +327,6 @@ export default function InboxPage() {
 
   const { data: leadsData, isLoading: leadsLoading } = useQuery<any>({
     queryKey: ["/api/leads", { limit: PAGE_SIZE, offset: page * PAGE_SIZE, includeArchived: showArchived, integrationId: selectedMailboxId }],
-    staleTime: 1000 * 60, // 1 minute: Rely on WebSockets for live updates, reduce API hits
     placeholderData: (prev: any) => prev,
   });
 
@@ -339,7 +338,6 @@ export default function InboxPage() {
 
   const { data: channelStatus, isLoading: channelsLoading } = useQuery<any>({
     queryKey: ["/api/channels/all"],
-    staleTime: 60000,
     placeholderData: (prev: any) => prev,
   });
 
@@ -427,6 +425,9 @@ export default function InboxPage() {
       if (filterStatus !== "all") {
         if (filterStatus === "unread") {
           matchesStatus = !!lead.metadata?.isUnread;
+        } else if (filterStatus === "inventory") {
+          // Explicit filter for Lead Inventory (unassigned)
+          matchesStatus = !lead.integrationId;
         } else if (filterStatus === "read") {
           matchesStatus = !lead.metadata?.isUnread;
         } else if (filterStatus === "warm") {
@@ -447,9 +448,21 @@ export default function InboxPage() {
       }
 
       const matchesArchived = showArchived ? lead.archived : !lead.archived;
-      // Visibility Logic: Show leads assigned to the selected mailbox OR orphans (unassigned leads)
-      // If no specific mailbox is selected, show all leads to prevent an empty initial state.
-      const matchesMailbox = !selectedMailboxId || lead.integrationId === selectedMailboxId || !lead.integrationId;
+      
+      // Strict UI Separation Logic:
+      // 1. If 'inventory' filter is active: Show ONLY unassigned leads.
+      // 2. If a specific mailbox is selected: Show ONLY its leads (no inventory).
+      // 3. If 'All Chats' is active and NO mailbox selected: Show everything.
+      
+      let matchesMailbox = true;
+      if (filterStatus === "inventory") {
+        matchesMailbox = !lead.integrationId;
+      } else if (selectedMailboxId) {
+        matchesMailbox = lead.integrationId === selectedMailboxId;
+      } else {
+        // "All Chats" view with no mailbox filter: show all for visibility
+        matchesMailbox = true;
+      }
 
       return matchesSearch && matchesChannel && matchesStatus && matchesArchived && matchesMailbox;
     }).sort((a: any, b: any) => {
@@ -845,6 +858,9 @@ export default function InboxPage() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuItem onClick={() => setFilterStatus("all")} className="cursor-pointer font-medium">All Chats</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setFilterStatus("inventory")} className="cursor-pointer font-medium text-primary flex items-center gap-2">
+                       <Plug className="h-3.5 w-3.5" /> Lead Inventory
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setFilterStatus("unread")} className="cursor-pointer font-medium">Unread</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setFilterStatus("read")} className="cursor-pointer font-medium">Read</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setFilterStatus("opened")} className="cursor-pointer font-medium text-sky-400">Opened (Pixel tracked)</DropdownMenuItem>
