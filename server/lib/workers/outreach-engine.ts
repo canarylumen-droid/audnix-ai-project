@@ -88,17 +88,22 @@ export class OutreachEngine {
       const userBatch = uniqueUserIds.slice(0, this.MAX_CONCURRENT_USERS);
 
       for (const userId of userBatch) {
-        // Enqueue both campaign and autonomous tasks for the user
-        // Frequency: Every 10 seconds to support high-volume splitting
-        await outreachQueue.add(`outreach-campaign-${userId}`, { userId, type: 'campaign' }, {
-          jobId: `outreach-campaign-${userId}-${Math.floor(Date.now() / 10000)}`,
-          removeOnComplete: true
-        });
+        if (outreachQueue) {
+          // Enqueue both campaign and autonomous tasks for the user
+          // Frequency: Every 10 seconds to support high-volume splitting
+          await outreachQueue.add(`outreach-campaign-${userId}`, { userId, type: 'campaign' }, {
+            jobId: `outreach-campaign-${userId}-${Math.floor(Date.now() / 10000)}`,
+            removeOnComplete: true
+          });
 
-        await outreachQueue.add(`outreach-autonomous-${userId}`, { userId, type: 'autonomous' }, {
-          jobId: `outreach-autonomous-${userId}-${Math.floor(Date.now() / 10000)}`,
-          removeOnComplete: true
-        });
+          await outreachQueue.add(`outreach-autonomous-${userId}`, { userId, type: 'autonomous' }, {
+            jobId: `outreach-autonomous-${userId}-${Math.floor(Date.now() / 10000)}`,
+            removeOnComplete: true
+          });
+        } else {
+          // Fallback to inline processing if Redis is disabled
+          await this.processUserOutreach(userId).catch(console.error);
+        }
       }
 
       workerHealthMonitor.recordSuccess('outreach-engine');
