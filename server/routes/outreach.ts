@@ -14,7 +14,6 @@ import { db } from '../db.js';
 import { eq, and, desc, sql, ne, inArray } from 'drizzle-orm';
 import { AuditTrailService } from '../lib/audit-trail-service.js';
 import { wsSync } from '../lib/websocket-sync.js';
-import { campaignQueueManager } from '../lib/queues/campaign-queue.js';
 import { isNull } from 'drizzle-orm';
 import validator from 'validator';
 
@@ -352,6 +351,7 @@ router.post('/campaigns/:id/start', requireAuth, async (req, res) => {
 
     // Register BullMQ per-mailbox repeatable jobs for autonomous processing
     try {
+      const { campaignQueueManager } = await import('../lib/queues/campaign-queue.js');
       await campaignQueueManager.startCampaign(campaign);
     } catch (queueErr) {
       console.warn('[Outreach] BullMQ campaign start failed (will use setInterval fallback):', queueErr);
@@ -383,6 +383,7 @@ router.post('/campaigns/:id/pause', requireAuth, async (req, res) => {
 
     // Remove BullMQ repeatable jobs (keeps delayed follow-ups intact)
     try {
+      const { campaignQueueManager } = await import('../lib/queues/campaign-queue.js');
       await campaignQueueManager.pauseCampaign(id);
     } catch (queueErr) {
       console.warn('[Outreach] BullMQ campaign pause failed:', queueErr);
@@ -414,6 +415,7 @@ router.post('/campaigns/:id/resume', requireAuth, async (req, res) => {
 
     // Re-register BullMQ per-mailbox repeatable jobs
     try {
+      const { campaignQueueManager } = await import('../lib/queues/campaign-queue.js');
       await campaignQueueManager.startCampaign(campaign);
     } catch (queueErr) {
       console.warn('[Outreach] BullMQ campaign resume failed:', queueErr);
@@ -450,6 +452,7 @@ router.post('/campaigns/:id/abort', requireAuth, async (req, res) => {
 
     // Remove ALL BullMQ jobs (repeatable + delayed follow-ups)
     try {
+      const { campaignQueueManager } = await import('../lib/queues/campaign-queue.js');
       await campaignQueueManager.abortCampaign(id);
     } catch (queueErr) {
       console.warn('[Outreach] BullMQ campaign abort failed:', queueErr);

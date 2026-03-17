@@ -1,0 +1,786 @@
+/**
+ * BullMQ Campaign Queue System
+ * 
+ * Autonomous, per-mailbox campaign processing with:
+ * - Independent repeatable jobs per mailbox (concurrent, not serialized)
+ * - Delayed follow-up jobs that fire at the exact scheduled time
+ * - Auto-reply jobs with human-like random delays (2-4 min)
+ * - Real-time KPI stat aggregation via WebSocket
+ * - Graceful fallback to setInterval when Redis is unavailable
+ */
+
+import { Queue, Worker, Job } from 'bullmq';
+import { redisConnection, hasRedis } from './redis-config.js';
+import { db } from '../../db.js';
+import {
+  outreachCampaigns,
+  campaignLeads,
+  leads,
+  messages,
+  campaignEmails,
+  integrations,
+} from '../../../shared/schema.js';
+import { eq, and, or, sql, lte, isNull, ne } from 'drizzle-orm';
+import { storage } from '../../storage.js';
+import { sendEmail } from '../channels/email.js';
+import { generateExpertOutreach } from '../ai/conversation-ai.js';
+import { wsSync } from '../websocket-sync.js';
+import { decryptToJSON } from '../crypto/encryption.js';
+
+// ─── Job Type Definitions ─────────────────────────────────────────────────────
+
+interface SendBatchJobData {
+  type: 'campaign:send-batch';
+  campaignId: string;
+  userId: string;
+  integrationId: string; // Each mailbox is independent
+  dailyLimit: number;
+}
+
+interface FollowUpJobData {
+  type: 'campaign:follow-up';
+  campaignId: string;
+  userId: string;
+  campaignLeadId: string;
+  integrationId: string;
+  stepIndex: number;
+}
+
+interface AutoReplyJobData {
+  type: 'campaign:auto-reply';
+  campaignId: string;
+  userId: string;
+  campaignLeadId: string;
+  integrationId: string;
+  leadId: string;
+}
+
+interface StatsUpdateJobData {
+  type: 'campaign:update-stats';
+  campaignId: string;
+  userId: string;
+}
+
+type CampaignJobData = SendBatchJobData | FollowUpJobData | AutoReplyJobData | StatsUpdateJobData;
+
+// ─── Queue & Worker ───────────────────────────────────────────────────────────
+
+export const campaignQueue = hasRedis ? new Queue<CampaignJobData>('campaign-engine', {
+  connection: redisConnection as any,
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: {
+      type: 'exponential',
+      delay: 10000,
+    },
+    removeOnComplete: { count: 500 },
+    removeOnFail: { count: 1000 },
+  },
+} as any) : null;
+
+// ─── Campaign Queue Manager ──────────────────────────────────────────────────
+
+export class CampaignQueueManager {
+
+  /**
+   * Start all repeatable jobs for a campaign.
+   * Called when user clicks "INITIATE DEPLOYMENT" or resumes a paused campaign.
+   */
+  async startCampaign(campaign: any): Promise<void> {
+    if (!campaignQueue) {
+      console.log('[CampaignQueue] Redis unavailable — campaign will use setInterval fallback');
+      return;
+    }
+
+    const config = campaign.config || {};
+    const mailboxIds: string[] = config.mailboxIds || [];
+    const mailboxLimits: Record<string, number> = config.mailboxLimits || {};
+
+    if (mailboxIds.length === 0) {
+      console.warn(`[CampaignQueue] Campaign ${campaign.id} has no mailboxes assigned`);
+      return;
+    }
+
+    console.log(`[CampaignQueue] 🚀 Starting campaign "${campaign.name}" with ${mailboxIds.length} mailbox(es)`);
+
+    // Create a repeatable send-batch job for EACH mailbox independently
+    for (const mbId of mailboxIds) {
+      const dailyLimit = mailboxLimits[mbId] || 50;
+
+      // Calculate repeat interval: spread sends evenly across ~14 hours of business time
+      // e.g. 50/day → 1 every ~17 minutes. 300/day → 1 every ~2.8 minutes
+      const businessHours = 14; // Approximate sending window
+      const repeatMs = Math.max(
+        60_000, // Never faster than 1 per minute
+        Math.floor((businessHours * 60 * 60 * 1000) / dailyLimit)
+      );
+
+      // Add random jitter to avoid all mailboxes firing at the exact same cadence
+      const jitteredRepeatMs = repeatMs + Math.floor(Math.random() * 30_000);
+
+      const jobKey = `send-batch:${campaign.id}:${mbId}`;
+
+      await campaignQueue.add(jobKey, {
+        type: 'campaign:send-batch',
+        campaignId: campaign.id,
+        userId: campaign.userId,
+        integrationId: mbId,
+        dailyLimit,
+      }, {
+        repeat: { every: 1000 * 60 * 5 }, // Every 5 minutes
+        jobId: jobKey,
+        priority: 2 // Initial outreach is P2
+      });
+
+      console.log(`[CampaignQueue]   📮 Mailbox ${mbId}: ${dailyLimit}/day → every 5m`);
+    }
+
+    // Stats aggregation job (every 30s)
+    await campaignQueue.add(`stats:${campaign.id}`, {
+      type: 'campaign:update-stats',
+      campaignId: campaign.id,
+      userId: campaign.userId,
+    }, {
+      repeat: { every: 30_000 },
+      jobId: `stats:${campaign.id}`,
+    });
+
+    console.log(`[CampaignQueue] ✅ Campaign "${campaign.name}" fully registered`);
+  }
+
+  /**
+   * Pause a campaign: remove all repeatable jobs but keep delayed follow-ups intact.
+   */
+  async pauseCampaign(campaignId: string): Promise<void> {
+    if (!campaignQueue) return;
+
+    console.log(`[CampaignQueue] ⏸️  Pausing campaign ${campaignId}`);
+
+    const repeatableJobs = await campaignQueue.getRepeatableJobs();
+    for (const job of repeatableJobs) {
+      if (job.key.includes(campaignId)) {
+        await campaignQueue.removeRepeatableByKey(job.key);
+      }
+    }
+  }
+
+  /**
+   * Abort a campaign: remove all jobs (repeatable + delayed).
+   */
+  async abortCampaign(campaignId: string): Promise<void> {
+    if (!campaignQueue) return;
+
+    console.log(`[CampaignQueue] 🛑 Aborting campaign ${campaignId}`);
+
+    // Remove repeatable jobs
+    const repeatableJobs = await campaignQueue.getRepeatableJobs();
+    for (const job of repeatableJobs) {
+      if (job.key.includes(campaignId)) {
+        await campaignQueue.removeRepeatableByKey(job.key);
+      }
+    }
+
+    // Remove delayed follow-up and auto-reply jobs
+    const delayedJobs = await campaignQueue.getDelayed();
+    for (const job of delayedJobs) {
+      if ((job.data as any)?.campaignId === campaignId) {
+        await job.remove();
+      }
+    }
+  }
+
+  /**
+   * Schedule a follow-up for a specific campaign lead at a specific time.
+   * This is a one-shot delayed job, NOT a repeatable.
+   */
+  async scheduleFollowUp(
+    campaignId: string,
+    userId: string,
+    campaignLeadId: string,
+    integrationId: string,
+    stepIndex: number,
+    delayMs: number
+  ): Promise<void> {
+    if (!campaignQueue) return;
+
+    const jobId = `followup:${campaignId}:${campaignLeadId}:step${stepIndex}`;
+
+    await campaignQueue.add(jobId, {
+      type: 'campaign:follow-up',
+      campaignId,
+      userId,
+      campaignLeadId,
+      integrationId,
+      stepIndex,
+    }, {
+      delay: delayMs,
+      jobId,
+      attempts: 5, // More retries for follow-ups
+      priority: 1, // Follow-ups are P1
+      backoff: { type: 'exponential', delay: 60_000 },
+    });
+
+    console.log(`[CampaignQueue] ⏰ Follow-up step ${stepIndex} for ${campaignLeadId} in ${Math.round(delayMs / 3600000)}h`);
+  }
+
+  /**
+   * Schedule an auto-reply with a human-like random delay (2-4 minutes).
+   */
+  async scheduleAutoReply(
+    campaignId: string,
+    userId: string,
+    campaignLeadId: string,
+    integrationId: string,
+    leadId: string
+  ): Promise<void> {
+    if (!campaignQueue) return;
+
+    const delayMs = (2 + Math.random() * 2) * 60 * 1000; // 2-4 minutes
+    const jobId = `autoreply:${campaignId}:${campaignLeadId}:${Date.now()}`;
+
+    await campaignQueue.add(jobId, {
+      type: 'campaign:auto-reply',
+      campaignId,
+      userId,
+      campaignLeadId,
+      integrationId,
+      leadId,
+    }, {
+      delay: delayMs,
+      jobId,
+      priority: 1, // Auto-replies are P1
+    });
+
+    console.log(`[CampaignQueue] 💬 Auto-reply for ${campaignLeadId} in ${Math.round(delayMs / 1000)}s`);
+  }
+}
+
+export const campaignQueueManager = new CampaignQueueManager();
+
+// ─── Worker: Process All Campaign Job Types ──────────────────────────────────
+
+async function processCampaignJob(job: Job<CampaignJobData>): Promise<void> {
+  const data = job.data;
+
+  switch (data.type) {
+    case 'campaign:send-batch':
+      await processSendBatch(data);
+      break;
+    case 'campaign:follow-up':
+      await processFollowUp(data);
+      break;
+    case 'campaign:auto-reply':
+      await processAutoReply(data);
+      break;
+    case 'campaign:update-stats':
+      await processStatsUpdate(data);
+      break;
+    default:
+      console.warn(`[CampaignWorker] Unknown job type: ${(data as any).type}`);
+  }
+}
+
+// ─── Shared Helpers ──────────────────────────────────────────────────────────
+
+/**
+ * Get the number of outbound emails sent today by this mailbox.
+ */
+async function getMailboxSentCount(userId: string, integrationId: string): Promise<number> {
+  const result = await db.execute(sql`
+    SELECT COUNT(*) as count FROM messages
+    WHERE user_id = ${userId}
+    AND direction = 'outbound'
+    AND (metadata->>'integrationId' = ${integrationId} OR metadata->>'integration_id' = ${integrationId})
+    AND created_at >= CURRENT_DATE::timestamp
+  `);
+  return Number(result.rows[0].count);
+}
+
+// ─── Job Processors ──────────────────────────────────────────────────────────
+
+/**
+ * Process a batch of sends for a single mailbox within a campaign.
+ * This runs independently per mailbox — multiple mailboxes process concurrently.
+ */
+async function processSendBatch(data: SendBatchJobData): Promise<void> {
+  if (!db) return;
+
+  const { campaignId, userId, integrationId, dailyLimit } = data;
+
+  // 1. Verify campaign is still active
+  const [campaign] = await db.select().from(outreachCampaigns)
+    .where(and(eq(outreachCampaigns.id, campaignId), eq(outreachCampaigns.status, 'active')));
+
+  if (!campaign) {
+    // Campaign was paused/aborted while job was in queue — skip silently
+    return;
+  }
+
+  // 2. Check weekend exclusion
+  const now = new Date();
+  const isWeekend = now.getDay() === 0 || now.getDay() === 6;
+  if (isWeekend && campaign.excludeWeekends) return;
+
+  // 3. Verify mailbox is still connected
+  const integration = await storage.getIntegrationById(integrationId);
+  if (!integration || !integration.connected) {
+    console.warn(`[CampaignWorker] Mailbox ${integrationId} disconnected, skipping batch`);
+    return;
+  }
+
+  // 4. Check daily budget for THIS mailbox
+  const sentToday = await getMailboxSentCount(userId, integrationId);
+
+  // For initial outreach (send-batch), we strictly respect the dailyLimit (base limit)
+  if (sentToday >= dailyLimit) {
+    // Daily base limit reached - outreach pauses until tomorrow
+    return;
+  }
+
+  // 5. Cooldown: check last sent time for this mailbox
+  const lastSentResult = await db.execute(sql`
+    SELECT created_at FROM messages
+    WHERE user_id = ${userId}
+    AND direction = 'outbound'
+    AND (metadata->>'integrationId' = ${integrationId} OR metadata->>'integration_id' = ${integrationId})
+    ORDER BY created_at DESC LIMIT 1
+  `);
+
+  if (lastSentResult.rows.length > 0) {
+    const lastSentAt = new Date(lastSentResult.rows[0].created_at as string).getTime();
+    // Minimum 45 seconds between sends for better deliverability
+    const minDelayMs = 45_000 + Math.random() * 30_000;
+    if (Date.now() - lastSentAt < minDelayMs) return;
+  }
+
+  // 6. Pick the next pending lead assigned to this mailbox
+  const nextLeadResult = await db.select({
+    campaignLead: campaignLeads,
+    lead: leads
+  })
+    .from(campaignLeads)
+    .innerJoin(leads, eq(campaignLeads.leadId, leads.id))
+    .where(
+      and(
+        eq(campaignLeads.campaignId, campaignId),
+        eq(campaignLeads.integrationId, integrationId),
+        eq(campaignLeads.status, 'pending'),
+        or(isNull(campaignLeads.nextActionAt), lte(campaignLeads.nextActionAt, new Date())),
+        eq(leads.aiPaused, false),
+        ne(leads.status, 'replied'),
+        ne(leads.status, 'booked'),
+        ne(leads.status, 'converted'),
+        ne(leads.status, 'not_interested')
+      )
+    )
+    .orderBy(campaignLeads.nextActionAt)
+    .limit(1);
+
+  if (nextLeadResult.length === 0) return; // No more leads for this mailbox
+
+  const leadEntry = (nextLeadResult[0] as any).campaignLead;
+  const lead = (nextLeadResult[0] as any).lead;
+
+  if (!lead?.email) return;
+
+  // 7. Send the email
+  await deliverCampaignEmail(userId, campaign, lead, leadEntry, integrationId);
+
+  // 8. Schedule follow-up if there's a next step
+  const followupsArr = (campaign.template as any)?.followups || [];
+  const nextStep = leadEntry.currentStep + 1;
+  const hasMore = nextStep <= followupsArr.length;
+
+  if (hasMore) {
+    const delayDays = followupsArr[nextStep - 1]?.delayDays || 3;
+    const delayMs = delayDays * 24 * 60 * 60 * 1000;
+
+    await campaignQueueManager.scheduleFollowUp(
+      campaignId,
+      userId,
+      leadEntry.id,
+      integrationId,
+      nextStep,
+      delayMs
+    );
+  }
+
+  // 9. Real-time KPI push
+  wsSync.notifyLeadsUpdated(userId, { leadId: lead.id, action: 'campaign_sent' });
+  wsSync.notifyCampaignStatsUpdated(userId, campaignId);
+  wsSync.notifyStatsUpdated(userId);
+}
+
+/**
+ * Process a scheduled follow-up for a specific campaign lead.
+ */
+async function processFollowUp(data: FollowUpJobData): Promise<void> {
+  if (!db) return;
+
+  const { campaignId, userId, campaignLeadId, integrationId, stepIndex } = data;
+
+  // 1. Verify campaign is still active
+  const [campaign] = await db.select().from(outreachCampaigns)
+    .where(and(eq(outreachCampaigns.id, campaignId), eq(outreachCampaigns.status, 'active')));
+
+  if (!campaign) return;
+
+  // 2. Get the campaign lead entry
+  const [leadEntry] = await db.select().from(campaignLeads)
+    .where(eq(campaignLeads.id, campaignLeadId));
+
+  if (!leadEntry || leadEntry.status === 'aborted' || leadEntry.status === 'replied') return;
+
+  // 3. Get lead details
+  const [lead] = await db.select().from(leads).where(eq(leads.id, leadEntry.leadId));
+  if (!lead?.email || lead.aiPaused) return;
+
+  // 4. Check if the lead has replied since the follow-up was scheduled
+  if (lead.status === 'replied' || lead.status === 'converted' || lead.status === 'booked') return;
+
+  // 5. Check unified daily budget (Max Capacity)
+  const sentToday = await getMailboxSentCount(userId, integrationId);
+
+  // Pull limits from campaign config or mailbox metadata
+  const config = campaign.config || {};
+  const mailboxLimits: Record<string, number> = config.mailboxLimits || {};
+  const baseLimit = mailboxLimits[integrationId] || 50;
+
+  // Max multiplier: Default to 3x baseLimit unless specified in config
+  // For Gmail/Outlook, we use a default hard ceiling of 100/day as requested
+  const integration = await storage.getIntegrationById(integrationId);
+  const isSmtp = integration?.provider === 'smtp' || integration?.provider === 'custom_email';
+  const defaultCeiling = isSmtp ? 500 : 100; // Gmail/Outlook: 100, SMTP: 500
+
+  const maxMultipliers = config.mailboxMaxMultipliers || {};
+  const maxMultiplier = maxMultipliers[integrationId] || config.maxDailyMultiplier || (isSmtp ? 10 : 2);
+  const hardCeiling = config.totalDailyLimit || (baseLimit * maxMultiplier) || defaultCeiling;
+
+  if (sentToday >= hardCeiling) {
+    const retryDelay = 1 * 60 * 60 * 1000; // 1 hour re-check (flexible rescheduling)
+    console.log(`[CampaignWorker] 📉 Mailbox ${integrationId} hit max capacity (${sentToday}/${hardCeiling}). Re-checking in 1h.`);
+
+    await campaignQueueManager.scheduleFollowUp(
+      campaignId,
+      userId,
+      campaignLeadId,
+      integrationId,
+      stepIndex,
+      retryDelay
+    );
+    return;
+  }
+
+  // 6. Deliver the follow-up email
+  await deliverCampaignEmail(userId, campaign, lead, { ...leadEntry, currentStep: stepIndex }, integrationId);
+
+  // 7. Schedule NEXT follow-up step if there are more
+  const followupsArr = (campaign.template as any)?.followups || [];
+  const nextStep = stepIndex + 1;
+  if (nextStep <= followupsArr.length) {
+    const delayDays = followupsArr[nextStep - 1]?.delayDays || 3;
+    await campaignQueueManager.scheduleFollowUp(
+      campaignId, userId, campaignLeadId, integrationId, nextStep,
+      delayDays * 24 * 60 * 60 * 1000
+    );
+  }
+
+  // 8. Real-time KPI push
+  wsSync.notifyLeadsUpdated(userId, { leadId: lead.id, action: 'followup_sent' });
+  wsSync.notifyCampaignStatsUpdated(userId, campaignId);
+  wsSync.notifyStatsUpdated(userId);
+}
+
+/**
+ * Process an auto-reply to a lead who responded to a campaign email.
+ */
+async function processAutoReply(data: AutoReplyJobData): Promise<void> {
+  if (!db) return;
+
+  const { campaignId, userId, campaignLeadId, integrationId, leadId } = data;
+
+  const [campaign] = await db.select().from(outreachCampaigns)
+    .where(eq(outreachCampaigns.id, campaignId));
+  if (!campaign) return;
+
+  const [lead] = await db.select().from(leads).where(eq(leads.id, leadId));
+  if (!lead?.email) return;
+
+  const [leadEntry] = await db.select().from(campaignLeads)
+    .where(eq(campaignLeads.id, campaignLeadId));
+  if (!leadEntry) return;
+
+  // Get the auto-reply body from campaign template
+  let body = (campaign.template as any)?.autoReplyBody || "Thanks for your reply! We'll get back to you soon.";
+  let subject = (campaign.template as any)?.subject || 'Re: ';
+  subject = subject.toLowerCase().startsWith('re:') ? subject : `Re: ${subject}`;
+
+  // Variable replacement
+  const firstName = lead.name?.trim().split(' ')[0] || 'there';
+  const company = (lead as any).company?.trim() || 'your company';
+  body = body
+    .replace(/{{firstName}}/g, firstName)
+    .replace(/{{name}}/g, lead.name?.trim() || firstName)
+    .replace(/{{company}}/g, company)
+    .replace(/{{business_name}}/g, company);
+
+  const trackingId = Math.random().toString(36).substring(2, 11);
+
+  await sendEmail(userId, lead.email, body, subject, {
+    isRaw: true,
+    isHtml: true,
+    trackingId,
+    campaignId,
+    leadId: lead.id,
+    integrationId,
+  });
+
+  // Record message
+  await storage.createMessage({
+    userId,
+    leadId: lead.id,
+    provider: 'email',
+    direction: 'outbound',
+    subject,
+    body,
+    trackingId,
+    metadata: { campaignId, step: 'auto-reply', integrationId }
+  });
+
+  // Update campaign lead: clear pendingAutoReply flag
+  const newMetadata = { ...(leadEntry.metadata as Record<string, any> || {}) };
+  delete newMetadata.pendingAutoReply;
+
+  await db.update(campaignLeads)
+    .set({
+      metadata: newMetadata,
+      updatedAt: new Date()
+    })
+    .where(eq(campaignLeads.id, campaignLeadId));
+
+  // Stats
+  await db.update(outreachCampaigns)
+    .set({
+      stats: sql`jsonb_set(stats, '{sent}', (COALESCE((stats->>'sent')::int, 0) + 1)::text::jsonb)`,
+      updatedAt: new Date()
+    })
+    .where(eq(outreachCampaigns.id, campaignId));
+
+  wsSync.notifyLeadsUpdated(userId, { leadId: lead.id, action: 'auto_reply_sent' });
+  wsSync.notifyCampaignStatsUpdated(userId, campaignId);
+  wsSync.notifyStatsUpdated(userId);
+
+  console.log(`[CampaignWorker] 💬 Auto-reply sent to ${lead.email}`);
+}
+
+/**
+ * Aggregate and push campaign stats via WebSocket.
+ */
+async function processStatsUpdate(data: StatsUpdateJobData): Promise<void> {
+  if (!db) return;
+
+  const { campaignId, userId } = data;
+
+  // Verify campaign still exists
+  const [campaign] = await db.select().from(outreachCampaigns)
+    .where(eq(outreachCampaigns.id, campaignId));
+
+  if (!campaign || campaign.status === 'aborted') return;
+
+  // Aggregate live stats
+  const leadStats = await db.select({
+    status: campaignLeads.status,
+    count: sql<number>`count(*)`
+  })
+    .from(campaignLeads)
+    .where(eq(campaignLeads.campaignId, campaignId))
+    .groupBy(campaignLeads.status);
+
+  const stats: Record<string, number> = { total: 0, sent: 0, failed: 0, pending: 0, replied: 0 };
+
+  leadStats.forEach((s: any) => {
+    stats.total += Number(s.count);
+    if (stats[s.status] !== undefined) stats[s.status] += Number(s.count);
+  });
+
+  // Update campaign stats in DB
+  await db.update(outreachCampaigns)
+    .set({ stats, updatedAt: new Date() })
+    .where(eq(outreachCampaigns.id, campaignId));
+
+  // Check if campaign is complete (no more pending leads)
+  if (stats.pending === 0 && stats.total > 0 && campaign.status === 'active') {
+    // Check if all follow-ups are also done
+    const pendingFollowUps = await db.select({ count: sql<number>`count(*)` })
+      .from(campaignLeads)
+      .where(and(
+        eq(campaignLeads.campaignId, campaignId),
+        eq(campaignLeads.status, 'sent') // 'sent' means waiting for follow-up
+      ));
+
+    if (Number(pendingFollowUps[0]?.count || 0) === 0) {
+      await db.update(outreachCampaigns)
+        .set({ status: 'completed', updatedAt: new Date() })
+        .where(eq(outreachCampaigns.id, campaignId));
+
+      // Clean up repeatable jobs
+      await campaignQueueManager.pauseCampaign(campaignId);
+      console.log(`[CampaignWorker] 🏁 Campaign ${campaignId} completed!`);
+    }
+  }
+
+  // Push to dashboard
+  wsSync.notifyCampaignStatsUpdated(userId, campaignId);
+  wsSync.notifyStatsUpdated(userId);
+}
+
+// ─── Shared Email Delivery Helper ────────────────────────────────────────────
+
+async function deliverCampaignEmail(
+  userId: string,
+  campaign: any,
+  lead: any,
+  leadEntry: any,
+  integrationId: string
+): Promise<void> {
+  let subject = (campaign.template as any).subject || 'Contacting you';
+  let body = (campaign.template as any).body;
+
+  // Follow-up logic: use the correct template for the current step
+  if (leadEntry.currentStep > 0) {
+    const followups = (campaign.template as any)?.followups || [];
+    const fuConfig = followups[leadEntry.currentStep - 1];
+    if (fuConfig) {
+      body = fuConfig.body;
+      const fuSubject = fuConfig.subject || subject;
+      subject = fuSubject.toLowerCase().startsWith('re:') ? fuSubject : `Re: ${fuSubject}`;
+    }
+  } else {
+    // For initial step, use AI generation or template
+    try {
+      const aiContent = await generateExpertOutreach(lead, userId);
+      subject = aiContent.subject || subject;
+      body = aiContent.body || body;
+    } catch (e) {
+      console.warn(`[CampaignWorker] AI generation failed, using template fallback`);
+    }
+  }
+
+  // Variable replacement
+  const firstName = lead.name?.trim().split(' ')[0] || 'there';
+  const company = (lead as any).company?.trim() || 'your company';
+  body = body
+    .replace(/{{firstName}}/g, firstName)
+    .replace(/{{lead_name}}/g, lead.name?.trim() || firstName)
+    .replace(/{{company}}/g, company)
+    .replace(/{{business_name}}/g, company);
+
+  subject = subject
+    .replace(/{{firstName}}/g, firstName)
+    .replace(/{{lead_name}}/g, lead.name?.trim() || firstName)
+    .replace(/{{company}}/g, company);
+
+  const trackingId = Math.random().toString(36).substring(2, 11);
+
+  await sendEmail(userId, lead.email, body, subject, {
+    isRaw: true,
+    isHtml: true,
+    trackingId: campaign.config?.isManual ? undefined : trackingId,
+    campaignId: campaign.id,
+    leadId: lead.id,
+    integrationId,
+  });
+
+  // Update lead integrationId if not set
+  if (!lead.integrationId) {
+    await db!.update(leads)
+      .set({ integrationId, updatedAt: new Date() })
+      .where(eq(leads.id, lead.id));
+  }
+
+  // Save message
+  await storage.createMessage({
+    userId,
+    leadId: lead.id,
+    provider: 'email',
+    direction: 'outbound',
+    subject,
+    body,
+    trackingId,
+    metadata: { campaignId: campaign.id, step: leadEntry.currentStep, integrationId }
+  });
+
+  // Detailed campaign email tracking
+  await db!.insert(campaignEmails).values({
+    campaignId: campaign.id,
+    leadId: lead.id,
+    userId,
+    messageId: trackingId,
+    subject,
+    body,
+    stepIndex: leadEntry.currentStep,
+    status: 'sent'
+  });
+
+  // Update campaign lead status
+  const nextStep = leadEntry.currentStep + 1;
+  const followupsArr = (campaign.template as any)?.followups || [];
+  const hasMore = nextStep <= followupsArr.length;
+  let nextActionAt = null;
+
+  if (hasMore) {
+    const delayDays = followupsArr[nextStep - 1]?.delayDays || 3;
+    nextActionAt = new Date();
+    nextActionAt.setDate(nextActionAt.getDate() + delayDays);
+  }
+
+  await db!.update(campaignLeads)
+    .set({
+      status: 'sent',
+      currentStep: nextStep,
+      nextActionAt,
+      sentAt: new Date(),
+      error: null,
+    })
+    .where(eq(campaignLeads.id, leadEntry.id));
+
+  // Increment campaign sent count
+  await db!.update(outreachCampaigns)
+    .set({
+      stats: sql`jsonb_set(stats, '{sent}', (COALESCE((stats->>'sent')::int, 0) + 1)::text::jsonb)`,
+      updatedAt: new Date()
+    })
+    .where(eq(outreachCampaigns.id, campaign.id));
+
+  console.log(`[CampaignWorker] ✅ Campaign "${campaign.name}" step ${leadEntry.currentStep} → ${lead.email} via ${integrationId}`);
+}
+
+// ─── Initialize Worker ──────────────────────────────────────────────────────
+
+export const campaignWorker = hasRedis ? new Worker<CampaignJobData>(
+  'campaign-engine',
+  processCampaignJob,
+  {
+    connection: redisConnection as any,
+    concurrency: 15, // Handle multiple mailboxes concurrently
+    removeOnComplete: { count: 500 },
+    removeOnFail: { count: 1000 },
+  } as any
+) : null;
+
+if (campaignWorker) {
+  campaignWorker.on('completed', (job) => {
+    // Quiet logging — only for non-stats jobs to reduce noise
+    if (job.data.type !== 'campaign:update-stats') {
+      console.log(`[CampaignWorker] ✓ ${job.data.type} completed (${job.id})`);
+    }
+  });
+
+  campaignWorker.on('failed', (job, err) => {
+    console.error(`[CampaignWorker] ✗ ${job?.data?.type} failed (${job?.id}):`, err.message);
+  });
+
+  console.log('✅ BullMQ Campaign Queue Worker initialized (concurrency: 15)');
+} else {
+  console.warn('⚠️ BullMQ Campaign Queue Worker disabled (No Redis) — using setInterval fallback');
+}
