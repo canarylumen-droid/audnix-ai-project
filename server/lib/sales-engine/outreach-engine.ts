@@ -284,7 +284,7 @@ export async function distributeLeadsFromPool(userId: string, targetIntegrationI
   try {
     const { storage } = await import('../../storage.js');
     const { db } = await import('../../db.js');
-    const { leads } = await import('../../../shared/schema.js');
+    const { leads, users, outreachCampaigns } = await import('../../../shared/schema.js');
     const { eq, and, isNull } = await import('drizzle-orm');
 
     console.log(`[LeadPool] Starting professional distribution for user ${userId}`);
@@ -318,7 +318,7 @@ export async function distributeLeadsFromPool(userId: string, targetIntegrationI
       .where(and(eq(outreachCampaigns.userId, userId), eq(outreachCampaigns.status, 'active')));
     
     const campaignMailboxIds = new Set<string>();
-    activeCampaigns.forEach(c => {
+    activeCampaigns.forEach((c: any) => {
       const mbIds = (c.config as any)?.mailboxIds || [];
       mbIds.forEach((id: string) => campaignMailboxIds.add(id));
     });

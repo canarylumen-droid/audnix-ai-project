@@ -1,10 +1,10 @@
 import { Queue, Worker, Job } from 'bullmq';
-import { redisConnection } from './redis-config.js';
+import { redisConnection, hasRedis } from './redis-config.js';
 import { imapIdleManager } from '../email/imap-idle-manager.js';
 import { emailSyncWorker } from '../email/email-sync-worker.js';
 
 // 1. Define Email Sync Queue
-export const emailSyncQueue = new Queue('email-sync-tasks', {
+export const emailSyncQueue = hasRedis ? new Queue('email-sync-tasks', {
     connection: redisConnection as any,
     defaultJobOptions: {
         attempts: 3,
@@ -15,10 +15,10 @@ export const emailSyncQueue = new Queue('email-sync-tasks', {
         removeOnComplete: true,
         removeOnFail: false,
     },
-} as any);
+} as any) : null;
 
 // 2. Define Email Sync Worker
-export const emailSyncWorkerModule = new Worker(
+export const emailSyncWorkerModule = hasRedis ? new Worker(
     'email-sync-tasks',
     async (job: Job) => {
         const { userId, type, integrationId, limit } = job.data;
@@ -42,14 +42,18 @@ export const emailSyncWorkerModule = new Worker(
         removeOnComplete: { count: 100 },
         removeOnFail: { count: 500 }
     } as any
-);
+) : null;
 
-emailSyncWorkerModule.on('completed', (job) => {
-    console.log(`[EmailSyncQueue] Job ${job.id} completed`);
-});
+if (emailSyncWorkerModule) {
+    emailSyncWorkerModule.on('completed', (job) => {
+        console.log(`[EmailSyncQueue] Job ${job.id} completed`);
+    });
 
-emailSyncWorkerModule.on('failed', (job, err) => {
-    console.error(`[EmailSyncQueue] Job ${job?.id} failed:`, err);
-});
+    emailSyncWorkerModule.on('failed', (job, err) => {
+        console.error(`[EmailSyncQueue] Job ${job?.id} failed:`, err);
+    });
 
-console.log('✅ BullMQ Email Sync Worker initialized');
+    console.log('✅ BullMQ Email Sync Worker initialized');
+} else {
+    console.warn('⚠️ BullMQ Email Sync Worker disabled (No Redis)');
+}

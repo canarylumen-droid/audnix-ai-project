@@ -371,6 +371,22 @@ async function processEmailForLead(
 
                 console.log(`[EMAIL_IMPORT] Lead ${lead.email} marked as 'replied' in campaign ${entry.campaignId}. pendingAutoReply: ${pendingAutoReply}`);
 
+                // Schedule BullMQ auto-reply job for autonomous processing
+                if (pendingAutoReply) {
+                  try {
+                    const { campaignQueueManager } = await import('../queues/campaign-queue.js');
+                    await campaignQueueManager.scheduleAutoReply(
+                      entry.campaignId,
+                      userId,
+                      entry.id,
+                      entry.integrationId || '',
+                      lead.id
+                    );
+                  } catch (queueErr) {
+                    // Non-critical: fallback to polling if BullMQ unavailable
+                  }
+                }
+
                 // NEW: Increment replied stat in outreachCampaigns
                 await db.update(outreachCampaigns)
                   .set({
@@ -404,7 +420,7 @@ async function processEmailForLead(
               await storage.createAuditLog({
                 userId,
                 leadId: lead.id,
-                integrationId: integration.id,
+                integrationId: entry.integrationId || '',
                 action: 'lead_reply',
                 details: {
                   message: `Received email reply from ${lead.name}`,

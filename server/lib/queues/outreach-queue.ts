@@ -1,9 +1,9 @@
 import { Queue, Worker, Job } from 'bullmq';
-import { redisConnection } from './redis-config.js';
+import { redisConnection, hasRedis } from './redis-config.js';
 import { outreachEngine } from '../workers/outreach-engine.js';
 
 // 1. Define Queues
-export const outreachQueue = new Queue('outreach-tasks', {
+export const outreachQueue = hasRedis ? new Queue('outreach-tasks', {
     connection: redisConnection as any,
     defaultJobOptions: {
         attempts: 3,
@@ -14,24 +14,20 @@ export const outreachQueue = new Queue('outreach-tasks', {
         removeOnComplete: true,
         removeOnFail: false,
     },
-} as any);
+} as any) : null;
 
-export const followUpQueue = new Queue('follow-up-tasks', {
+export const followUpQueue = hasRedis ? new Queue('follow-up-tasks', {
     connection: redisConnection as any,
-} as any);
+} as any) : null;
 
 // 2. Define Workers
-export const outreachWorker = new Worker(
+export const outreachWorker = hasRedis ? new Worker(
     'outreach-tasks',
     async (job: Job) => {
         const { userId, type } = job.data;
         console.log(`[QueueWorker] Processing outreach job for user ${userId} (${type})`);
 
-        // We call the engine's internal processor directly
-        // This allows the task to be decoupled from the interval tick
-        if (type === 'campaign') {
-            await (outreachEngine as any).tickCampaigns(userId);
-        } else if (type === 'autonomous') {
+        if (type === 'autonomous') {
             await (outreachEngine as any).tickAutonomousOutreach(userId);
         }
     },
@@ -41,14 +37,18 @@ export const outreachWorker = new Worker(
         removeOnComplete: { count: 100 },
         removeOnFail: { count: 500 }
     } as any
-);
+) : null;
 
-outreachWorker.on('completed', (job) => {
-    console.log(`[QueueWorker] Job ${job.id} completed`);
-});
+if (outreachWorker) {
+    outreachWorker.on('completed', (job) => {
+        console.log(`[QueueWorker] Job ${job.id} completed`);
+    });
 
-outreachWorker.on('failed', (job, err) => {
-    console.error(`[QueueWorker] Job ${job?.id} failed:`, err);
-});
+    outreachWorker.on('failed', (job, err) => {
+        console.error(`[QueueWorker] Job ${job?.id} failed:`, err);
+    });
 
-console.log('✅ BullMQ Outreach Worker initialized');
+    console.log('✅ BullMQ Outreach Worker initialized');
+} else {
+    console.warn('⚠️ BullMQ Outreach Worker disabled (No Redis)');
+}

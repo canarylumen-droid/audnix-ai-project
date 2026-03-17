@@ -697,6 +697,20 @@ export class DrizzleStorage implements IStorage {
               metadata: { ...campaignLead[0].metadata, pendingAutoReply: true }
             })
             .where(eq(campaignLeads.id, campaignLead[0].id));
+
+          // Schedule BullMQ auto-reply job for autonomous processing
+          try {
+            const { campaignQueueManager } = await import('./lib/queues/campaign-queue.js');
+            await campaignQueueManager.scheduleAutoReply(
+              campaignLead[0].campaignId,
+              message.userId,
+              campaignLead[0].id,
+              campaignLead[0].integrationId || '',
+              message.leadId
+            );
+          } catch (queueErr) {
+            // Non-critical: fallback to polling if BullMQ unavailable
+          }
         }
       }
     }

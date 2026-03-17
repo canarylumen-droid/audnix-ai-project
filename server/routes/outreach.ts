@@ -14,6 +14,7 @@ import { db } from '../db.js';
 import { eq, and, desc, sql, ne, inArray } from 'drizzle-orm';
 import { AuditTrailService } from '../lib/audit-trail-service.js';
 import { wsSync } from '../lib/websocket-sync.js';
+import { campaignQueueManager } from '../lib/queues/campaign-queue.js';
 import { isNull } from 'drizzle-orm';
 import validator from 'validator';
 
@@ -349,6 +350,13 @@ router.post('/campaigns/:id/start', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Campaign not found' });
     }
 
+    // Register BullMQ per-mailbox repeatable jobs for autonomous processing
+    try {
+      await campaignQueueManager.startCampaign(campaign);
+    } catch (queueErr) {
+      console.warn('[Outreach] BullMQ campaign start failed (will use setInterval fallback):', queueErr);
+    }
+
     wsSync.notifyCampaignsUpdated(userId);
     res.json({ success: true, campaign });
   } catch (error: any) {
@@ -373,6 +381,13 @@ router.post('/campaigns/:id/pause', requireAuth, async (req, res) => {
 
     if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
 
+    // Remove BullMQ repeatable jobs (keeps delayed follow-ups intact)
+    try {
+      await campaignQueueManager.pauseCampaign(id);
+    } catch (queueErr) {
+      console.warn('[Outreach] BullMQ campaign pause failed:', queueErr);
+    }
+
     wsSync.notifyCampaignsUpdated(userId);
     res.json({ success: true, campaign });
   } catch (error: any) {
@@ -396,6 +411,13 @@ router.post('/campaigns/:id/resume', requireAuth, async (req, res) => {
       .returning();
 
     if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+
+    // Re-register BullMQ per-mailbox repeatable jobs
+    try {
+      await campaignQueueManager.startCampaign(campaign);
+    } catch (queueErr) {
+      console.warn('[Outreach] BullMQ campaign resume failed:', queueErr);
+    }
 
     wsSync.notifyCampaignsUpdated(userId);
     res.json({ success: true, campaign });
@@ -425,6 +447,13 @@ router.post('/campaigns/:id/abort', requireAuth, async (req, res) => {
     await db.update(campaignLeads)
       .set({ status: 'aborted', updatedAt: new Date() })
       .where(and(eq(campaignLeads.campaignId, id), eq(campaignLeads.status, 'pending')));
+
+    // Remove ALL BullMQ jobs (repeatable + delayed follow-ups)
+    try {
+      await campaignQueueManager.abortCampaign(id);
+    } catch (queueErr) {
+      console.warn('[Outreach] BullMQ campaign abort failed:', queueErr);
+    }
 
     wsSync.notifyCampaignsUpdated(userId);
     res.json({ success: true, campaign });

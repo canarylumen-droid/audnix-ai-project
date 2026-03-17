@@ -35,6 +35,7 @@ import { emailSyncWorker } from "./lib/email/email-sync-worker.js";
 import { paymentAutoApprovalWorker } from "./lib/billing/payment-auto-approval-worker.js";
 import { outreachEngine } from "./lib/workers/outreach-engine.js";
 import { outreachWorker } from "./lib/queues/outreach-queue.js";
+import { campaignWorker } from "./lib/queues/campaign-queue.js";
 import { emailSyncWorkerModule } from "./lib/queues/email-sync-queue.js";
 import { leadExpiryWorker } from "./lib/workers/lead-expiry-worker.js";
 import { reputationWorker } from "./lib/workers/reputation-worker.js";

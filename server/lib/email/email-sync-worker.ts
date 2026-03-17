@@ -36,7 +36,7 @@ class EmailSyncWorker {
   private isRunning = false;
   private isSyncing = false;
   private syncTimeout: NodeJS.Timeout | null = null;
-  private readonly SYNC_INTERVAL_MS = 10 * 1000; // Accelerated to 10s for hyper-realtime sync
+  private readonly SYNC_INTERVAL_MS = 10 * 1000; // Fast 10s sync fallback for IDLE
   private readonly GHOSTED_THRESHOLD_HOURS = 48;
 
   /**
@@ -46,7 +46,7 @@ class EmailSyncWorker {
     if (this.isRunning) return;
 
     this.isRunning = true;
-    console.log('📬 Email sync worker started (60s interval)');
+    console.log('📬 Email sync worker started (10s interval)');
 
     this.scheduleNextSync();
   }

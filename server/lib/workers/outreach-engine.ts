@@ -19,11 +19,12 @@ import { workerHealthMonitor } from '../monitoring/worker-health.js';
 import { AuditTrailService } from '../audit-trail-service.js';
 import { sendInstagramOutreach } from '../channels/instagram.js';
 import { decryptToJSON } from '../crypto/encryption.js';
+import { hasRedis } from '../queues/redis-config.js';
 
 export class OutreachEngine {
   private isRunning: boolean = false;
   private interval: NodeJS.Timeout | null = null;
-  private readonly TICK_INTERVAL_MS = 1000; // 1 second for ultra-live feel and multi-user scaling
+  private readonly TICK_INTERVAL_MS = 30000; // Reduced frequency to 30s to prevent Redis hammering
   private activeUserProcessing: Set<string> = new Set();
   private readonly MAX_CONCURRENT_USERS = 5000;
   private userMailboxIndex: Map<string, number> = new Map(); // Tracks rotating mailbox index per user
@@ -89,15 +90,10 @@ export class OutreachEngine {
 
       for (const userId of userBatch) {
         if (outreachQueue) {
-          // Enqueue both campaign and autonomous tasks for the user
-          // Frequency: Every 10 seconds to support high-volume splitting
-          await outreachQueue.add(`outreach-campaign-${userId}`, { userId, type: 'campaign' }, {
-            jobId: `outreach-campaign-${userId}-${Math.floor(Date.now() / 10000)}`,
-            removeOnComplete: true
-          });
-
+          // Enqueue ONLY autonomous tasks for the user.
+          // Campaigns are now handled independently by campaign-queue.ts (repeatable per mailbox)
           await outreachQueue.add(`outreach-autonomous-${userId}`, { userId, type: 'autonomous' }, {
-            jobId: `outreach-autonomous-${userId}-${Math.floor(Date.now() / 10000)}`,
+            jobId: `outreach-autonomous-${userId}-${Math.floor(Date.now() / 60000)}`,
             removeOnComplete: true
           });
         } else {
@@ -148,9 +144,17 @@ export class OutreachEngine {
   }
 
   /**
-   * Logic for structured campaigns (replacing campaign-worker.ts)
+   * Logic for structured campaigns.
+   * When BullMQ is available, campaign processing is handled by dedicated
+   * per-mailbox workers in campaign-queue.ts — this method is skipped.
+   * When Redis is unavailable, this runs inline as a fallback.
    */
   public async tickCampaigns(userId: string): Promise<boolean> {
+    // When BullMQ is active, campaign processing is fully autonomous via campaign-queue.ts
+    // Each mailbox has its own repeatable job — no need for polling here.
+    if (hasRedis) return false;
+
+    // --- FALLBACK: Inline processing when Redis is unavailable ---
     // Find active campaigns for this user
     const campaigns = await db
       .select()

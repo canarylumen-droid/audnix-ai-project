@@ -39,12 +39,14 @@ class ImapIdleManager {
         // Use BullMQ for periodic connection management instead of simple setInterval
         // This ensures transparency and reliability across restarts
         const { emailSyncQueue } = await import('../queues/email-sync-queue.js');
-        await emailSyncQueue.add('sync-connections', { type: 'discovery' }, {
+        if (emailSyncQueue) {
+          await emailSyncQueue.add('sync-connections', { type: 'discovery' }, {
             repeat: {
-                every: 5 * 60 * 1000 // Every 5 minutes
+              every: 5 * 60 * 1000 // Every 5 minutes
             },
             jobId: 'discovery-cycle'
-        });
+          });
+        }
     }
 
     /**
@@ -333,11 +335,19 @@ class ImapIdleManager {
 
                     console.log(`✅ Real-time IDLE active on '${folderName}' for integration ${integrationId} (${direction})`);
                     
+                    // Instant notify UI that sync is active
+                    wsSync.notifyActivityUpdated(integration.userId, {
+                        type: 'sync_active',
+                        title: '⚡ Real-time Sync Active',
+                        message: `Monitoring ${direction} on ${folderName}`
+                    });
+
                     // Initial sync for this folder
                     this.fetchNewEmails(integrationId, integration.userId, imap, folderName, direction);
 
                     imap.on('mail', (num: number) => {
-                        console.log(`📬 [${folderName}] Integration ${integrationId} received ${num} new messages`);
+                        console.log(`📬 [${folderName}] Integration ${integrationId} received ${num} new messages (IDLE push)`);
+                        // Millisecond fetch and notify
                         this.fetchNewEmails(integrationId, integration.userId, imap, folderName, direction);
                     });
 
