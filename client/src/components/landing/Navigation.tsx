@@ -58,7 +58,7 @@ export function Navigation() {
   return (
     <div className="fixed top-0 left-0 right-0 z-[100] flex justify-center p-4 pointer-events-none">
       <motion.nav
-        className={`pointer-events-auto flex items-center justify-between px-6 md:px-8 py-3 transition-all duration-700 rounded-2xl border ${scrolled
+        className={`pointer-events-auto flex items-center justify-between px-6 md:px-8 py-2 transition-all duration-700 rounded-2xl border ${scrolled
           ? "glass-premium w-[95%] max-w-7xl shadow-2xl border-primary/20"
           : "bg-transparent backdrop-blur-none w-full border-transparent"
           }`}
@@ -256,7 +256,7 @@ export function Navigation() {
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="absolute right-0 top-0 bottom-0 w-[85%] sm:w-[320px] bg-background border-l border-border/40 p-6 flex flex-col shadow-2xl overflow-y-auto"
             >
-              <div className="flex items-center justify-between mb-10">
+              <div className="flex items-center justify-between mb-6">
                 <span className="text-lg font-black tracking-tighter uppercase text-foreground">Audnix<span className="text-primary">.AI</span></span>
                   <Button 
                     variant="ghost" 
@@ -293,7 +293,7 @@ export function Navigation() {
                       }, 300);
                     }}
                   >
-                    <div className="flex items-center justify-between py-4 border-b border-primary/5 group-active:bg-primary/5 px-2 rounded-xl transition-all cursor-pointer w-full h-full min-h-[50px]">
+                    <div className="flex items-center justify-between py-3 border-b border-primary/5 group-active:bg-primary/5 px-2 rounded-xl transition-all cursor-pointer w-full h-full min-h-[50px]">
                       <span className="text-xl font-bold tracking-tight text-foreground group-hover:text-primary transition-colors">
                         {link.name}
                       </span>

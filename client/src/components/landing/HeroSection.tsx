@@ -152,7 +152,7 @@ export function HeroSection() {
   return (
     <section
       ref={containerRef}
-      className="relative min-h-[100vh] lg:h-[100vh] flex items-center pt-24 pb-12 px-4 overflow-hidden"
+      className="relative min-h-[80vh] lg:min-h-[90vh] flex items-center pt-20 pb-12 px-4 overflow-hidden"
     >
       <div className="absolute inset-0 bg-background/95 dark:bg-black/80 pointer-events-none" />
       <GridPattern />
@@ -166,8 +166,8 @@ export function HeroSection() {
       <motion.div className="absolute inset-0 z-[1] pointer-events-none" style={{ background: mouseGlow }} />
 
       <div className="max-w-7xl mx-auto relative z-20 w-full">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-          <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-12">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-8">
             
             {/* Status Chip */}
             <motion.div
