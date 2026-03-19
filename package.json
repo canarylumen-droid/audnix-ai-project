@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "cross-env NODE_ENV=development tsx server/index.ts",
     "build": "vite build",
+    "build:client": "vite build",
     "db:migrate": "node scripts/migrate-manual.js",
     "start": "cross-env NODE_ENV=production tsx server/index.ts",
     "check": "node --max-old-space-size=4096 node_modules/typescript/bin/tsc --noEmit",

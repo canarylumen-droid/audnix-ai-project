@@ -90,6 +90,31 @@ const app = express();
 app.use(sentinel);
 app.use(hpp());
 
+// Custom CORS middleware for Vercel/Split Hosting
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const allowedOrigins = [
+    'https://audnixai.com',
+    'https://www.audnixai.com',
+    'http://localhost:5000',
+    'http://localhost:3000'
+  ];
+  
+  const isVercel = origin && (origin.endsWith('.vercel.app') || allowedOrigins.includes(origin));
+
+  if (origin && isVercel) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  }
+
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",

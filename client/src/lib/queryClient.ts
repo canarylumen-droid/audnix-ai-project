@@ -17,12 +17,24 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+function getBaseUrl() {
+  // Use VITE_API_URL if provided (for Vercel/split hosting), otherwise fallback to relative
+  const apiUrl = import.meta.env.VITE_API_URL;
+  if (apiUrl) {
+    return apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
+  }
+  return '';
+}
+
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const res = await fetch(url, {
+  const baseUrl = getBaseUrl();
+  const finalUrl = url.startsWith('/') ? `${baseUrl}${url}` : `${baseUrl}/${url}`;
+
+  const res = await fetch(finalUrl, {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
     body: data ? JSON.stringify(data) : undefined,
@@ -58,9 +70,11 @@ export const getQueryFn: <T>(options: {
       });
 
       const queryString = queryParams.toString();
-      const finalUrl = queryString
+      const baseUrl = getBaseUrl();
+      const relativeUrl = queryString
         ? `${url}${url.includes("?") ? "&" : "?"}${queryString}`
         : url;
+      const finalUrl = relativeUrl.startsWith('/') ? `${baseUrl}${relativeUrl}` : `${baseUrl}/${relativeUrl}`;
 
       const res = await fetch(finalUrl, {
         credentials: "include",
