@@ -192,7 +192,7 @@ export function HeroSection() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.2, duration: 1, ease: [0.16, 1, 0.3, 1] }}
-                className="text-5xl md:text-7xl lg:text-8xl xl:text-9xl font-black tracking-tighter leading-[0.85] mb-4 text-foreground break-words sm:break-normal"
+                className="text-4xl md:text-5xl lg:text-7xl xl:text-8xl font-black tracking-tighter leading-[0.9] mb-4 text-foreground break-words sm:break-normal"
               >
                 AUTONOMOUS<br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 via-primary to-blue-600 uppercase drop-shadow-[0_0_30px_rgba(var(--primary),0.3)]">
@@ -204,7 +204,7 @@ export function HeroSection() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4, duration: 1 }}
-                className="text-lg md:text-2xl lg:text-3xl text-muted-foreground font-medium tracking-tight max-w-3xl lg:mx-0 mx-auto leading-relaxed"
+                className="text-base md:text-lg lg:text-xl text-muted-foreground font-medium tracking-tight max-w-3xl lg:mx-0 mx-auto leading-relaxed"
               >
                 Scale your sales pipeline with <span className="text-foreground">Autonomous Agents</span> that master your brand voice, handle complex objections, and secure meetings 24/7.
               </motion.p>
@@ -224,10 +224,10 @@ export function HeroSection() {
                     onMouseEnter={() => setIsHovered(true)}
                     onMouseLeave={() => setIsHovered(false)}
                     size="lg"
-                    className="h-16 md:h-20 px-8 md:px-16 rounded-[1.25rem] md:rounded-[2rem] bg-cyan-500 text-black font-black text-lg md:text-2xl hover:bg-cyan-400 transition-all shadow-[0_20px_40px_-10px_rgba(6,182,212,0.3)] group uppercase tracking-widest w-full sm:w-auto"
+                    className="h-14 md:h-16 px-8 md:px-12 rounded-[1rem] md:rounded-[1.5rem] bg-cyan-500 text-black font-black text-base md:text-lg hover:bg-cyan-400 transition-all shadow-[0_20px_40px_-10px_rgba(6,182,212,0.3)] group uppercase tracking-widest w-full sm:w-auto"
                   >
                     Deploy Agents
-                    <ArrowRight className={`ml-3 w-6 h-6 md:w-8 md:h-8 transition-transform duration-500 ${isHovered ? "translate-x-3" : ""}`} />
+                    <ArrowRight className={`ml-3 w-5 h-5 md:w-6 h-6 transition-transform duration-500 ${isHovered ? "translate-x-3" : ""}`} />
                   </Button>
                 </Magnetic>
               </Link>
@@ -236,7 +236,7 @@ export function HeroSection() {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="h-16 md:h-20 px-8 md:px-12 rounded-[1.25rem] md:rounded-[2rem] border-primary/20 bg-primary/5 hover:bg-primary/10 text-foreground font-black text-base md:text-xl backdrop-blur-md transition-all uppercase tracking-widest w-full sm:w-auto"
+                    className="h-14 md:h-16 px-6 md:px-10 rounded-[1rem] md:rounded-[1.5rem] border-primary/20 bg-primary/5 hover:bg-primary/10 text-foreground font-black text-sm md:text-lg backdrop-blur-md transition-all uppercase tracking-widest w-full sm:w-auto"
                   >
                     View Logic Hub
                   </Button>

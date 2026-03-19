@@ -211,7 +211,7 @@ export function Navigation() {
           <Magnetic>
             <Link href="/auth">
               <Button
-                className="h-10 px-6 lg:px-8 rounded-full text-[10px] lg:text-[11px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all bg-primary text-white hover:scale-105"
+                className="h-9 sm:h-10 px-5 lg:px-8 rounded-full text-[10px] lg:text-[11px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all bg-primary text-white hover:scale-105"
               >
                 Get Started
               </Button>
@@ -268,7 +268,7 @@ export function Navigation() {
                   </Button>
               </div>
 
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-6">
                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-foreground/20 mb-2">Navigation</p>
                 {navLinks.map((link) => (
                   <div
@@ -293,7 +293,7 @@ export function Navigation() {
                       }, 300);
                     }}
                   >
-                    <div className="flex items-center justify-between py-5 border-b border-primary/5 group-active:bg-primary/5 px-2 rounded-xl transition-all cursor-pointer w-full h-full min-h-[60px]">
+                    <div className="flex items-center justify-between py-4 border-b border-primary/5 group-active:bg-primary/5 px-2 rounded-xl transition-all cursor-pointer w-full h-full min-h-[50px]">
                       <span className="text-xl font-bold tracking-tight text-foreground group-hover:text-primary transition-colors">
                         {link.name}
                       </span>

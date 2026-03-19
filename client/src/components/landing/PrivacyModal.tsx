@@ -41,11 +41,10 @@ export function PrivacyModal() {
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         whileInView={{ opacity: 1, scale: 1, y: 0 }}
       >
-        <div className="p-8 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
           <div className="flex items-center gap-4">
-            <Logo className="w-12 h-12" textClassName="text-2xl font-black" />
-            <div className="h-8 w-px bg-white/10" />
-            <h2 className="text-xl font-bold tracking-tight text-white/80 uppercase">Privacy Policy</h2>
+            <Logo className="w-8 h-8" textClassName="text-lg font-black" />
+            <div className="h-6 w-px bg-white/10" />
+            <h2 className="text-lg font-bold tracking-tight text-white/80 uppercase">Privacy Policy</h2>
           </div>
           <button
             onClick={closeModal}
@@ -55,7 +54,7 @@ export function PrivacyModal() {
           </button>
         </div>
 
-        <div className="p-8 space-y-8 max-h-[60vh] overflow-y-auto custom-scrollbar">
+        <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
           {sections.map((sec, i) => (
             <motion.div
               key={i}
@@ -79,10 +78,10 @@ export function PrivacyModal() {
           </div>
         </div>
 
-        <div className="p-8 bg-white/[0.02] border-t border-white/5 flex justify-end">
+        <div className="p-6 bg-white/[0.02] border-t border-white/5 flex justify-end">
           <button
             onClick={closeModal}
-            className="px-10 py-4 bg-white text-black font-black rounded-full hover:scale-105 transition-transform active:scale-95"
+            className="px-8 py-3 bg-white text-black font-black rounded-full hover:scale-105 transition-transform active:scale-95 text-sm"
           >
             Acknowledge
           </button>
