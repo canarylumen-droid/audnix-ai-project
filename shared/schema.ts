@@ -228,6 +228,14 @@ export const integrations = pgTable("integrations", {
   connected: boolean("connected").notNull().default(false),
   accountType: text("account_type"),
   lastSync: timestamp("last_sync"),
+  // Mailbox health monitoring fields
+  healthStatus: text("health_status", { enum: ["connected", "warning", "failed"] }).notNull().default("connected"),
+  lastHealthError: text("last_health_error"),
+  lastHealthCheckAt: timestamp("last_health_check_at"),
+  mailboxPauseUntil: timestamp("mailbox_pause_until"),
+  failureCount: integer("failure_count").notNull().default(0),
+  dailyLimit: integer("daily_limit").notNull().default(50),
+  spamRiskScore: real("spam_risk_score").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -330,7 +338,7 @@ export const processedComments = pgTable("processed_comments", {
 export const notifications = pgTable("notifications", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  type: text("type", { enum: ["webhook_error", "billing_issue", "conversion", "lead_reply", "system", "insight", "lead_import", "campaign_sent", "new_lead", "lead_status_change", "topup_success", "info", "email_bounce", "inbound_email"] }).notNull(),
+  type: text("type", { enum: ["webhook_error", "billing_issue", "conversion", "lead_reply", "system", "insight", "lead_import", "campaign_sent", "new_lead", "lead_status_change", "topup_success", "info", "email_bounce", "inbound_email", "mailbox_failure", "mailbox_warning", "lead_redistribution"] }).notNull(),
   title: text("title").notNull(),
   message: text("message").notNull(),
   isRead: boolean("is_read").notNull().default(false),
@@ -408,6 +416,7 @@ export const userOutreachSettings = pgTable("user_outreach_settings", {
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   dailyLimit: integer("daily_limit").notNull().default(50),
   warmupEnabled: boolean("warmup_enabled").notNull().default(true),
+  autoRedistribute: boolean("auto_redistribute").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
@@ -486,6 +495,7 @@ export const bounceTracker = pgTable("bounce_tracker", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+  integrationId: uuid("integration_id").references(() => integrations.id, { onDelete: "cascade" }),
   bounceType: text("bounce_type", { enum: ["hard", "soft", "spam"] }).notNull(),
   email: text("email").notNull(),
   timestamp: timestamp("timestamp").notNull().defaultNow(),
@@ -865,7 +875,7 @@ export const campaignLeads = pgTable("campaign_leads", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   campaignId: uuid("campaign_id").notNull().references(() => outreachCampaigns.id, { onDelete: "cascade" }),
   leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
-  status: text("status", { enum: ["pending", "sent", "failed", "replied"] }).notNull().default("pending"),
+  status: text("status", { enum: ["pending", "sent", "failed", "replied", "aborted", "queued"] }).notNull().default("pending"),
   currentStep: integer("current_step").notNull().default(0),
   nextActionAt: timestamp("next_action_at"),
   sentAt: timestamp("sent_at"),

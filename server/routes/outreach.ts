@@ -882,3 +882,88 @@ router.get('/click/:trackingId', async (req, res) => {
 });
 
 export default router;
+
+// ─── Mailbox Health Management Routes ─────────────────────────────────────────
+
+import { mailboxHealthService } from '../lib/email/mailbox-health-service.js';
+import { redistributionWorker } from '../lib/email/redistribution-worker.js';
+
+const healthRouter = Router();
+
+/**
+ * GET /api/outreach/mailbox-health
+ * Get health status of all connected mailboxes
+ */
+healthRouter.get('/mailbox-health', requireAuth, async (req, res) => {
+  try {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const mailboxes = await mailboxHealthService.getUserMailboxHealth(userId);
+    res.json({ mailboxes });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/outreach/mailbox-health/:id/check
+ * Force a health check on a specific mailbox
+ */
+healthRouter.post('/mailbox-health/:id/check', requireAuth, async (req, res) => {
+  try {
+    const userId = req.session?.userId;
+    const { id } = req.params;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const integration = await storage.getIntegrationById(id);
+    if (!integration || integration.userId !== userId) {
+      return res.status(404).json({ error: 'Mailbox not found' });
+    }
+
+    const result = await mailboxHealthService.checkMailbox(integration);
+    res.json({ success: true, result });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/outreach/mailbox-health/reassign
+ * Manually reassign leads from one mailbox to another
+ */
+healthRouter.post('/mailbox-health/reassign', requireAuth, async (req, res) => {
+  try {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { fromMailboxId, toMailboxId } = req.body;
+    if (!fromMailboxId || !toMailboxId) {
+      return res.status(400).json({ error: 'fromMailboxId and toMailboxId are required' });
+    }
+
+    const count = await mailboxHealthService.reassignLeads(fromMailboxId, toMailboxId, userId);
+    res.json({ success: true, reassigned: count });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/outreach/mailbox-health/redistribute
+ * Manually trigger lead redistribution from failed mailboxes
+ */
+healthRouter.post('/mailbox-health/redistribute', requireAuth, async (req, res) => {
+  try {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    await redistributionWorker.run();
+    res.json({ success: true, message: 'Redistribution triggered' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Re-export the health router to be mounted alongside the main outreach router
+export { healthRouter };

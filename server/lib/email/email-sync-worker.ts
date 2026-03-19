@@ -5,6 +5,7 @@ import { pagedEmailImport } from '../imports/paged-email-importer.js';
 import { workerHealthMonitor } from '../monitoring/worker-health.js';
 import type { Integration, Lead } from '../../../shared/schema.js';
 import { Buffer } from 'buffer';
+import { mailboxHealthService } from './mailbox-health-service.js';
 
 /**
  * Email Sync Worker
@@ -132,7 +133,13 @@ class EmailSyncWorker {
       result.ghostedDetected = await this.detectGhostedLeads(userId);
       return result;
     } catch (error: any) {
-      console.error(`Sync error for user ${userId}:`, error.message);
+      const errorMsg = error.message || 'Unknown sync error';
+      console.error(`Sync error for user ${userId}:`, errorMsg);
+      
+      if (mailboxHealthService.isMailboxError(errorMsg)) {
+        await mailboxHealthService.handleMailboxFailure(integration, errorMsg);
+      }
+      
       result.errors++;
       return result;
     }
@@ -155,7 +162,12 @@ class EmailSyncWorker {
         const response = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50&q=${encodeURIComponent(q)}`, {
           headers: { 'Authorization': `Bearer ${credentials.access_token}` }
         });
-        if (!response.ok) return [];
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            throw new Error(`Gmail API authentication failed: ${response.status} ${response.statusText}`);
+          }
+          return [];
+        }
         const data = await response.json() as any;
         return data.messages || [];
       };
@@ -217,17 +229,21 @@ class EmailSyncWorker {
         const response = await fetch(`https://graph.microsoft.com/v1.0/me/mailFolders/${folder}/messages?$top=50&$select=subject,from,toRecipients,bodyPreview,body,receivedDateTime`, {
           headers: { 'Authorization': `Bearer ${credentials.access_token}` }
         });
-        if (!response.ok) return { imported: 0, skipped: 0, errors: [] };
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            throw new Error(`Outlook API authentication failed: ${response.status} ${response.statusText}`);
+          }
+          return { imported: 0, skipped: 0, errors: [] };
+        }
         const data = await response.json() as any;
-        const messages = (data.value || []).map((m: any) => ({
+        return data.value ? await pagedEmailImport(userId, data.value.map((m: any) => ({
           from: m.from?.emailAddress?.address,
           to: m.toRecipients?.[0]?.emailAddress?.address,
           subject: m.subject,
           text: m.bodyPreview,
           html: m.body?.content,
           date: new Date(m.receivedDateTime)
-        }));
-        return await pagedEmailImport(userId, messages, () => { }, direction);
+        })), () => { }, direction) : { imported: 0, skipped: 0, errors: [] };
       };
 
       const [inbound, outbound] = await Promise.all([

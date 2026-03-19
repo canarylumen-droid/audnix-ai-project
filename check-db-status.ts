@@ -11,8 +11,10 @@ async function check() {
     }
     const pc = await db.select({ count: sql`count(*)` }).from(prospects);
     const uc = await db.select({ id: users.id, username: users.username }).from(users).limit(5);
+    const ic = await db.select({ count: sql`count(*)` }).from(sql`integrations`);
     console.log("PROSPECTS_COUNT:", pc[0].count);
     console.log("USERS:", JSON.stringify(uc));
+    console.log("INTEGRATIONS_COUNT:", ic[0].count);
 }
 
 check().catch(console.error);

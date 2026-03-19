@@ -110,6 +110,9 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
   app.use("/api/oauth", oauthRoutes);
   app.use("/api/otp", otpRoutes);
   app.use("/api/outreach", outreach);
+  // Mailbox health management routes (same prefix)
+  const { healthRouter } = await import("./outreach.js");
+  app.use("/api/outreach", healthRouter);
   app.use("/api/payment/approval", paymentApproval);
   app.use("/api/payment/checkout", paymentCheckout);
   app.use("/api/sales", salesEngine);

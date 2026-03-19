@@ -1,6 +1,7 @@
 import { db } from '../../db.js';
-import { bounceTracker, leads as leadsTable } from '../../../shared/schema.js';
+import { bounceTracker, leads as leadsTable, integrations } from '../../../shared/schema.js';
 import { eq } from 'drizzle-orm';
+import { mailboxHealthService } from '../email/mailbox-health-service.js';
 
 /**
  * Bounce Handler - tracks email bounces and auto-disables invalid leads
@@ -11,13 +12,15 @@ export async function recordBounce(
   userId: string,
   leadId: string,
   email: string,
-  bounceType: 'hard' | 'soft' | 'spam'
+  bounceType: 'hard' | 'soft' | 'spam',
+  integrationId?: string
 ): Promise<void> {
   try {
     // Record bounce
     await db.insert(bounceTracker).values({
       userId,
       leadId,
+      integrationId: integrationId || null,
       email,
       bounceType,
       timestamp: new Date(),
@@ -25,6 +28,10 @@ export async function recordBounce(
         recordedAt: new Date().toISOString()
       }
     });
+
+    if (integrationId) {
+      await mailboxHealthService.checkSpamRisk(integrationId);
+    }
 
     // If hard bounce or spam, mark lead as invalid
     if (bounceType === 'hard' || bounceType === 'spam') {

@@ -26,6 +26,7 @@ import { sendEmail } from '../channels/email.js';
 import { generateExpertOutreach } from '../ai/conversation-ai.js';
 import { wsSync } from '../websocket-sync.js';
 import { decryptToJSON } from '../crypto/encryption.js';
+import { mailboxHealthService } from '../email/mailbox-health-service.js';
 
 // ─── Job Type Definitions ─────────────────────────────────────────────────────
 
@@ -301,6 +302,12 @@ async function getMailboxSentCount(userId: string, integrationId: string): Promi
 /**
  * Process a batch of sends for a single mailbox within a campaign.
  * This runs independently per mailbox — multiple mailboxes process concurrently.
+ * 
+ * FAULT TOLERANCE:
+ * - Checks mailbox health before attempting to send
+ * - On SMTP/auth failure: marks mailbox as failed, re-queues the lead
+ * - System NEVER crashes due to a single mailbox failure
+ * - Also picks up 'queued' leads (returned from failed mailboxes)
  */
 async function processSendBatch(data: SendBatchJobData): Promise<void> {
   if (!db) return;
@@ -321,11 +328,26 @@ async function processSendBatch(data: SendBatchJobData): Promise<void> {
   const isWeekend = now.getDay() === 0 || now.getDay() === 6;
   if (isWeekend && campaign.excludeWeekends) return;
 
-  // 3. Verify mailbox is still connected
+  // 3. FAULT TOLERANCE: Verify mailbox is still healthy and not paused
   const integration = await storage.getIntegrationById(integrationId);
   if (!integration || !integration.connected) {
     console.warn(`[CampaignWorker] Mailbox ${integrationId} disconnected, skipping batch`);
     return;
+  }
+
+  // Check health status
+  if ((integration as any).healthStatus === 'failed') {
+    console.warn(`[CampaignWorker] Mailbox ${integrationId} is FAILED, skipping batch`);
+    return;
+  }
+
+  // Check if mailbox is paused (spam risk)
+  if ((integration as any).mailboxPauseUntil) {
+    const pauseUntil = new Date((integration as any).mailboxPauseUntil);
+    if (pauseUntil > now) {
+      console.warn(`[CampaignWorker] Mailbox ${integrationId} paused until ${pauseUntil.toISOString()}, skipping`);
+      return;
+    }
   }
 
   // 4. Check daily budget for THIS mailbox
@@ -353,7 +375,8 @@ async function processSendBatch(data: SendBatchJobData): Promise<void> {
     if (Date.now() - lastSentAt < minDelayMs) return;
   }
 
-  // 6. Pick the next pending lead assigned to this mailbox
+  // 6. Pick the next pending or queued lead assigned to this mailbox
+  //    Also pick up 'queued' leads that have been returned to the pool
   const nextLeadResult = await db.select({
     campaignLead: campaignLeads,
     lead: leads
@@ -363,8 +386,18 @@ async function processSendBatch(data: SendBatchJobData): Promise<void> {
     .where(
       and(
         eq(campaignLeads.campaignId, campaignId),
-        eq(campaignLeads.integrationId, integrationId),
-        eq(campaignLeads.status, 'pending'),
+        or(
+          // Leads assigned to this mailbox
+          and(
+            eq(campaignLeads.integrationId, integrationId),
+            or(eq(campaignLeads.status, 'pending'), eq(campaignLeads.status, 'queued'))
+          ),
+          // Leads in pool (no mailbox assigned) — any healthy mailbox can pick them up
+          and(
+            isNull(campaignLeads.integrationId),
+            eq(campaignLeads.status, 'queued')
+          )
+        ),
         or(isNull(campaignLeads.nextActionAt), lte(campaignLeads.nextActionAt, new Date())),
         eq(leads.aiPaused, false),
         ne(leads.status, 'replied'),
@@ -383,8 +416,38 @@ async function processSendBatch(data: SendBatchJobData): Promise<void> {
 
   if (!lead?.email) return;
 
-  // 7. Send the email
-  await deliverCampaignEmail(userId, campaign, lead, leadEntry, integrationId);
+  // Claim the lead for this mailbox (assign integrationId)
+  if (!leadEntry.integrationId || leadEntry.status === 'queued') {
+    await db.update(campaignLeads)
+      .set({ integrationId, status: 'pending' })
+      .where(eq(campaignLeads.id, leadEntry.id));
+  }
+
+  // 7. FAULT-TOLERANT SEND: Wrap in try/catch to handle mailbox errors
+  try {
+    await deliverCampaignEmail(userId, campaign, lead, leadEntry, integrationId);
+  } catch (sendError: any) {
+    const errorMsg = sendError.message || 'Unknown send error';
+    console.error(`[CampaignWorker] ❌ Send failed for ${lead.email} via ${integrationId}: ${errorMsg}`);
+
+    if (mailboxHealthService.isMailboxError(errorMsg)) {
+      // Mark this mailbox as having issues
+      await mailboxHealthService.handleMailboxFailure(integration, errorMsg);
+
+      // Re-queue the lead so another mailbox can pick it up
+      await db.update(campaignLeads)
+        .set({ integrationId: null, status: 'queued', error: errorMsg })
+        .where(eq(campaignLeads.id, leadEntry.id));
+
+      console.warn(`[CampaignWorker] 🔄 Lead ${lead.email} re-queued after mailbox failure`);
+    } else {
+      // Non-mailbox error (e.g. invalid recipient) — mark lead as failed
+      await db.update(campaignLeads)
+        .set({ status: 'failed', error: errorMsg })
+        .where(eq(campaignLeads.id, leadEntry.id));
+    }
+    return; // Don't schedule follow-ups on failure
+  }
 
   // 8. Schedule follow-up if there's a next step
   const followupsArr = (campaign.template as any)?.followups || [];

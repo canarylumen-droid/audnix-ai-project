@@ -37,6 +37,8 @@ import { outreachEngine } from "./lib/workers/outreach-engine.js";
 import { outreachWorker } from "./lib/queues/outreach-queue.js";
 import { campaignWorker } from "./lib/queues/campaign-queue.js";
 import { emailSyncWorkerModule } from "./lib/queues/email-sync-queue.js";
+import { mailboxHealthService } from "./lib/email/mailbox-health-service.js";
+import { redistributionWorker } from "./lib/email/redistribution-worker.js";
 import { leadExpiryWorker } from "./lib/workers/lead-expiry-worker.js";
 import { reputationWorker } from "./lib/workers/reputation-worker.js";
 import { apiLimiter, authLimiter } from "./middleware/rate-limit.js";
@@ -485,6 +487,10 @@ async function runMigrations() {
         // Just need to ensure it's imported to register the worker
         console.log("Registered email sync queue worker");
       });
+
+      // Mailbox Health Monitoring & Lead Redistribution
+      startWorker("Mailbox Health", () => mailboxHealthService.start());
+      startWorker("Lead Redistribution", () => redistributionWorker.start());
 
       // AI Provider Smoke Test
       const { getAIStatus } = await import("./lib/ai/ai-service.js");

@@ -1,8 +1,9 @@
 import { db } from '../../db.js';
-import { bounceTracker, leads, Lead } from '../../../shared/schema.js';
+import { bounceTracker, leads, Lead, integrations } from '../../../shared/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { storage } from '../../storage.js';
 import { wsSync } from '../websocket-sync.js';
+import { mailboxHealthService } from './mailbox-health-service.js';
 
 /**
  * Bounce Handling System
@@ -24,6 +25,7 @@ interface BounceEvent {
   email: string;
   bounceType: 'hard' | 'soft' | 'spam';
   reason?: string;
+  integrationId?: string;
 }
 
 class BounceHandler {
@@ -34,19 +36,7 @@ class BounceHandler {
     if (!db) return;
 
     try {
-      // Save bounce record
-      await db.insert(bounceTracker).values({
-        userId: event.userId,
-        leadId: event.leadId,
-        bounceType: event.bounceType,
-        email: event.email,
-        metadata: {
-          reason: event.reason,
-          recordedAt: new Date().toISOString()
-        }
-      });
-
-      // Get the lead
+      // Get the lead to find integrationId if not provided
       const [lead] = await db
         .select()
         .from(leads)
@@ -54,6 +44,21 @@ class BounceHandler {
         .limit(1);
 
       if (!lead) return;
+
+      const integrationId = event.integrationId || lead.integrationId;
+
+      // Save bounce record
+      await db.insert(bounceTracker).values({
+        userId: event.userId,
+        leadId: event.leadId,
+        integrationId: integrationId || null,
+        bounceType: event.bounceType,
+        email: event.email,
+        metadata: {
+          reason: event.reason,
+          recordedAt: new Date().toISOString()
+        }
+      });
 
       // Handle based on bounce type
       switch (event.bounceType) {
@@ -68,7 +73,12 @@ class BounceHandler {
           break;
       }
 
-      console.log(`📧 ${event.bounceType.toUpperCase()} bounce recorded: ${event.email}`);
+      console.log(`📧 ${event.bounceType.toUpperCase()} bounce recorded: ${event.email} (Integration: ${integrationId})`);
+
+      // --- NEW: Trigger Spam Risk Assessment ---
+      if (integrationId) {
+        await mailboxHealthService.checkSpamRisk(integrationId);
+      }
 
       // Stop any active campaign for this lead
       const { campaignLeads, outreachCampaigns } = await import('../../../shared/schema.js');

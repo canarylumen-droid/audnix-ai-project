@@ -20,6 +20,7 @@ import { AuditTrailService } from '../audit-trail-service.js';
 import { sendInstagramOutreach } from '../channels/instagram.js';
 import { decryptToJSON } from '../crypto/encryption.js';
 import { hasRedis } from '../queues/redis-config.js';
+import { mailboxHealthService } from '../email/mailbox-health-service.js';
 
 export class OutreachEngine {
   private isRunning: boolean = false;
@@ -118,6 +119,16 @@ export class OutreachEngine {
   private async processUserOutreach(userId: string): Promise<void> {
     this.activeUserProcessing.add(userId);
     try {
+      // --- FAULT TOLERANCE: Plan Expiry Check ---
+      const isPlanActive = await mailboxHealthService.isPlanActive(userId);
+      if (!isPlanActive) {
+        console.warn(`[OutreachEngine] skipping user ${userId} - Plan expired/inactive`);
+        return;
+      }
+
+      // --- PART 0: Inventory Distribution ---
+      // ... (rest same)
+
       // --- PART 0: Inventory Distribution ---
       // Automatically distribute leads from the Inventory pool to mailboxes with capacity.
       // This ensures mailboxes are always "primed" even without an active campaign.
@@ -129,12 +140,17 @@ export class OutreachEngine {
       }
 
       // --- PART 1: Structured Campaigns ---
-      const processedCampaign = await this.tickCampaigns(userId);
+      const processedCampaign = await this.tickCampaigns(userId).catch(err => {
+        console.error(`[OutreachEngine] tickCampaigns failed for ${userId}:`, err.message);
+        return false;
+      });
       if (processedCampaign) return; // Campaign processing usually uses its own delay logic
 
       // --- PART 2: Autonomous AI Outreach ---
       // If no campaign was processed, check for individual "new" leads with AI enabled
-      await this.tickAutonomousOutreach(userId);
+      await this.tickAutonomousOutreach(userId).catch(err => {
+        console.error(`[OutreachEngine] tickAutonomousOutreach failed for ${userId}:`, err.message);
+      });
 
     } finally {
       // Emit stats refresh for instant KPI updates on dashboard
@@ -637,14 +653,39 @@ export class OutreachEngine {
     // Generate a proper trackingId if not already present
     const trackingId = Math.random().toString(36).substring(2, 11);
 
-    await sendEmail(userId, lead.email, body, subject, {
-      isRaw: true,
-      isHtml: true, // Force HTML for tracking pixel/links
-      trackingId: campaign.config?.isManual ? undefined : trackingId,
-      campaignId: campaign.id,
-      leadId: lead.id,
-      integrationId // Use the rotated mailbox
-    });
+    try {
+      await sendEmail(userId, lead.email, body, subject, {
+        isRaw: true,
+        isHtml: true, // Force HTML for tracking pixel/links
+        trackingId: campaign.config?.isManual ? undefined : trackingId,
+        campaignId: campaign.id,
+        leadId: lead.id,
+        integrationId // Use the rotated mailbox
+      });
+    } catch (sendError: any) {
+      const errorMsg = sendError.message || 'Unknown send error';
+      console.error(`[OutreachEngine] ❌ Send failed for ${lead.email} via ${integrationId}: ${errorMsg}`);
+
+      if (mailboxHealthService.isMailboxError(errorMsg)) {
+        const integration = await storage.getIntegrationById(integrationId);
+        if (integration) {
+          await mailboxHealthService.handleMailboxFailure(integration, errorMsg);
+        }
+
+        // Re-queue the lead so another mailbox can pick it up (set integrationId to null and status to queued)
+        await db.update(campaignLeads)
+          .set({ integrationId: null, status: 'queued', error: errorMsg })
+          .where(eq(campaignLeads.id, leadEntry.id));
+        
+        console.warn(`[OutreachEngine] 🔄 Lead ${lead.email} re-queued after mailbox failure`);
+      } else {
+        // Non-mailbox error (e.g. invalid recipient) — mark lead as failed
+        await db.update(campaignLeads)
+          .set({ status: 'failed', error: errorMsg })
+          .where(eq(campaignLeads.id, leadEntry.id));
+      }
+      return; // Stop processing this lead
+    }
 
     // Update lead with integrationId if not already set, to ensure future replies/tracking stay with this mailbox
     if (!lead.integrationId) {
@@ -729,13 +770,32 @@ export class OutreachEngine {
     const aiContent = await generateExpertOutreach(lead, userId);
     const trackingId = Math.random().toString(36).substring(2, 11);
 
-    await sendEmail(userId, lead.email, aiContent.body, aiContent.subject, {
-      isRaw: true,
-      isHtml: true, // Force HTML for tracking
-      trackingId,
-      leadId: lead.id,
-      integrationId
-    });
+    try {
+      await sendEmail(userId, lead.email, aiContent.body, aiContent.subject, {
+        isRaw: true,
+        isHtml: true, // Force HTML for tracking
+        trackingId,
+        leadId: lead.id,
+        integrationId
+      });
+    } catch (sendError: any) {
+      const errorMsg = sendError.message || 'Unknown send error';
+      console.error(`[OutreachEngine] ❌ Autonomous send failed for ${lead.email} via ${integrationId}: ${errorMsg}`);
+
+      if (mailboxHealthService.isMailboxError(errorMsg)) {
+        const integration = await storage.getIntegrationById(integrationId);
+        if (integration) {
+          await mailboxHealthService.handleMailboxFailure(integration, errorMsg);
+        }
+      }
+      
+      // Mark lead as failed for now, won't retry in same tick
+      await db.update(leads)
+        .set({ status: 'failed', updatedAt: new Date() })
+        .where(eq(leads.id, lead.id));
+      
+      return; // Stop
+    }
 
     await storage.createMessage({
       userId,

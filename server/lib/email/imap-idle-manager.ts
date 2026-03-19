@@ -5,6 +5,7 @@ import { decrypt } from '../crypto/encryption.js';
 import { pagedEmailImport } from '../imports/paged-email-importer.js';
 import type { Integration } from '../../../shared/schema.js';
 import { wsSync } from '../websocket-sync.js';
+import { mailboxHealthService } from './mailbox-health-service.js';
 
 interface EmailConfig {
     smtp_host?: string;
@@ -270,14 +271,9 @@ class ImapIdleManager {
                     try {
                         const integrationLatest = await storage.getIntegration(integration.userId, integrationId);
                         if (integrationLatest) {
-                            const meta = JSON.parse(await (await import('../crypto/encryption.js')).decrypt(integrationLatest.encryptedMeta!));
-                            meta.last_error = err.message || 'Authentication Failed';
-                            meta.error_at = new Date().toISOString();
-
-                            await storage.updateIntegration(integration.userId, integrationId, {
-                                connected: false,
-                                encryptedMeta: await (await import('../crypto/encryption.js')).encrypt(JSON.stringify(meta))
-                            });
+                            // Update core health status via centralized service 
+                            // (This will also return leads to the pool)
+                            await mailboxHealthService.handleMailboxFailure(integrationLatest, err.message || 'Authentication Failed');
                         }
                     } catch (e) {
                         console.error('Failed to update integration with IMAP error:', e);

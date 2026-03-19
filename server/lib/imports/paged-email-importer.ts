@@ -221,9 +221,10 @@ async function processEmailForLead(
           await bounceHandler.recordBounce({
             userId,
             leadId: lead.id,
+            integrationId: lead.integrationId || undefined,
             email: email.from || lead.email,
             bounceType: subject.includes('permanent') ? 'hard' : 'soft',
-            reason: email.text?.substring(0, 500) || 'Delivery failure'
+            reason: email.text?.substring(0, 500) || 'Delivery failure (Imported)'
           });
           console.log(`[EMAIL_IMPORT] Recorded bounce for lead ${lead.id} (${lead.email})`);
         } catch (bounceErr) {

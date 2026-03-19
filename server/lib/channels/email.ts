@@ -943,3 +943,46 @@ async function getOutlookInbox(credentials: { accessToken: string, email: string
 
   return data.value || [];
 }
+
+/**
+ * Send internal system notifications (e.g. mailbox failures)
+ * using a dedicated high-deliverability account.
+ */
+export async function sendSystemEmail(
+  to: string,
+  subject: string,
+  content: string
+): Promise<boolean> {
+  const host = process.env.SYSTEM_SMTP_HOST;
+  const port = parseInt(process.env.SYSTEM_SMTP_PORT || '587');
+  const user = process.env.SYSTEM_SMTP_USER;
+  const pass = process.env.SYSTEM_SMTP_PASS;
+
+  if (!host || !user || !pass) {
+    console.warn('[Email] SYSTEM_SMTP credentials missing - skipping system email alert');
+    return false;
+  }
+
+  try {
+    const { createTransport } = await import('nodemailer');
+    const transporter = createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: { user, pass }
+    });
+
+    await transporter.sendMail({
+      from: `"Audnix AI Support" <${user}>`,
+      to,
+      subject,
+      html: content
+    });
+
+    console.log(`[Email] ✅ System email alert sent to ${to}`);
+    return true;
+  } catch (err: any) {
+    console.error('[Email] ❌ Failed to send system email:', err.message);
+    return false;
+  }
+}
