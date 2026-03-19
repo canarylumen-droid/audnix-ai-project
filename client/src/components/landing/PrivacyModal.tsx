@@ -41,6 +41,7 @@ export function PrivacyModal() {
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         whileInView={{ opacity: 1, scale: 1, y: 0 }}
       >
+        <div className="flex items-center justify-between p-6 border-b border-white/5">
           <div className="flex items-center gap-4">
             <Logo className="w-8 h-8" textClassName="text-lg font-black" />
             <div className="h-6 w-px bg-white/10" />
