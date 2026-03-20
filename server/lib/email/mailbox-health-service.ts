@@ -153,7 +153,8 @@ class MailboxHealthService {
       'EAUTH', 'ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', 'ECONNRESET',
       'Invalid login', 'authentication failed', 'token expired', 'token invalid',
       'Invalid credentials', 'socket hang up', 'credentials missing',
-      'Unauthorized', '401', 'Rate limit exceeded', 'bad decrypt', 'decryption failed'
+      'Unauthorized', '401', 'Rate limit exceeded', 'bad decrypt', 'decryption failed',
+      'invalid encrypted data format'
     ];
     return patterns.some(p => errorMessage.toLowerCase().includes(p.toLowerCase()));
   }

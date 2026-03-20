@@ -71,13 +71,21 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
   app.get("/manifest.json", (req, res) => sendPublicFile("manifest.json", res));
   app.get("/logo.svg", (req, res) => sendPublicFile("logo.svg", res));
 
-  app.all("/api/instagram/callback", apiLimiter, (req, res) => {
-    console.log(`[Root Callback] ${req.method} /api/instagram/callback`);
-    // Handle both POST (from Meta) and GET (OAuth redirect)
+  const { handleInstagramWebhook, handleInstagramVerification } = await import("../lib/webhooks/instagram-webhook.js");
+
+  app.get("/api/instagram/callback", apiLimiter, (req, res) => {
+    console.log(`[Root Callback] GET /api/instagram/callback`);
+    if (req.query['hub.mode'] === 'subscribe') {
+      return handleInstagramVerification(req, res);
+    }
     const query = req.url.includes('?') ? '?' + req.url.split('?')[1] : '';
     res.redirect(307, `/api/oauth/instagram/callback${query}`);
   });
 
+  app.post("/api/instagram/callback", apiLimiter, async (req, res) => {
+    console.log(`[Root Callback] POST /api/instagram/callback (Webhook)`);
+    await handleInstagramWebhook(req, res);
+  });
 
 
   // Mount all other routes

@@ -100,7 +100,11 @@ app.use((req, res, next) => {
     'http://localhost:3000'
   ];
   
-  const isVercel = origin && (origin.endsWith('.vercel.app') || allowedOrigins.includes(origin));
+  const isVercel = origin && (
+    origin.endsWith('.vercel.app') || 
+    origin.endsWith('.up.railway.app') || 
+    allowedOrigins.includes(origin)
+  );
 
   if (origin && isVercel) {
     res.setHeader('Access-Control-Allow-Origin', origin);
@@ -423,6 +427,7 @@ app.use((req, res, next) => {
     origin.endsWith(".replit.dev") ||
     origin.endsWith(".repl.co") ||
     origin.endsWith(".railway.app") ||
+    origin.endsWith(".up.railway.app") ||
     origin.endsWith(".replit.app");
 
   if (isAllowedDomain && origin) {
