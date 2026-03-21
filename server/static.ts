@@ -78,6 +78,12 @@ export function serveStatic(app: Express) {
       }
       return res.status(404).json({ error: "Not found" });
     }
+
+    // Do not serve index.html for static assets that were genuinely missing
+    if (req.path.match(/\.(js|css|map|png|jpg|svg|ico|json|woff|woff2|ttf)$/i)) {
+      return res.status(404).end();
+    }
+
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.sendFile(path.resolve(distPath, "index.html"));
   });
