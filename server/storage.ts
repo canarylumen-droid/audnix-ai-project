@@ -886,6 +886,13 @@ export class MemStorage implements IStorage {
       connected: integration.connected ?? true,
       accountType: integration.accountType || null,
       lastSync: integration.lastSync || null,
+      healthStatus: 'healthy',
+      lastHealthError: null,
+      lastHealthCheckAt: null,
+      mailboxPauseUntil: null,
+      failureCount: 0,
+      dailyLimit: 50,
+      spamRiskScore: 0,
       createdAt: now,
       updatedAt: now,
     };

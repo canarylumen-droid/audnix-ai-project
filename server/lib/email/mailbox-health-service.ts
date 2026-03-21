@@ -168,7 +168,7 @@ class MailboxHealthService {
       if (!user) return false;
 
       // Free plan is always "active" (within its own limits)
-      if (user.plan === 'free') return true;
+      if (user.plan === ('free' as any)) return true;
 
       // Trial plan check
       if (user.plan === 'trial' && user.trialExpiresAt) {
@@ -542,7 +542,7 @@ class MailboxHealthService {
         )
       ));
 
-    return userIntegrations.map(i => ({
+    return userIntegrations.map((i: any) => ({
       id: i.id,
       provider: i.provider,
       accountType: i.accountType,
@@ -573,7 +573,7 @@ class MailboxHealthService {
         )
       ));
 
-    return userIntegrations.filter(i =>
+    return userIntegrations.filter((i: any) =>
       ['gmail', 'outlook', 'custom_email'].includes(i.provider)
     );
   }
@@ -648,14 +648,14 @@ class MailboxHealthService {
       ))
       .groupBy(auditTrail.integrationId);
 
-    const countMap = new Map(sentCounts.map(r => [r.integrationId, Number(r.count)]));
+    const countMap = new Map(sentCounts.map((r: any) => [r.integrationId, Number(r.count)]));
 
     // Get limits
     const mbs = await db.select().from(integrations).where(inArray(integrations.id, mailboxIds));
 
     for (const mb of mbs) {
       const sentToday = countMap.get(mb.id) || 0;
-      const remaining = Math.max(0, (mb.dailyLimit || 50) - sentToday);
+      const remaining = Math.max(0, (Number(mb.dailyLimit) || 50) - sentToday);
       capacities.set(mb.id, remaining);
     }
 

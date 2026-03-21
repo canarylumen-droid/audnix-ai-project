@@ -512,7 +512,7 @@ async function processFollowUp(data: FollowUpJobData): Promise<void> {
   // Max multiplier: Default to 3x baseLimit unless specified in config
   // For Gmail/Outlook, we use a default hard ceiling of 100/day as requested
   const integration = await storage.getIntegrationById(integrationId);
-  const isSmtp = integration?.provider === 'smtp' || integration?.provider === 'custom_email';
+  const isSmtp = (integration?.provider as any) === 'smtp' || integration?.provider === 'custom_email';
   const defaultCeiling = isSmtp ? 500 : 100; // Gmail/Outlook: 100, SMTP: 500
 
   const maxMultipliers = config.mailboxMaxMultipliers || {};
