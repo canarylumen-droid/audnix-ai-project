@@ -459,7 +459,7 @@ async function runMigrations() {
   app.get("/health", (_req, res) => res.status(200).json({ status: "ok" }));
   const server = await registerRoutes(app);
   
-  const isProduction = process.env.NODE_ENV === "production" || process.env.VERCEL === "1" || !!process.env.RAILWAY_STATIC_URL;
+  const isProduction = process.env.NODE_ENV === "production" || !!process.env.RAILWAY_ENVIRONMENT || !!process.env.RAILWAY_PROJECT_ID;
   
   if (!isProduction) {
     // SECURITY/RAILWAY WORKAROUND: Hide the actual string import to prevent 
