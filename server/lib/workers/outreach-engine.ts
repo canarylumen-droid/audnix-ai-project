@@ -260,7 +260,8 @@ export class OutreachEngine {
       if (!integration || !integration.connected) continue;
 
       const isHighPriority = leadEntry.currentStep >= 1 || leadEntry.metadata?.pendingAutoReply === true;
-      const isReady = await this.isMailboxReadyToSend(userId, integration, campaign, isHighPriority);
+      const isUnmeteredReply = leadEntry.metadata?.pendingAutoReply === true;
+      const isReady = await this.isMailboxReadyToSend(userId, integration, campaign, isHighPriority, isUnmeteredReply);
       if (!isReady) continue;
 
       // Process delivery
@@ -405,7 +406,12 @@ export class OutreachEngine {
   /**
    * Checks daily limits and mandatory randomized delays for a specific mailbox
    */
-  private async isMailboxReadyToSend(userId: string, integration: Integration, campaign?: any, isHighPriority: boolean = false): Promise<boolean> {
+  private async isMailboxReadyToSend(userId: string, integration: Integration, campaign?: any, isHighPriority: boolean = false, isUnmeteredReply: boolean = false): Promise<boolean> {
+    if (isUnmeteredReply) {
+      console.log(`[OutreachEngine] ⚡ Unmetered Reply override active: bypassing limits for ${integration.id}`);
+      return true;
+    }
+
     const meta = decryptToJSON(integration.encryptedMeta) || {};
     
     // Default safe limits by provider type

@@ -516,7 +516,7 @@ async function processFollowUp(data: FollowUpJobData): Promise<void> {
   const defaultCeiling = isSmtp ? 500 : 100; // Gmail/Outlook: 100, SMTP: 500
 
   const maxMultipliers = config.mailboxMaxMultipliers || {};
-  const maxMultiplier = maxMultipliers[integrationId] || config.maxDailyMultiplier || (isSmtp ? 10 : 2);
+  const maxMultiplier = maxMultipliers[integrationId] || config.maxDailyMultiplier || (isSmtp ? 10 : 7);
   const hardCeiling = config.totalDailyLimit || (baseLimit * maxMultiplier) || defaultCeiling;
 
   if (sentToday >= hardCeiling) {

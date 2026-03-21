@@ -654,7 +654,7 @@ class MailboxHealthService {
     const mbs = await db.select().from(integrations).where(inArray(integrations.id, mailboxIds));
 
     for (const mb of mbs) {
-      const sentToday = countMap.get(mb.id) || 0;
+      const sentToday = Number(countMap.get(mb.id)) || 0;
       const remaining = Math.max(0, (Number(mb.dailyLimit) || 50) - sentToday);
       capacities.set(mb.id, remaining);
     }
