@@ -18,11 +18,8 @@ async function throwIfResNotOk(res: Response) {
 }
 
 function getBaseUrl() {
-  // Use VITE_API_URL if provided (for Vercel/split hosting), otherwise fallback to relative
-  const apiUrl = import.meta.env.VITE_API_URL;
-  if (apiUrl) {
-    return apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
-  }
+  // Railway integrated deployments always use relative API paths
+  // to ensure smooth routing when frontend and backend are housed together.
   return '';
 }
 

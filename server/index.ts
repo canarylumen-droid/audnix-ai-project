@@ -90,23 +90,22 @@ const app = express();
 app.use(sentinel);
 app.use(hpp());
 
-// Custom CORS middleware for Vercel/Split Hosting
+// Unified CORS middleware for Railway deployment
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   const allowedOrigins = [
     'https://audnixai.com',
     'https://www.audnixai.com',
     'http://localhost:5000',
-    'http://localhost:3000'
+    'http://localhost:5173'
   ];
   
-  const isVercel = origin && (
-    origin.endsWith('.vercel.app') || 
+  const isAllowedOrigin = origin && (
     origin.endsWith('.up.railway.app') || 
     allowedOrigins.includes(origin)
   );
 
-  if (origin && isVercel) {
+  if (origin && isAllowedOrigin) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH');
@@ -271,7 +270,6 @@ const ALLOWED_ORIGINS = [
   "https://audnixai.com",
   "http://localhost:5173",
   "http://localhost:5000",
-  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
   process.env.REPLIT_DEV_DOMAIN
     ? `https://${process.env.REPLIT_DEV_DOMAIN}`
     : null,
@@ -371,7 +369,6 @@ app.use((req, res, next) => {
 
       // Allow standard subdomains and common deployment platforms
       const isAllowedSuffix =
-        originUrl.hostname.endsWith(".vercel.app") ||
         originUrl.hostname.endsWith(".replit.app") ||
         originUrl.hostname.endsWith(".replit.dev") ||
         originUrl.hostname.endsWith(".railway.app") ||
@@ -423,7 +420,6 @@ app.use((req, res, next) => {
   const isAllowedDomain =
     !origin ||
     ALLOWED_ORIGINS.includes(origin) ||
-    origin.endsWith(".vercel.app") ||
     origin.endsWith(".replit.dev") ||
     origin.endsWith(".repl.co") ||
     origin.endsWith(".railway.app") ||
