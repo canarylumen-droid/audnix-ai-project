@@ -226,6 +226,8 @@ export class CampaignQueueManager {
 
   /**
    * Schedule an auto-reply with a human-like random delay (2-4 minutes).
+   * Auto-replies are HIGHEST priority (P0) — they always jump the queue
+   * over follow-ups (P1) and cold batch sends (P2).
    */
   async scheduleAutoReply(
     campaignId: string,
@@ -236,7 +238,8 @@ export class CampaignQueueManager {
   ): Promise<void> {
     if (!campaignQueue) return;
 
-    const delayMs = (2 + Math.random() * 2) * 60 * 1000; // 2-4 minutes
+    // Human-like 2-4 minute delay before replying (feels natural, not instant bot)
+    const delayMs = Math.floor((2 + Math.random() * 2) * 60 * 1000);
     const jobId = `autoreply:${campaignId}:${campaignLeadId}:${Date.now()}`;
 
     await campaignQueue.add(jobId, {
@@ -249,10 +252,10 @@ export class CampaignQueueManager {
     }, {
       delay: delayMs,
       jobId,
-      priority: 1, // Auto-replies are P1
+      priority: 0, // P0 = HIGHEST — reply beats everything else in this mailbox
     });
 
-    console.log(`[CampaignQueue] 💬 Auto-reply for ${campaignLeadId} in ${Math.round(delayMs / 1000)}s`);
+    console.log(`[CampaignQueue] 💬 Auto-reply (P0) for lead ${campaignLeadId} via mailbox ${integrationId.slice(-8)} in ${Math.round(delayMs / 1000)}s`);
   }
 }
 
@@ -295,6 +298,50 @@ async function getMailboxSentCount(userId: string, integrationId: string): Promi
     AND created_at >= CURRENT_DATE::timestamp
   `);
   return Number(result.rows[0].count);
+}
+
+/**
+ * Check if a pending auto-reply job exists for this specific mailbox in BullMQ.
+ * Used by processSendBatch to yield when a reply is about to go out.
+ */
+async function mailboxHasPendingReply(integrationId: string): Promise<boolean> {
+  if (!campaignQueue) return false;
+  try {
+    // Check delayed jobs (not yet fired)
+    const delayed = await campaignQueue.getDelayed();
+    return delayed.some(j =>
+      j.data.type === 'campaign:auto-reply' &&
+      (j.data as AutoReplyJobData).integrationId === integrationId
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Calculate a per-mailbox send interval with jitter.
+ * Spreads remaining sends across remaining business hours to avoid bursting.
+ */
+function calcMailboxInterval(sentToday: number, dailyLimit: number): number {
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMin = now.getMinutes();
+
+  // Business hours: 7am – 9pm (14 hours)
+  const businessStart = 7;
+  const businessEnd = 21;
+  const clampedHour = Math.max(businessStart, Math.min(currentHour, businessEnd));
+  const remainingHours = Math.max(0.25, businessEnd - clampedHour - currentMin / 60);
+
+  const remainingSends = Math.max(1, dailyLimit - sentToday);
+  const baseIntervalMs = (remainingHours * 3600 * 1000) / remainingSends;
+
+  // Clamp: at least 45s, at most 30 minutes
+  const clamped = Math.min(30 * 60_000, Math.max(45_000, baseIntervalMs));
+
+  // Add ±15% random jitter to avoid mechanical patterns
+  const jitter = clamped * 0.15 * (Math.random() * 2 - 1);
+  return Math.round(clamped + jitter);
 }
 
 // ─── Job Processors ──────────────────────────────────────────────────────────
@@ -359,7 +406,16 @@ async function processSendBatch(data: SendBatchJobData): Promise<void> {
     return;
   }
 
-  // 5. Cooldown: check last sent time for this mailbox
+  // 4b. REPLY GATE: If a pending auto-reply job exists for this mailbox,
+  // hold off on batch sending so the reply lands first (avoids double-send collision).
+  // The auto-reply itself has P0 priority and fires in 2-4 min — we wait for it.
+  const replyPending = await mailboxHasPendingReply(integrationId);
+  if (replyPending) {
+    console.log(`[CampaignWorker] ⏳ Reply pending on mailbox ${integrationId.slice(-8)} — batch yielding`);
+    return; // This job will reschedule automatically via BullMQ repeat
+  }
+
+  // 5. Dynamic cooldown: spread remaining sends evenly across remaining business hours
   const lastSentResult = await db.execute(sql`
     SELECT created_at FROM messages
     WHERE user_id = ${userId}
@@ -370,8 +426,8 @@ async function processSendBatch(data: SendBatchJobData): Promise<void> {
 
   if (lastSentResult.rows.length > 0) {
     const lastSentAt = new Date(lastSentResult.rows[0].created_at as string).getTime();
-    // Minimum 45 seconds between sends for better deliverability
-    const minDelayMs = 45_000 + Math.random() * 30_000;
+    // Dynamically compute minimum spacing based on remaining budget & business time
+    const minDelayMs = calcMailboxInterval(sentToday, dailyLimit);
     if (Date.now() - lastSentAt < minDelayMs) return;
   }
 
