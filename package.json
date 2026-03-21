@@ -184,8 +184,8 @@
     "vite": "^6.4.1"
   },
   "optionalDependencies": {
-    "fsevents": "~2.3.2",
-    "@rollup/rollup-linux-x64-gnu": "^4.24.0"
+    "@rollup/rollup-linux-x64-gnu": "^4.24.0",
+    "fsevents": "~2.3.2"
   },
   "overrides": {
     "tough-cookie": "^5.0.0",
