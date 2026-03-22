@@ -8,9 +8,16 @@ import { InstagramOAuth } from '../lib/oauth/instagram.js';
 import { decrypt } from '../lib/crypto/encryption.js';
 import dns from 'dns';
 import { promisify } from 'util';
+import { LRUCache } from 'lru-cache';
 
 const resolveMx = promisify(dns.resolveMx);
 const resolveTxt = promisify(dns.resolveTxt);
+
+// In-memory cache for dashboard stats (30s)
+const statsCache = new LRUCache<string, any>({ 
+  max: 500,
+  ttl: 1000 * 30 // 30 seconds
+});
 
 const router = Router();
 
@@ -61,8 +68,6 @@ router.post('/dns/verify', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-// In-memory cache for dashboard stats (300s)
-const statsCache = new NodeCache({ stdTTL: 30, checkperiod: 60 }); // Reduced from 300 to 30 for real-time
 
 /**
  * GET /api/dashboard/stats

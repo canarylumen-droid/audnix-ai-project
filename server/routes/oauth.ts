@@ -6,6 +6,7 @@ import { CalendlyOAuth, registerCalendlyWebhook } from '../lib/oauth/calendly.js
 import { storage } from '../storage.js';
 import { encrypt } from '../lib/crypto/encryption.js';
 import { wsSync } from '../lib/websocket-sync.js';
+import { distributeLeadsFromPool } from '../lib/sales-engine/outreach-engine.js';
 
 interface AuthenticatedRequest extends Request {
   session: Request['session'] & {
@@ -194,9 +195,7 @@ router.get('/instagram/callback', async (req: Request, res: Response): Promise<v
 
     console.log('[Instagram OAuth] Saving token for user:', stateData.userId);
 
-    // Save to Neon database using storage
-    const { storage } = await import('../storage.js');
-    const { encrypt } = await import('../lib/crypto/encryption.js');
+
 
     const encryptedMeta = encrypt(JSON.stringify({
       accessToken: igAccount.pageToken, // Save Page Token for messaging
@@ -490,7 +489,6 @@ router.get('/google-calendar/callback', async (req: Request, res: Response): Pro
     }));
 
     try {
-      const { storage } = await import('../storage.js');
 
       await storage.createIntegration({
         userId,
@@ -576,7 +574,6 @@ router.post('/google-calendar/events', async (req: Request, res: Response): Prom
     });
 
     if (leadId) {
-      const { storage } = await import('../storage.js');
       await storage.createMessage({
         leadId,
         userId,
