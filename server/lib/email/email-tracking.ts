@@ -31,21 +31,24 @@ export function generateTrackingPixel(baseUrl: string, token: string): string {
 }
 
 export function wrapLinksWithTracking(html: string, baseUrl: string, messageToken: string): { html: string; urls: string[] } {
-  const linkRegex = /<a\s+([^>]*href=["'])([^"']+)(["'][^>]*)>/gi;
+  const isDocument = html.toLowerCase().includes('<html');
+  const cheerio = require('cheerio');
+  const $ = cheerio.load(html);
   const urls: string[] = [];
 
-  const trackedHtml = html.replace(linkRegex, (match, prefix, url, suffix) => {
-    if (url.startsWith('mailto:') || url.startsWith('tel:') || url.includes('/api/email/track/') || url.includes('/api/outreach/click/')) {
-      return match;
+  $('a').each((_: any, el: any) => {
+    const $el = $(el);
+    const href = $el.attr('href');
+    if (href && !href.startsWith('mailto:') && !href.startsWith('tel:') && !href.includes('/api/email/track/') && !href.includes('/api/email-tracking/track/') && !href.includes('/api/outreach/click/')) {
+      urls.push(href);
+      const encodedUrl = encodeURIComponent(href);
+      const trackingUrl = `${baseUrl}/api/email-tracking/track/click/${messageToken}?url=${encodedUrl}`;
+      $el.attr('href', trackingUrl);
     }
-
-    urls.push(url);
-    const encodedUrl = encodeURIComponent(url);
-    const trackingUrl = `${baseUrl}/api/email-tracking/track/click/${messageToken}?url=${encodedUrl}`;
-    return `<a ${prefix}${trackingUrl}${suffix}>`;
   });
 
-  return { html: trackedHtml, urls };
+  const outputHtml = isDocument ? $.html() : ($('body').html() || $.html());
+  return { html: outputHtml, urls };
 }
 
 export function wrapPlainTextLinksWithTracking(text: string, baseUrl: string, messageToken: string): string {

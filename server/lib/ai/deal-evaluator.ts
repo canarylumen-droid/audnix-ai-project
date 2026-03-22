@@ -101,7 +101,7 @@ Return only the JSON output: {"dealValue": number, "currency": "USD", "reasoning
 
     return dealValue;
   } catch (error) {
-    console.error(`[DealEvaluator] Error evaluating deal value for lead ${leadId}:`, error);
+    console.error('[DealEvaluator] Error evaluating deal value for lead:', leadId, error);
     return 0;
   }
 }

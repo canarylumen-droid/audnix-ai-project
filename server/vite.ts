@@ -3,7 +3,6 @@ import fs from "fs";
 import path from "path";
 import { type Server } from "http";
 import { nanoid } from "nanoid";
-import { viteLimiter } from './middleware/rate-limit.js';
 import { log } from "./static.js";
 
 export async function setupVite(app: Express, server: Server) {
@@ -32,8 +31,6 @@ export async function setupVite(app: Express, server: Server) {
     appType: "custom",
   });
 
-  // Apply rate limiting to vite routes
-  app.use(viteLimiter);
   app.use(vite.middlewares);
   // Skip Vite for API routes - let Express handlers take over
   app.use("*", async (req, res, next) => {

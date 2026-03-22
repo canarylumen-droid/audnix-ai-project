@@ -2,7 +2,6 @@ import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { viteLimiter } from './middleware/rate-limit.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -47,7 +46,7 @@ export function serveStatic(app: Express) {
   }));
 
   // Explicit route handlers for PWA/Manifest files with strict path validation
-  app.get(['/sw.js', '/manifest.json', '/favicon.ico', '/robots.txt', '/favicon.svg'], viteLimiter, (req, res) => {
+  app.get(['/sw.js', '/manifest.json', '/favicon.ico', '/robots.txt', '/favicon.svg'], (req, res) => {
     const safeFiles = ['sw.js', 'manifest.json', 'favicon.ico', 'robots.txt', 'favicon.svg'];
     const fileName = req.path.substring(1);
 
@@ -65,7 +64,7 @@ export function serveStatic(app: Express) {
   });
 
   // Handle all other routes by serving index.html (SPA)
-  app.get('*', viteLimiter, (req, res) => {
+  app.get('*', (req, res) => {
     // CRITICAL: Never serve index.html for API, Webhook, or Platform-specific internal routes
     const isInternalPlatformRoute = 
       req.path.startsWith('/_vercel/') || 

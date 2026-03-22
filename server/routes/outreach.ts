@@ -196,7 +196,7 @@ router.post('/campaigns', requireAuth, async (req, res) => {
 
             finalLeadIds.push(existingLead.id);
           } catch (err) {
-            console.error(`[Campaign] Failed to auto-upsert/dedupe lead ${email}:`, err);
+            console.error('[Campaign] Failed to auto-upsert/dedupe lead %s:', email, err);
           }
         }
       }
@@ -865,7 +865,6 @@ router.get('/click/:trackingId', async (req, res) => {
           return res.status(400).send('Invalid or unsafe redirect URL');
         }
       }
-      // If no stored target_url (legacy emails), fall through to basic validation
     }
 
     if (!redirectUrl || !isValidUrl(redirectUrl)) {
@@ -873,7 +872,26 @@ router.get('/click/:trackingId', async (req, res) => {
       return res.status(400).send('Invalid or unsafe redirect URL');
     }
 
-    // Redirect to the target URL
+    if (!verified) {
+      // Legacy email support: Use an interstitial HTML page for URLs that aren't verified by the DB.
+      // This mitigates the Server-Side URL Redirect vulnerability.
+      const safeUrl = String(redirectUrl).replace(/"/g, '&quot;');
+      return res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta http-equiv="refresh" content="1;url=${safeUrl}">
+          <title>Redirecting...</title>
+          <style>body { font-family: sans-serif; text-align: center; margin-top: 50px; }</style>
+        </head>
+        <body>
+          <p>Redirecting you to <a href="${safeUrl}">${safeUrl}</a>...</p>
+        </body>
+        </html>
+      `);
+    }
+
+    // Redirect to the verified target URL
     return res.redirect(redirectUrl);
   } catch (error) {
     console.error('Click tracking error:', error);

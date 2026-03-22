@@ -78,6 +78,7 @@ router.get('/track/click/:token', async (req: Request, res: Response): Promise<v
     // SECURITY: Look up the stored target_url from the email_tracking table
     // and verify the requested URL was actually in the original email
     let redirectUrl = decodedUrl;
+    let verified = false;
     try {
       const trackResult = await db.execute(sql`
         SELECT target_url FROM email_tracking WHERE token = ${token} LIMIT 1
@@ -88,6 +89,7 @@ router.get('/track/click/:token', async (req: Request, res: Response): Promise<v
         const allowedUrls = storedTargetUrl.split(',');
         if (allowedUrls.includes(decodedUrl)) {
           redirectUrl = decodedUrl; // URL is verified as part of original email
+          verified = true;
         } else {
           // The requested URL was NOT in the original email - potential attack
           console.warn(`[Tracking] ⚠️ Blocked unverified redirect for token ${token}: ${decodedUrl}`);
@@ -95,10 +97,8 @@ router.get('/track/click/:token', async (req: Request, res: Response): Promise<v
           return;
         }
       }
-      // If no stored target_url (legacy emails), fall through using basic validation above
     } catch (lookupErr) {
       console.error('[Tracking] Error looking up target_url:', lookupErr);
-      // On DB error, allow the redirect if basic validation passed (graceful degradation)
     }
 
     await recordEmailEvent({
@@ -109,6 +109,26 @@ router.get('/track/click/:token', async (req: Request, res: Response): Promise<v
       userAgent: req.headers['user-agent'],
       linkUrl: redirectUrl,
     });
+
+    if (!verified) {
+      // Legacy email support: Use an interstitial HTML page for URLs that aren't verified by the DB.
+      // This mitigates the Server-Side URL Redirect vulnerability.
+      const safeUrl = String(redirectUrl).replace(/"/g, '&quot;');
+      res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta http-equiv="refresh" content="1;url=${safeUrl}">
+          <title>Redirecting...</title>
+          <style>body { font-family: sans-serif; text-align: center; margin-top: 50px; }</style>
+        </head>
+        <body>
+          <p>Redirecting you to <a href="${safeUrl}">${safeUrl}</a>...</p>
+        </body>
+        </html>
+      `);
+      return;
+    }
 
     res.redirect(302, redirectUrl);
   } catch (error) {
