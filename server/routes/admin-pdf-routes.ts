@@ -358,31 +358,57 @@ Only include fields you can confidently extract. Return valid JSON only.`,
       ];
       analysisItems = checks;
       analysisScore = Math.round((checks.filter(c => c.present).length / checks.length) * 100);
-
       // Cache in PostgreSQL (including raw PDF for re-analysis)
       try {
-        await db.execute(sql`
-          INSERT INTO brand_pdf_cache (user_id, file_name, file_size, file_hash, pdf_content, extracted_text, brand_context, analysis_score, analysis_items)
-          VALUES (
-            ${userId},
-            ${req.file.originalname},
-            ${req.file.size},
-            ${fileHash},
-            ${req.file.buffer},
-            ${pdfText.substring(0, 50000)},
-            ${JSON.stringify(brandContext)}::jsonb,
-            ${analysisScore},
-            ${JSON.stringify(analysisItems)}::jsonb
-          )
-          ON CONFLICT (user_id, file_hash) DO UPDATE SET
-            brand_context = ${JSON.stringify(brandContext)}::jsonb,
-            analysis_score = ${analysisScore},
-            analysis_items = ${JSON.stringify(analysisItems)}::jsonb,
-            updated_at = NOW()
-        `);
+        const { brandPdfCache } = await import("../../shared/schema.js");
+        await db.insert(brandPdfCache).values({
+          userId,
+          fileName: req.file.originalname,
+          fileSize: req.file.size,
+          fileHash,
+          pdfContent: req.file.buffer,
+          extractedText: pdfText.substring(0, 50000),
+          brandContext,
+          analysisScore,
+          analysisItems,
+          updatedAt: new Date()
+        }).onConflictDoUpdate({
+          target: [brandPdfCache.userId, brandPdfCache.fileHash],
+          set: {
+            brandContext,
+            analysisScore,
+            analysisItems,
+            updatedAt: new Date()
+          }
+        });
         console.log(`💾 Brand PDF cached in PostgreSQL for user ${userId} (${(req.file.size / 1024 / 1024).toFixed(2)} MB)`);
       } catch (cacheError) {
-        console.warn("Failed to cache PDF (table may not exist):", cacheError);
+        console.warn("Failed to cache PDF using db.insert:", cacheError);
+        
+        // Fallback to raw SQL if insert fails (sometimes table name quoting varies)
+        try {
+          await db.execute(sql`
+            INSERT INTO brand_pdf_cache (user_id, file_name, file_size, file_hash, pdf_content, extracted_text, brand_context, analysis_score, analysis_items)
+            VALUES (
+              ${userId},
+              ${req.file.originalname},
+              ${req.file.size},
+              ${fileHash},
+              ${req.file.buffer},
+              ${pdfText.substring(0, 50000)},
+              ${JSON.stringify(brandContext)}::jsonb,
+              ${analysisScore},
+              ${JSON.stringify(analysisItems)}::jsonb
+            )
+            ON CONFLICT (user_id, file_hash) DO UPDATE SET
+              brand_context = ${JSON.stringify(brandContext)}::jsonb,
+              analysis_score = ${analysisScore},
+              analysis_items = ${JSON.stringify(analysisItems)}::jsonb,
+              updated_at = NOW()
+          `);
+        } catch (innerError) {
+          console.error("Critical: Failed to store PDF in BOTH drizzle and raw SQL:", innerError);
+        }
       }
 
       // Deep merge with existing metadata to preserve nested objects

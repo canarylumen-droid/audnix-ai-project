@@ -7,6 +7,7 @@ import { isValidUUID } from './lib/utils/validation.js';
 import crypto from 'crypto';
 import process from 'process';
 import { wsSync } from './lib/websocket-sync.js';
+import { getPlanCapabilities } from '../shared/plan-utils.js';
 
 // Function to check if the database connection is available
 function checkDatabase() {
@@ -926,6 +927,34 @@ export class DrizzleStorage implements IStorage {
     return result;
   }
 
+  async checkMailboxLimit(userId: string): Promise<{ allowed: boolean; current: number; limit: number; plan: string }> {
+    checkDatabase();
+    
+    // 1. Get user plan
+    const user = await this.getUser(userId);
+    const plan = user?.subscriptionTier || 'free';
+    const capabilities = getPlanCapabilities(plan);
+    const limit = capabilities.mailboxLimit || 1;
+
+    // 2. Count existing mailbox integrations
+    const existingIntegrations = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(integrations)
+      .where(and(
+        eq(integrations.userId, userId),
+        inArray(integrations.provider, ['custom_email', 'gmail', 'outlook'])
+      ));
+    
+    const current = Number(existingIntegrations[0]?.count || 0);
+    
+    return {
+      allowed: current < limit,
+      current,
+      limit,
+      plan
+    };
+  }
+
   async disconnectIntegration(userId: string, provider: string): Promise<void> {
     checkDatabase();
     await db
@@ -1532,23 +1561,31 @@ export class DrizzleStorage implements IStorage {
     return result;
   }
 
-  async getAuditLogs(userId: string, options?: { integrationId?: string, daysFilter?: number, limit?: number }): Promise<AuditTrail[]> {
+  async getAuditLogs(userId: string, options?: { integrationId?: string, daysFilter?: number, limit?: number, offset?: number }): Promise<AuditTrail[]> {
     checkDatabase();
     const conditions = [eq(auditTrail.userId, userId)];
     if (options?.integrationId) {
       conditions.push(eq(auditTrail.integrationId, options.integrationId));
     }
-    if (options?.daysFilter) {
+    // Only apply daysFilter if it is greater than 0. 0 or undefined means 'all time'
+    if (options?.daysFilter && options.daysFilter > 0) {
       const cutOff = new Date();
       cutOff.setDate(cutOff.getDate() - options.daysFilter);
       conditions.push(gte(auditTrail.createdAt, cutOff));
     }
-    return await db
+    
+    let query = db
       .select()
       .from(auditTrail)
       .where(and(...conditions))
       .orderBy(desc(auditTrail.createdAt))
       .limit(options?.limit || 50);
+
+    if (options?.offset) {
+      query = query.offset(options.offset);
+    }
+
+    return await query;
   }
 
   // ========== AI Learning Patterns ==========
@@ -1694,6 +1731,7 @@ export class DrizzleStorage implements IStorage {
     averageResponseTime: string;
     queuedLeads: number;
     undeliveredLeads: number;
+    conversionRate: number;
   }> {
     checkDatabase();
     const sevenDaysAgo = new Date();
@@ -1720,18 +1758,17 @@ export class DrizzleStorage implements IStorage {
       dealsWhere = and(dealsWhere, lte(deals.createdAt, options.end))!;
     }
     if (options?.integrationId) {
-      messagesWhere = and(messagesWhere, or(eq(messages.integrationId, options.integrationId), isNull(messages.integrationId)))!;
+      // STRICT ISOLATION: When viewing a specific mailbox (integration), 
+      // only count messages and leads TRULY assigned to that mailbox.
+      // Do NOT include unassigned (isNull) leads as they "hike" the metrics.
+      messagesWhere = and(messagesWhere, eq(messages.integrationId, options.integrationId))!;
+      leadsWhere = and(leadsWhere, eq(leads.integrationId, options.integrationId))!;
 
-      // Filter leads associated with this integration or unassigned (Inventory)
-      leadsWhere = and(leadsWhere, or(eq(leads.integrationId, options.integrationId), isNull(leads.integrationId)))!;
-
-      // Filter deals associated with this integration
-      // Decisions: Filter deals by the lead's integrationId or the associated message's integrationId?
-      // For now, if a deal has a lead, we'll check the lead's integrationId.
+      // Filter deals associated with THIS mailbox's leads
       dealsWhere = and(dealsWhere, sql`exists (
         select 1 from ${leads} 
         where ${leads.id} = ${deals.leadId} 
-        and (${leads.integrationId} = ${options.integrationId} or ${leads.integrationId} is null)
+        and ${leads.integrationId} = ${options.integrationId}
       )`)!;
     }
 
@@ -1747,7 +1784,7 @@ export class DrizzleStorage implements IStorage {
       queuedLeads: sql<number>`count(*) filter (where status = 'new' and ai_paused = false)`,
     })
       .from(leads)
-      .where(leadsWhere);
+      .where(options?.integrationId ? eq(leads.integrationId, options.integrationId) : leadsWhere);
 
     const [messagesStats] = await db.select({
       totalSent: sql<number>`count(*) filter (where direction = 'outbound')`,
@@ -1795,8 +1832,16 @@ export class DrizzleStorage implements IStorage {
       messagesYesterday: Number(messagesStats?.messagesYesterday || 0),
       pipelineValue: Number(dealsStats?.pipelineValue || 0) + Number(predictedStats?.value || 0),
       closedRevenue: Number(dealsStats?.closedRevenue || 0),
-      openRate: Number(messagesStats?.totalSent || 0) > 0 ? Math.round((Number(messagesStats?.opened || 0) / Number(messagesStats?.totalSent || 0)) * 100) : 0,
-      responseRate: Number(leadsStats?.totalLeads || 0) > 0 ? Math.min(100, Math.round((Number(leadsStats?.repliedLeads || 0) / Number(leadsStats?.totalLeads || 0)) * 100)) : 0,
+      // Use higher precision floats for calculations
+      openRate: Number(messagesStats?.totalSent || 0) > 0 
+        ? (Number(messagesStats?.opened || 0) / Number(messagesStats?.totalSent || 0)) * 100 
+        : 0,
+      responseRate: Number(leadsStats?.totalLeads || 0) > 0 
+        ? (Number(leadsStats?.repliedLeads || 0) / Number(leadsStats?.totalLeads || 0)) * 100 
+        : 0,
+      conversionRate: Number(leadsStats?.totalLeads || 0) > 0
+        ? (Number(leadsStats?.convertedLeads || 0) / Number(leadsStats?.totalLeads || 0)) * 100
+        : 0,
       averageResponseTime,
       queuedLeads: Number(leadsStats?.queuedLeads || 0),
       undeliveredLeads: Number(leadsStats?.bouncyLeads || 0),
@@ -1875,11 +1920,11 @@ export class DrizzleStorage implements IStorage {
     // 1. Basic Metrics
     const leadWhere = and(
       eq(leads.userId, userId), 
-      integrationId ? or(eq(leads.integrationId, integrationId), isNull(leads.integrationId)) : undefined
+      integrationId ? eq(leads.integrationId, integrationId) : undefined
     );
     const msgWhere = and(
       eq(messages.userId, userId), 
-      integrationId ? or(eq(messages.integrationId, integrationId), isNull(messages.integrationId)) : undefined
+      integrationId ? eq(messages.integrationId, integrationId) : undefined
     );
 
     const [counts] = await db.select({
@@ -1899,7 +1944,7 @@ export class DrizzleStorage implements IStorage {
           sql`exists (
             select 1 from leads 
             where leads.id = deals.lead_id 
-            and (leads.integration_id = ${integrationId} or leads.integration_id is null)
+            and leads.integration_id = ${integrationId}
           )`
         )
       : eq(deals.userId, userId);

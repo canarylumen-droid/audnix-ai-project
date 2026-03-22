@@ -167,6 +167,14 @@ router.get('/instagram/callback', async (req: Request, res: Response): Promise<v
       return;
     }
 
+    // Check mailbox limit before proceeding
+    const limitCheck = await storage.checkMailboxLimit(stateData.userId);
+    if (!limitCheck.allowed) {
+      console.warn(`[Instagram OAuth] Limit reached for ${stateData.userId}: ${limitCheck.count}/${limitCheck.limit}`);
+      res.redirect(`/dashboard/integrations?error=limit_reached&limit=${limitCheck.limit}&plan=${encodeURIComponent(limitCheck.plan)}`);
+      return;
+    }
+
     console.log('[Instagram OAuth] Getting long-lived token...');
     const longLivedToken = await instagramOAuth.exchangeForLongLivedToken(tokenData.access_token);
     if (!longLivedToken || !longLivedToken.access_token) {
@@ -341,6 +349,14 @@ router.get('/gmail/callback', async (req: Request, res: Response): Promise<void>
     const tokens = await gmailOAuth.exchangeCodeForToken(code as string);
     const userProfile = await gmailOAuth.getUserProfile(tokens.access_token);
     const gmailProfile = await gmailOAuth.getGmailProfile(tokens.access_token);
+
+    // Check mailbox limit before saving
+    const limitCheck = await storage.checkMailboxLimit(stateData.userId);
+    if (!limitCheck.allowed) {
+      console.warn(`[Gmail OAuth] Limit reached for ${stateData.userId}: ${limitCheck.count}/${limitCheck.limit}`);
+      res.redirect(`/dashboard/integrations?error=limit_reached&limit=${limitCheck.limit}&plan=${encodeURIComponent(limitCheck.plan)}`);
+      return;
+    }
 
     await gmailOAuth.saveToken(stateData.userId, tokens, {
       ...userProfile,

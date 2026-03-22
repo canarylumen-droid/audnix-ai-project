@@ -19,6 +19,7 @@ import { createTrackedEmail } from '../email/email-tracking.js';
  * Uses curiosity, FOMO, trust, and punchy triggers
  */
 import { generateReply } from '../ai/ai-service.js';
+import { decryptToJSON } from '../crypto/encryption.js';
 
 interface UserWithEmail {
   id: string;
@@ -39,7 +40,8 @@ interface UncontactedLead {
 
 async function generateColdOutreachEmail(
   lead: UncontactedLead,
-  businessName: string
+  businessName: string,
+  brandGuidelines?: string
 ): Promise<{ subject: string; body: string }> {
   const leadMetadata = lead.metadata || {};
   const leadCompany = (leadMetadata.company as string) || '';
@@ -59,7 +61,8 @@ LEAD INFO:
 
 YOUR BUSINESS:
 - Name: ${businessName}
-- Offering: AI-powered automation solutions
+- Brand Materials & Offers: 
+${brandGuidelines || "Offering: AI-powered sales automation and growth solutions."}
 
 PSYCHOLOGICAL TRIGGERS TO USE:
 1. **CURIOSITY** - Tease a benefit without revealing everything. Make them want to know more.
@@ -135,10 +138,10 @@ export class AutonomousOutreachWorker {
     this.isRunning = true;
     console.log('✅ Autonomous outreach worker started (5s polling interval)');
 
-    // Poll every 5 seconds
+    // Poll every 10 seconds for strategic overhead
     this.pollingInterval = setInterval(async () => {
       await this.checkAndProcessUsers();
-    }, this.POLL_INTERVAL_MS);
+    }, 10000);
 
     // Process immediately on start
     this.checkAndProcessUsers();
@@ -324,6 +327,55 @@ export class AutonomousOutreachWorker {
   }
 
   /**
+   * Performs a strategic audit of the user's dashboard performance
+   * and adjusts AI behavior/templates if underperforming.
+   */
+  private async performStrategicAudit(userId: string): Promise<string | null> {
+    try {
+      const { storage } = await import('../../storage.js');
+      const stats = await storage.getDashboardStats(userId);
+      
+      // Industry standards (Approximate)
+      const MIN_REPLY_RATE = 2.0; // 2% 
+      const MIN_OPEN_RATE = 25.0; // 25%
+
+      const isUnderperforming = 
+        (stats.responseRate < MIN_REPLY_RATE && stats.totalLeads > 50) ||
+        (stats.openRate < MIN_OPEN_RATE && stats.totalMessages > 50);
+
+      if (isUnderperforming) {
+        console.log(`[StrategicAudit] 🧠 User ${userId} is underperforming (Reply: ${stats.responseRate.toFixed(2)}%, Open: ${stats.openRate.toFixed(2)}%). Adjusting strategy...`);
+        
+        const systemPrompt = "You are the Audnix Strategic AI Observer. Your goal is to improve sales performance.";
+        const auditPrompt = `
+AUDNIX AGENT REPORT:
+- Reply Rate: ${stats.responseRate.toFixed(2)}% (Target: >2%)
+- Open Rate: ${stats.openRate.toFixed(2)}% (Target: >25%)
+- Total Leads: ${stats.totalLeads}
+- Converted: ${stats.convertedLeads}
+
+STRATEGIC DECISION:
+The current outreach is underperforming. Based on the data, what should we change?
+Focus on one of: 'Urgency', 'Clarity', 'Soft CTA', or 'Social Proof'.
+Provide a 1-sentence strategic directive for the outreach generation.
+`;
+
+        const { text } = await generateReply(systemPrompt, auditPrompt, {
+          temperature: 0.7,
+          maxTokens: 100
+        });
+
+        return text.trim();
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('[StrategicAudit] Audit failed:', error);
+      return null;
+    }
+  }
+
+  /**
    * Send outreach email to a single lead
    */
   private async sendOutreachToLead(
@@ -331,10 +383,39 @@ export class AutonomousOutreachWorker {
     lead: UncontactedLead,
     businessName: string
   ): Promise<void> {
-    console.log(`[AutoOutreach] Generating email for ${lead.name} (${lead.email})...`);
+    const { storage } = await import('../../storage.js');
+    const user = await storage.getUserById(userId);
+
+    // 1. CHECK VOLUME CAPS BEFORE GENERATING
+    const integrations = await storage.getIntegrations(userId);
+    const mailbox = integrations.find(i => i.id === (lead.metadata as any)?.integrationId) || integrations.find(i => i.connected);
+    
+    if (!mailbox) {
+      console.warn(`[AutoOutreach] ⚠️ Skipping ${lead.email} - No active mailbox found.`);
+      return;
+    }
+
+    // Gmail: 500, Custom: 2500
+    const limit = mailbox.provider === 'gmail' || mailbox.provider === 'outlook' ? 500 : 2500;
+    const mailboxMeta = decryptToJSON(mailbox.encryptedMeta) || {};
+    const todaySent = (mailboxMeta as any).dailySentCount || 0;
+    
+    if (todaySent >= limit) {
+      console.log(`[AutoOutreach] 🛑 Cap reached for mailbox ${mailboxMeta.email || mailbox.id} (${todaySent}/${limit}). Skipping send.`);
+      return;
+    }
+
+    // 2. STRATEGIC AUDIT (Periodically or on-demand)
+    const strategicDirective = await this.performStrategicAudit(userId);
+
+    // Get brand context for personalized outreach
+    const brandGuidelines = user?.brandGuidelinePdfText || (user?.metadata as any)?.brandContext || "";
+
+    console.log(`[AutoOutreach] Generating email for ${lead.name} (${lead.email}) [Strategy: ${strategicDirective || 'Optimal'}]...`);
 
     // Generate AI-powered cold email
-    const emailContent = await generateColdOutreachEmail(lead, businessName);
+    const emailContent = await generateColdOutreachEmail(lead, businessName, 
+      `${brandGuidelines}\n\nSTRATEGIC ADJUSTMENT: ${strategicDirective || 'Maintain current high-performance tone.'}`);
 
     // Generate tracking token
     const { token } = await createTrackedEmail({

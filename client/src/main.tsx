@@ -22,9 +22,9 @@ if (import.meta.env.VITE_SENTRY_DSN) {
 // Handle Vite chunk load errors gracefully
 window.addEventListener('error', (e) => {
   if (e.message.includes('Failed to fetch dynamically imported module') ||
-    e.message.includes('Importing a module script failed')) {
-    console.warn('Chunk load failed, reloading...', e);
-    window.location.reload();
+   (e.error && e.error.name === 'ChunkLoadError') || (e.message && e.message.includes('Loading chunk'))) {
+    console.warn('Chunk load error detected. Please refresh the page if the app is unresponsive.', e);
+    // window.location.reload(); // Removed to prevent forced refreshes
   }
 }, true);
 

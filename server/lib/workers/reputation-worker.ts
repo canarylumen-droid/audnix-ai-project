@@ -7,13 +7,13 @@ export class ReputationWorker {
     private interval: NodeJS.Timeout | null = null;
     private isProcessing = false;
 
-    start(intervalMs = 3600000) { // Default 1 hour
+    start(intervalMs = 120000) { // Set to 2 minutes as requested
         if (this.interval) return;
 
-        console.log('🚀 Autonomous Reputation Worker Started');
+        console.log('🚀 Autonomous Reputation Worker Started (2m interval)');
 
-        // Initial run after 10 seconds
-        setTimeout(() => this.process(), 10000);
+        // Initial run after 5 seconds
+        setTimeout(() => this.process(), 5000);
 
         this.interval = setInterval(() => {
             this.process();
@@ -25,7 +25,7 @@ export class ReputationWorker {
         this.isProcessing = true;
 
         try {
-            console.log('🔍 Running autonomous reputation checks...');
+            console.log('🔍 Running autonomous reputation checks (Every 2m)...');
             const users = await storage.getAllUsers();
 
             for (const user of users) {
@@ -43,15 +43,9 @@ export class ReputationWorker {
                     const domain = email.split('@')[1];
                     if (!domain) continue;
 
-                    // Check if we already have a recent verification
-                    const recentVerifications = await storage.getDomainVerifications(user.id, 1);
-                    const lastCheck = recentVerifications[0];
-
-                    // If last check was more than 12 hours ago, or none exists, re-check
-                    const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
-                    if (!lastCheck || new Date(lastCheck.createdAt) < twelveHoursAgo) {
-                        console.log(`📡 Autonomous DNS Check for ${domain} (${user.email})`);
-                        const result = await verifyDomainDns(domain, undefined, true);
+                    // REAL-TIME: Always check every 2 minutes as requested
+                    console.log(`📡 Autonomous DNS Check for ${domain} (${user.email})`);
+                    const result = await verifyDomainDns(domain, undefined, true);
 
                         try {
                             await storage.createAuditLog({
@@ -67,7 +61,6 @@ export class ReputationWorker {
                         } catch (e) {
                             console.error(`Failed to save reputation for ${domain}:`, e);
                         }
-                    }
                 }
             }
         } catch (error) {

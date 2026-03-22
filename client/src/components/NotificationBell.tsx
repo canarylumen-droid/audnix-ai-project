@@ -1,7 +1,7 @@
 import { Bell, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
@@ -90,18 +90,44 @@ export function NotificationBell() {
     };
   }, [socket, queryClient]);
 
-  // Handle mark all as read
+  const markAsRead = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("PATCH", `/api/notifications/${id}/read`, { read: true });
+    },
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/notifications"] });
+      const previousNotifications = queryClient.getQueryData<NotificationResponse>(["/api/notifications"]);
+      
+      if (previousNotifications && previousNotifications.notifications) {
+        queryClient.setQueryData(["/api/notifications"], {
+          ...previousNotifications,
+          unreadCount: Math.max(0, previousNotifications.unreadCount - 1),
+          notifications: previousNotifications.notifications.map(n => n.id === id ? { ...n, read: true } : n)
+        });
+      }
+      return { previousNotifications };
+    },
+    onError: (err: any, id: string, context: any) => {
+      if (context?.previousNotifications) {
+        queryClient.setQueryData(["/api/notifications"], context.previousNotifications);
+      }
+      toast({ title: "Error", description: "Failed to mark notification as read", variant: "destructive" });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+    }
+  });
+
   const handleMarkAllRead = async () => {
     try {
-      await apiRequest("POST", "/api/notifications/mark-all-read");
+      await apiRequest("POST", "/api/notifications/read-all");
       queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
-      toast({ title: "All notifications marked as read" });
-    } catch (err) {
-      toast({ title: "Error", description: "Failed to mark all as read", variant: "destructive" });
+      toast({ title: "Marked all as read" });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Failed to mark all as read" });
     }
   };
 
-  // Handle clear all
   const handleClearAll = async () => {
     try {
       await apiRequest("POST", "/api/notifications/clear-all");
@@ -185,10 +211,7 @@ export function NotificationBell() {
                       )}
                       onClick={async () => {
                         if (!n.read) {
-                          // Optimistically update local count to feel faster
-                          setCount(prev => Math.max(0, prev - 1));
-                          await apiRequest("PATCH", `/api/notifications/${n.id}/read`, { read: true });
-                          queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+                          markAsRead.mutate(n.id);
                         }
                       }}
                     >

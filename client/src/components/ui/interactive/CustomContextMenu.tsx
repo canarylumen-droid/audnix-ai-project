@@ -123,7 +123,10 @@ export function CustomContextMenu({
                                             navigator.clipboard.writeText(linkToCopy);
                                         }
                                         if (item.id === 'refresh') {
-                                            window.location.reload();
+                                            // Real-time invalidation instead of reload
+                                            import('@/lib/queryClient').then(({ queryClient }) => {
+                                                queryClient.invalidateQueries();
+                                            });
                                         }
                                         onAction?.(item.id!, config.data);
                                         onClose();

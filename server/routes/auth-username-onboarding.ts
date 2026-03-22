@@ -115,9 +115,26 @@ router.post('/complete-onboarding', requireAuth, async (req: Request<object, obj
         businessSize,
         tags,
         onboardingCompleted: true,
+        onboardingCelebrated: false, // New flag for one-time celebration
         onboardedAt: new Date().toISOString(),
       },
     });
+
+    // Also save to dedicated onboarding_profiles table for redundancy
+    try {
+      await storage.createOnboardingProfile({
+        userId,
+        userRole,
+        source,
+        useCase,
+        businessSize,
+        tags,
+        companyName,
+        completedAt: new Date()
+      });
+    } catch (saveError) {
+      console.warn('Failed to save redundant onboarding profile:', saveError);
+    }
 
     if (!user) {
       res.status(404).json({ error: 'User not found' });
@@ -174,6 +191,36 @@ router.get('/me', requireAuth, async (req: Request, res: Response): Promise<void
     });
   } catch (error: unknown) {
     res.status(500).json({ error: 'Failed to fetch user' });
+  }
+});
+
+/**
+ * POST /api/auth/mark-celebration-complete
+ */
+router.post('/mark-celebration-complete', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.session?.userId;
+    if (!userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    const user = await storage.getUserById(userId);
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    await storage.updateUser(userId, {
+      metadata: {
+        ...(user.metadata as any || {}),
+        onboardingCelebrated: true
+      }
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to mark celebration as complete' });
   }
 });
 

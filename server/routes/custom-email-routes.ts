@@ -142,6 +142,19 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
       return;
     }
 
+    // --- ENFORCE MAILBOX LIMITS ---
+    const limitCheck = await storage.checkMailboxLimit(userId);
+    if (!limitCheck.allowed) {
+      console.warn(`[Email Connect] User ${userId} reached mailbox limit (${limitCheck.current}/${limitCheck.limit}) for plan ${limitCheck.plan}`);
+      res.status(403).json({
+        error: "Mailbox limit reached",
+        details: `Your current plan (${limitCheck.plan}) allows up to ${limitCheck.limit} mailboxes. You already have ${limitCheck.current} connected.`,
+        tip: "Upgrade to a higher plan to add more mailboxes."
+      });
+      return;
+    }
+    // ----------------------------
+
     const effectiveImapHost = imapHost || smtpHost.replace('smtp.', 'imap.');
     console.log(`[Email Connect] Connecting ${email} via SMTP ${smtpHost}:${smtpPort || 587}`);
 

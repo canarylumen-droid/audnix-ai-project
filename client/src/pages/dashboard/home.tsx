@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { apiRequest } from "@/lib/queryClient";
 import { useMailbox } from "@/hooks/use-mailbox";
 import {
   ArrowRight,
@@ -56,7 +57,7 @@ interface DashboardStats {
   leads: number;
   messages: number;
   aiReplies: number;
-  conversionRate: number | string;
+  conversionRate: number;
   conversions: number;
   totalLeads?: number;
   newLeads?: number;
@@ -105,6 +106,7 @@ interface PreviousDashboardStats {
   openRate?: number;
   responseRate?: number;
   closedRevenue?: number;
+  conversionRate?: number;
 }
 
 interface ActivityItem {
@@ -195,31 +197,38 @@ export default function DashboardHome() {
   });
 
   useEffect(() => {
-    if (user) {
+    if (user && !showOnboarding && !showWelcomeCelebration) {
       const hasCompletedOnboarding = user.metadata?.onboardingCompleted || false;
-      const onboardingDismissedKey = `onboarding_dismissed_${user.id}`;
-      const wasOnboardingDismissed = localStorage.getItem(onboardingDismissedKey);
-      setShowOnboarding(!hasCompletedOnboarding && !wasOnboardingDismissed);
-    }
-  }, [user]);
+      const hasCelebrated = user.metadata?.onboardingCelebrated === true;
+      
+      // Secondary local guard to prevent multifire in same session
+      const localOnboarding = localStorage.getItem(`onboarding_${user.id}`);
+      const localCelebration = localStorage.getItem(`celebration_${user.id}`);
 
-  const showCelebrationAfterOnboarding = () => {
-    if (user?.username) {
-      const celebrationKey = `celebration_shown_${user.id}`;
-      const hasSeenCelebration = localStorage.getItem(celebrationKey);
-      const onboardingDismissedKey = `onboarding_dismissed_${user.id}`;
-      if (!hasSeenCelebration && localStorage.getItem(onboardingDismissedKey)) {
+      if (!hasCompletedOnboarding && !localOnboarding) {
+        setShowOnboarding(true);
+      } else if (!hasCelebrated && !localCelebration) {
+        // Only show celebration if they haven't celebrated yet
         setShowWelcomeCelebration(true);
-        localStorage.setItem(celebrationKey, "true");
       }
     }
-  };
+  }, [user, showOnboarding, showWelcomeCelebration]);
 
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);
-    if (user?.id) localStorage.setItem(`onboarding_dismissed_${user.id}`, "true");
+    if (user?.id) localStorage.setItem(`onboarding_${user.id}`, 'true');
     queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
-    showCelebrationAfterOnboarding();
+  };
+
+  const handleCelebrationComplete = async () => {
+    setShowWelcomeCelebration(false);
+    if (user?.id) localStorage.setItem(`celebration_${user.id}`, 'true');
+    try {
+      await apiRequest("POST", "/api/auth/mark-celebration-complete");
+      queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
+    } catch (err) {
+      console.error("Failed to mark celebration complete:", err);
+    }
   };
 
   const { data: statsData, isLoading: statsLoading, isFetching: statsFetching } = useQuery<DashboardStats>({
@@ -247,14 +256,14 @@ export default function DashboardHome() {
     placeholderData: (previousData) => previousData,
   });
 
-  const [showPastActivity, setShowPastActivity] = useState(false);
-
-  const { data: activityData, isLoading: activityLoading } = useQuery<DashboardActivityResponse>({
-    queryKey: ["/api/dashboard/activity", { integrationId: selectedIntegrationId, showPastActivity }],
+  const [limit, setLimit] = useState(20);
+  const { data: activityData, isLoading: activityLoading, isFetching: activityFetching } = useQuery<DashboardActivityResponse>({
+    queryKey: ["/api/dashboard/activity", { integrationId: selectedIntegrationId, limit }],
     queryFn: async () => {
       const url = new URL("/api/dashboard/activity", window.location.origin);
       if (selectedIntegrationId) url.searchParams.set("integrationId", selectedIntegrationId);
-      url.searchParams.set("days", showPastActivity ? "all" : "3");
+      url.searchParams.set("days", "0"); // Perpetual history
+      url.searchParams.set("limit", limit.toString());
       const res = await fetch(url.toString());
       if (!res.ok) throw new Error("Failed to fetch activity");
       return res.json();
@@ -262,6 +271,10 @@ export default function DashboardHome() {
     retry: false,
     placeholderData: (previousData) => previousData,
   });
+
+  const handleLoadMore = () => {
+    setLimit(prev => prev + 20);
+  };
 
   const { data: integrations } = useQuery<any[]>({
     queryKey: ["/api/integrations"],
@@ -307,7 +320,7 @@ export default function DashboardHome() {
     if (previous === 0) return current > 0 ? "+100%" : "—";
     const change = ((current - previous) / previous) * 100;
     if (isNaN(change) || !isFinite(change)) return "—";
-    const formatted = change.toFixed(1);
+    const formatted = change.toFixed(2);
     return change > 0 ? `+${formatted}%` : `${formatted}%`;
   };
 
@@ -323,7 +336,7 @@ export default function DashboardHome() {
     },
     {
       label: "OPEN RATE",
-      value: stats?.openRate || 0,
+      value: typeof stats?.openRate === 'number' ? stats.openRate.toFixed(2).replace(/\.00$/, '') : "0",
       suffix: "%",
       icon: Mail,
       percentage: calculatePercentageChange(stats?.openRate || 0, previousStats?.openRate),
@@ -333,13 +346,23 @@ export default function DashboardHome() {
     },
     {
       label: "RESPONSE RATE",
-      value: stats?.responseRate || 0,
+      value: typeof stats?.responseRate === 'number' ? stats.responseRate.toFixed(2) : "0.00",
       suffix: "%",
       icon: MessageSquare,
       percentage: calculatePercentageChange(stats?.responseRate || 0, previousStats?.responseRate),
       trend: previousStats ? ((stats?.responseRate || 0) > (previousStats?.responseRate || 0) ? "up" : (stats?.responseRate || 0) < (previousStats?.responseRate || 0) ? "down" : "neutral") : "neutral",
-      color: "text-amber-500",
-      glow: "hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]"
+      color: "text-blue-500",
+      glow: "group-hover:shadow-[0_0_20px_rgba(59,130,246,0.15)]"
+    },
+    {
+      label: "CONVERSION RATE",
+      value: typeof stats?.conversionRate === 'number' ? stats.conversionRate.toFixed(2) : "0.00",
+      suffix: "%",
+      icon: TrendingUp,
+      percentage: calculatePercentageChange(stats?.conversionRate || 0, previousStats?.conversionRate),
+      trend: previousStats ? ((stats?.conversionRate || 0) > (previousStats?.conversionRate || 0) ? "up" : (stats?.conversionRate || 0) < (previousStats?.conversionRate || 0) ? "down" : "neutral") : "neutral",
+      color: "text-purple-500",
+      glow: "group-hover:shadow-[0_0_20px_rgba(168,85,247,0.15)]"
     },
     {
       label: "REVENUE",
@@ -361,14 +384,12 @@ export default function DashboardHome() {
 
   return (
     <>
-      <AnimatePresence>
         {showWelcomeCelebration && user?.username && (
           <WelcomeCelebration
             username={user.username}
-            onComplete={() => setShowWelcomeCelebration(false)}
+            onComplete={handleCelebrationComplete}
           />
         )}
-      </AnimatePresence>
 
       <AnimatePresence>
         {statsFetching && !statsLoading && (
@@ -577,8 +598,11 @@ export default function DashboardHome() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex justify-between items-start mb-1">
-                              <p className="font-normal text-sm text-foreground/90 truncate">{activity.title || "Activity Event"}</p>
-                              <span className="text-[11px] text-muted-foreground shrink-0 ml-4 font-bold uppercase opacity-50 italic">{formatTimeAgo(activity.time || activity.timestamp || new Date())}</span>
+                              <p className={cn(
+                                "text-sm text-foreground/90 truncate",
+                                "font-medium"
+                              )}>{activity.title || "Activity Event"}</p>
+                              <span className="text-[10px] text-muted-foreground shrink-0 ml-4 font-medium uppercase opacity-50">{formatTimeAgo(activity.time || activity.timestamp || new Date())}</span>
                             </div>
                             <p className="text-xs md:text-sm text-muted-foreground leading-relaxed line-clamp-2">
                               {activity.type === 'campaign_started' ? `AI outreach campaign "${activity.metadata?.name || 'Inbound Strategy'}" launched with ${activity.metadata?.configuredLeads || 0} prospects.` :
@@ -589,21 +613,41 @@ export default function DashboardHome() {
                         </div>
                       );
                     })}
+                    {activityData?.activities?.length === limit && (
+                      <div className="p-8 flex justify-center border-t border-border/10" ref={(el) => {
+                        if (el && !activityFetching) {
+                          const observer = new IntersectionObserver((entries) => {
+                            if (entries[0].isIntersecting) {
+                              handleLoadMore();
+                              observer.disconnect();
+                            }
+                          }, { threshold: 0.1 });
+                          observer.observe(el);
+                        }
+                      }}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={activityFetching}
+                          className="rounded-xl text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-all pr-8 pl-8 border-border/40"
+                          onClick={handleLoadMore}
+                        >
+                          {activityFetching ? (
+                            <RefreshCw className="h-3 w-3 mr-2 animate-spin" />
+                          ) : (
+                            <Activity className="h-3 w-3 mr-2 opacity-50" />
+                          )}
+                          {activityFetching ? "SYCHRONIZING..." : "VIEW MORE HISTORY"}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground opacity-80">
-                    <Activity className="h-8 w-8 mb-4 opacity-50" />
-                    <p className="text-sm font-bold tracking-widest uppercase mb-4">No recent activity</p>
-                    {!showPastActivity && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-full text-xs font-bold uppercase tracking-widest border-border text-foreground hover:bg-muted"
-                        onClick={() => setShowPastActivity(true)}
-                      >
-                        Show Previous Activity
-                      </Button>
-                    )}
+                  <div className="flex flex-col items-center justify-center py-24 text-center text-muted-foreground/40 group relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+                    <Activity className="h-12 w-12 mb-6 opacity-20 animate-pulse" />
+                    <p className="text-xs font-black tracking-[0.3em] uppercase mb-2">No active records</p>
+                    <p className="text-[10px] font-bold tracking-widest uppercase opacity-40">Records will appear as AI agents engage leads</p>
                   </div>
                 )}
               </CardContent>
@@ -699,18 +743,18 @@ export default function DashboardHome() {
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest leading-none">AI Deliverability Fixes</p>
-                    <p className="text-xl font-black text-cyan-400 tracking-tighter">{stats?.recoveredLeads || 0}</p>
+                    <p className="text-[10px] font-medium text-muted-foreground/40 uppercase tracking-widest leading-none">AI Deliverability Fixes</p>
+                    <p className="text-xl font-bold text-cyan-400 tracking-tighter">{stats?.recoveredLeads || 0}</p>
                   </div>
-                  <Badge className="bg-cyan-500/10 text-cyan-400 border-cyan-500/20 text-[8px] font-black uppercase tracking-widest">Fixed</Badge>
+                  <Badge className="bg-cyan-500/10 text-cyan-400 border-cyan-500/20 text-[8px] font-bold uppercase tracking-widest">Fixed</Badge>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest leading-none">Bounce Mitigation</p>
-                    <p className="text-xl font-black text-red-400 tracking-tighter">{stats?.bouncyLeads || 0}</p>
+                    <p className="text-[10px] font-medium text-muted-foreground/40 uppercase tracking-widest leading-none">Bounce Mitigation</p>
+                    <p className="text-xl font-bold text-red-400 tracking-tighter">{stats?.bouncyLeads || 0}</p>
                   </div>
-                  <Badge className="bg-red-500/10 text-red-400 border-red-500/20 text-[8px] font-black uppercase tracking-widest">Filtered</Badge>
+                  <Badge className="bg-red-500/10 text-red-400 border-red-500/20 text-[8px] font-bold uppercase tracking-widest">Filtered</Badge>
                 </div>
               </CardContent>
             </Card>

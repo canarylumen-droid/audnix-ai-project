@@ -414,8 +414,10 @@ export default function IntegrationsPage() {
 
   const getMailboxLimit = () => {
     const tier = userData?.user?.subscriptionTier?.toLowerCase() || 'starter';
-    const capabilities = getPlanCapabilities(tier);
-    return capabilities.mailboxLimit || 1;
+    if (tier === 'enterprise') return 10;
+    if (tier === 'pro') return 5;
+    if (tier === 'starter') return 3;
+    return 1;
   };
 
   const connectedMailboxesCount = (customEmailStatus?.integrations?.length || 0) +

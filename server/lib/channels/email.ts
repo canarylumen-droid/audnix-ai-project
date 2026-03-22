@@ -526,6 +526,35 @@ export async function sendEmail(
     throw new Error('Email not connected. Please connect your business email in Settings.');
   }
 
+  // 1.5. Check Daily Sending Limits (Gmail: 500, Custom: 2500)
+  try {
+    const { db } = await import('../../db.js');
+    const { messages } = await import('../../../shared/schema.js');
+    const { eq, and, sql } = await import('drizzle-orm');
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const [sentToday] = await db.select({ count: sql<number>`count(*)` })
+      .from(messages)
+      .where(and(
+        eq(messages.userId, userId),
+        eq(messages.direction, 'outbound'),
+        sql`${messages.createdAt} >= ${today.toISOString()}`
+      ));
+    
+    const dailyLimit = integration.provider === 'gmail' || integration.provider === 'outlook' ? 500 : 2500;
+    const currentSent = Number(sentToday?.count || 0);
+    
+    if (currentSent >= dailyLimit) {
+      console.warn(`[EmailService] 🛑 Daily limit reached for ${integration.provider} (${currentSent}/${dailyLimit}). Skipping send to ${recipientEmail}.`);
+      throw new Error(`Daily sending limit reached (${dailyLimit}).`);
+    }
+  } catch (limitErr: any) {
+    if (limitErr.message.includes('limit reached')) throw limitErr;
+    console.error("[EmailService] Limit check failed, continuing anyway:", limitErr);
+  }
+
   // Tracking Setup
   const trackingId = options.trackingId || (await (await import('../email/email-tracking.js')).generateTrackingToken());
   const brandColors = options.brandColors || await getUserBrandColors(userId);

@@ -22,7 +22,8 @@ const MEETING_KEYWORDS = [
   'calendly', 'zoom', 'discuss', 'appointment', 'slot', 'time',
   'when can we', 'lets hop on', 'quick call', 'free to chat',
   'available for', 'consultation', 'discovery', 'strategy call',
-  '15 min', '30 min', 'let\'s connect', 'reach out', 'speak'
+  '15 min', '30 min', 'let\'s connect', 'reach out', 'speak',
+  'sync up', 'book sync', 'get on a call', 'calendar', 'google meet'
 ];
 
 const PAYMENT_KEYWORDS = [
@@ -125,10 +126,10 @@ export function detectLinkIntent(
  */
 function generateMeetingResponse(brand: BrandContext): string {
   const responses = [
-    `Perfect! Here's my calendar - pick a time that works for you: ${brand.meetingLink}`,
-    `Great, let's chat! Book a slot here: ${brand.meetingLink}`,
-    `Love the energy! Here's the link to book a call: ${brand.meetingLink}`,
-    `Absolutely - grab a time that works for you here: ${brand.meetingLink}`,
+    `Execellent. I've actually got some time to sync up soon. You can book our sync now here: ${brand.meetingLink}`,
+    `Great, let's jump on a call. Pick a time that suits you best and let's book a sync now: ${brand.meetingLink}`,
+    `I'd love to chat. Here's my calendar for you to book a sync now: ${brand.meetingLink}`,
+    `Perfect. Let's lock in a time to speak. You can book a sync now right here: ${brand.meetingLink}`,
   ];
   return responses[Math.floor(Math.random() * responses.length)];
 }

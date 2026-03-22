@@ -872,7 +872,11 @@ export default function InboxPage() {
                   </DropdownMenuContent>
                 </DropdownMenu>
 
-                <Button variant="ghost" size="icon" onClick={() => window.location.reload()}><RefreshCw className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" onClick={() => {
+                  queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+                  queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+                  toast({ title: "Syncing...", description: "Fetching latest messages from the cloud." });
+                }}><RefreshCw className="h-4 w-4" /></Button>
                 <Button
                   variant="outline"
                   size="sm"

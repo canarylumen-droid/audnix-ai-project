@@ -34,7 +34,7 @@ interface HealthCheckResult {
 
 class MailboxHealthService {
   private checkInterval: NodeJS.Timeout | null = null;
-  private readonly CHECK_INTERVAL_MS = 5 * 60 * 1000; // Every 5 minutes
+  private readonly CHECK_INTERVAL_MS = 2 * 60 * 1000; // Every 2 minutes
   private readonly SPAM_BOUNCE_THRESHOLD = 0.10; // 10% bounce rate = warning
   private readonly SPAM_BOUNCE_CRITICAL = 0.20; // 20% bounce rate = pause
   private readonly MAX_FAILURES_BEFORE_REMOVE = 3;

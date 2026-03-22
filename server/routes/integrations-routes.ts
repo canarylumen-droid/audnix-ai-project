@@ -42,6 +42,21 @@ router.post('/:provider/connect', requireAuth, async (req: Request, res: Respons
     const { provider } = req.params;
     const credentials = req.body;
 
+    // Enforce mailbox limits for outreach providers
+    if (['custom_email', 'gmail', 'outlook', 'instagram'].includes(provider)) {
+      const limitCheck = await storage.checkMailboxLimit(userId);
+      if (!limitCheck.allowed) {
+        res.status(403).json({ 
+          error: 'Limit reached', 
+          message: `Your current plan (${limitCheck.plan}) allows up to ${limitCheck.limit} mailboxes.`,
+          count: limitCheck.count,
+          limit: limitCheck.limit,
+          plan: limitCheck.plan
+        });
+        return;
+      }
+    }
+
     const encryptedMeta = encrypt(JSON.stringify(credentials));
 
     const integration = await storage.createIntegration({

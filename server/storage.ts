@@ -79,6 +79,7 @@ export interface IStorage {
   disconnectIntegration(userId: string, provider: string): Promise<void>;
   deleteIntegration(userId: string, provider: string): Promise<void>;
   deleteIntegrationById(id: string): Promise<void>;
+  checkMailboxLimit(userId: string): Promise<{ allowed: boolean; current: number; limit: number; plan: string }>;
 
   // (Notification methods defined below with proper types)
 
@@ -209,6 +210,7 @@ export interface IStorage {
     averageResponseTime: string;
     queuedLeads: number;
     undeliveredLeads: number;
+    conversionRate: number;
   }>;
 
   getIntegrationSentCount(userId: string, integrationId: string, since: Date): Promise<number>;
@@ -295,6 +297,22 @@ export class MemStorage implements IStorage {
 
   async getLeadsCount(userId: string): Promise<number> {
     return Array.from(this.leads.values()).filter(l => l.userId === userId).length;
+  }
+
+  async checkMailboxLimit(userId: string): Promise<{ allowed: boolean; current: number; limit: number; plan: string }> {
+    const user = await this.getUser(userId);
+    const plan = user?.subscriptionTier || 'free';
+    const limit = plan === 'enterprise' ? 10 : (plan === 'pro' ? 5 : 1);
+    const current = Array.from(this.integrations.values()).filter(i => 
+      i.userId === userId && ['custom_email', 'gmail', 'outlook'].includes(i.provider)
+    ).length;
+    
+    return {
+      allowed: current < limit,
+      current,
+      limit,
+      plan
+    };
   }
 
   // --- Organization Methods ---
@@ -1270,7 +1288,7 @@ export class MemStorage implements IStorage {
     return undefined;
   }
 
-  async getDashboardStats(userId: string, overrideDates?: { start: Date; end: Date }): Promise<{
+  async getDashboardStats(userId: string, options?: { start?: Date; end?: Date; integrationId?: string }): Promise<{
     totalLeads: number;
     newLeads: number;
     activeLeads: number;
@@ -1289,7 +1307,9 @@ export class MemStorage implements IStorage {
     averageResponseTime: string;
     queuedLeads: number;
     undeliveredLeads: number;
+    conversionRate: number;
   }> {
+    const overrideDates = options;
     const leads = Array.from(this.leads.values()).filter(l => {
       const matchUserId = l.userId === userId;
       if (!matchUserId) return false;
@@ -1367,6 +1387,7 @@ export class MemStorage implements IStorage {
       averageResponseTime: this.calculateAverageResponseTime(userId, messages),
       queuedLeads: leads.filter(l => l.status === 'new' && !l.aiPaused).length,
       undeliveredLeads: leads.filter(l => l.status === 'bouncy').length,
+      conversionRate: leads.length > 0 ? (leads.filter(l => l.status === 'converted').length / leads.length) * 100 : 0,
     };
   }
 

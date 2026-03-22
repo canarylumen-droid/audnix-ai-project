@@ -326,10 +326,10 @@ export async function distributeLeadsFromPool(userId: string, targetIntegrationI
     console.log(`[LeadPool] Found ${activeCampaigns.length} active campaigns. User is in ${isAutonomous ? 'AUTONOMOUS' : 'CAMPAIGN-ONLY'} mode.`);
 
     const getDailyLimit = (integration: any) => {
-      // Priority: metadata override > provider default (Gmail: 50, SMTP: 500)
+      // Priority: metadata override > provider default (Gmail: 500, Custom: 2500)
       if (integration.metadata?.dailyLimit) return Number(integration.metadata.dailyLimit);
-      if (integration.provider === 'gmail' || integration.provider === 'outlook') return 50;
-      return 500; 
+      if (integration.provider === 'gmail' || integration.provider === 'outlook') return 500;
+      return 2500; 
     };
 
     // 2. Calculate capacity for each mailbox

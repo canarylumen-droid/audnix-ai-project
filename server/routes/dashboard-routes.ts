@@ -62,7 +62,7 @@ router.post('/dns/verify', requireAuth, async (req: Request, res: Response) => {
 });
 
 // In-memory cache for dashboard stats (300s)
-const statsCache = new Map<string, { data: any, expires: number }>();
+const statsCache = new NodeCache({ stdTTL: 30, checkperiod: 60 }); // Reduced from 300 to 30 for real-time
 
 /**
  * GET /api/dashboard/stats
@@ -78,10 +78,10 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
 
     const { integrationId } = req.query;
     const cacheKey = `${userId}:${integrationId || 'all'}`;
-    const cached = statsCache.get(cacheKey);
+    const cached = statsCache.get(cacheKey); // Use .get for NodeCache
 
-    if (cached && cached.expires > Date.now()) {
-      res.json(cached.data);
+    if (cached) { // NodeCache handles expiration internally
+      res.json(cached);
       return;
     }
 
@@ -236,10 +236,7 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
     };
 
     // Store in cache (5 mins)
-    statsCache.set(cacheKey, {
-      data: responseData,
-      expires: Date.now() + 300 * 1000
-    });
+    statsCache.set(cacheKey, responseData); // Use .set for NodeCache
 
     res.json(responseData);
   } catch (error) {
@@ -295,12 +292,15 @@ router.get('/activity', requireAuth, async (req: Request, res: Response): Promis
       return;
     }
 
-    const { integrationId, days, limit } = req.query;
-    const daysFilter = days ? parseInt(days as string) : 3;
-    const options: any = { integrationId: integrationId as string };
+    const { integrationId, days } = req.query;
+    const daysFilter = days ? parseInt(days as string) : 0; // Default to 0 (all time) as requested
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 20; // Default to 20 for initial load
+    const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
 
-    // If days is 'all', ignore daysFilter
-    if (days !== 'all') {
+    const options: any = { integrationId: integrationId as string, limit, offset };
+
+    // If days is 'all' or 0, ignore daysFilter
+    if (days !== 'all' && daysFilter > 0) {
       options.daysFilter = daysFilter;
     }
 
@@ -418,6 +418,7 @@ router.get('/user/profile', requireAuth, async (req: Request, res: Response): Pr
       metadata: {
         ...(metadata || {}),
         onboardingCompleted: hasCompletedOnboarding,
+        onboardingCelebrated: !!metadata?.onboardingCelebrated,
       },
     });
   } catch (error) {
