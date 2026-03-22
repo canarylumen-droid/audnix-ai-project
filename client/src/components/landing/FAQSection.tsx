@@ -50,7 +50,7 @@ export function FAQSection() {
                         initial={{ opacity: 0, y: 30 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        className="text-4xl md:text-7xl lg:text-8xl font-black tracking-tight text-foreground mb-10 leading-[0.95]"
+                        className="text-3xl md:text-5xl lg:text-6xl font-black tracking-tight text-foreground mb-10 leading-[0.95]"
                     >
                         Strategic <br />
                         <span className="text-foreground/40">Inquiries.</span>

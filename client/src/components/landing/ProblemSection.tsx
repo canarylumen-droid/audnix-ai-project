@@ -61,7 +61,7 @@ export function ProblemSection() {
 
                     <motion.h2
                         style={{ opacity, scale }}
-                        className="text-4xl md:text-8xl font-bold tracking-tight text-foreground mb-10 leading-tight"
+                        className="text-3xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground mb-10 leading-tight"
                     >
                         Hidden Efficiency <br />
                         <span className="text-muted-foreground">in your pipeline.</span>
@@ -121,7 +121,7 @@ export function ProblemSection() {
                             <div className="p-3 rounded-xl bg-primary/10 mb-6 group-hover:scale-110 transition-transform">
                                 <DollarSign className="w-6 h-6 text-primary" />
                             </div>
-                            <span className="text-6xl md:text-9xl font-bold tracking-tighter text-foreground mb-6">$142,000</span>
+                            <span className="text-5xl md:text-7xl font-bold tracking-tighter text-foreground mb-6">$142,000</span>
                         </div>
                         <p className="text-muted-foreground font-bold uppercase tracking-[0.2em] max-w-2xl mx-auto text-xs md:text-sm leading-relaxed">
                             Mean annual revenue loss for companies with 50+ monthly leads due to <span className="text-foreground font-semibold">manual latency and follow-up errors.</span>

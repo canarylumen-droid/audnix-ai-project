@@ -10,7 +10,7 @@ export function MoatSection() {
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        className="text-4xl md:text-7xl font-bold tracking-tight text-foreground mb-6"
+                        className="text-3xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground mb-6"
                     >
                         Performance Edge <br />
                         <span className="text-primary">over templates.</span>

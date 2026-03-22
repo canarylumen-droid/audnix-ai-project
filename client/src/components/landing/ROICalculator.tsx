@@ -99,7 +99,7 @@ export function ROICalculator() {
           >
             Profitability Projection
           </motion.div>
-          <h2 className="text-5xl md:text-8xl font-black text-foreground mb-8 tracking-tighter uppercase leading-[0.9]">
+          <h2 className="text-3xl md:text-6xl font-black text-foreground mb-8 tracking-tighter uppercase leading-[0.9]">
             Architect your <br />
             <span className="text-primary">Revenue Engine.</span>
           </h2>
@@ -258,7 +258,7 @@ export function ROICalculator() {
                 </div>
                 <h4 className="text-[10px] font-black text-muted-foreground/30 uppercase tracking-[0.3em]">Manual Baseline ({currentConvRate}%)</h4>
                 <div className="space-y-1">
-                  <p className="text-5xl font-black text-foreground tracking-tighter">
+                  <p className="text-4xl font-black text-foreground tracking-tighter">
                     <Counter value={calculations.manualRevenue} prefix="$" />
                   </p>
                   <p className="text-muted-foreground text-sm font-bold">Revenue Per Month</p>
@@ -280,7 +280,7 @@ export function ROICalculator() {
                   <Badge className="bg-white text-primary font-black px-3 py-1 rounded-full">{calculations.multiplier}x</Badge>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-5xl font-black text-white tracking-tighter">
+                  <p className="text-4xl font-black text-white tracking-tighter">
                     <Counter value={calculations.audnixRevenue} prefix="$" />
                   </p>
                   <p className="text-white/80 text-sm font-bold">Revenue Per Month</p>
@@ -321,7 +321,7 @@ export function ROICalculator() {
 
               <div className="space-y-4 text-center md:text-left">
                 <p className="text-primary text-[10px] font-black uppercase tracking-[0.3em]">Potential Incremental Yield</p>
-                <p className="text-6xl md:text-7xl font-black text-foreground tracking-tighter">
+                <p className="text-5xl md:text-6xl font-black text-foreground tracking-tighter">
                   +<Counter value={calculations.additionalRevenue} prefix="$" />
                 </p>
                 <p className="text-muted-foreground text-sm font-medium max-w-sm">

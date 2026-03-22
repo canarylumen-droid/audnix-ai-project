@@ -51,7 +51,7 @@ export function HowItWorksSection() {
                     >
                         Engine Activation
                     </motion.div>
-                    <h2 className="text-5xl md:text-8xl font-black text-foreground tracking-tighter leading-[0.85] mb-8 uppercase">
+                    <h2 className="text-3xl md:text-5xl lg:text-6xl font-black text-foreground tracking-tighter leading-[0.85] mb-8 uppercase">
                         The Intelligent <br /> <span className="text-primary">Workflow.</span>
                     </h2>
                 </div>
@@ -69,7 +69,7 @@ export function HowItWorksSection() {
                             {/* Text Side */}
                             <div className={`w-full lg:w-1/2 space-y-8 ${index % 2 === 1 ? 'lg:order-2' : ''}`}>
                                 <div className="flex items-center gap-6">
-                                    <span className="text-6xl md:text-8xl font-black text-foreground/10 tracking-tighter">
+                                    <span className="text-4xl md:text-6xl font-black text-foreground/10 tracking-tighter">
                                         {step.id}
                                     </span>
                                     <div className={`p-4 rounded-2xl ${step.bg} border border-white/5`}>
@@ -77,7 +77,7 @@ export function HowItWorksSection() {
                                     </div>
                                 </div>
                                 <div className="space-y-4">
-                                    <h3 className="text-3xl md:text-5xl font-black text-foreground tracking-tight uppercase">
+                                    <h3 className="text-2xl md:text-4xl font-black text-foreground tracking-tight uppercase">
                                         {step.title}
                                     </h3>
                                     <p className="text-muted-foreground text-lg md:text-xl font-medium leading-relaxed">

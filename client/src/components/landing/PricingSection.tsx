@@ -28,7 +28,7 @@ export function PricingSection() {
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-4xl md:text-8xl font-bold tracking-tight leading-[0.9] text-foreground mb-12"
+            className="text-3xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[0.9] text-foreground mb-12"
           >
             Invest in your <br />
             <span className="text-primary italic">next level of scale.</span>
@@ -63,7 +63,7 @@ export function PricingSection() {
                       {isPopular && <Activity className="w-4 h-4 text-primary" />}
                     </div>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-6xl font-bold text-foreground tracking-tight">
+                      <span className="text-4xl font-bold text-foreground tracking-tight">
                         ${tier.price}
                       </span>
                       <span className="text-muted-foreground font-bold uppercase tracking-wider text-[10px]">/ {tier.period}</span>

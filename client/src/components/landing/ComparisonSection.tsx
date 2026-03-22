@@ -68,7 +68,7 @@ export function ComparisonSection() {
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        className="text-5xl md:text-7xl font-black text-foreground tracking-tight leading-[0.9] mb-8"
+                        className="text-3xl md:text-5xl font-black text-foreground tracking-tight leading-[0.9] mb-8"
                     >
                         Why Wrappers <span className="text-destructive">Fail.</span> <br />
                         Why Humans <span className="text-destructive">Burn Out.</span>

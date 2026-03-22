@@ -62,7 +62,7 @@ export function ROICalculator() {
             <Activity className="w-3.5 h-3.5" />
             ROI Potential Analysis
           </motion.div>
-          <h2 className="text-4xl md:text-7xl font-bold tracking-tight mb-8">
+          <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-8">
             The cost of <span className="text-primary">slow response.</span>
           </h2>
           <p className="text-muted-foreground text-xl max-w-2xl mx-auto font-medium">
@@ -133,7 +133,7 @@ export function ROICalculator() {
                   <TrendingDown className="w-6 h-6" />
                 </div>
                 <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest mb-2">Estimated Revenue Loss</p>
-                <h3 className="text-4xl md:text-5xl font-bold text-foreground tracking-tight mb-6">
+                <h3 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight mb-6">
                   {formatCurrency(calculations.lostRevenue)}
                 </h3>
               </div>
@@ -157,7 +157,7 @@ export function ROICalculator() {
                   <TrendingUp className="w-6 h-6" />
                 </div>
                 <p className="text-primary/70 text-[10px] font-bold uppercase tracking-widest mb-2">Recovered with Audnix</p>
-                <h3 className="text-4xl md:text-5xl font-bold text-foreground tracking-tight mb-6">
+                <h3 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight mb-6">
                   {formatCurrency(calculations.recoveredRevenue)}
                 </h3>
               </div>

@@ -186,7 +186,7 @@ export default function Landing() {
             viewport={{ once: true }}
             className="max-w-5xl"
           >
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tighter leading-[0.9] mb-8">
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-black tracking-tighter leading-[0.9] mb-8">
               <span className="bg-gradient-to-r from-foreground to-foreground/50 bg-clip-text text-transparent">AI ENGINE</span><br />
               <span className="text-primary italic">FOR REELS.</span>
             </h1>

@@ -31,7 +31,7 @@ export function DocumentationLayout({ title, subtitle, sections }: Documentation
                         <Rocket className="w-3 h-3" />
                         {subtitle}
                     </div>
-                    <h1 className="text-4xl md:text-7xl font-black tracking-tighter uppercase">
+                    <h1 className="text-3xl md:text-5xl lg:text-6xl font-black tracking-tighter uppercase">
                         {title.split(' ').map((word, i) => (
                             <span key={i} className={i === title.split(' ').length - 1 ? "text-primary" : ""}>{word} </span>
                         ))}
