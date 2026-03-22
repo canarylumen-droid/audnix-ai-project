@@ -333,11 +333,12 @@ app.use((req, res, next) => {
 
   const requestPath = req.path;
   // Skip security checks for:
-  // 1. API webhooks/auth endpoints
+  // 1. Non-API routes (React frontend routing handles its own logic)
   // 2. Local development
-  // 3. Static assets (images, icons, etc.) to prevent 403s on favicons
+  // 3. Static assets
+  const isApiRoute = requestPath.startsWith("/api/");
   const isStaticAsset =
-    /\.(png|jpg|jpeg|gif|svg|ico|css|js|woff2?|ttf|otf|map|json|webp)$/i.test(
+    /\.(png|jpg|jpeg|gif|svg|ico|css|js|woff2?|ttf|otf|map|json|webp|webmanifest|txt|xml)$/i.test(
       requestPath,
     ) || requestPath.includes("/assets/");
   const isSkippableRoute = skipPaths.some(
@@ -345,6 +346,7 @@ app.use((req, res, next) => {
   );
 
   if (
+    !isApiRoute ||
     isSkippableRoute ||
     process.env.NODE_ENV === "development" ||
     isStaticAsset

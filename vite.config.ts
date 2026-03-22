@@ -40,32 +40,7 @@ export default defineConfig({
     chunkSizeWarningLimit: 2000,
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('@radix-ui/react-select')) return 'v-ui-select';
-            if (id.includes('@radix-ui/react-dialog')) return 'v-ui-dialog';
-            if (id.includes('@radix-ui/react-dropdown-menu')) return 'v-ui-dropdown';
-            if (id.includes('@radix-ui')) return 'v-ui-core';
-            if (id.includes('lucide-react')) return 'v-icons';
-            if (id.includes('three') || id.includes('@react-three')) return 'v-3d';
-            if (id.includes('recharts')) return 'v-charts';
-            if (id.includes('framer-motion')) return 'v-motion';
-            if (id.includes('@zxcvbn-ts/language-common')) return 'v-zxc-common';
-            if (id.includes('@zxcvbn-ts/language-en')) {
-              if (id.includes('lastnames')) return 'v-zxc-en-last';
-              if (id.includes('commonWords')) return 'v-zxc-en-common';
-              if (id.includes('wikipedia')) return 'v-zxc-en-wiki';
-              return 'v-zxc-en-core';
-            }
-            if (id.includes('@zxcvbn-ts/core')) return 'v-zxc-core';
-            if (id.includes('axios') || id.includes('date-fns') || id.includes('wouter')) return 'v-utils';
-            if (id.includes('socket.io-client')) return 'v-socket';
-            if (id.includes('@tanstack/react-query')) return 'v-query';
-            if (id.includes('react-dom')) return 'v-react-dom';
-            if (id.includes('react')) return 'v-react-core';
-            return 'vendor';
-          }
-        },
+        // Relying on Vite's default chunking optimization for stable React builds
       },
     },
   },
