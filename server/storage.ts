@@ -1313,7 +1313,7 @@ export class MemStorage implements IStorage {
     const leads = Array.from(this.leads.values()).filter(l => {
       const matchUserId = l.userId === userId;
       if (!matchUserId) return false;
-      if (overrideDates) {
+      if (overrideDates && overrideDates.start && overrideDates.end) {
         const createdAt = new Date(l.createdAt);
         return createdAt >= overrideDates.start && createdAt < overrideDates.end;
       }
@@ -1323,7 +1323,7 @@ export class MemStorage implements IStorage {
     const messages = Array.from(this.messages.values()).filter(m => {
       const matchUserId = m.userId === userId;
       if (!matchUserId) return false;
-      if (overrideDates) {
+      if (overrideDates && overrideDates.start && overrideDates.end) {
         const createdAt = new Date(m.createdAt);
         return createdAt >= overrideDates.start && createdAt < overrideDates.end;
       }
@@ -1333,7 +1333,7 @@ export class MemStorage implements IStorage {
     const deals = Array.from(this.deals.values()).filter(d => {
       const matchUserId = d.userId === userId;
       if (!matchUserId) return false;
-      if (overrideDates) {
+      if (overrideDates && overrideDates.start && overrideDates.end) {
         const createdAt = new Date(d.createdAt);
         return createdAt >= overrideDates.start && createdAt < overrideDates.end;
       }
@@ -1382,12 +1382,12 @@ export class MemStorage implements IStorage {
       }).length,
       pipelineValue: explicitDealValue + predictedDealValue,
       closedRevenue: deals.filter(d => d.status === 'converted' || d.status === 'closed_won').reduce((sum, d) => sum + (Number(d.value) || 0), 0),
-      openRate: messages.filter(m => m.direction === 'outbound' && m.openedAt).length / (messages.filter(m => m.direction === 'outbound').length || 1) * 100,
-      responseRate: leads.length > 0 ? Math.min(100, Math.round((leads.filter(l => l.status === 'replied').length / leads.length) * 100)) : 0,
+      openRate: Number(((messages.filter(m => m.direction === 'outbound' && m.openedAt).length / (messages.filter(m => m.direction === 'outbound').length || 1)) * 100).toFixed(2)),
+      responseRate: leads.length > 0 ? Number(((leads.filter(l => l.status === 'replied').length / leads.length) * 100).toFixed(2)) : 0.00,
       averageResponseTime: this.calculateAverageResponseTime(userId, messages),
       queuedLeads: leads.filter(l => l.status === 'new' && !l.aiPaused).length,
       undeliveredLeads: leads.filter(l => l.status === 'bouncy').length,
-      conversionRate: leads.length > 0 ? (leads.filter(l => l.status === 'converted').length / leads.length) * 100 : 0,
+      conversionRate: leads.length > 0 ? Number(((leads.filter(l => l.status === 'converted').length / leads.length) * 100).toFixed(2)) : 0.00,
     };
   }
 

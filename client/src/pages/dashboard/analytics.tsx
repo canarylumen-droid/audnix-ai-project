@@ -126,9 +126,9 @@ export default function AnalyticsPage() {
         if (previous === undefined || previous === 0) return { percentage: "—", isUp: false, isNeutral: true };
         const change = ((current - previous) / previous) * 100;
         return {
-            percentage: `${change > 0 ? "+" : ""}${change.toFixed(1)}%`,
+            percentage: `${change > 0 ? "+" : ""}${change.toFixed(2)}%`,
             isUp: change > 0,
-            isNeutral: Math.abs(change) < 0.01
+            isNeutral: Math.abs(change) < 0.001
         };
     };
 
@@ -161,7 +161,7 @@ export default function AnalyticsPage() {
                         />
                         <StatCard
                             label="Open Rate"
-                            value={`${isNaN(Number(filteredMetrics?.openRate)) ? 0 : (filteredMetrics?.openRate || 0)}%`}
+                            value={`${isNaN(Number(filteredMetrics?.openRate)) ? "0.00" : Number(filteredMetrics?.openRate || 0).toFixed(2)}%`}
                             icon={Eye}
                             trend={calculatePercentageChange(filteredMetrics?.openRate || 0, previousStats?.openRate).percentage}
                             isUp={calculatePercentageChange(filteredMetrics?.openRate || 0, previousStats?.openRate).isUp}
@@ -170,7 +170,7 @@ export default function AnalyticsPage() {
                         />
                         <StatCard
                             label="Response Rate"
-                            value={`${isNaN(Number(filteredMetrics?.responseRate)) ? 0 : (filteredMetrics?.responseRate || 0)}%`}
+                            value={`${isNaN(Number(filteredMetrics?.responseRate)) ? "0.00" : Number(filteredMetrics?.responseRate || 0).toFixed(2)}%`}
                             icon={MessageCircle}
                             trend={calculatePercentageChange(filteredMetrics?.responseRate || 0, previousStats?.responseRate).percentage}
                             isUp={calculatePercentageChange(filteredMetrics?.responseRate || 0, previousStats?.responseRate).isUp}
@@ -522,8 +522,8 @@ export default function AnalyticsPage() {
                             <tbody className="divide-y divide-border/10">
                                 {[
                                     { label: "Messages Sent", currentVal: filteredMetrics?.sent, previousVal: previousStats?.messages },
-                                    { label: "Email Open Rate", current: `${filteredMetrics?.openRate || 0}%`, previous: `${previousStats?.openRate || 0}%`, currentVal: filteredMetrics?.openRate, previousVal: previousStats?.openRate },
-                                    { label: "Engagement Rate", current: `${filteredMetrics?.responseRate || 0}%`, previous: `${previousStats?.responseRate || 0}%`, currentVal: filteredMetrics?.responseRate, previousVal: previousStats?.responseRate },
+                                    { label: "Email Open Rate", current: `${Number(filteredMetrics?.openRate || 0).toFixed(2)}%`, previous: `${Number(previousStats?.openRate || 0).toFixed(2)}%`, currentVal: filteredMetrics?.openRate, previousVal: previousStats?.openRate },
+                                    { label: "Engagement Rate", current: `${Number(filteredMetrics?.responseRate || 0).toFixed(2)}%`, previous: `${Number(previousStats?.responseRate || 0).toFixed(2)}%`, currentVal: filteredMetrics?.responseRate, previousVal: previousStats?.responseRate },
                                     { label: "Total Bookings", currentVal: filteredMetrics?.booked, previousVal: previousStats?.convertedLeads },
                                     { label: "Gross Revenue", current: `$${(filteredMetrics?.closedRevenue || 0).toLocaleString()}`, previous: `$${(previousStats?.closedRevenue || 0).toLocaleString()}`, currentVal: filteredMetrics?.closedRevenue, previousVal: previousStats?.closedRevenue },
                                 ].map((row, idx) => {

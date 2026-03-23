@@ -79,6 +79,10 @@ export const users = pgTable("users", {
   brandGuidelinePdfText: text("brand_guideline_pdf_text"),
   config: jsonb("config").default({ autonomousMode: false }),
   filteredLeadsCount: integer("filtered_leads_count").notNull().default(0),
+  calendlyAccessToken: text("calendly_access_token"),
+  calendlyRefreshToken: text("calendly_refresh_token"),
+  calendlyExpiresAt: timestamp("calendly_expires_at"),
+  calendlyUserUri: text("calendly_user_uri"),
 });
 
 export const brandPdfCache = pgTable("brand_pdf_cache", {

@@ -427,9 +427,19 @@ export class OutreachEngine {
       mailboxDailyLimit = Number(campaign.config.mailboxLimits[integration.id]);
     }
 
-    // High Priority (Follow-ups/Auto-Replies) can vastly exceed the initial send limit (e.g., up to 300)
-    // To ensure active fluid conversations don't get stuck due to initial outreach limits.
-    const baseEffectiveLimit = isHighPriority ? Math.max(300, mailboxDailyLimit * 5) : mailboxDailyLimit;
+    /**
+     * ADVANCED GMAIL BUFFERING (Phase 13)
+     * - Hard cap: mailboxDailyLimit (usually 500 for Gmail)
+     * - Initial Outreach (Priority 3) Buffer: 150
+     * - High Priority (isHighPriority) can exceed base limit but respects the 150-send reserve
+     */
+    const isGmailOrOutlook = ['gmail', 'outlook'].includes(integration.provider);
+    const bufferThreshold = isGmailOrOutlook ? 150 : 0;
+    const hardLimit = isGmailOrOutlook ? 500 : mailboxDailyLimit;
+    
+    // High Priority (Follow-ups/Auto-Replies) can reach the hard limit (500 for Gmail).
+    // Initial Outreach (isHighPriority = false) must stop at hardLimit - bufferThreshold (350 for Gmail).
+    const baseEffectiveLimit = isHighPriority ? hardLimit : Math.max(0, hardLimit - bufferThreshold);
 
     // --- Autonomous Adaptive Reputation Limits ---
     let effectiveLimit = baseEffectiveLimit;

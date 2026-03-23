@@ -143,6 +143,21 @@ export class DrizzleStorage implements IStorage {
     return result[0];
   }
 
+  async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
+    checkDatabase();
+    if (!isValidUUID(id)) return undefined;
+    const [result] = await db
+      .update(users)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    
+    if (result) {
+      wsSync.notifySettingsUpdated(id);
+    }
+    return result;
+  }
+
   async createUser(insertUser: Partial<InsertUser> & { email: string }): Promise<User> {
     checkDatabase();
     const trialExpiry = new Date();
@@ -1503,14 +1518,14 @@ export class DrizzleStorage implements IStorage {
     const negativeCount = Number(sentimentSummary?.negative || 0);
     const totalWithSentiment = positiveCount + negativeCount;
     const positiveSentimentRate = totalWithSentiment > 0
-      ? ((positiveCount / totalWithSentiment) * 100).toFixed(1)
-      : '0';
+      ? ((positiveCount / totalWithSentiment) * 100).toFixed(2)
+      : '0.00';
 
     return {
       summary: {
         totalLeads: total,
         conversions,
-        conversionRate: total > 0 ? ((conversions / total) * 100).toFixed(1) : '0',
+        conversionRate: total > 0 ? ((conversions / total) * 100).toFixed(2) : '0.00',
         active: Number(mainSummary?.active || 0),
         ghosted: Number(mainSummary?.ghosted || 0),
         notInterested: Number(mainSummary?.notInterested || 0),
@@ -1832,15 +1847,15 @@ export class DrizzleStorage implements IStorage {
       messagesYesterday: Number(messagesStats?.messagesYesterday || 0),
       pipelineValue: Number(dealsStats?.pipelineValue || 0) + Number(predictedStats?.value || 0),
       closedRevenue: Number(dealsStats?.closedRevenue || 0),
-      // Use higher precision floats for calculations
+      // Use higher precision floats for calculations (Phase 14)
       openRate: Number(messagesStats?.totalSent || 0) > 0 
-        ? (Number(messagesStats?.opened || 0) / Number(messagesStats?.totalSent || 0)) * 100 
+        ? Number(((Number(messagesStats?.opened || 0) / Number(messagesStats?.totalSent || 0)) * 100).toFixed(2))
         : 0,
       responseRate: Number(leadsStats?.totalLeads || 0) > 0 
-        ? (Number(leadsStats?.repliedLeads || 0) / Number(leadsStats?.totalLeads || 0)) * 100 
+        ? Number(((Number(leadsStats?.repliedLeads || 0) / Number(leadsStats?.totalLeads || 0)) * 100).toFixed(2))
         : 0,
       conversionRate: Number(leadsStats?.totalLeads || 0) > 0
-        ? (Number(leadsStats?.convertedLeads || 0) / Number(leadsStats?.totalLeads || 0)) * 100
+        ? Number(((Number(leadsStats?.convertedLeads || 0) / Number(leadsStats?.totalLeads || 0)) * 100).toFixed(2))
         : 0,
       averageResponseTime,
       queuedLeads: Number(leadsStats?.queuedLeads || 0),
@@ -2036,9 +2051,9 @@ export class DrizzleStorage implements IStorage {
         replied,
         booked: conversions,
         leadsFiltered: user?.filteredLeadsCount || 0,
-        conversionRate: totalLeads > 0 ? Math.round((conversions / totalLeads) * 100) : 0,
-        responseRate: totalLeads > 0 ? Math.min(100, Math.round((replied / totalLeads) * 100)) : 0,
-        openRate: sent > 0 ? Math.round((opened / sent) * 100) : 0,
+        conversionRate: totalLeads > 0 ? Number(((conversions / totalLeads) * 100).toFixed(2)) : 0,
+        responseRate: totalLeads > 0 ? Number((Math.min(100, (replied / totalLeads) * 100)).toFixed(2)) : 0,
+        openRate: sent > 0 ? Number(((opened / sent) * 100).toFixed(2)) : 0,
         closedRevenue: Number(dealsStats?.closedRevenue || 0),
         pipelineValue: Number(dealsStats?.pipelineValue || 0) + Number(predictedStats?.value || 0),
         averageResponseTime: averageResponseTime

@@ -245,7 +245,7 @@ export default function InsightsPage() {
 
             <MetricCard
               title="Network Health"
-              value={!insightsData?.metrics?.engagementScore || insightsData.metrics.engagementScore === "NaN" ? "0" : insightsData.metrics.engagementScore}
+              value={!insightsData?.metrics?.engagementScore || insightsData.metrics.engagementScore === "NaN" ? "0.00" : Number(insightsData.metrics.engagementScore).toFixed(2)}
               icon={<Sparkles className="h-5 w-5 text-purple-500" />}
               description="Average lead interest"
               trend="Stable"

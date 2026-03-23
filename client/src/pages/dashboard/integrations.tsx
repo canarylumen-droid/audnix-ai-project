@@ -116,6 +116,15 @@ const integrationCards = [
     color: "text-orange-500",
     bg: "bg-orange-500/10",
     badge: "Coming Soon"
+  },
+  {
+    do: "calendar",
+    id: "calendly",
+    name: "Calendly",
+    description: "AI-led appointment scheduling. Automatically book meetings with interested leads.",
+    icon: RefreshCw,
+    color: "text-blue-600",
+    bg: "bg-blue-600/10",
   }
 ];
 
@@ -238,7 +247,7 @@ export default function IntegrationsPage() {
   };
 
   const calculateReputation = () => {
-    return stats?.domainHealth !== undefined ? stats.domainHealth.toFixed(1) : null;
+    return stats?.domainHealth !== undefined ? stats.domainHealth.toFixed(2) : null;
   };
 
   useEffect(() => {

@@ -240,6 +240,7 @@ export default function DashboardHome() {
       if (!res.ok) throw new Error("Failed to fetch stats");
       return res.json();
     },
+    refetchInterval: 5000, // 5-second real-time sync
     placeholderData: (previousData) => previousData,
   });
 
@@ -336,7 +337,7 @@ export default function DashboardHome() {
     },
     {
       label: "OPEN RATE",
-      value: typeof stats?.openRate === 'number' ? stats.openRate.toFixed(2).replace(/\.00$/, '') : "0",
+      value: typeof stats?.openRate === 'number' ? stats.openRate.toFixed(2) : "0.00",
       suffix: "%",
       icon: Mail,
       percentage: calculatePercentageChange(stats?.openRate || 0, previousStats?.openRate),
@@ -567,9 +568,7 @@ export default function DashboardHome() {
                 <h4 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary mb-2">
                   <Brain className="h-4 w-4" /> Deep Insights
                 </h4>
-                <p className="text-sm font-medium leading-relaxed text-foreground/80 relative z-10 italic">
-                  "{insightsData.summary.replace(/\*\*/g, '')}"
-                </p>
+                  {insightsData?.summary ? `"${insightsData.summary.replace(/\*\*/g, '')}"` : ""}
               </motion.div>
             )}
 
@@ -580,7 +579,8 @@ export default function DashboardHome() {
                   Live Activity
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-0">
+              <CardContent className="p-0 flex flex-col h-[600px]">
+                <div className="flex-1 overflow-y-auto no-scrollbar scroll-smooth">
                 {activityLoading ? (
                   <div className="p-12 flex justify-center"><PremiumLoader text="Loading stream..." /></div>
                 ) : activities.length > 0 ? (
@@ -600,7 +600,7 @@ export default function DashboardHome() {
                             <div className="flex justify-between items-start mb-1">
                               <p className={cn(
                                 "text-sm text-foreground/90 truncate",
-                                "font-medium"
+                                "font-normal"
                               )}>{activity.title || "Activity Event"}</p>
                               <span className="text-[10px] text-muted-foreground shrink-0 ml-4 font-medium uppercase opacity-50">{formatTimeAgo(activity.time || activity.timestamp || new Date())}</span>
                             </div>
@@ -650,6 +650,7 @@ export default function DashboardHome() {
                     <p className="text-[10px] font-bold tracking-widest uppercase opacity-40">Records will appear as AI agents engage leads</p>
                   </div>
                 )}
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -698,7 +699,7 @@ export default function DashboardHome() {
                       "text-xl font-black tracking-tighter",
                       (stats?.health?.score || 100) > 95 ? "text-emerald-400" : (stats?.health?.score || 100) > 80 ? "text-amber-400" : "text-red-400"
                     )}>
-                      {stats?.health?.score !== undefined ? stats.health.score.toFixed(1) : "100.0"}%
+                      {stats?.health?.score !== undefined ? stats.health.score.toFixed(2) : "100.00"}%
                     </p>
                   </div>
                   <Badge className={cn(

@@ -224,7 +224,13 @@ export async function generateAIReply(
   lead: Lead,
   conversationHistory: Message[],
   platform: 'instagram' | 'email',
-  userContext?: { businessName?: string; brandVoice?: string }
+  userContext?: { 
+    businessName?: string; 
+    brandVoice?: string;
+    calendarLink?: string;
+    isCalendlyConnected?: boolean;
+    calendlyUserUri?: string;
+  }
 ): Promise<AIReplyResult> {
 
   if (isDemoMode) {
@@ -361,7 +367,8 @@ How You Talk:
 - Every message must be a bridge. If they ask a question, answer it using brand info and immediately pivot to: "Actually, it's easier to map this against your specific roadmap. Are you open to a 10min sync?"
 - Short sentences. 2-3 sentences max for DMs, a short paragraph for email.
 - BE PUNCHY AND DIRECT. Do not "yap" or use unnecessary filler words. One strong point per message is better than three weak ones.
-- If the lead wants to book or schedule, use this link: ${(user as any)?.calendarLink || "our booking page"}.
+- If the lead wants to book or schedule, use this link: ${userContext?.calendarLink || (user as any)?.calendarLink || "our booking page"}.
+- If lead mentions a specific time, confirm if it works or suggest the link to be sure.
 
 Your Personality:
 - Confident but chill - you know what you're offering is good

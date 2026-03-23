@@ -249,7 +249,27 @@ export default function SettingsPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Calendar Booking Link</Label>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mr-2">Calendar Booking Link</Label>
+                      {(user as any).calendlyAccessToken ? (
+                        <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest text-emerald-500 border-emerald-500/20 bg-emerald-500/5 h-5">
+                          <CheckCircle2 className="h-2.5 w-2.5 mr-1" /> Calendly Connected
+                        </Badge>
+                      ) : (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-5 text-[9px] font-black uppercase tracking-widest text-primary hover:bg-primary/5 p-0"
+                          onClick={() => {
+                            fetch('/api/oauth/connect/calendly')
+                              .then(res => res.json())
+                              .then(data => { if (data.authUrl) window.location.href = data.authUrl; });
+                          }}
+                        >
+                          <Plus className="h-2.5 w-2.5 mr-1" /> Connect Calendly
+                        </Button>
+                      )}
+                    </div>
                     <Input
                       value={formData.calendarLink}
                       onChange={e => handleFieldChange('calendarLink', e.target.value)}
@@ -484,8 +504,8 @@ export default function SettingsPage() {
                     />
                   </div>
                   <div className="flex justify-between text-[10px] text-muted-foreground font-medium">
-                    <span>{voiceUsage?.used.toFixed(1) || 0} mins used</span>
-                    <span>{voiceUsage?.remaining.toFixed(1) || 0} mins remaining</span>
+                    <span>{voiceUsage?.used.toFixed(2) || 0} mins used</span>
+                    <span>{voiceUsage?.remaining.toFixed(2) || 0} mins remaining</span>
                   </div>
                 </div>
               </div>

@@ -28,6 +28,12 @@ interface HealthCheckResult {
   error?: string;
   warning?: string;
   spamRisk?: number;
+  dnsValid?: boolean;
+  dnsDetails?: {
+    spf: boolean;
+    dkim: boolean;
+    dmarc: boolean;
+  };
 }
 
 // ─── Service ────────────────────────────────────────────────────────────────
@@ -122,6 +128,26 @@ class MailboxHealthService {
       // If we get here, the check passed — mark as healthy
       if (integration.healthStatus !== 'connected') {
         await this.markMailboxHealthy(integration);
+      }
+
+      // [NEW] DNS Health Check for custom domains
+      if (integration.provider === 'custom_email') {
+        const dnsResult = await this.checkDNSHealth(integration);
+        result.dnsValid = dnsResult.valid;
+        result.dnsDetails = dnsResult.details;
+        
+        if (!dnsResult.valid) {
+          result.warning = `DNS issues detected: ${dnsResult.missing.join(', ')}`;
+          // Update integration metadata with DNS status
+          const currentMeta = decryptToJSON(integration.encryptedMeta) || {};
+          await storage.updateIntegration(integration.id, {
+            encryptedMeta: await storage.encryptJSON({
+              ...currentMeta,
+              dns_health: dnsResult.details,
+              dns_last_checked: new Date()
+            })
+          });
+        }
       }
 
       // Update last health check time
@@ -478,10 +504,14 @@ class MailboxHealthService {
           if (sentCount === 0) continue;
 
           const bounceRate = bounceCount / sentCount;
-          const spamRisk = Math.min(bounceRate * 5, 1); // Normalize 0-1
+          const currentSpamPct = bounceRate * 100;
+          
+          // Smoothed weighted moving average (70% old, 30% new) to prevent "spiking"
+          const oldScore = Number(integration.spamRiskScore || 0);
+          const newScore = oldScore === 0 ? currentSpamPct : (oldScore * 0.7) + (currentSpamPct * 0.3);
 
           await db.update(integrations)
-            .set({ spamRiskScore: spamRisk })
+            .set({ spamRiskScore: parseFloat(newScore.toFixed(2)) })
             .where(eq(integrations.id, integration.id));
 
           if (bounceRate >= this.SPAM_BOUNCE_CRITICAL) {
@@ -693,7 +723,8 @@ class MailboxHealthService {
     if (total < 10) return false; // Not enough data to be statistically significant
 
     const bounceRate = bounces / total;
-    console.log(`[MailboxHealth] 📊 Mailbox ${integrationId} bounce rate: ${(bounceRate * 100).toFixed(1)}% (${bounces}/${total})`);
+    const currentSpamPct = bounceRate * 100;
+    console.log(`[MailboxHealth] 📊 Mailbox ${integrationId} bounce rate: ${currentSpamPct.toFixed(2)}% (${bounces}/${total})`);
 
     if (bounceRate > 0.15) {
       // PAUSE for 24 hours
@@ -702,12 +733,17 @@ class MailboxHealthService {
 
       console.warn(`[MailboxHealth] 🚫 High bounce rate detector triggered for ${integrationId}. Pausing for 24h.`);
 
+      // Apply smoothing even here
+      const [existing] = await db.select().from(integrations).where(eq(integrations.id, integrationId));
+      const oldScore = Number(existing?.spamRiskScore || 0);
+      const newScore = (oldScore * 0.7) + (currentSpamPct * 0.3);
+
       await db.update(integrations)
         .set({
           healthStatus: 'warning',
           mailboxPauseUntil: pauseUntil,
-          spamRiskScore: Math.round(bounceRate * 100),
-          lastHealthError: `High bounce rate detected: ${(bounceRate * 100).toFixed(1)}%`,
+          spamRiskScore: parseFloat(newScore.toFixed(2)),
+          lastHealthError: `High bounce rate detected: ${currentSpamPct.toFixed(2)}%`,
           updatedAt: new Date(),
         })
         .where(eq(integrations.id, integrationId));
@@ -726,6 +762,55 @@ class MailboxHealthService {
     }
 
     return false;
+  }
+  /**
+   * Check DNS health (SPF, DKIM, DMARC) for a domain
+   */
+  private async checkDNSHealth(integration: any): Promise<{ valid: boolean; details: any; missing: string[] }> {
+    const meta = decryptToJSON(integration.encryptedMeta) || {};
+    const email = meta.smtp_user || meta.user || '';
+    if (!email.includes('@')) return { valid: true, details: { spf: true, dkim: true, dmarc: true }, missing: [] };
+
+    const domain = email.split('@')[1];
+    const dns = await import('dns/promises');
+    const details = { spf: false, dkim: false, dmarc: false };
+    const missing = [];
+
+    try {
+      // 1. Check SPF
+      const txtRecords = await dns.resolveTxt(domain);
+      details.spf = txtRecords.some(r => r.join(' ').includes('v=spf1'));
+      if (!details.spf) missing.push('SPF');
+
+      // 2. Check DMARC
+      try {
+        const dmarcRecords = await dns.resolveTxt(`_dmarc.${domain}`);
+        details.dmarc = dmarcRecords.some(r => r.join(' ').includes('v=DMARC1'));
+      } catch (e) {
+        details.dmarc = false;
+      }
+      if (!details.dmarc) missing.push('DMARC');
+
+      // 3. Check DKIM (Checking common selectors like 'default', 'google', 'mandrill')
+      const commonSelectors = ['default', 'google', 'mandrill', 'mail', 'k1'];
+      for (const selector of commonSelectors) {
+        try {
+          await dns.resolveTxt(`${selector}._domainkey.${domain}`);
+          details.dkim = true;
+          break;
+        } catch (e) {}
+      }
+      if (!details.dkim) missing.push('DKIM');
+
+    } catch (err) {
+      console.error(`[MailboxHealth] DNS check failed for ${domain}:`, err);
+    }
+
+    return {
+      valid: details.spf && details.dmarc, // DKIM is harder to verify without selector, so we mark valid if SPF/DMARC pass
+      details,
+      missing
+    };
   }
 }
 

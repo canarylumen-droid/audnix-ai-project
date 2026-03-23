@@ -28,7 +28,7 @@ interface UserWithEmail {
   businessName: string | null;
 }
 
-interface UncontactedLead {
+interface PriorityLead {
   id: string;
   name: string;
   email: string;
@@ -36,6 +36,7 @@ interface UncontactedLead {
   status: string;
   metadata: Record<string, unknown>;
   userId: string;
+  priority: 1 | 2 | 3; // 1: Reply, 2: Follow-up, 3: Initial
 }
 
 async function generateColdOutreachEmail(
@@ -200,12 +201,12 @@ export class AutonomousOutreachWorker {
         if (this.activeOutreachQueue.has(userId as string)) continue;
 
         try {
-          const uncontactedLeads = await this.getUncontactedLeads(userId as string);
-          if (uncontactedLeads.length > 0) {
-            console.log(`[AutoOutreach] User ${userId} has ${uncontactedLeads.length} uncontacted leads`);
+          const leads = await this.getPrioritizedLeads(userId as string);
+          if (leads.length > 0) {
+            console.log(`[AutoOutreach] User ${userId} has ${leads.length} leads in priority queue`);
             this.activeOutreachQueue.set(userId as string, true);
             // Non-blocking processing
-            this.processLeadsWithDelay(userId as string, uncontactedLeads).catch(err => {
+            this.processLeadsWithPriority(userId as string, leads).catch(err => {
                  console.error(`[AutoOutreach] Error in background process for user ${userId}:`, err);
                  this.activeOutreachQueue.delete(userId as string);
             });
@@ -223,81 +224,84 @@ export class AutonomousOutreachWorker {
   }
 
   /**
-   * Get leads that haven't received outreach yet
+   * Get all leads requiring action, prioritized by engagement level
    */
-  private async getUncontactedLeads(userId: string): Promise<UncontactedLead[]> {
+  private async getPrioritizedLeads(userId: string): Promise<PriorityLead[]> {
     if (!db) return [];
 
     try {
-      // Get leads with status 'new' that don't have outbound messages
-      // AND have AI explicitly enabled (aiPaused = false)
-      const userLeads = await db
-        .select({
-          id: leads.id,
-          name: leads.name,
-          email: leads.email,
-          channel: leads.channel,
-          status: leads.status,
-          metadata: leads.metadata,
-          userId: leads.userId,
-        })
-        .from(leads)
-        .where(
-          and(
-            eq(leads.userId, userId),
-            eq(leads.status, 'new'),
-            eq(leads.channel, 'email'),
-            eq(leads.aiPaused, false) // CRITICAL: Only process if AI is enabled for this lead
-          )
+      const allLeads: PriorityLead[] = [];
+
+      // 1. Priority 1: Replied leads (Needs AI Reply)
+      const repliedLeads = await db.select().from(leads).where(
+        and(
+          eq(leads.userId, userId),
+          eq(leads.status, 'replied'),
+          eq(leads.aiPaused, false)
         )
-        .limit(50);
+      ).limit(20);
 
-      // Filter out leads that already have outbound messages
-      const uncontactedLeads: UncontactedLead[] = [];
+      repliedLeads.forEach(l => {
+        allLeads.push({
+          ...l,
+          email: l.email as string,
+          channel: l.channel as string,
+          priority: 1,
+          metadata: l.metadata as any
+        });
+      });
 
-      for (const lead of userLeads) {
-        if (!lead.email) continue;
+      // 2. Priority 2: Leads needing follow-ups (Status 'open'/'warm', no activity for 2 days)
+      const followUpLeads = await db.select().from(leads).where(
+        and(
+          eq(leads.userId, userId),
+          or(eq(leads.status, 'open'), eq(leads.status, 'warm')),
+          eq(leads.aiPaused, false),
+          sql`${leads.lastMessageAt} < ${new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)}`
+        )
+      ).limit(20);
 
-        // Check if lead has any outbound messages
-        const existingMessages = await db
-          .select({ id: messages.id })
-          .from(messages)
-          .where(
-            and(
-              eq(messages.leadId, lead.id),
-              eq(messages.direction, 'outbound')
-            )
-          )
-          .limit(1);
+      followUpLeads.forEach(l => {
+        allLeads.push({
+          ...l,
+          email: l.email as string,
+          channel: l.channel as string,
+          priority: 2,
+          metadata: l.metadata as any
+        });
+      });
 
-        // Check if already marked as outreach_sent in metadata
-        const metadata = (lead.metadata as Record<string, any>) || {};
-        const alreadySent = metadata.outreach_sent === true;
+      // 3. Priority 3: Initial outreach ('new' status)
+      const initialLeads = await db.select().from(leads).where(
+        and(
+          eq(leads.userId, userId),
+          eq(leads.status, 'new'),
+          eq(leads.aiPaused, false)
+        )
+      ).limit(20);
 
-        if (existingMessages.length === 0 && !alreadySent) {
-          uncontactedLeads.push({
-            id: lead.id,
-            name: lead.name,
-            email: lead.email as string,
-            channel: lead.channel as string,
-            status: lead.status as string,
-            metadata: metadata,
-            userId: lead.userId as string,
-          });
-        }
-      }
+      initialLeads.forEach(l => {
+        allLeads.push({
+          ...l,
+          email: l.email as string,
+          channel: l.channel as string,
+          priority: 3,
+          metadata: l.metadata as any
+        });
+      });
 
-      return uncontactedLeads;
+      // Sort by priority (1 is highest)
+      return allLeads.sort((a, b) => a.priority - b.priority);
     } catch (error) {
-      console.error('[AutoOutreach] Error fetching uncontacted leads:', error);
+      console.error('[AutoOutreach] Error fetching prioritized leads:', error);
       return [];
     }
   }
 
   /**
-   * Process leads with 2-4 minute random delays between each
+   * Process leads with priority sorting and dynamic volume caps (Soft Limit)
    */
-  private async processLeadsWithDelay(userId: string, leads: UncontactedLead[]): Promise<void> {
+  private async processLeadsWithPriority(userId: string, leads: PriorityLead[]): Promise<void> {
     try {
       // Get user info for branding
       const user = await storage.getUserById(userId);
@@ -306,22 +310,50 @@ export class AutonomousOutreachWorker {
       for (let i = 0; i < leads.length; i++) {
         const lead = leads[i];
 
-        try {
-          await this.sendOutreachToLead(userId, lead, businessName);
+        // 1. CHECK VOLUME CAPS & SOFT LIMITS
+        const integrations = await storage.getIntegrations(userId);
+        const mailbox = integrations.find(i => i.id === (lead.metadata as any)?.integrationId) || integrations.find(i => i.connected);
+        
+        if (!mailbox) continue;
 
-          // Add random delay between 2-4 minutes before next email
+        const isGmailOrOutlook = mailbox.provider === 'gmail' || mailbox.provider === 'outlook';
+        const limit = isGmailOrOutlook ? 500 : 2500;
+        const mailboxMeta = decryptToJSON(mailbox.encryptedMeta) || {};
+        const todaySent = (mailboxMeta as any).dailySentCount || 0;
+        
+        /**
+         * ADVANCED GMAIL BUFFERING (Phase 13)
+         * - Hard cap: 500 (Gmail/Outlook)
+         * - Initial Outreach (Priority 3) Cap: 350 (Buffer of 150 for replies)
+         * - Replies (Priority 1/2) keep going until Hard Cap
+         */
+        const isPriority3 = lead.priority === 3;
+        const remainingBuffer = limit - todaySent;
+        const bufferThreshold = isGmailOrOutlook ? 150 : 0; 
+
+        if (todaySent >= limit) {
+          console.log(`[AutoOutreach] 🛑 Hard cap reached for mailbox ${mailboxMeta.email || mailbox.id} (${todaySent}/${limit}). Skipping ALL sends.`);
+          continue;
+        }
+
+        if (isPriority3 && remainingBuffer <= bufferThreshold) {
+          console.log(`[AutoOutreach] ⏸️  Buffer threshold (150) reached for Gmail/Outlook outreach. Skipping Priority 3 send.`);
+          continue;
+        }
+
+        try {
+          await this.sendPriorityActionToLead(userId, lead, businessName);
+
+          // Add random delay between 2-4 minutes before next action to humanize
           if (i < leads.length - 1) {
             const delay = this.MIN_DELAY_MS + Math.random() * (this.MAX_DELAY_MS - this.MIN_DELAY_MS);
-            console.log(`[AutoOutreach] Waiting ${Math.round(delay / 1000)}s before next email...`);
             await new Promise(resolve => setTimeout(resolve, delay));
           }
         } catch (error) {
-          console.error(`[AutoOutreach] Failed to send to ${lead.email}:`, error);
-          // Continue with next lead
+          console.error(`[AutoOutreach] Failed to process ${lead.email}:`, error);
         }
       }
     } finally {
-      // Remove user from active queue when done
       this.activeOutreachQueue.delete(userId);
     }
   }
@@ -376,46 +408,41 @@ Provide a 1-sentence strategic directive for the outreach generation.
   }
 
   /**
-   * Send outreach email to a single lead
+   * Performs the actual outreach action (Initial, Follow-up, or Reply)
    */
-  private async sendOutreachToLead(
+  private async sendPriorityActionToLead(
     userId: string,
-    lead: UncontactedLead,
+    lead: PriorityLead,
     businessName: string
   ): Promise<void> {
     const { storage } = await import('../../storage.js');
     const user = await storage.getUserById(userId);
-
-    // 1. CHECK VOLUME CAPS BEFORE GENERATING
-    const integrations = await storage.getIntegrations(userId);
-    const mailbox = integrations.find(i => i.id === (lead.metadata as any)?.integrationId) || integrations.find(i => i.connected);
-    
-    if (!mailbox) {
-      console.warn(`[AutoOutreach] ⚠️ Skipping ${lead.email} - No active mailbox found.`);
-      return;
-    }
-
-    // Gmail: 500, Custom: 2500
-    const limit = mailbox.provider === 'gmail' || mailbox.provider === 'outlook' ? 500 : 2500;
-    const mailboxMeta = decryptToJSON(mailbox.encryptedMeta) || {};
-    const todaySent = (mailboxMeta as any).dailySentCount || 0;
-    
-    if (todaySent >= limit) {
-      console.log(`[AutoOutreach] 🛑 Cap reached for mailbox ${mailboxMeta.email || mailbox.id} (${todaySent}/${limit}). Skipping send.`);
-      return;
-    }
-
-    // 2. STRATEGIC AUDIT (Periodically or on-demand)
-    const strategicDirective = await this.performStrategicAudit(userId);
-
-    // Get brand context for personalized outreach
     const brandGuidelines = user?.brandGuidelinePdfText || (user?.metadata as any)?.brandContext || "";
+    const calendarLink = (user as any)?.calendarLink || "";
 
-    console.log(`[AutoOutreach] Generating email for ${lead.name} (${lead.email}) [Strategy: ${strategicDirective || 'Optimal'}]...`);
-
-    // Generate AI-powered cold email
-    const emailContent = await generateColdOutreachEmail(lead, businessName, 
-      `${brandGuidelines}\n\nSTRATEGIC ADJUSTMENT: ${strategicDirective || 'Maintain current high-performance tone.'}`);
+    // Determine Action Type
+    let emailContent: { subject: string; body: string };
+    
+    if (lead.priority === 1) {
+      console.log(`[AutoOutreach] 💬 Generating Priority 1 REPLY for ${lead.email}...`);
+      const { generateReply: generateAIReply } = await import('../ai/ai-service.js');
+      const threadMessages = await storage.getMessagesByLeadId(lead.id);
+      const conversationHistory = threadMessages.map(m => `${m.direction.toUpperCase()}: ${m.body}`).join('\n');
+      
+      const { text } = await generateAIReply(
+        "You are an expert sales closer. Craft a short, personalized reply that moves the deal forward.",
+        `CONVERSATION HISTORY:\n${conversationHistory}\n\nBUSINESS: ${businessName}\nGUIDELINES: ${brandGuidelines}\nBOOKING LINK: ${calendarLink || 'N/A'}\n\nReturn short, human JSON: { "subject": "Re: ...", "body": "..." }\nNOTE: If lead asks for a meeting or more info, use the booking link if provided.`,
+        { jsonMode: true }
+      );
+      const parsed = JSON.parse(text);
+      emailContent = { subject: parsed.subject, body: parsed.body };
+    } else {
+      // Priority 2 or 3 (Initial/Followup)
+      const strategicDirective = await this.performStrategicAudit(userId);
+      console.log(`[AutoOutreach] ✉️ Generating Priority ${lead.priority} OUTREACH for ${lead.email}...`);
+      emailContent = await generateColdOutreachEmail(lead, businessName, 
+        `${brandGuidelines}\n\nSTRATEGIC ADJUSTMENT: ${strategicDirective || 'Maintain current high-performance tone.'}`);
+    }
 
     // Generate tracking token
     const { token } = await createTrackedEmail({
@@ -424,7 +451,7 @@ Provide a 1-sentence strategic directive for the outreach generation.
       recipientEmail: lead.email,
       subject: emailContent.subject,
       sentAt: new Date(),
-      messageId: `auto_${Date.now()}` // Temporary placeholder
+      messageId: `auto_${Date.now()}`
     });
 
     // Send the email
@@ -434,13 +461,13 @@ Provide a 1-sentence strategic directive for the outreach generation.
       emailContent.body,
       emailContent.subject,
       { 
-        isHtml: true, // Enable HTML for tracking pixel
+        isHtml: true,
         trackingId: token,
         leadId: lead.id
       }
     );
 
-    console.log(`[AutoOutreach] ✅ Email sent to ${lead.email}: "${emailContent.subject}"`);
+    console.log(`[AutoOutreach] ✅ Priority ${lead.priority} Action completed for ${lead.email}`);
 
     // Record last outreach activity in user metadata for the dashboard
     try {

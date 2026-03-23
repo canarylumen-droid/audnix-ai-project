@@ -288,6 +288,15 @@ export class FollowUpWorker {
       // Get user's brand context
       const brandContext = await this.getBrandContext(job.userId);
 
+      // [NEW] Inject Calendar Context for AI Booking Specialist
+      const calendarLink = user.calendarLink || (user as any).defaultCtaLink || '';
+      const isCalendlyConnected = !!user.calendlyAccessToken;
+      const bookingContext = {
+        calendarLink,
+        isCalendlyConnected,
+        calendlyUserUri: (user as any).calendlyUserUri
+      };
+
       // EXTRACT ROLE: Priority extraction for high-ticket disruption
       const leadRole = (lead.metadata as any)?.role || "Founder";
       const leadCompany = (lead.metadata as any)?.company || "the team";
@@ -319,13 +328,14 @@ export class FollowUpWorker {
         const aiResult = await generateAIReply(
           lead as any,
           conversationHistory as any,
-          job.channel as 'email' | 'instagram'
+          job.channel as 'email' | 'instagram',
+          bookingContext // [NEW] Pass booking context to conversational AI
         );
         aiReply = aiResult.text || '';
       } else {
         console.log(`[FOLLOW_UP_WORKER] Using follow-up sequence logic for lead ${lead.email}`);
         // Generate AI reply with day-aware context and brand personalization
-        aiReply = await this.generateFollowUp(lead, conversationHistory, brandContext, campaignDay, lead.createdAt || new Date(), job.userId);
+        aiReply = await this.generateFollowUpMessage(lead, conversationHistory, brandContext, campaignDay, lead.createdAt || new Date(), job.userId, bookingContext);
       }
 
       // DEEP TRACKING: Generate unique ID for engagement detection
@@ -427,13 +437,14 @@ export class FollowUpWorker {
   /**
    * Generate AI follow-up message with day-aware context and brand personalization
    */
-  private async generateFollowUp(
+  async generateFollowUpMessage(
     lead: Lead,
     history: Message[],
     brandContext: BrandContext,
     campaignDay: number = 0,
     campaignDayCreated: Date = new Date(),
-    userId?: string
+    userId?: string,
+    bookingContext?: { calendarLink: string; isCalendlyConnected: boolean }
   ): Promise<string> {
     // Get message script for this stage
     const script = getMessageScript(lead.channel as 'email' | 'instagram', campaignDay);
@@ -498,7 +509,7 @@ export class FollowUpWorker {
       systemPrompt = getContextAwareSystemPrompt(personalizationContext, lead.channel);
     }
 
-    const userPrompt = this.buildFollowUpPrompt(lead, history, brandContext, script ?? undefined, contentLibraryItems);
+    const userPrompt = this.buildFollowUpPrompt(lead, history, brandContext, script ?? undefined, contentLibraryItems, bookingContext);
 
     const result = await generateReply(systemPrompt, userPrompt, {
       temperature: 0.7,
@@ -518,7 +529,14 @@ export class FollowUpWorker {
   /**
    * Build follow-up prompt with context and message script
    */
-  private buildFollowUpPrompt(lead: Lead, history: Message[], brandContext: BrandContext, script?: { tone?: string; structure?: string }, contentLibraryItems?: Array<{ name: string; content: string; contentType: string }>): string {
+  private buildFollowUpPrompt(
+    lead: Lead, 
+    history: Message[], 
+    brandContext: BrandContext, 
+    script?: { tone?: string; structure?: string }, 
+    contentLibraryItems?: Array<{ name: string; content: string; contentType: string }>,
+    bookingContext?: { calendarLink: string; isCalendlyConnected: boolean }
+  ): string {
     const metadata = lead.metadata as Record<string, any>;
     const firstName = metadata?.preferred_name || lead.name.split(' ')[0];
     const channelContext = this.getChannelContext(lead.channel);
@@ -605,6 +623,12 @@ LEAD INFORMATION:
 CONVERSATION HISTORY:
 ${historyStr || 'This is the first message'}
 
+${bookingContext?.calendarLink ? `BOOKING PROTOCOL (AI Specialist Mode):
+- IF the lead expresses interest, asks for a call/meeting/demo, or asks for more info: ACTIVELY PROVIDE this link: ${bookingContext.calendarLink}
+- Connection Type: ${bookingContext.isCalendlyConnected ? 'Calendly (Real-time Sync)' : 'Static Link'}
+- Strategy: Use a soft approach first ("Would you be open to a quick chat? I can send over my booking link"), but if they say yes, send the link immediately.
+- Priority: If they ask for a time, give the Link instead of trying to manually coordinate.` : ''}
+
 ${channelContext}${scriptGuidance}
 
 RULES:
@@ -619,7 +643,12 @@ RULES:
 9. Match the tone to the channel (Instagram: casual, Email: professional).
 10. For emails, use the provided brand colors for styling (e.g., button backgrounds, links).
 ${growthHackInstruction}
-Generate a natural follow-up message:`;
+Generate a natural, high-converting follow-up message:
+- FOCUS: If they are interested, BOOK THEM using the link.
+- TONE: Professional but helpful.
+- LENGTH: Concise.
+
+REPLY:`;
   }
 
   /**

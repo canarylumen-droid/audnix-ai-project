@@ -171,7 +171,7 @@ router.get('/instagram/callback', async (req: Request, res: Response): Promise<v
     // Check mailbox limit before proceeding
     const limitCheck = await storage.checkMailboxLimit(stateData.userId);
     if (!limitCheck.allowed) {
-      console.warn(`[Instagram OAuth] Limit reached for ${stateData.userId}: ${limitCheck.count}/${limitCheck.limit}`);
+      console.warn(`[Instagram OAuth] Limit reached for ${stateData.userId}: ${limitCheck.current}/${limitCheck.limit}`);
       res.redirect(`/dashboard/integrations?error=limit_reached&limit=${limitCheck.limit}&plan=${encodeURIComponent(limitCheck.plan)}`);
       return;
     }
@@ -352,7 +352,7 @@ router.get('/gmail/callback', async (req: Request, res: Response): Promise<void>
     // Check mailbox limit before saving
     const limitCheck = await storage.checkMailboxLimit(stateData.userId);
     if (!limitCheck.allowed) {
-      console.warn(`[Gmail OAuth] Limit reached for ${stateData.userId}: ${limitCheck.count}/${limitCheck.limit}`);
+      console.warn(`[Gmail OAuth] Limit reached for ${stateData.userId}: ${limitCheck.current}/${limitCheck.limit}`);
       res.redirect(`/dashboard/integrations?error=limit_reached&limit=${limitCheck.limit}&plan=${encodeURIComponent(limitCheck.plan)}`);
       return;
     }
@@ -709,11 +709,15 @@ router.get('/calendly/callback', async (req: Request, res: Response): Promise<vo
 
     await storage.createIntegration({
       userId: userId,
-      provider: 'calendly',
-      accountType: (tokenData.user?.email || 'Calendly (OAuth)'),
-      encryptedMeta: encryptedMeta,
-      connected: true,
       lastSync: new Date()
+    });
+
+    // [NEW] Sync tokens to user profile for AI Booking Specialist access
+    await storage.updateUser(userId, {
+      calendlyAccessToken: tokenData.accessToken,
+      calendlyRefreshToken: tokenData.refreshToken,
+      calendlyExpiresAt: tokenData.expiresAt,
+      calendlyUserUri: tokenData.user?.email || 'authenticated' // Prefer Email for identification if URI is complex
     });
 
     // Notify frontend

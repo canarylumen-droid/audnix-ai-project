@@ -121,6 +121,7 @@ async function handleMeetingBooked(event: CalendlyWebhookEvent): Promise<void> {
     if (!integration) return;
 
     const userId = integration.userId;
+    const attendeeEmail = invitee.email;
 
     const [booking] = await db.insert(calendarBookings).values({
       userId,
@@ -130,11 +131,27 @@ async function handleMeetingBooked(event: CalendlyWebhookEvent): Promise<void> {
       startTime: new Date(scheduledEvent.start_time),
       endTime: new Date(scheduledEvent.end_time),
       meetingUrl: scheduledEvent.location ? (scheduledEvent.location as any).location : null,
-      attendeeEmail: invitee.email,
+      attendeeEmail: attendeeEmail,
       attendeeName: invitee.name || `${invitee.first_name || ''} ${invitee.last_name || ''}`.trim(),
       status: 'scheduled',
       isAiBooked: true // Assume AI booked for now if it came via our flow
     }).returning();
+
+    // PHASE 14: Update Lead status to 'booked' for high-precision conversion tracking
+    const { leads } = await import("../../../shared/schema.js");
+    const [updatedLead] = await db.update(leads)
+      .set({ 
+        status: 'booked', 
+        updatedAt: new Date(),
+        metadata: sql`jsonb_set(coalesce(${leads.metadata}, '{}'::jsonb), '{lastBooking}', ${JSON.stringify(booking)}::jsonb)`
+      })
+      .where(and(eq(leads.userId, userId), eq(leads.email, attendeeEmail)))
+      .returning();
+
+    if (updatedLead) {
+      console.log(`✓ Lead ${updatedLead.id} (${attendeeEmail}) status updated to 'booked' via Calendly webhook`);
+      wsSync.notifyLeadUpdated(userId, updatedLead);
+    }
 
     // Notify user
     await db.insert(notifications).values({
@@ -142,6 +159,7 @@ async function handleMeetingBooked(event: CalendlyWebhookEvent): Promise<void> {
       type: 'conversion',
       title: 'New Meeting Booked! 📅',
       message: `${booking.attendeeName} just scheduled a meeting for ${new Date(booking.startTime).toLocaleDateString()}`,
+      metadata: { leadId: updatedLead?.id, attendeeEmail }
     });
 
     // Broadcast to dashboard

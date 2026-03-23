@@ -124,18 +124,18 @@ function generateTemplateSummary(insights: any, period: string): string | null {
 
   // Lead growth
   if (trends.leadGrowth > 0) {
-    parts.push(`Lead volume grew ${Math.abs(trends.leadGrowth).toFixed(0)}% this period`);
+    parts.push(`Lead volume grew ${Math.abs(trends.leadGrowth).toFixed(2)}% this period`);
   } else if (trends.leadGrowth < 0) {
-    parts.push(`Lead volume declined ${Math.abs(trends.leadGrowth).toFixed(0)}% this period`);
+    parts.push(`Lead volume declined ${Math.abs(trends.leadGrowth).toFixed(2)}% this period`);
   } else {
     parts.push(`Lead volume is stable this period`);
   }
 
   // Conversion growth
   if (trends.conversionGrowth > 10) {
-    parts.push(`with conversions up ${trends.conversionGrowth.toFixed(0)}%`);
+    parts.push(`with conversions up ${trends.conversionGrowth.toFixed(2)}%`);
   } else if (trends.conversionGrowth < -10) {
-    parts.push(`but conversions dropped ${Math.abs(trends.conversionGrowth).toFixed(0)}%`);
+    parts.push(`but conversions dropped ${Math.abs(trends.conversionGrowth).toFixed(2)}%`);
   }
 
   // Top channel
@@ -181,7 +181,7 @@ router.get("/analytics", requireAuth, async (req: Request, res: Response): Promi
       behaviorInsights: {
         ...analytics.summary,
         replyRate: analytics.summary.totalLeads > 0
-          ? ((analytics.summary.leadsReplied / analytics.summary.totalLeads) * 100).toFixed(1)
+          ? ((analytics.summary.leadsReplied / analytics.summary.totalLeads) * 100).toFixed(2)
           : '0',
         avgResponseTime: await (await import('../lib/ai/analytics-engine.js')).calculateAvgResponseTime(userId),
         positiveSentimentRate: analytics.positiveSentimentRate
@@ -211,7 +211,7 @@ router.get("/weekly-report", requireAuth, async (req: Request, res: Response): P
 
     const inboundVolume = analytics.summary.leadsReplied;
     const outboundVolume = analytics.summary.totalLeads;
-    const replyRate = outboundVolume > 0 ? ((inboundVolume / outboundVolume) * 100).toFixed(1) : '0';
+    const replyRate = outboundVolume > 0 ? ((inboundVolume / outboundVolume) * 100).toFixed(2) : '0';
 
     const bestHour = analytics.summary.bestReplyHour;
     const bestHourStr = bestHour !== null ?

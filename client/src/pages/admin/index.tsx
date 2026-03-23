@@ -76,7 +76,7 @@ function calculatePercentageChange(current: number, previous: number | undefined
   }
   const change = ((current - previous) / previous) * 100;
   if (isNaN(change)) return "0%";
-  return change > 0 ? `+${change.toFixed(1)}%` : `${change.toFixed(1)}%`;
+  return change > 0 ? `+${change.toFixed(2)}%` : `${change.toFixed(2)}%`;
 }
 
 export default function AdminDashboard() {

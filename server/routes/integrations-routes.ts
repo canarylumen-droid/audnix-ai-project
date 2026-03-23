@@ -49,7 +49,7 @@ router.post('/:provider/connect', requireAuth, async (req: Request, res: Respons
         res.status(403).json({ 
           error: 'Limit reached', 
           message: `Your current plan (${limitCheck.plan}) allows up to ${limitCheck.limit} mailboxes.`,
-          count: limitCheck.count,
+          count: limitCheck.current,
           limit: limitCheck.limit,
           plan: limitCheck.plan
         });

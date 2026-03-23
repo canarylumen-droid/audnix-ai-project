@@ -13,10 +13,10 @@ import { LRUCache } from 'lru-cache';
 const resolveMx = promisify(dns.resolveMx);
 const resolveTxt = promisify(dns.resolveTxt);
 
-// In-memory cache for dashboard stats (30s)
+// In-memory cache for dashboard stats (5s)
 const statsCache = new LRUCache<string, any>({ 
   max: 500,
-  ttl: 1000 * 30 // 30 seconds
+  ttl: 1000 * 5 // Reduced to 5 seconds for real-time sync
 });
 
 const router = Router();
@@ -133,12 +133,20 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
       const bouncePenalty = (hardBounces * 10) + (softBounces * 2) + (spamBounces * 15);
       
       // Start from 100 and subtract penalties based on performance
-      reputationScore = Math.max(0, 100 - bouncePenalty - (bounceRate * 3));
+      reputationScore = Number(Math.max(0, 100 - bouncePenalty - (bounceRate * 3)).toFixed(2));
       
       // If they have good volume and low bounces, they earn a 'trust' bonus
       if (stats.totalLeads > 100 && bounceRate < 2) {
-        reputationScore = Math.min(100, reputationScore + 5);
+        reputationScore = Number(Math.min(100, reputationScore + 5).toFixed(2));
       }
+
+      // [NEW] Factor in smoothed spamRiskScore from all active mailboxes (Phased smoothing)
+      const mailboxRisk = integrations
+        .filter(i => ['gmail', 'outlook', 'custom_email'].includes(i.provider))
+        .reduce((sum, i) => sum + (Number(i.spamRiskScore) || 0), 0) / Math.max(1, integrations.length);
+      
+      // Subtract risk score (0-100) with 0.5 weighting to domain health
+      reputationScore = Number(Math.max(0, reputationScore - (mailboxRisk * 0.5)).toFixed(2));
     } else {
       // If no leads sent yet, it's a "neutral" 100 until proven otherwise
       reputationScore = 100;
@@ -192,11 +200,11 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
     }).from(msgSchema);
 
     const globalOpenRate = Number(globalMsgStats?.totalSent || 0) > 0
-      ? Math.round((Number(globalMsgStats?.opened || 0) / Number(globalMsgStats?.totalSent || 0)) * 100)
-      : 25; // Fallback benchmark
+      ? Number(((Number(globalMsgStats?.opened || 0) / Number(globalMsgStats?.totalSent || 0)) * 100).toFixed(2))
+      : 25.00; // Fallback benchmark
 
     const healthPenalty = (unverifiedDomains * 15) + (disconnectedIntegrations * 20);
-    const domainHealth = Math.max(0, reputationScore - healthPenalty);
+    const domainHealth = Number(Math.max(0, reputationScore - healthPenalty).toFixed(2));
 
     // Map verification results nicely
     const mappedVerifications = activeVerifications.map(v => {
@@ -227,9 +235,9 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
         }
       },
       benchmarks: {
-        avgLeadScore: Math.round(globalAvgScore),
+        avgLeadScore: Number(globalAvgScore.toFixed(2)),
         avgOpenRate: globalOpenRate,
-        avgResponseRate: stats.responseRate || 15,
+        avgResponseRate: stats.responseRate || 15.00,
         marketSentiment: stats.totalLeads > 50 && stats.responseRate > 10 ? 'positive' : 'neutral'
       },
       sync: {
@@ -309,7 +317,7 @@ router.get('/activity', requireAuth, async (req: Request, res: Response): Promis
       options.daysFilter = daysFilter;
     }
 
-    if (limit) options.limit = parseInt(limit as string);
+    if (limit) options.limit = limit;
 
     const auditLogs = await storage.getAuditLogs(userId, options);
     const activities = auditLogs.map(log => ({

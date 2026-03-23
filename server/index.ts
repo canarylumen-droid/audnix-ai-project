@@ -41,6 +41,7 @@ import { mailboxHealthService } from "./lib/email/mailbox-health-service.js";
 import { redistributionWorker } from "./lib/email/redistribution-worker.js";
 import { leadExpiryWorker } from "./lib/workers/lead-expiry-worker.js";
 import { reputationWorker } from "./lib/workers/reputation-worker.js";
+import { meetingReminderWorker } from "./lib/workers/meeting-reminder-worker.js";
 import { apiLimiter, authLimiter } from "./middleware/rate-limit.js";
 import { sentinel } from "./middleware/sentinel.js";
 import { fileURLToPath } from "url";
@@ -506,6 +507,7 @@ async function runMigrations() {
       startWorker("Payment approval", () => paymentAutoApprovalWorker.start());
       startWorker("Email warmup", () => emailWarmupWorker.start());
       startWorker("Reputation", () => reputationWorker.start());
+      startWorker("Meeting Reminders", () => meetingReminderWorker.start());
       // startWorker("Lead Expiry", () => leadExpiryWorker.start());
 
       // Real-time IMAP IDLE Manager
