@@ -545,6 +545,10 @@ export class MemStorage implements IStorage {
       brandGuidelinePdfText: insertUser.brandGuidelinePdfText || null,
       config: insertUser.config || {},
       filteredLeadsCount: insertUser.filteredLeadsCount || 0,
+      calendlyAccessToken: insertUser.calendlyAccessToken || null,
+      calendlyRefreshToken: insertUser.calendlyRefreshToken || null,
+      calendlyExpiresAt: insertUser.calendlyExpiresAt || null,
+      calendlyUserUri: insertUser.calendlyUserUri || null,
     };
 
     this.users.set(id, user);
@@ -904,7 +908,7 @@ export class MemStorage implements IStorage {
       connected: integration.connected ?? true,
       accountType: integration.accountType || null,
       lastSync: integration.lastSync || null,
-      healthStatus: 'healthy',
+      healthStatus: 'connected',
       lastHealthError: null,
       lastHealthCheckAt: null,
       mailboxPauseUntil: null,

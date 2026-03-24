@@ -1,5 +1,5 @@
-import { storage } from '../storage.js';
-import { calendlyOAuth } from './oauth/calendly.js';
+import { storage } from '../../storage.js';
+import { calendlyOAuth } from '../oauth/calendly.js';
 
 export interface CalendlyMeetingParams {
   email: string;

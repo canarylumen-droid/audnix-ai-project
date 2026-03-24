@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { db } from "../../db.js";
 import { calendarBookings, integrations, notifications } from "../../../shared/schema.js";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import crypto from 'crypto';
 import { wsSync } from "../websocket-sync.js";
 
@@ -150,7 +150,7 @@ async function handleMeetingBooked(event: CalendlyWebhookEvent): Promise<void> {
 
     if (updatedLead) {
       console.log(`✓ Lead ${updatedLead.id} (${attendeeEmail}) status updated to 'booked' via Calendly webhook`);
-      wsSync.notifyLeadUpdated(userId, updatedLead);
+      wsSync.notifyLeadsUpdated(userId, { event: 'UPDATE', leadId: updatedLead.id });
     }
 
     // Notify user

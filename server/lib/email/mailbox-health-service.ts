@@ -16,7 +16,7 @@ import { db } from '../../db.js';
 import { integrations, notifications, users, bounceTracker, outreachCampaigns, campaignLeads, auditTrail } from '../../../shared/schema.js';
 import { eq, and, ne, sql, lte, isNull, or, gt, inArray, count as drizzleCount } from 'drizzle-orm';
 import { storage } from '../../storage.js';
-import { decrypt } from '../crypto/encryption.js';
+import { decrypt, encryptJSON, decryptToJSON } from '../crypto/encryption.js';
 import { wsSync } from '../websocket-sync.js';
 import { getPlanCapabilities } from '../../../shared/plan-utils.js';
 import { sendSystemEmail } from '../channels/email.js';
@@ -140,8 +140,8 @@ class MailboxHealthService {
           result.warning = `DNS issues detected: ${dnsResult.missing.join(', ')}`;
           // Update integration metadata with DNS status
           const currentMeta = decryptToJSON(integration.encryptedMeta) || {};
-          await storage.updateIntegration(integration.id, {
-            encryptedMeta: await storage.encryptJSON({
+          await storage.updateIntegrationById(integration.id, {
+            encryptedMeta: encryptJSON({
               ...currentMeta,
               dns_health: dnsResult.details,
               dns_last_checked: new Date()

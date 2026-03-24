@@ -8,7 +8,7 @@
 
 import { db } from '../../db.js';
 import { users, leads, messages, integrations, followUpQueue } from '../../../shared/schema.js';
-import { eq, and, or, isNull, ne } from 'drizzle-orm';
+import { eq, and, or, isNull, ne, sql } from 'drizzle-orm';
 import { storage } from '../../storage.js';
 import { wsSync } from '../websocket-sync.js';
 import { sendEmail } from '../channels/email.js';
@@ -40,7 +40,7 @@ interface PriorityLead {
 }
 
 async function generateColdOutreachEmail(
-  lead: UncontactedLead,
+  lead: PriorityLead,
   businessName: string,
   brandGuidelines?: string
 ): Promise<{ subject: string; body: string }> {
@@ -241,7 +241,7 @@ export class AutonomousOutreachWorker {
         )
       ).limit(20);
 
-      repliedLeads.forEach(l => {
+      repliedLeads.forEach((l: any) => {
         allLeads.push({
           ...l,
           email: l.email as string,
@@ -261,7 +261,7 @@ export class AutonomousOutreachWorker {
         )
       ).limit(20);
 
-      followUpLeads.forEach(l => {
+      followUpLeads.forEach((l: any) => {
         allLeads.push({
           ...l,
           email: l.email as string,
@@ -280,7 +280,7 @@ export class AutonomousOutreachWorker {
         )
       ).limit(20);
 
-      initialLeads.forEach(l => {
+      initialLeads.forEach((l: any) => {
         allLeads.push({
           ...l,
           email: l.email as string,

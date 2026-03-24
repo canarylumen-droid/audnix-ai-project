@@ -146,14 +146,48 @@ export class DrizzleStorage implements IStorage {
   async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
     checkDatabase();
     if (!isValidUUID(id)) return undefined;
+
+    // If metadata is being updated, merge it with existing metadata instead of overwriting
+    if (updates.metadata) {
+      const { metadata, ...otherUpdates } = updates;
+
+      // Get current user to merge metadata
+      const currentUser = await this.getUser(id);
+      if (!currentUser) {
+        return undefined;
+      }
+
+      // Merge metadata
+      const mergedMetadata = {
+        ...(currentUser.metadata ?? {}),
+        ...metadata,
+      };
+
+      const [result] = await db
+        .update(users)
+        .set({
+          ...otherUpdates,
+          metadata: mergedMetadata as any,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, id))
+        .returning();
+      
+      if (result) {
+        wsSync.notifySettingsUpdated(id, result);
+      }
+      return result;
+    }
+
+    // Always bump updatedAt for any update
     const [result] = await db
       .update(users)
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(users.id, id))
       .returning();
-    
+
     if (result) {
-      wsSync.notifySettingsUpdated(id);
+      wsSync.notifySettingsUpdated(id, result);
     }
     return result;
   }
@@ -202,57 +236,21 @@ export class DrizzleStorage implements IStorage {
         stripeSubscriptionId: insertUser.stripeSubscriptionId || null,
         supabaseId: insertUser.supabaseId || null,
         lastLogin: new Date(),
-        config: {},
+        config: insertUser.config || {},
+        calendarLink: insertUser.calendarLink || null,
+        brandGuidelinePdfUrl: insertUser.brandGuidelinePdfUrl || null,
+        brandGuidelinePdfText: insertUser.brandGuidelinePdfText || null,
+        filteredLeadsCount: insertUser.filteredLeadsCount || 0,
+        calendlyAccessToken: insertUser.calendlyAccessToken || null,
+        calendlyRefreshToken: insertUser.calendlyRefreshToken || null,
+        calendlyExpiresAt: insertUser.calendlyExpiresAt || null,
+        calendlyUserUri: insertUser.calendlyUserUri || null,
       })
       .returning();
 
     return result[0];
   }
 
-  async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
-    checkDatabase();
-    if (!isValidUUID(id)) return undefined;
-
-    // If metadata is being updated, merge it with existing metadata instead of overwriting
-    if (updates.metadata) {
-      const { metadata, ...otherUpdates } = updates;
-
-      // Get current user to merge metadata
-      const currentUser = await this.getUser(id);
-      if (!currentUser) {
-        return undefined;
-      }
-
-      // Merge metadata
-      const mergedMetadata = {
-        ...(currentUser.metadata ?? {}),
-        ...metadata,
-      };
-
-      const result = await db
-        .update(users)
-        .set({
-          ...otherUpdates,
-          metadata: mergedMetadata as any,
-          updatedAt: new Date()
-        })
-        .where(eq(users.id, id))
-        .returning();
-      return result[0];
-    }
-
-    // Always bump updatedAt for any update
-    const result = await db
-      .update(users)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(users.id, id))
-      .returning();
-
-    if (result[0]) {
-      wsSync.notifySettingsUpdated(id, result[0]);
-    }
-    return result[0];
-  }
 
   async getAllUsers(): Promise<User[]> {
     checkDatabase();

@@ -1,15 +1,19 @@
+import * as express from "express";
 import { requireAdmin } from "../middleware/auth.js";
 import { getSecurityLogs } from "../middleware/sentinel.js";
 import { db } from "../db.js";
 import { users, leads, messages, integrations } from "../../shared/schema.js";
 import { eq, desc, sql, and, gte, count } from "drizzle-orm";
 
-const router = Router();
+const router = express.Router();
 
-interface PlanPrices {
-  [key: string]: number;
+interface AuthenticatedRequest extends express.Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
 }
-
 interface UserWithPlan {
   plan: string | null;
 }
@@ -53,7 +57,7 @@ router.use(requireAdmin);
 // ============ ANALYTICS ENDPOINTS ============
 
 // Get admin metrics (for admin dashboard)
-router.get("/metrics", async (req: Request, res: Response): Promise<void> => {
+router.get("/metrics", async (req: express.Request, res: express.Response): Promise<void> => {
   try {
     // Get total users
     const totalUsersResult = await db.select({ count: count() }).from(users);
@@ -161,7 +165,7 @@ router.get("/metrics", async (req: Request, res: Response): Promise<void> => {
 });
 
 // Get previous period overview for comparison
-router.get("/overview/previous", async (req: Request, res: Response): Promise<void> => {
+router.get("/overview/previous", async (req: express.Request, res: express.Response): Promise<void> => {
   try {
     // Calculate previous 30-day period (30-60 days ago)
     const sixtyDaysAgo = new Date();
@@ -245,7 +249,7 @@ router.get("/overview/previous", async (req: Request, res: Response): Promise<vo
 });
 
 // Get dashboard overview
-router.get("/overview", async (req: Request, res: Response): Promise<void> => {
+router.get("/overview", async (req: express.Request, res: express.Response): Promise<void> => {
   try {
     // Get total users
     const totalUsersResult = await db.select({ count: count() }).from(users);
@@ -311,7 +315,7 @@ router.get("/overview", async (req: Request, res: Response): Promise<void> => {
 });
 
 // Get user growth data
-router.get("/analytics/user-growth", async (req: Request, res: Response): Promise<void> => {
+router.get("/analytics/user-growth", async (req: express.Request, res: express.Response): Promise<void> => {
   try {
     const days = parseInt(req.query.days as string) || 30;
 
@@ -335,7 +339,7 @@ router.get("/analytics/user-growth", async (req: Request, res: Response): Promis
 });
 
 // Get revenue analytics
-router.get("/analytics/revenue", async (req: Request, res: Response): Promise<void> => {
+router.get("/analytics/revenue", async (req: express.Request, res: express.Response): Promise<void> => {
   try {
     const days = parseInt(req.query.days as string) || 30;
 
@@ -380,7 +384,7 @@ router.get("/analytics/revenue", async (req: Request, res: Response): Promise<vo
 });
 
 // Get channel performance
-router.get("/analytics/channels", async (req: Request, res: Response): Promise<void> => {
+router.get("/analytics/channels", async (req: express.Request, res: express.Response): Promise<void> => {
   try {
     const channelStats = await db.execute(sql`
       SELECT 
@@ -401,7 +405,7 @@ router.get("/analytics/channels", async (req: Request, res: Response): Promise<v
 });
 
 // Get onboarding statistics
-router.get("/analytics/onboarding", async (req: Request, res: Response): Promise<void> => {
+router.get("/analytics/onboarding", async (req: express.Request, res: express.Response): Promise<void> => {
   try {
     const { onboardingProfiles } = await import("../../shared/schema.js");
 
@@ -473,7 +477,7 @@ router.get("/analytics/onboarding", async (req: Request, res: Response): Promise
 // ============ USER MANAGEMENT ENDPOINTS ============
 
 // Search and list users
-router.get("/users", async (req: Request, res: Response): Promise<void> => {
+router.get("/users", async (req: express.Request, res: express.Response): Promise<void> => {
   try {
     const search = req.query.search as string;
     const page = parseInt(req.query.page as string) || 1;
@@ -512,7 +516,7 @@ router.get("/users", async (req: Request, res: Response): Promise<void> => {
 });
 
 // Get specific user details
-router.get("/users/:userId", async (req: Request, res: Response): Promise<void> => {
+router.get("/users/:userId", async (req: express.Request, res: express.Response): Promise<void> => {
   try {
     const { userId } = req.params;
 
@@ -582,7 +586,7 @@ router.get("/users/:userId", async (req: Request, res: Response): Promise<void> 
 });
 
 // Get user activity timeline
-router.get("/users/:userId/activity", async (req: Request, res: Response): Promise<void> => {
+router.get("/users/:userId/activity", async (req: express.Request, res: express.Response): Promise<void> => {
   try {
     const { userId } = req.params;
     const limit = parseInt(req.query.limit as string) || 50;
@@ -628,7 +632,7 @@ router.get("/users/:userId/activity", async (req: Request, res: Response): Promi
 // ============ LEAD MANAGEMENT ============
 
 // Get all leads (read-only view)
-router.get("/leads", async (req: Request, res: Response): Promise<void> => {
+router.get("/leads", async (req: express.Request, res: express.Response): Promise<void> => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
@@ -685,7 +689,7 @@ router.get("/leads", async (req: Request, res: Response): Promise<void> => {
 
 // Direct upgrade user to any plan (no payment required)
 // Used for: whitelisted team members, promotions, testing
-router.post("/users/:userId/upgrade", async (req: Request, res: Response): Promise<void> => {
+router.post("/users/:userId/upgrade", async (req: AuthenticatedRequest, res: express.Response): Promise<void> => {
   try {
     const { userId } = req.params;
     const { plan } = req.body;
@@ -747,7 +751,7 @@ router.post("/users/:userId/upgrade", async (req: Request, res: Response): Promi
 });
 
 // Get user by email (for admin lookup)
-router.get("/users/lookup", async (req: Request, res: Response): Promise<void> => {
+router.get("/users/lookup", async (req: express.Request, res: express.Response): Promise<void> => {
   try {
     const { email } = req.query;
 
@@ -786,7 +790,7 @@ router.get("/users/lookup", async (req: Request, res: Response): Promise<void> =
 // ============ ADMIN WHITELIST ============
 
 // Get admin whitelist
-router.get("/whitelist", async (req: Request, res: Response): Promise<void> => {
+router.get("/whitelist", async (req: express.Request, res: express.Response): Promise<void> => {
   try {
     const whitelist = await db.execute(sql`
       SELECT * FROM admin_whitelist 
@@ -801,12 +805,12 @@ router.get("/whitelist", async (req: Request, res: Response): Promise<void> => {
 });
 
 // Get security logs from Sentinel
-router.get("/security-logs", (req: Request, res: Response) => {
+router.get("/security-logs", (req: express.Request, res: express.Response) => {
   res.json({ logs: getSecurityLogs() });
 });
 
 // Add email to whitelist
-router.post("/whitelist", async (req: Request, res: Response): Promise<void> => {
+router.post("/whitelist", async (req: AuthenticatedRequest, res: express.Response): Promise<void> => {
   try {
     const { email } = req.body;
     const adminId = req.user?.id;
@@ -831,7 +835,7 @@ router.post("/whitelist", async (req: Request, res: Response): Promise<void> => 
 });
 
 // Remove email from whitelist
-router.delete("/whitelist/:email", async (req: Request, res: Response): Promise<void> => {
+router.delete("/whitelist/:email", async (req: express.Request, res: express.Response): Promise<void> => {
   try {
     const { email } = req.params;
 
@@ -850,7 +854,7 @@ router.delete("/whitelist/:email", async (req: Request, res: Response): Promise<
 
 // ============ USER RESET OPERATIONS ============
 
-router.post("/reset-limbo-users", async (req: Request, res: Response): Promise<void> => {
+router.post("/reset-limbo-users", async (req: express.Request, res: express.Response): Promise<void> => {
   try {
     console.log("[ADMIN] Starting limbo user reset...");
 
@@ -907,7 +911,7 @@ router.post("/reset-limbo-users", async (req: Request, res: Response): Promise<v
   }
 });
 
-router.post("/reset-all-users", async (req: Request, res: Response): Promise<void> => {
+router.post("/reset-all-users", async (req: express.Request, res: express.Response): Promise<void> => {
   try {
     const { confirmReset } = req.body;
 

@@ -114,6 +114,31 @@ export async function runDatabaseMigrations() {
                     ALTER TABLE users ADD COLUMN filtered_leads_count INTEGER DEFAULT 0;
                 END IF;
 
+                -- Users: Calendly columns
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='calendly_access_token') THEN
+                    ALTER TABLE users ADD COLUMN calendly_access_token TEXT;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='calendly_refresh_token') THEN
+                    ALTER TABLE users ADD COLUMN calendly_refresh_token TEXT;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='calendly_expires_at') THEN
+                    ALTER TABLE users ADD COLUMN calendly_expires_at TIMESTAMP;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='calendly_user_uri') THEN
+                    ALTER TABLE users ADD COLUMN calendly_user_uri TEXT;
+                END IF;
+
+                -- Users: Brand and Calendar links
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='calendar_link') THEN
+                    ALTER TABLE users ADD COLUMN calendar_link TEXT;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='brand_guideline_pdf_url') THEN
+                    ALTER TABLE users ADD COLUMN brand_guideline_pdf_url TEXT;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='brand_guideline_pdf_text') THEN
+                    ALTER TABLE users ADD COLUMN brand_guideline_pdf_text TEXT;
+                END IF;
+
                 -- Leads: warm, last_message_at, ai_paused
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='leads' AND column_name='warm') THEN
                     ALTER TABLE leads ADD COLUMN warm BOOLEAN NOT NULL DEFAULT false;

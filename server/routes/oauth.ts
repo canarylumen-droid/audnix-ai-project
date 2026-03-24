@@ -709,6 +709,9 @@ router.get('/calendly/callback', async (req: Request, res: Response): Promise<vo
 
     await storage.createIntegration({
       userId: userId,
+      provider: 'calendly',
+      encryptedMeta: encryptedMeta,
+      connected: true,
       lastSync: new Date()
     });
 

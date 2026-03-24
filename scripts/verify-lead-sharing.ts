@@ -3,12 +3,13 @@ import { db } from "../server/db.js";
 import { leads, integrations, outreachCampaigns, campaignLeads, messages, users } from "../shared/schema.js";
 import { drizzleStorage } from "../server/drizzle-storage.js";
 import { eq, and, inArray } from "drizzle-orm";
-import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "crypto";
 
 async function verifyLeadSharing() {
   console.log("🚀 Starting Lead Sharing Verification...");
 
-  const testUserId = uuidv4();
+  const testUserId = randomUUID();
+  let campaignId: string | undefined;
   
   try {
     // 1. Setup Test User
@@ -19,8 +20,8 @@ async function verifyLeadSharing() {
     });
 
     // 2. Setup Integrations (Mailboxes)
-    const integrationA = uuidv4();
-    const integrationB = uuidv4();
+    const integrationA = randomUUID();
+    const integrationB = randomUUID();
 
     await db.insert(integrations).values([
       { id: integrationA, userId: testUserId, provider: "custom_email", connected: true, encryptedMeta: "test" },
@@ -28,7 +29,7 @@ async function verifyLeadSharing() {
     ]);
 
     // 3. Setup Campaign
-    const campaignId = uuidv4();
+    campaignId = randomUUID();
     await db.insert(outreachCampaigns).values({
       id: campaignId,
       userId: testUserId,
@@ -39,8 +40,8 @@ async function verifyLeadSharing() {
     });
 
     // 4. Setup Leads
-    const lead1 = uuidv4();
-    const lead2 = uuidv4();
+    const lead1 = randomUUID();
+    const lead2 = randomUUID();
 
     await db.insert(leads).values([
       { id: lead1, userId: testUserId, name: "Lead 1", channel: "email", email: "lead1@example.com", integrationId: integrationA },
@@ -56,14 +57,14 @@ async function verifyLeadSharing() {
     // 6. Verify Sharing Logic
     console.log("🔍 Verifying queries...");
 
-    const leadsForA = await drizzleStorage.getLeads(testUserId, { integrationId: integrationA });
+    const leadsForA = await drizzleStorage.getLeads({ userId: testUserId, integrationId: integrationA });
     console.log(`Leads for Integration A: ${leadsForA.length} (Expected: 2 because of shared campaign)`);
 
-    const leadsForB = await drizzleStorage.getLeads(testUserId, { integrationId: integrationB });
+    const leadsForB = await drizzleStorage.getLeads({ userId: testUserId, integrationId: integrationB });
     console.log(`Leads for Integration B: ${leadsForB.length} (Expected: 2 because of shared campaign)`);
 
     // 7. Verify Message Sharing
-    const msg1 = uuidv4();
+    const msg1 = randomUUID();
     await db.insert(messages).values({
       id: msg1,
       userId: testUserId,
@@ -92,7 +93,7 @@ async function verifyLeadSharing() {
     // Cleanup
     console.log("🧹 Cleaning up test data...");
     await db.delete(messages).where(eq(messages.userId, testUserId));
-    await db.delete(campaignLeads).where(eq(campaignLeads.campaignId, campaignId));
+    if (campaignId) await db.delete(campaignLeads).where(eq(campaignLeads.campaignId, campaignId));
     await db.delete(outreachCampaigns).where(eq(outreachCampaigns.userId, testUserId));
     await db.delete(leads).where(eq(leads.userId, testUserId));
     await db.delete(integrations).where(eq(integrations.userId, testUserId));

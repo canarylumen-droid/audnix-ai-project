@@ -24,15 +24,26 @@ export default function SecurityDashboard() {
     queryKey: ["/api/admin/security-logs"],
   });
 
+  const { socket } = useRealtime();
+
   // Listen for real-time security alerts
-  useRealtime("SECURITY_ALERT", (violation: SecurityViolation) => {
-    setRealtimeLogs((prev) => [violation, ...prev].slice(0, 50));
-    toast({
-      title: "Security Threat Blocked",
-      description: `Blocked access to ${violation.path} from ${violation.ip}`,
-      variant: "destructive",
-    });
-  });
+  useEffect(() => {
+    if (!socket) return;
+
+    const onSecurityAlert = (violation: SecurityViolation) => {
+      setRealtimeLogs((prev) => [violation, ...prev].slice(0, 50));
+      toast({
+        title: "Security Threat Blocked",
+        description: `Blocked access to ${violation.path} from ${violation.ip}`,
+        variant: "destructive",
+      });
+    };
+
+    socket.on("SECURITY_ALERT", onSecurityAlert);
+    return () => {
+      socket.off("SECURITY_ALERT", onSecurityAlert);
+    };
+  }, [socket, toast]);
 
   const allLogs = [
     ...realtimeLogs,
