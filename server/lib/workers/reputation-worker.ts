@@ -2,6 +2,7 @@ import { storage } from '../../storage.js';
 import { verifyDomainDns } from '../email/dns-verification.js';
 import { wsSync } from '../websocket-sync.js';
 import { decryptToJSON } from '../crypto/encryption.js';
+import { quotaService } from '../monitoring/quota-service.js';
 
 export class ReputationWorker {
     private interval: NodeJS.Timeout | null = null;
@@ -22,6 +23,10 @@ export class ReputationWorker {
 
     async process() {
         if (this.isProcessing) return;
+        if (quotaService.isRestricted()) {
+            console.log('[ReputationWorker] Skipping check: Database quota restricted');
+            return;
+        }
         this.isProcessing = true;
 
         try {
@@ -63,8 +68,9 @@ export class ReputationWorker {
                         }
                 }
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Reputation Worker Error:', error);
+            quotaService.reportDbError(error);
         } finally {
             this.isProcessing = false;
         }

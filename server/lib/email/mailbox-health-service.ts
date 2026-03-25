@@ -20,6 +20,7 @@ import { decrypt, encryptJSON, decryptToJSON } from '../crypto/encryption.js';
 import { wsSync } from '../websocket-sync.js';
 import { getPlanCapabilities } from '../../../shared/plan-utils.js';
 import { sendSystemEmail } from '../channels/email.js';
+import { quotaService } from '../monitoring/quota-service.js';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -78,6 +79,10 @@ class MailboxHealthService {
    * Run health checks for all connected email mailboxes
    */
   async runHealthChecks(): Promise<void> {
+    if (quotaService.isRestricted()) {
+      console.log('[MailboxHealth] Skipping checks: Database quota restricted');
+      return;
+    }
     try {
       const emailProviders = ['gmail', 'outlook', 'custom_email'];
       let allIntegrations: any[] = [];
@@ -106,6 +111,7 @@ class MailboxHealthService {
 
     } catch (err: any) {
       console.error('[MailboxHealth] Global health check error:', err.message);
+      quotaService.reportDbError(err);
       // Never crash
     }
   }

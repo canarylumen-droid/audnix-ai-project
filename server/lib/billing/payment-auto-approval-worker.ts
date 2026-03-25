@@ -1,5 +1,6 @@
 import { storage } from "../../storage.js";
 import { workerHealthMonitor } from "../monitoring/worker-health.js";
+import { quotaService } from "../monitoring/quota-service.js";
 
 interface AutoApprovalStats {
   checked: number;
@@ -53,6 +54,10 @@ class PaymentAutoApprovalWorker {
    * Process all pending payments and auto-approve them
    */
   private async processPendingPayments() {
+    if (quotaService.isRestricted()) {
+      // Don't spam logs for this worker as it runs every 30s
+      return;
+    }
     try {
       this.isProcessing = true;
       const now = new Date();
@@ -140,6 +145,7 @@ class PaymentAutoApprovalWorker {
     } catch (error: any) {
       this.stats.errors += 1;
       console.error("❌ Error in payment auto-approval worker:", error.message);
+      quotaService.reportDbError(error);
       workerHealthMonitor.recordError('payment-auto-approval-worker', error.message || 'Unknown error');
     } finally {
       this.isProcessing = false;

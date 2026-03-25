@@ -39,6 +39,7 @@ import { campaignWorker } from "./lib/queues/campaign-queue.js";
 import { emailSyncWorkerModule } from "./lib/queues/email-sync-queue.js";
 import { mailboxHealthService } from "./lib/email/mailbox-health-service.js";
 import { redistributionWorker } from "./lib/email/redistribution-worker.js";
+import { quotaService } from "./lib/monitoring/quota-service.js";
 import { leadExpiryWorker } from "./lib/workers/lead-expiry-worker.js";
 import { reputationWorker } from "./lib/workers/reputation-worker.js";
 import { meetingReminderWorker } from "./lib/workers/meeting-reminder-worker.js";
@@ -211,6 +212,20 @@ app.use((req, res, next) => {
   next();
 });
 
+// Proactive Quota Check Middleware (MANDATORY TOP-LEVEL)
+// This must run BEFORE session store or ANY database queries.
+app.use((req, res, next) => {
+  if (quotaService.isRestricted()) {
+    return res.status(503).json({
+      error: "Service Temporarily Unavailable",
+      message: "The database is currently undergoing maintenance or has reached its temporary capacity limits. Please try again in a few minutes.",
+      code: "QUOTA_EXCEEDED",
+      retryAfter: 900 // 15 minutes
+    });
+  }
+  next();
+});
+
 const sessionSecret = process.env.SESSION_SECRET || "audnix-stable-dev-fallback-secret-123";
 const PgSession = connectPgSimple(session);
 let sessionStore: session.Store | undefined;
@@ -243,6 +258,11 @@ if (process.env.DATABASE_URL) {
     connectionTimeoutMillis: 5000,
   });
 
+  pool.on('error', (err) => {
+    console.error('🚨 [SESSION POOL ERROR]:', err);
+    quotaService.reportDbError(err);
+  });
+
   sessionStore = new PgSession({
     pool: pool,
     tableName: "user_sessions",
@@ -254,6 +274,7 @@ if (process.env.DATABASE_URL) {
   // Handle session store errors to prevent server-wide 500s
   (sessionStore as any).on('error', (err: any) => {
     console.error("🚨 [SESSION STORE ERROR]", err);
+    quotaService.reportDbError(err);
   });
   
   console.log("✅ Using PostgreSQL session store with SSL (optimized)");
@@ -563,6 +584,23 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 
   if (res.headersSent) {
     return next(err);
+  }
+
+  // Specialized response for database quota issues
+  const isQuotaError = 
+    String(err.code) === 'XX000' || 
+    (err.message && (
+      err.message.toLowerCase().includes('quota') || 
+      err.message.includes('XX000') ||
+      err.message.toLowerCase().includes('capacity limit')
+    ));
+  if (isQuotaError) {
+    quotaService.reportDbError(err); // Ensure service tracks it
+    return res.status(503).json({
+      error: "Service Temporarily Unavailable",
+      message: "Database capacity limit reached. We are automatically throttling requests to restore service. Please try again in 15 minutes.",
+      code: "XX000"
+    });
   }
 
   res.status(status).json({

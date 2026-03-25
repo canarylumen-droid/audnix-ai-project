@@ -1,5 +1,6 @@
 import { storage } from "../../storage.js";
 import { generateInsights } from "./ai-service.js";
+import { quotaService } from "../monitoring/quota-service.js";
 import type { User, Lead, Message } from "../../../shared/schema.js";
 import type { WeeklyInsight, LeadInsights } from "../../../shared/types.js";
 
@@ -46,6 +47,10 @@ export class WeeklyInsightsWorker {
   }
 
   private async processWeeklyInsights(): Promise<void> {
+    if (quotaService.isRestricted()) {
+      console.log('[WeeklyInsights] Skipping run: Database quota restricted');
+      return;
+    }
     try {
       // Check if database is ready by attempting to get users
       let users: User[];
@@ -150,6 +155,7 @@ export class WeeklyInsightsWorker {
       // Only log non-database initialization errors
       if (dbError.code !== '42P01' && dbError.code !== 'ECONNREFUSED') {
         console.error("Error in processWeeklyInsights:", error);
+        quotaService.reportDbError(error);
       }
     }
   }

@@ -3,6 +3,7 @@ import { leads } from '../../../shared/schema.js';
 import { eq, and, sql, lt } from 'drizzle-orm';
 import { wsSync } from '../websocket-sync.js';
 import { workerHealthMonitor } from '../monitoring/worker-health.js';
+import { quotaService } from '../monitoring/quota-service.js';
 
 /**
  * Lead Expiry Worker
@@ -44,6 +45,10 @@ export class LeadExpiryWorker {
    * Single check iteration
    */
   async tick(): Promise<void> {
+    if (quotaService.isRestricted()) {
+      console.log('[LeadExpiryWorker] Skipping tick: Database quota restricted');
+      return;
+    }
     try {
       const expiryTime = new Date();
       expiryTime.setHours(expiryTime.getHours() - this.EXPIRY_HOURS);
@@ -78,6 +83,7 @@ export class LeadExpiryWorker {
       workerHealthMonitor.recordSuccess('lead-expiry-worker');
     } catch (error: any) {
       console.error('[LeadExpiryWorker] Tick error:', error);
+      quotaService.reportDbError(error);
       workerHealthMonitor.recordError('lead-expiry-worker', error?.message || 'Unknown error');
     }
   }
