@@ -52,18 +52,25 @@ import emailTrackingRoutes from "./email-tracking-routes.js";
 export async function registerRoutes(app: Express): Promise<http.Server> {
   // 1. Static Assets & Public Manifests (Served before auth/rate limiting for common assets)
   const sendPublicFile = (fileName: string, res: Response) => {
-    const filePath = path.join(process.cwd(), "client/public", fileName);
-    if (fs.existsSync(filePath)) {
-      res.sendFile(filePath);
-    } else {
-      // Fallback for development/standalone mode
-      const buildPath = path.join(process.cwd(), "client/dist", fileName);
-      if (fs.existsSync(buildPath)) {
-        res.sendFile(buildPath);
-      } else {
-        res.status(404).end();
-      }
+    // 1. Check in dist/public (Production build output)
+    const distPath = path.join(process.cwd(), "dist/public", fileName);
+    if (fs.existsSync(distPath)) {
+      return res.sendFile(distPath);
     }
+    
+    // 2. Check in client/public (Source directory for local dev)
+    const publicPath = path.join(process.cwd(), "client/public", fileName);
+    if (fs.existsSync(publicPath)) {
+      return res.sendFile(publicPath);
+    }
+    
+    // 3. Check in client/dist (Vite's default build output)
+    const clientDistPath = path.join(process.cwd(), "client/dist", fileName);
+    if (fs.existsSync(clientDistPath)) {
+      return res.sendFile(clientDistPath);
+    }
+    
+    res.status(404).end();
   };
 
   app.get("/favicon.ico", (req, res) => sendPublicFile("favicon.ico", res));

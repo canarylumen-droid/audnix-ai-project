@@ -27,11 +27,16 @@ function initializeDb() {
       idleTimeoutMillis: 10000,
       connectionTimeoutMillis: 5000,
     });
+
+    _pool.on('error', (err: any) => {
+      console.error('🚨 [DB POOL ERROR]', err.message || err);
+    });
+
     _db = drizzle(_pool, { schema });
-    console.log('✅ PostgreSQL database connected (Neon Serverless compatibility restored)');
+    console.log('✅ PostgreSQL database initialized (Neon Serverless)');
     return { db: _db, pool: _pool };
-  } catch (error) {
-    console.error('❌ Database connection failed:', error);
+  } catch (error: any) {
+    console.error('❌ Database initialization failed:', error.message || error);
     return { db: null, pool: null };
   }
 }

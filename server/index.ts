@@ -217,14 +217,20 @@ let sessionStore: session.Store | undefined;
 
 if (process.env.DATABASE_URL) {
   // Normalize connection string for SSL compatibility (Neon requirement)
-  const dbUrl = new URL(process.env.DATABASE_URL);
-  if (process.env.DATABASE_URL.includes('neon.tech')) {
-    dbUrl.searchParams.set("uselibpqcompat", "true");
-    if (!dbUrl.searchParams.has("sslmode")) {
-      dbUrl.searchParams.set("sslmode", "require");
+  let connectionString: string;
+  try {
+    const dbUrl = new URL(process.env.DATABASE_URL);
+    if (process.env.DATABASE_URL.includes('neon.tech')) {
+      dbUrl.searchParams.set("uselibpqcompat", "true");
+      if (!dbUrl.searchParams.has("sslmode")) {
+        dbUrl.searchParams.set("sslmode", "require");
+      }
     }
+    connectionString = dbUrl.toString();
+  } catch (urlError) {
+    console.error("❌ Invalid DATABASE_URL format:", process.env.DATABASE_URL);
+    connectionString = process.env.DATABASE_URL; // Fallback to raw string if URL parsing fails
   }
-  const connectionString = dbUrl.toString();
 
   const pool = new pg.Pool({
     connectionString,
@@ -244,6 +250,12 @@ if (process.env.DATABASE_URL) {
     pruneSessionInterval: 60 * 30, // Less frequent pruning
     schemaName: "public",
   });
+  
+  // Handle session store errors to prevent server-wide 500s
+  (sessionStore as any).on('error', (err: any) => {
+    console.error("🚨 [SESSION STORE ERROR]", err);
+  });
+  
   console.log("✅ Using PostgreSQL session store with SSL (optimized)");
 }
 
@@ -534,5 +546,32 @@ async function runMigrations() {
     }
   }
 })();
+
+// GLOBAL ERROR HANDLER - Catch anything that bubbled up and log it
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  const status = err.status || err.statusCode || 500;
+  log(`🚨 [FATAL ERROR] ${req.method} ${req.path}: ${err.message || err}`, "error");
+  
+  if (err.stack && process.env.NODE_ENV !== 'production') {
+    console.error(err.stack);
+  }
+
+  // Sentry report if configured
+  if (process.env.OBSERVABILITY_SENTRY_DSN) {
+    Sentry.captureException(err);
+  }
+
+  if (res.headersSent) {
+    return next(err);
+  }
+
+  res.status(status).json({
+    error: "Internal Server Error",
+    message: process.env.NODE_ENV === 'production' 
+      ? "An unexpected error occurred. Please try again later."
+      : err.message,
+    code: err.code || "INTERNAL_ERROR"
+  });
+});
 
 export default app;
