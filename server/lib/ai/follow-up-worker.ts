@@ -10,6 +10,7 @@ import { sendEmail } from '../channels/email.js';
 import { executeCommentFollowUps } from './comment-detection.js';
 import { storage } from '../../storage.js';
 import { workerHealthMonitor } from '../monitoring/worker-health.js';
+import { quotaService } from '../monitoring/quota-service.js';
 import MultiChannelOrchestrator from '../multi-channel-orchestrator.js';
 import DayAwareSequence from './day-aware-sequence.js';
 import { getMessageScript, personalizeScript } from './message-scripts.js';
@@ -137,6 +138,10 @@ export class FollowUpWorker {
    * Process pending jobs in the queue
    */
   public async processQueue(): Promise<void> {
+    if (quotaService.isRestricted()) {
+      console.log('[FollowUpWorker] Skipping queue: Database quota restricted');
+      return;
+    }
     try {
       // Execute comment automation follow-ups first
       await executeCommentFollowUps();
@@ -193,6 +198,7 @@ export class FollowUpWorker {
       workerHealthMonitor.recordSuccess('follow-up-worker');
     } catch (error: any) {
       console.error('Queue processing error:', error);
+      quotaService.reportDbError(error);
       workerHealthMonitor.recordError('follow-up-worker', error?.message || 'Unknown error');
     }
   }

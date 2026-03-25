@@ -4,6 +4,7 @@ import { storage } from '../../storage.js';
 import { InstagramProvider } from '../providers/instagram.js';
 import { formatDMWithButton } from './dm-formatter.js';
 import { workerHealthMonitor } from '../monitoring/worker-health.js';
+import { quotaService } from '../monitoring/quota-service.js';
 import type { User, Lead, Integration, VideoMonitor } from '../../../shared/schema.js';
 
 const isDemoMode = false;
@@ -270,6 +271,10 @@ Generate ONLY the comment reply text (no quotes, no explanations):`;
  * Monitor video comments in real-time
  */
 export async function monitorVideoComments(userId: string, videoMonitorId: string): Promise<void> {
+  if (quotaService.isRestricted()) {
+    console.log('[VideoCommentMonitor] Skipping check: Database quota restricted');
+    return;
+  }
   try {
     const { storage } = await import('../../storage.js');
 
@@ -457,8 +462,9 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
         workerHealthMonitor.recordError('video-comment-monitor', errorMessage);
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Video comment monitoring error:', error);
+    quotaService.reportDbError(error);
   }
 }
 
@@ -487,7 +493,7 @@ async function fetchVideoComments(provider: InstagramProvider, videoId: string):
  */
 export function startVideoCommentMonitoring(): void {
   console.log('🎥 Starting video comment monitoring worker...');
-  console.log('📊 Comment sync: Every 30 seconds');
+  console.log('📊 Comment sync: Every 5 minutes');
   console.log('⏰ Reply timing: 2-4 minutes (human-like, based on lead status)');
 
   setInterval(async () => {
@@ -514,5 +520,5 @@ export function startVideoCommentMonitoring(): void {
         console.error('Comment monitoring error:', errorMessage);
       }
     }
-  }, 30000);
+  }, 300000);
 }

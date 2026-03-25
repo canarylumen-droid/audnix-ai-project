@@ -5,16 +5,17 @@ import { storage } from '../../storage.js';
 import { sendEmail } from '../channels/email.js';
 import { generateReply } from '../ai/ai-service.js';
 import { workerHealthMonitor } from '../monitoring/worker-health.js';
+import { quotaService } from '../monitoring/quota-service.js';
 
 export class MeetingReminderWorker {
   private isRunning: boolean = false;
   private pollingInterval: NodeJS.Timeout | null = null;
-  private readonly POLL_INTERVAL_MS = 60000; // Check every minute
+  private readonly POLL_INTERVAL_MS = 600000; // Increased to 10m to protect DB quota (Neon)
 
   start(): void {
     if (this.isRunning) return;
     this.isRunning = true;
-    console.log('✅ Meeting Reminder Worker started (1m polling)');
+    console.log('✅ Meeting Reminder Worker started (10m polling)');
     
     this.pollingInterval = setInterval(() => this.checkAndSendReminders(), this.POLL_INTERVAL_MS);
     this.checkAndSendReminders();
@@ -29,6 +30,10 @@ export class MeetingReminderWorker {
   }
 
   private async checkAndSendReminders(): Promise<void> {
+    if (quotaService.isRestricted()) {
+      console.log('[MeetingReminder] Skipping check: Database quota restricted');
+      return;
+    }
     try {
       const now = new Date();
       const oneHourFromNow = new Date(now.getTime() + 65 * 60 * 1000); // 65 min buffer
@@ -65,6 +70,7 @@ export class MeetingReminderWorker {
       workerHealthMonitor.recordSuccess('meeting-reminder-worker');
     } catch (error: any) {
       console.error('[MeetingReminder] Error:', error);
+      quotaService.reportDbError(error);
       workerHealthMonitor.recordError('meeting-reminder-worker', error?.message || 'Unknown error');
     }
   }

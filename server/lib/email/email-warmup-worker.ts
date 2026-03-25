@@ -3,6 +3,7 @@ import { emailWarmupSchedules, users, type EmailWarmupSchedule, type User } from
 import { eq, and } from 'drizzle-orm';
 import { storage } from '../../storage.js';
 import { workerHealthMonitor } from '../monitoring/worker-health.js';
+import { quotaService } from '../monitoring/quota-service.js';
 
 /**
  * Email Warm-up System
@@ -90,6 +91,11 @@ class EmailWarmupWorker {
   private async checkAndUpdateWarmupLimits(): Promise<void> {
     if (!db) return;
 
+    if (quotaService.isRestricted()) {
+      console.log('[EmailWarmup] Skipping check: Database quota restricted');
+      return;
+    }
+
     try {
       const activeUsers: User[] = await db
         .select()
@@ -102,6 +108,7 @@ class EmailWarmupWorker {
       workerHealthMonitor.recordSuccess('email-warmup-worker');
     } catch (error: any) {
       console.error('Warmup check error:', error);
+      quotaService.reportDbError(error);
       workerHealthMonitor.recordError('email-warmup-worker', error?.message || 'Unknown error');
     }
   }

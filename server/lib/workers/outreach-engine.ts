@@ -21,11 +21,12 @@ import { sendInstagramOutreach } from '../channels/instagram.js';
 import { decryptToJSON } from '../crypto/encryption.js';
 import { hasRedis } from '../queues/redis-config.js';
 import { mailboxHealthService } from '../email/mailbox-health-service.js';
+import { quotaService } from '../monitoring/quota-service.js';
 
 export class OutreachEngine {
   private isRunning: boolean = false;
   private interval: NodeJS.Timeout | null = null;
-  private readonly TICK_INTERVAL_MS = 30000; // Reduced frequency to 30s to prevent Redis hammering
+  private readonly TICK_INTERVAL_MS = 300000; // Increased to 5m to protect DB quota (Neon)
   private activeUserProcessing: Set<string> = new Set();
   private readonly MAX_CONCURRENT_USERS = 5000;
   private userMailboxIndex: Map<string, number> = new Map(); // Tracks rotating mailbox index per user
@@ -61,6 +62,12 @@ export class OutreachEngine {
   async tick(): Promise<{ processed: number; errors: number }> {
     const results = { processed: 0, errors: 0 };
     if (!db) return results;
+
+    if (quotaService.isRestricted()) {
+      const remaining = Math.round(quotaService.getRemainingCooldownMs() / 60000);
+      console.log(`[OutreachEngine] Skipping tick: Database quota restricted. Recovering in ~${remaining}m`);
+      return results;
+    }
 
     try {
       const { outreachQueue } = await import('../queues/outreach-queue.js');
@@ -106,6 +113,7 @@ export class OutreachEngine {
       workerHealthMonitor.recordSuccess('outreach-engine');
     } catch (error: any) {
       console.error('[OutreachEngine] Global tick error:', error);
+      quotaService.reportDbError(error);
       workerHealthMonitor.recordError('outreach-engine', error?.message || 'Unknown tick error');
       results.errors++;
     }

@@ -20,6 +20,7 @@ import { eq, and, ne, sql, isNull, or, lte, inArray } from 'drizzle-orm';
 import { storage } from '../../storage.js';
 import { wsSync } from '../websocket-sync.js';
 import { mailboxHealthService } from './mailbox-health-service.js';
+import { quotaService } from '../monitoring/quota-service.js';
 
 class RedistributionWorker {
   private interval: NodeJS.Timeout | null = null;
@@ -49,6 +50,10 @@ class RedistributionWorker {
    * Main redistribution logic
    */
   async run(): Promise<number> {
+    if (quotaService.isRestricted()) {
+      console.log('[Redistribution] Skipping run: Database quota restricted');
+      return 0;
+    }
     console.log('🔄 [Redistribution] Starting worker run...');
     let totalRedistributed = 0;
     try {
@@ -81,6 +86,7 @@ class RedistributionWorker {
 
     } catch (err: any) {
       console.error('[Redistribution] Error:', err.message);
+      quotaService.reportDbError(err);
     }
     return totalRedistributed;
   }

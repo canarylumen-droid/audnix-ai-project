@@ -6,6 +6,7 @@ import { pagedEmailImport } from '../imports/paged-email-importer.js';
 import type { Integration } from '../../../shared/schema.js';
 import { wsSync } from '../websocket-sync.js';
 import { mailboxHealthService } from './mailbox-health-service.js';
+import { quotaService } from '../monitoring/quota-service.js';
 
 interface EmailConfig {
     smtp_host?: string;
@@ -61,6 +62,10 @@ class ImapIdleManager {
      * Sync active connections with database integrations
      */
     public async syncConnections(): Promise<void> {
+        if (quotaService.isRestricted()) {
+            console.log('[IMAPIdleManager] Skipping connection sync: Database quota restricted');
+            return;
+        }
         try {
             const allIntegrations = await storage.getIntegrationsByProvider('custom_email');
             const gmailIntegrations = await storage.getIntegrationsByProvider('gmail');
@@ -98,6 +103,7 @@ class ImapIdleManager {
             }
         } catch (error) {
             console.error('Error syncing IMAP IDLE connections:', error);
+            quotaService.reportDbError(error);
         }
     }
 

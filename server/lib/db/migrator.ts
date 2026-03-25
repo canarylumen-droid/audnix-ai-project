@@ -4,6 +4,7 @@ import { sql } from 'drizzle-orm';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import { quotaService } from '../monitoring/quota-service.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -52,6 +53,11 @@ export async function runDatabaseMigrations() {
     }
 
     if (!db) return;
+
+    if (quotaService.isRestricted()) {
+        console.warn("⚠️ Skipping emergency schema synchronization: Database quota restricted.");
+        return;
+    }
 
     // 2. Emergency fallback: Directly ensure critical columns exist
     // This handles cases where the migration journal might be out of sync or missing in Vercel
@@ -313,5 +319,6 @@ export async function runDatabaseMigrations() {
         console.log("✅ Emergency schema synchronization completed.");
     } catch (emergencyError: any) {
         console.error("❌ Emergency schema synchronization failed:", emergencyError.message || emergencyError);
+        quotaService.reportDbError(emergencyError);
     }
 }

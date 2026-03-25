@@ -3,6 +3,7 @@ import { decrypt } from '../crypto/encryption.js';
 import { importCustomEmails } from '../channels/email.js';
 import { pagedEmailImport } from '../imports/paged-email-importer.js';
 import { workerHealthMonitor } from '../monitoring/worker-health.js';
+import { quotaService } from '../monitoring/quota-service.js';
 import type { Integration, Lead } from '../../../shared/schema.js';
 import { Buffer } from 'buffer';
 import { mailboxHealthService } from './mailbox-health-service.js';
@@ -37,7 +38,7 @@ class EmailSyncWorker {
   private isRunning = false;
   private isSyncing = false;
   private syncTimeout: NodeJS.Timeout | null = null;
-  private readonly SYNC_INTERVAL_MS = 10 * 1000; // Fast 10s sync fallback for IDLE
+  private readonly SYNC_INTERVAL_MS = 300000; // Increased to 5m to protect DB quota (Neon)
   private readonly GHOSTED_THRESHOLD_HOURS = 48;
 
   /**
@@ -47,7 +48,7 @@ class EmailSyncWorker {
     if (this.isRunning) return;
 
     this.isRunning = true;
-    console.log('📬 Email sync worker started (10s interval)');
+    console.log('📬 Email sync worker started (5m interval)');
 
     this.scheduleNextSync();
   }
@@ -57,6 +58,12 @@ class EmailSyncWorker {
 
     this.syncTimeout = setTimeout(async () => {
       if (this.isSyncing) return;
+
+      if (quotaService.isRestricted()) {
+        console.log('[EmailSync] Skipping sync: Database quota restricted');
+        this.scheduleNextSync();
+        return;
+      }
 
       this.isSyncing = true;
       try {
@@ -101,6 +108,7 @@ class EmailSyncWorker {
       }
       workerHealthMonitor.recordSuccess('email-sync-worker');
     } catch (error: any) {
+      quotaService.reportDbError(error);
       workerHealthMonitor.recordError('email-sync-worker', error?.message || 'Unknown error');
     }
   }

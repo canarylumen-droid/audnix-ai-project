@@ -2,6 +2,7 @@ import { drizzle } from "drizzle-orm/neon-serverless";
 import { Pool, neonConfig } from "@neondatabase/serverless";
 import * as schema from "../shared/schema.js";
 import ws from "ws";
+import { quotaService } from "./lib/monitoring/quota-service.js";
 
 // Configure neon to use ws for pooling in Node environments
 neonConfig.webSocketConstructor = ws;
@@ -30,6 +31,7 @@ function initializeDb() {
 
     _pool.on('error', (err: any) => {
       console.error('🚨 [DB POOL ERROR]', err.message || err);
+      quotaService.reportDbError(err);
     });
 
     _db = drizzle(_pool, { schema });
