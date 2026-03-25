@@ -2,17 +2,17 @@ import * as express from "express";
 import { requireAdmin } from "../middleware/auth.js";
 import { getSecurityLogs } from "../middleware/sentinel.js";
 import { db } from "../db.js";
-import { users, leads, messages, integrations } from "../../shared/schema.js";
+import { users, leads, messages, integrations, type User } from "../../shared/schema.js";
 import { eq, desc, sql, and, gte, count } from "drizzle-orm";
 
 const router = express.Router();
 
 interface AuthenticatedRequest extends express.Request {
-  user?: {
-    id: string;
-    email: string;
-    role: string;
-  };
+  user?: User;
+}
+
+interface PlanPrices {
+  [key: string]: number;
 }
 interface UserWithPlan {
   plan: string | null;
