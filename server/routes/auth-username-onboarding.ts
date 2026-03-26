@@ -115,7 +115,7 @@ router.post('/complete-onboarding', requireAuth, async (req: Request<object, obj
         businessSize,
         tags,
         onboardingCompleted: true,
-        onboardingCelebrated: false, // New flag for one-time celebration
+        onboardingCelebrated: true, // Mark celebrated immediately — prevents re-showing on every login
         onboardedAt: new Date().toISOString(),
       },
     });

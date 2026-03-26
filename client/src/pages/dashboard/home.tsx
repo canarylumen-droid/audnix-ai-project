@@ -33,7 +33,7 @@ import { useRealtime } from "@/hooks/use-realtime";
 import { SiGmail } from "react-icons/si"; // If needed, but let's check what was there.
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { WelcomeCelebration } from "@/components/WelcomeCelebration";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { PremiumLoader } from "@/components/ui/premium-loader";
 import { MailboxSwitcher } from "@/components/outreach/MailboxSwitcher";
 
@@ -196,27 +196,48 @@ export default function DashboardHome() {
     retry: false,
   });
 
-  useEffect(() => {
-    if (user && !showOnboarding && !showWelcomeCelebration) {
-      const hasCompletedOnboarding = user.metadata?.onboardingCompleted || false;
-      const hasCelebrated = user.metadata?.onboardingCelebrated === true;
-      
-      // Secondary local guard to prevent multifire in same session
-      const localOnboarding = localStorage.getItem(`onboarding_${user.id}`);
-      const localCelebration = localStorage.getItem(`celebration_${user.id}`);
+  // Ref guard — runs the show-once logic exactly once per mount, not on every user-data refetch
+  const hasInitialized = useRef(false);
 
-      if (!hasCompletedOnboarding && !localOnboarding) {
-        setShowOnboarding(true);
-      } else if (!hasCelebrated && !localCelebration) {
-        // Only show celebration if they haven't celebrated yet
-        setShowWelcomeCelebration(true);
-      }
+  useEffect(() => {
+    // Wait until user data is loaded and we haven't already initialised
+    if (!user || hasInitialized.current) return;
+    hasInitialized.current = true;
+
+    const userId = user.id;
+    const hasCompletedOnboarding = user.metadata?.onboardingCompleted === true;
+    const hasCelebrated = user.metadata?.onboardingCelebrated === true;
+
+    // Per-session guards (survives page refresh within same tab)
+    const sessionOnboarding = sessionStorage.getItem(`onboarding_shown_${userId}`);
+    const sessionCelebration = sessionStorage.getItem(`celebration_shown_${userId}`);
+
+    // Per-device persistent guards (localStorage)
+    const localOnboarding = localStorage.getItem(`onboarding_${userId}`);
+    const localCelebration = localStorage.getItem(`celebration_${userId}`);
+
+    if (!hasCompletedOnboarding && !localOnboarding && !sessionOnboarding) {
+      // New user who hasn't completed onboarding yet
+      setShowOnboarding(true);
+      sessionStorage.setItem(`onboarding_shown_${userId}`, 'true');
+    } else if (hasCompletedOnboarding && !hasCelebrated && !localCelebration && !sessionCelebration) {
+      // Completed onboarding but celebration not yet marked on backend/device
+      // (Handles the edge-case of old accounts before the flag was introduced)
+      setShowWelcomeCelebration(true);
+      sessionStorage.setItem(`celebration_shown_${userId}`, 'true');
     }
-  }, [user, showOnboarding, showWelcomeCelebration]);
+    // If onboardingCompleted && hasCelebrated → show nothing (normal returning user)
+  }, [user]);
 
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);
-    if (user?.id) localStorage.setItem(`onboarding_${user.id}`, 'true');
+    if (user?.id) {
+      localStorage.setItem(`onboarding_${user.id}`, 'true');
+      sessionStorage.setItem(`onboarding_shown_${user.id}`, 'true');
+      // Show celebration immediately for brand-new users; guard so it can't double-fire
+      sessionStorage.setItem(`celebration_shown_${user.id}`, 'true');
+    }
+    setShowWelcomeCelebration(true);
     queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
   };
 
