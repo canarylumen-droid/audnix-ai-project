@@ -147,45 +147,37 @@ export class DrizzleStorage implements IStorage {
     checkDatabase();
     if (!isValidUUID(id)) return undefined;
 
-    // If metadata is being updated, merge it with existing metadata instead of overwriting
+    // Get current user to merge metadata AND config (safety first)
+    const currentUser = await this.getUser(id);
+    if (!currentUser) return undefined;
+
+    const dataToUpdate: any = { 
+      ...updates, 
+      updatedAt: new Date() 
+    };
+
+    // MERGE Metadata if present
     if (updates.metadata) {
-      const { metadata, ...otherUpdates } = updates;
-
-      // Get current user to merge metadata
-      const currentUser = await this.getUser(id);
-      if (!currentUser) {
-        return undefined;
-      }
-
-      // Merge metadata
-      const mergedMetadata = {
+      dataToUpdate.metadata = {
         ...(currentUser.metadata ?? {}),
-        ...metadata,
+        ...updates.metadata,
       };
-
-      const [result] = await db
-        .update(users)
-        .set({
-          ...otherUpdates,
-          metadata: mergedMetadata as any,
-          updatedAt: new Date()
-        })
-        .where(eq(users.id, id))
-        .returning();
-      
-      if (result) {
-        wsSync.notifySettingsUpdated(id, result);
-      }
-      return result;
     }
 
-    // Always bump updatedAt for any update
+    // MERGE Config if present (Crucial for AI Engine Toggle persistence)
+    if (updates.config) {
+      dataToUpdate.config = {
+        ...(currentUser.config as any ?? {}),
+        ...updates.config,
+      };
+    }
+
     const [result] = await db
       .update(users)
-      .set({ ...updates, updatedAt: new Date() })
+      .set(dataToUpdate)
       .where(eq(users.id, id))
       .returning();
-
+    
     if (result) {
       wsSync.notifySettingsUpdated(id, result);
     }

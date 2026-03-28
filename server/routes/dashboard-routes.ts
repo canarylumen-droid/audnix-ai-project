@@ -124,32 +124,45 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
     const softBounces = recentBounces.filter(b => b.bounceType === 'soft').length;
     const spamBounces = recentBounces.filter(b => b.bounceType === 'spam').length;
 
-    // Dynamic Reputation Score Logic (0-100)
-    // We base it on actual data rather than just a high starting point
-    let reputationScore = 0;
+    // Dynamic Reputation Score Logic (Phase 5 Unified)
+    let reputationScore = 100;
+    let fallbackReputation = 100;
 
     if (stats.totalLeads > 0) {
-      const bounceRate = ((hardBounces + spamBounces) / stats.totalLeads) * 100;
-      const bouncePenalty = (hardBounces * 10) + (softBounces * 2) + (spamBounces * 15);
-      
-      // Start from 100 and subtract penalties based on performance
-      reputationScore = Number(Math.max(0, 100 - bouncePenalty - (bounceRate * 3)).toFixed(2));
-      
-      // If they have good volume and low bounces, they earn a 'trust' bonus
-      if (stats.totalLeads > 100 && bounceRate < 2) {
-        reputationScore = Number(Math.min(100, reputationScore + 5).toFixed(2));
-      }
+      const bouncePenalty = (hardBounces * 7) + (softBounces * 3) + (spamBounces * 25);
+      fallbackReputation = Math.max(0, 100 - bouncePenalty);
+    }
 
-      // [NEW] Factor in smoothed spamRiskScore from all active mailboxes (Phased smoothing)
-      const mailboxRisk = integrations
-        .filter(i => ['gmail', 'outlook', 'custom_email'].includes(i.provider))
-        .reduce((sum, i) => sum + (Number(i.spamRiskScore) || 0), 0) / Math.max(1, integrations.length);
+    // 7-Day Reputation Trend Calculation
+    const trendData = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
       
-      // Subtract risk score (0-100) with 0.5 weighting to domain health
-      reputationScore = Number(Math.max(0, reputationScore - (mailboxRisk * 0.5)).toFixed(2));
+      const dayBounces = recentBounces.filter(b => b.timestamp.toISOString().split('T')[0] === dateStr);
+      const dayPenalty = (dayBounces.filter(b => b.bounceType === 'hard').length * 7) + 
+                         (dayBounces.filter(b => b.bounceType === 'soft').length * 3) + 
+                         (dayBounces.filter(b => b.bounceType === 'spam').length * 25);
+      
+      trendData.push({
+        date: dateStr.substring(5), // MM-DD
+        score: Math.max(0, 100 - dayPenalty),
+        bounces: dayBounces.length
+      });
+    }
+
+    if (integrationId) {
+      const activeInt = integrations.find(i => i.id === integrationId);
+      reputationScore = activeInt?.reputationScore ?? fallbackReputation;
     } else {
-      // If no leads sent yet, it's a "neutral" 100 until proven otherwise
-      reputationScore = 100;
+      // Average reputation score across all connected email mailboxes
+      const emailInts = integrations.filter(i => ['gmail', 'outlook', 'custom_email'].includes(i.provider));
+      if (emailInts.length > 0) {
+        reputationScore = emailInts.reduce((sum, i) => sum + (i.reputationScore ?? fallbackReputation), 0) / emailInts.length;
+      } else {
+        reputationScore = fallbackReputation;
+      }
     }
 
     // Filter verifications to the selected mailbox domain if provided
@@ -245,7 +258,9 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
         lastSync: integrations.length > 0 ? (lastSyncTimestamp > 0 ? new Date(lastSyncTimestamp).toISOString() : null) : null,
         activeMonitors: monitors.length,
         isAutonomous: isAutonomousMode
-      }
+      },
+      aiActionLogs: aiLogs,
+      reputationTrend: trendData
     };
 
     // Store in cache (5 mins)
@@ -415,6 +430,7 @@ router.get('/user', requireAuth, async (req: Request, res: Response): Promise<vo
       trialExpiresAt: user.trialExpiresAt,
       voiceNotesEnabled,
       createdAt: user.createdAt,
+      config: user.config,
       metadata: {
         ...(metadata || {}),
         onboardingCompleted: hasCompletedOnboarding,
@@ -464,6 +480,7 @@ router.get('/user/profile', requireAuth, async (req: Request, res: Response): Pr
       trialExpiresAt: user.trialExpiresAt,
       voiceNotesEnabled,
       createdAt: user.createdAt,
+      config: user.config,
       defaultCtaLink: metadata?.defaultCtaLink as string || '',
       defaultCtaText: metadata?.defaultCtaText as string || '',
       calendarLink: metadata?.calendarLink as string || '',

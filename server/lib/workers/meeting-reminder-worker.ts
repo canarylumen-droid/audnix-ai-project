@@ -4,6 +4,7 @@ import { eq, and, or, gt, lt, isNull } from 'drizzle-orm';
 import { storage } from '../../storage.js';
 import { sendEmail } from '../channels/email.js';
 import { generateReply } from '../ai/ai-service.js';
+import { evaluateNextBestAction } from '../ai/autonomous-agent.js';
 import { workerHealthMonitor } from '../monitoring/worker-health.js';
 import { quotaService } from '../monitoring/quota-service.js';
 
@@ -34,6 +35,19 @@ export class MeetingReminderWorker {
       console.log('[MeetingReminder] Skipping check: Database quota restricted');
       return;
     }
+    
+    // Global AI Engine Toggle
+    try {
+      const userResult = await db.select({ config: users.config }).from(users).limit(1);
+      if (userResult[0]) {
+        const config = (userResult[0].config as any) || {};
+        if (config.autonomousMode === false) {
+           console.log('[MeetingReminder] AI Engine is OFF. Skipping reminders.');
+           return;
+        }
+      }
+    } catch (e) { }
+
     try {
       const now = new Date();
       const oneHourFromNow = new Date(now.getTime() + 65 * 60 * 1000); // 65 min buffer
@@ -270,48 +284,11 @@ Output requirements:
          return;
       }
 
-      const systemPrompt = `You are an autonomous sales AI. Analyze the Fathom call summary. 
-Decide the exact next email to send. 
-Do NOT chase. Be helpful. 
-Respond ONLY with a JSON object: { "action": "invoice" | "follow_up" | "wait", "emailSubject": "...", "emailBody": "...", "reasoning": "..." }`;
+      // Phase 7: Use Unified Autonomous Agent for Expert NBA
+      console.log(`[MeetingReminder] Triggering Expert SDR Manager for ${lead.email}`);
+      await evaluateNextBestAction(lead.id, summary);
       
-      const prompt = `Call Summary: ${summary}\nLead Name: ${lead.name}\nBusiness: ${user.company || user.businessName || 'Our Team'}\nDecide next step.`;
-
-      const aiDecisionStr = await generateReply(systemPrompt, prompt);
-      
-      let decision;
-      try {
-        // Strip markdown if AI wraps it
-        const cleanedStr = aiDecisionStr.text.replace(/```json\n?|\n?```/gi, '').trim();
-        decision = JSON.parse(cleanedStr);
-      } catch (e) {
-        console.warn(`[MeetingReminder] JSON parse error for AI decision fallback:`, e);
-        return; // Skip and avoid sending garbage
-      }
-
-      // Record AI decision
-      await db.insert(aiActionLogs).values({
-        userId: booking.userId,
-        leadId: booking.leadId,
-        actionType: 'follow_up',
-        decision: decision.action === 'wait' ? 'wait' : 'act',
-        confidence: 0.95,
-        reasoning: decision.reasoning || `Analyzed Fathom call summary. Selected action: ${decision.action}.`
-      });
-
-      // Execute action if not waiting
-      if (decision.action !== 'wait' && decision.emailBody) {
-         console.log(`[MeetingReminder] Autonomous AI executing post-meeting action (${decision.action}) for ${lead.email}`);
-         await sendEmail(
-            booking.userId,
-            lead.email,
-            decision.emailBody,
-            decision.emailSubject || "Following up on our call",
-            { isHtml: true, leadId: lead.id }
-         );
-      }
-      
-      // Mark booking as completed via Fathom
+      // Mark booking as completed
       await db.update(calendarBookings).set({ status: 'completed' }).where(eq(calendarBookings.id, booking.id));
 
     } catch (err) {

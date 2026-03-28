@@ -517,11 +517,23 @@ class ImapIdleManager {
                             try {
                                 const { scheduleAutomatedEmailReply } = await import('../ai/email-automation.js');
                                 const { analyzeLeadIntent } = await import('../ai/intent-analyzer.js');
+                                const { users } = await import('../../../shared/schema.js');
+                                const { eq } = await import('drizzle-orm');
+                                const { db } = await import('../../db.js');
+
+                                const userResult = await db.select({ config: users.config }).from(users).where(eq(users.id, userId)).limit(1);
+                                const config = (userResult[0]?.config as any) || {};
+                                const isAutonomousMode = config.autonomousMode !== false;
 
                                 for (const email of emails) {
                                   if (email.direction === 'inbound' && !email.isSpam) {
                                       const lead = await storage.getLeadByEmail(email.from?.split('<')[1]?.split('>')[0] || email.from, userId);
                                       if (lead && !lead.aiPaused) {
+                                          if (!isAutonomousMode) {
+                                              console.log(`[IMAP] AI Engine is OFF. Skipping autonomous reply for lead ${lead.email}`);
+                                              continue;
+                                          }
+
                                           const intent = await analyzeLeadIntent(email.text, {
                                               id: lead.id,
                                               name: lead.name,

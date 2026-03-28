@@ -312,12 +312,14 @@ export class FollowUpWorker {
         (Date.now() - (lead.createdAt?.getTime() || Date.now())) / (1000 * 60 * 60 * 24)
       );
 
-      // Generate AI reply or use custom auto-reply body
-      let aiReply = '';
-      const customAutoReply = (job.context as any)?.autoReplyBody;
-      const isAutoReply = !!(job.context as any)?.last_message;
+      // Phase 7: Use expert pre-generated content if available
+      const suggestedBody = (job.context as any)?.suggestedBody;
+      const suggestedSubject = (job.context as any)?.suggestedSubject;
 
-      if (customAutoReply) {
+      if (suggestedBody) {
+        console.log(`[FOLLOW_UP_WORKER] Using expert pre-generated content for lead ${lead.email}`);
+        aiReply = suggestedBody;
+      } else if (customAutoReply) {
         console.log(`[FOLLOW_UP_WORKER] Using custom auto-reply template for lead ${lead.email}`);
 
         // Basic template variable substitution
@@ -328,14 +330,26 @@ export class FollowUpWorker {
           .replace(/{{firstName}}/g, firstName)
           .replace(/{{name}}/g, lead.name)
           .replace(/{{company}}/g, company);
-      } else if (isAutoReply) {
-        console.log(`[FOLLOW_UP_WORKER] Using conversational auto-reply logic for lead ${lead.email}`);
+      } else if (isAutoReply || intent === 'payment' || intent === 'booking') {
+        console.log(`[FOLLOW_UP_WORKER] Using intentional AI logic for lead ${lead.email} (Intent: ${intent})`);
         const { generateAIReply } = await import('./conversation-ai.js');
+        
+        // Enhance system prompt for specific intents
+        let intentInstruction = "";
+        if (intent === 'payment') {
+          intentInstruction = `\n\nCRITICAL TASK: This lead has agreed to a partnership or requested payment details. You MUST acknowledge this and provide the next steps for payment. Use the context: "${reasoning}".`;
+        } else if (intent === 'booking') {
+          intentInstruction = `\n\nCRITICAL TASK: This lead is ready to book a call or demo. You MUST provide the calendar link and encourage them to pick a slot. Use the context: "${reasoning}".`;
+        }
+
         const aiResult = await generateAIReply(
           lead as any,
           conversationHistory as any,
           job.channel as 'email' | 'instagram',
-          bookingContext // [NEW] Pass booking context to conversational AI
+          {
+            ...bookingContext,
+            brandVoice: intentInstruction
+          }
         );
         aiReply = aiResult.text || '';
       } else {
@@ -365,7 +379,24 @@ export class FollowUpWorker {
       console.log(`[FOLLOW_UP_WORKER] Final reply for ${lead.email} via ${job.channel}. Length: ${aiReply.length}. Source: ${customAutoReply ? 'Custom Template' : 'AI'}`);
 
       // Send the message
-      const sent = await this.sendMessage(job.userId, lead, aiReply, job.channel);
+      const sendOptions: any = {
+        leadId: lead.id,
+        trackingId: trackingId,
+        isMeetingInvite: intent === 'booking'
+      };
+
+      if (intent === 'payment') {
+        sendOptions.buttonText = 'Pay Securely';
+        sendOptions.buttonUrl = (user as any).paymentLink || (lead.metadata as any).payment_link || 'https://audnix.com/payment';
+      } else if (intent === 'booking') {
+        sendOptions.buttonText = 'Book a Time';
+        sendOptions.buttonUrl = calendarLink;
+      }
+
+      const sent = await this.sendMessage(job.userId, lead, aiReply, job.channel, {
+        ...sendOptions,
+        subject: suggestedSubject || undefined
+      });
 
       console.log(`[FOLLOW_UP_WORKER] Message sent result: ${sent}`);
 
@@ -375,8 +406,29 @@ export class FollowUpWorker {
           aiGenerated: true,
           disclaimer: disclaimerPrefix,
           channel: job.channel,
-          trackingId: trackingId
+          trackingId: trackingId,
+          intent: intent
         });
+
+        // UPDATE Dashboard Feed Outcome
+        try {
+          const { aiActionLogs } = await import('../../../shared/schema.js');
+          const { desc } = await import('drizzle-orm');
+          
+          const recentLogs = await db.select()
+            .from(aiActionLogs)
+            .where(and(eq(aiActionLogs.leadId, lead.id), eq(aiActionLogs.userId, job.userId)))
+            .orderBy(desc(aiActionLogs.createdAt))
+            .limit(1);
+
+          if (recentLogs.length > 0) {
+            await db.update(aiActionLogs)
+              .set({ outcome: `Message sent via ${job.channel}` })
+              .where(eq(aiActionLogs.id, recentLogs[0].id));
+          }
+        } catch (logErr) {
+          console.warn('Failed to update AI action log outcome:', logErr);
+        }
 
         // UPDATE: Log to audit trail
         try {
@@ -750,7 +802,8 @@ REPLY:`;
     userId: string,
     lead: Lead,
     content: string,
-    preferredChannel: string
+    preferredChannel: string,
+    options: any = {}
   ): Promise<boolean> {
     const channels = this.getChannelPriority(preferredChannel, lead);
 
@@ -770,26 +823,26 @@ REPLY:`;
             }
             break;
 
-
-
           case 'email':
             if (lead.email) {
               // Get previous messages to find original subject
               const history = await this.getConversationHistory(lead.id);
-              let subject = 'Follow-up';
+              let subject = options.subject || 'Follow-up';
 
-              // Find the original outward subject
-              const originalOutward = history.find(m => m.direction === 'outbound' && (m as any).metadata?.subject);
-              if (originalOutward && (originalOutward as any).metadata?.subject) {
-                const origSub = (originalOutward as any).metadata?.subject;
-                subject = origSub.startsWith('RE:') ? origSub : `RE: ${origSub}`;
-              } else {
-                // No existing thread or subject found? Generate one that converts!
-                subject = await generateEmailSubject(content, lead.name, (lead.metadata as any)?.company);
-                console.log(`[FOLLOW_UP] Generated converting subject: "${subject}" for ${lead.email}`);
+              // If no pre-defined subject, look for the original outward subject
+              if (!options.subject) {
+                const originalOutward = history.find(m => m.direction === 'outbound' && (m as any).metadata?.subject);
+                if (originalOutward && (originalOutward as any).metadata?.subject) {
+                  const origSub = (originalOutward as any).metadata?.subject;
+                  subject = origSub.startsWith('RE:') ? origSub : `RE: ${origSub}`;
+                } else {
+                  // No existing thread or subject found? Generate one that converts!
+                  subject = await generateEmailSubject(content, lead.name, (lead.metadata as any)?.company);
+                  console.log(`[FOLLOW_UP] Generated converting subject: "${subject}" for ${lead.email}`);
+                }
               }
 
-              await sendEmail(userId, lead.email, content, subject);
+              await sendEmail(userId, lead.email, content, subject, options);
               return true;
             }
             break;

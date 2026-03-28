@@ -75,9 +75,12 @@ class BounceHandler {
 
       console.log(`📧 ${event.bounceType.toUpperCase()} bounce recorded: ${event.email} (Integration: ${integrationId})`);
 
-      // --- NEW: Trigger Spam Risk Assessment ---
+      // --- NEW: Trigger AI Reputation Assessment ---
       if (integrationId) {
-        await mailboxHealthService.checkSpamRisk(integrationId);
+        const { calculateReputationScore } = await import('./reputation-monitor.js');
+        await calculateReputationScore(integrationId).catch(err => 
+          console.error('[BounceHandler] Failed to update reputation score:', err)
+        );
       }
 
       // Stop any active campaign for this lead

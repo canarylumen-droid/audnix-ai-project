@@ -595,18 +595,22 @@ export class OutreachEngine {
       return false; // Wait for next slot
     }
 
-    // 3. Global/User Daily Limits & Autonomous Mode
+    // 3. Global/User AI Engine Toggle
     try {
-      if (!campaign) {
-        // Only enforce autonomous mode check for fully autonomous tick (no specific campaign)
-        const userResult = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-        if (userResult[0]) {
-          const config = (userResult[0].config as any) || {};
-          const isAutonomousMode = config.autonomousMode === true;
-          if (!isAutonomousMode) return false;
+      const userResult = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (userResult[0]) {
+        const config = (userResult[0].config as any) || {};
+        // Default to ON (true) unless explicitly set to false
+        const isAutonomousMode = config.autonomousMode !== false;
+        
+        if (!isAutonomousMode) {
+          console.log(`[OutreachEngine] AI Engine is OFF for user ${userId}. Skipping outreach.`);
+          return false;
         }
       }
-    } catch (e) { }
+    } catch (e) {
+      console.error('[OutreachEngine] Error checking AI Engine toggle:', e);
+    }
 
     // 4. Daily Limit Hit Check
     const sentTodayResult = await db.execute(sql`

@@ -37,6 +37,8 @@ import { useState, useEffect, useRef } from "react";
 import { PremiumLoader } from "@/components/ui/premium-loader";
 import { MailboxSwitcher } from "@/components/outreach/MailboxSwitcher";
 import { AutonomousActionFeed } from "@/components/outreach/AutonomousActionFeed";
+import { ReputationCard } from "@/components/outreach/ReputationCard";
+import { ReputationTrendChart } from "@/components/outreach/ReputationTrendChart";
 
 interface UserProfile {
   id: string;
@@ -95,6 +97,8 @@ interface DashboardStats {
     avgResponseRate: number;
     marketSentiment: string;
   };
+  aiActionLogs?: any[];
+  reputationTrend?: any[];
 }
 
 interface PreviousDashboardStats {
@@ -676,8 +680,8 @@ export default function DashboardHome() {
               </CardContent>
             </Card>
 
-            <div className="mt-6 h-[500px]">
-              <AutonomousActionFeed />
+            <div className="mt-6">
+              <AutonomousActionFeed logs={statsData?.aiActionLogs || []} />
             </div>
           </div>
 
@@ -709,82 +713,16 @@ export default function DashboardHome() {
               </CardContent>
             </Card>
 
-            <Card className="border-border/50 rounded-2xl bg-card/40 backdrop-blur-xl relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-32 h-32 blur-[60px] opacity-10 bg-primary rounded-full transition-opacity group-hover:opacity-20" />
-              <CardHeader className="pb-3 border-b border-border/10">
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
-                  <ShieldCheck className="h-3 w-3" />
-                  Deliverability Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-6 space-y-5">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest leading-none">Sender Reputation</p>
-                    <p className={cn(
-                      "text-xl font-black tracking-tighter",
-                      (stats?.health?.score || 100) > 95 ? "text-emerald-400" : (stats?.health?.score || 100) > 80 ? "text-amber-400" : "text-red-400"
-                    )}>
-                      {stats?.health?.score !== undefined ? stats.health.score.toFixed(2) : "100.00"}%
-                    </p>
-                  </div>
-                  <Badge className={cn(
-                    "border-0 text-[8px] font-black uppercase tracking-widest",
-                    (stats?.health?.score || 100) > 95 ? "bg-emerald-500/10 text-emerald-500" : (stats?.health?.score || 100) > 80 ? "bg-amber-500/10 text-amber-500" : "bg-red-500/10 text-red-500"
-                  )}>
-                    {(stats?.health?.score || 100) > 95 ? "Excellent" : (stats?.health?.score || 100) > 80 ? "Fair" : "Low"}
-                  </Badge>
-                </div>
+            <ReputationCard 
+              score={stats?.health?.score ?? 100}
+              status={stats?.health?.status ?? 'healthy'}
+              bounces={stats?.health?.bounces ?? { hard: 0, soft: 0, spam: 0, total: 0 }}
+              isLoading={statsLoading}
+            />
 
-                {/* AI Deliverability Metrics */}
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="space-y-0.5">
-                    <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest leading-none">Queued</p>
-                    <p className="text-xl font-black text-indigo-400 tracking-tighter">{stats?.queuedLeads || 0}</p>
-                    <Badge className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20 text-[7px] font-black uppercase tracking-widest py-0 h-3">Waiting</Badge>
-                  </div>
-                  <div className="space-y-0.5">
-                    <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest leading-none">Bounced</p>
-                    <p className="text-xl font-black text-rose-400 tracking-tighter">{(stats?.health?.bounces?.total || 0)}</p>
-                    <Badge className="bg-rose-500/10 text-rose-400 border-rose-500/20 text-[7px] font-black uppercase tracking-widest py-0 h-3">Retry</Badge>
-                  </div>
-                  <div className="space-y-0.5">
-                    <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest leading-none">Spam</p>
-                    <p className="text-xl font-black text-orange-400 tracking-tighter">{stats?.health?.bounces?.spam || 0}</p>
-                    <Badge className="bg-orange-500/10 text-orange-400 border-orange-500/20 text-[7px] font-black uppercase tracking-widest py-0 h-3">Filter</Badge>
-                  </div>
-                </div>
-
-                {/* Real-time Advisory */}
-                <div className="p-3 rounded-xl bg-primary/5 border border-primary/10">
-                  <p className="text-[9px] font-bold text-primary uppercase mb-1 flex items-center gap-1.5">
-                    <Sparkles className="w-3 h-3" />
-                    Reputation Advisory
-                  </p>
-                  <p className="text-[10px] text-muted-foreground leading-tight">
-                    {(stats?.health?.score || 100) < 90
-                      ? "Bounce rate increasing. Pause outreach and verify your lead list to avoid domain blacklisting."
-                      : "Your sender reputation is high. Continue 1-by-1 sending to maintain optimal deliverability."}
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <p className="text-[10px] font-medium text-muted-foreground/40 uppercase tracking-widest leading-none">AI Deliverability Fixes</p>
-                    <p className="text-xl font-bold text-cyan-400 tracking-tighter">{stats?.recoveredLeads || 0}</p>
-                  </div>
-                  <Badge className="bg-cyan-500/10 text-cyan-400 border-cyan-500/20 text-[8px] font-bold uppercase tracking-widest">Fixed</Badge>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <p className="text-[10px] font-medium text-muted-foreground/40 uppercase tracking-widest leading-none">Bounce Mitigation</p>
-                    <p className="text-xl font-bold text-red-400 tracking-tighter">{stats?.bouncyLeads || 0}</p>
-                  </div>
-                  <Badge className="bg-red-500/10 text-red-400 border-red-500/20 text-[8px] font-bold uppercase tracking-widest">Filtered</Badge>
-                </div>
-              </CardContent>
-            </Card>
+            <ReputationTrendChart 
+              data={stats?.reputationTrend || []} 
+            />
 
 
             <Card className="border-border/50 rounded-2xl">

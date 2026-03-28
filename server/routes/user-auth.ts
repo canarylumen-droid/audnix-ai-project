@@ -901,6 +901,201 @@ router.post('/notifications/:id/read', async (req: Request, res: Response): Prom
 /**
  * POST /api/user/auth/metadata
  * Update current user's metadata JSON
+    const onboardingProfile = await storage.getOnboardingProfile(user.id);
+    if (onboardingProfile) {
+      await storage.updateOnboardingProfile(user.id, {
+        ...onboardingProfile,
+        completed: false,
+      });
+    }
+
+    // Destroy any existing sessions for this user
+    req.session.destroy(() => { });
+
+    console.log(`🔄 User account reset for: ${email}`);
+
+    res.json({
+      success: true,
+      message: 'Account reset. Please login with your email and password to continue.',
+      action: 'login',
+    });
+  } catch (error: unknown) {
+    console.error('Reset account error:', error);
+    res.status(500).json({ error: 'Failed to reset account' });
+  }
+});
+
+/**
+ * GET /api/user/auth/me
+ * Get current authenticated user
+ */
+router.get('/me', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.session?.userId;
+
+    if (!userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    const user = await storage.getUserById(userId);
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    const onboardingProfile = await storage.getOnboardingProfile(userId);
+    const metadata = user.metadata as Record<string, unknown> | null;
+    const hasCompletedOnboarding = onboardingProfile?.completed || (metadata?.onboardingCompleted as boolean) || false;
+
+    res.json({
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      name: user.name,
+      role: user.role || 'member',
+      plan: user.plan,
+      avatar: user.avatar,
+      subscriptionTier: user.subscriptionTier,
+      businessName: user.businessName,
+      trialExpiresAt: user.trialExpiresAt,
+      createdAt: user.createdAt,
+      metadata: {
+        ...(metadata || {}),
+        onboardingCompleted: hasCompletedOnboarding,
+      },
+    });
+  } catch (error: unknown) {
+    console.error('Get user error:', error);
+    res.status(500).json({ error: 'Failed to fetch user' });
+  }
+});
+
+/**
+ * POST /api/user/auth/logout
+ * Logout user and destroy session
+ */
+router.post('/logout', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.session?.userId;
+
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Session destroy error:', err);
+      }
+    });
+
+    res.clearCookie('audnix.sid', {
+      path: '/',
+    });
+
+    console.log(`👋 User logged out: ${userId || 'unknown'}`);
+
+    if (userId) {
+      wsSync.broadcastToUser(userId, { type: 'TERMINATE_SESSION', payload: {} });
+    }
+
+    res.json({
+      success: true,
+      message: 'Logged out successfully',
+    });
+  } catch (error: unknown) {
+    console.error('Logout error:', error);
+    res.status(500).json({ error: 'Logout failed' });
+  }
+});
+
+/**
+ * POST /api/user/auth/avatar
+ * Upload avatar as base64 - stored directly in PostgreSQL (zero setup)
+ */
+router.post('/avatar', avatarUpload.single('avatar'), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.session?.userId;
+    if (!userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    if (!req.file) {
+      res.status(400).json({ error: 'No image provided' });
+      return;
+    }
+
+    // Convert to base64 data URL
+    const base64 = req.file.buffer.toString('base64');
+    const dataUrl = `data:${req.file.mimetype};base64,${base64}`;
+
+    // Store directly in PostgreSQL user record
+    await storage.updateUser(userId, { avatar: dataUrl });
+
+    console.log(`✅ Avatar uploaded for user ${userId} (${Math.round(req.file.size / 1024)}KB)`);
+
+    res.json({
+      success: true,
+      avatar: dataUrl,
+      message: 'Avatar updated successfully'
+    });
+  } catch (error: unknown) {
+    console.error('Avatar upload error:', error);
+    res.status(500).json({ error: 'Failed to upload avatar' });
+  }
+});
+
+/**
+ * GET /api/user/notifications
+ * Get user notifications
+ */
+router.get('/notifications', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.session?.userId;
+    if (!userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    const notifications = await storage.getNotifications(userId);
+    res.json({ notifications });
+  } catch (error: unknown) {
+    console.error('Get notifications error:', error);
+    res.status(500).json({ error: 'Failed to get notifications' });
+  }
+});
+
+/**
+ * POST /api/user/notifications/:id/read
+ * Mark notification as read (with ownership validation)
+ */
+router.post('/notifications/:id/read', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.session?.userId;
+    if (!userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    const { id } = req.params;
+
+    // Verify ownership before marking as read
+    const notifications = await storage.getNotifications(userId);
+    const notification = notifications.find(n => n.id === id);
+
+    if (!notification) {
+      res.status(404).json({ error: 'Notification not found' });
+      return;
+    }
+
+    await storage.markNotificationAsRead(id as string);
+    res.json({ success: true });
+  } catch (error: unknown) {
+    console.error('Mark notification read error:', error);
+    res.status(500).json({ error: 'Failed to mark notification as read' });
+  }
+});
+
+/**
+ * POST /api/user/metadata
+ * Update current user's metadata JSON
  */
 router.post('/metadata', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -939,7 +1134,7 @@ router.post('/metadata', async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
- * POST /api/user/auth/set-username
+ * POST /api/user/set-username
  * After OTP verified → User selects username → Saved to DB
  */
 router.post('/set-username', async (req: Request, res: Response): Promise<void> => {
@@ -947,19 +1142,8 @@ router.post('/set-username', async (req: Request, res: Response): Promise<void> 
     const userId = req.session?.userId;
     const { username } = req.body as { username: string };
 
-    console.log('📝 [set-username] Request received');
-    console.log('📝 [set-username] Session data:', JSON.stringify({
-      userId: req.session?.userId,
-      email: req.session?.email,
-      cookie: req.session?.cookie
-    }));
-
     if (!userId) {
-      console.error('❌ [set-username] Session missing or expired');
-      res.status(401).json({
-        error: 'Not authenticated',
-        hint: 'Session may have expired. Please login again.'
-      });
+      res.status(401).json({ error: 'Not authenticated' });
       return;
     }
 
@@ -968,28 +1152,22 @@ router.post('/set-username', async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Validate username format
     if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
       res.status(400).json({ error: 'Only letters, numbers, hyphens and underscores allowed' });
       return;
     }
 
-    // Check if username taken
     const existing = await storage.getUserByUsername(username);
     if (existing && existing.id !== userId) {
       res.status(400).json({ error: 'Username already taken' });
       return;
     }
 
-    // Update user
     const user = await storage.updateUser(userId, { username });
-
     if (!user) {
       res.status(404).json({ error: 'User not found' });
       return;
     }
-
-    console.log(`✅ Username updated successfully for user ${userId}: ${username}`);
 
     res.json({
       success: true,
@@ -1021,26 +1199,29 @@ router.patch('/config', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const updates = req.body;
+    const { autonomousMode } = req.body;
     const user = await storage.getUserById(userId);
-    
     if (!user) {
       res.status(404).json({ error: 'User not found' });
       return;
     }
+
+    const newConfig = {
+      ...(user.config as any || {}),
+      autonomousMode: !!autonomousMode
+    };
+
+    const updatedUser = await storage.updateUser(userId, { config: newConfig });
     
-    const currentConfig = (user.config as Record<string, any>) || { autonomousMode: false };
-    const newConfig = { ...currentConfig, ...updates };
-    
-    await storage.updateUser(userId, { config: newConfig });
-    
+    console.log(`🤖 AI Engine toggle for user ${userId}: ${autonomousMode ? 'ON' : 'OFF'}`);
+
     res.json({
       success: true,
-      config: newConfig,
+      config: updatedUser?.config
     });
-  } catch (error: unknown) {
-    console.error('Update config error:', error);
-    res.status(500).json({ error: 'Failed to update config' });
+  } catch (error) {
+    console.error('Error updating user config:', error);
+    res.status(500).json({ error: 'Failed to update configuration' });
   }
 });
 

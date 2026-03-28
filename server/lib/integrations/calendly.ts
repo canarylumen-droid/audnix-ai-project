@@ -1,21 +1,42 @@
+import { db } from '../../db.js';
+import { users } from '../../../shared/schema.js';
+import { eq } from 'drizzle-orm';
+
 /**
- * Helper strictly for Calendly link enrichment
+ * Service to handle Calendly and general calendar integration metadata
  */
+export class CalendlyService {
+  /**
+   * Fetches the preferred booking link for a user
+   */
+  async getBookingLink(userId: string): Promise<string | null> {
+    try {
+      const user = await db.select({ 
+        calendlyLink: users.config,
+        calendarLink: users.calendarLink 
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
 
-export function getCalendlyPrefillLink(baseCalendarLink: string, lead: any): string {
-  if (!baseCalendarLink) return "our booking page";
+      if (!user[0]) return null;
 
-  // Check if it's an actual Calendly link
-  if (!baseCalendarLink.toLowerCase().includes('calendly.com')) {
-    return baseCalendarLink; 
+      // Check config first, then legacy field
+      const config = (user[0].calendlyLink as any) || {};
+      return config.calendlyLink || user[0].calendarLink || null;
+    } catch (error) {
+      console.error('[CalendlyService] Error fetching booking link:', error);
+      return null;
+    }
   }
 
-  const nameParam = lead.name ? encodeURIComponent(lead.name) : '';
-  const emailParam = lead.email ? encodeURIComponent(lead.email) : '';
-  
-  // Calendly uses ?name= &email= 
-  const separator = baseCalendarLink.includes('?') ? '&' : '?';
-  const finalLink = `${baseCalendarLink}${separator}name=${nameParam}&email=${emailParam}`;
-  
-  return finalLink;
+  /**
+   * Formats a booking link into a natural call-to-action
+   */
+  formatCta(link: string | null): string {
+    if (!link) return "Please let me know a few times that work best for you, and I'll get us scheduled.";
+    return `Feel free to pick a time that works best for you here: ${link}`;
+  }
 }
+
+export const calendlyService = new CalendlyService();

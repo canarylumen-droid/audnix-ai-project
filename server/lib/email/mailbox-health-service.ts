@@ -509,19 +509,14 @@ class MailboxHealthService {
 
           if (sentCount === 0) continue;
 
-          const bounceRate = bounceCount / sentCount;
-          const currentSpamPct = bounceRate * 100;
-          
-          // Smoothed weighted moving average (70% old, 30% new) to prevent "spiking"
-          const oldScore = Number(integration.spamRiskScore || 0);
-          const newScore = oldScore === 0 ? currentSpamPct : (oldScore * 0.7) + (currentSpamPct * 0.3);
+          if (sentCount === 0) continue;
 
-          await db.update(integrations)
-            .set({ spamRiskScore: parseFloat(newScore.toFixed(2)) })
-            .where(eq(integrations.id, integration.id));
+          // Phase 5: Use unified Reputation Monitor for all health & throttling calculations
+          const { calculateReputationScore } = await import('./reputation-monitor.js');
+          const finalScore = await calculateReputationScore(integrationId);
 
-          if (bounceRate >= this.SPAM_BOUNCE_CRITICAL) {
-            // Pause this mailbox for 24h
+          if (finalScore < 40) {
+            // Unpause handled by reputation-monitor itself or we can force it here
             const pauseUntil = new Date();
             pauseUntil.setHours(pauseUntil.getHours() + 24);
 
@@ -529,7 +524,7 @@ class MailboxHealthService {
               .set({
                 mailboxPauseUntil: pauseUntil,
                 healthStatus: 'warning',
-                lastHealthError: `High spam risk: ${(bounceRate * 100).toFixed(1)}% bounce rate`,
+                lastHealthError: `Reputation critical: ${finalScore}/100. Autonomous pause active.`,
                 updatedAt: new Date(),
               })
               .where(eq(integrations.id, integration.id));

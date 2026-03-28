@@ -160,15 +160,20 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
   });
   const [showNotificationsPanel, setShowNotificationsPanel] = useState(false);
   const isAutonomousMode = (user as any)?.config?.autonomousMode !== false;
+  const isCalendarConnected = !!(user?.calendlyAccessToken || user?.calendarLink);
 
   const toggleAutonomousMode = useMutation({
     mutationFn: async (autonomousMode: boolean) => {
       return apiRequest('PATCH', '/api/user/config', { autonomousMode });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
+    onSuccess: (_, autonomousMode) => {
+      queryClient.setQueryData(["/api/user/profile"], (old: any) => ({
+        ...old,
+        config: { ...old.config, autonomousMode }
+      }));
       toast({
-        title: `AI Engine ${isAutonomousMode ? 'Paused' : 'Activated'}`,
+        title: `AI Engine ${autonomousMode ? 'Activated' : 'Paused'}`,
+        description: `Autonomous mode is now ${autonomousMode ? 'running' : 'stopped'}.`,
       });
     }
   });
@@ -420,25 +425,51 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
 
                 {/* Autonomous Mode Toggle */}
                 <div className={`mt-auto px-4 py-6 ${sidebarCollapsed ? "flex justify-center" : ""}`}>
-                  <div className={`flex items-center justify-between p-3 rounded-2xl border border-primary/10 bg-primary/5 transition-all hover:bg-primary/10 ${sidebarCollapsed ? "w-12 h-12 p-0 justify-center" : "w-full"}`}>
+                  <div className={`flex flex-col gap-4 w-full`}>
+                    {/* Calendar Status Indicator (New) */}
                     {!sidebarCollapsed && (
-                      <div className="flex flex-col gap-0.5">
-                        <Label htmlFor="autonomous-mode" className="text-[10px] font-bold uppercase tracking-wider text-primary cursor-pointer">
-                          AI Engine
-                        </Label>
-                        <span className="text-[9px] text-muted-foreground font-medium">
-                          {isAutonomousMode ? "Autonomous" : "Manual"}
-                        </span>
+                      <div className={cn(
+                        "flex items-center gap-2 px-3 py-2 rounded-xl border transition-all text-[10px] font-bold uppercase tracking-wider",
+                        isCalendarConnected 
+                          ? "bg-emerald-500/5 border-emerald-500/10 text-emerald-500" 
+                          : "bg-zinc-500/5 border-zinc-500/10 text-zinc-500"
+                      )}>
+                        <div className={cn(
+                          "w-1.5 h-1.5 rounded-full",
+                          isCalendarConnected ? "bg-emerald-500 animate-pulse" : "bg-zinc-500"
+                        )} />
+                        {isCalendarConnected ? "Calendar Synced" : "Calendar Offline"}
                       </div>
                     )}
-                    <div className={sidebarCollapsed ? "scale-75" : ""}>
-                      <Switch
-                        id="autonomous-mode"
-                        checked={isAutonomousMode}
-                        onCheckedChange={(checked) => toggleAutonomousMode.mutate(checked)}
-                        disabled={toggleAutonomousMode.isPending}
-                        className="data-[state=checked]:bg-primary"
-                      />
+
+                    <div className={`flex items-center justify-between p-3 rounded-2xl border border-primary/10 bg-primary/5 transition-all hover:bg-primary/10 ${sidebarCollapsed ? "w-12 h-12 p-0 justify-center" : "w-full"}`}>
+                      {!sidebarCollapsed && (
+                        <div className="flex flex-col gap-0.5">
+                          <Label htmlFor="autonomous-mode" className="text-[10px] font-bold uppercase tracking-wider text-primary cursor-pointer flex items-center gap-1.5">
+                            AI Engine
+                            {isAutonomousMode && (
+                              <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" title="Real-time Sync Active" />
+                            )}
+                          </Label>
+                          <span className="text-[9px] text-muted-foreground font-medium flex items-center gap-1">
+                            {isAutonomousMode ? (
+                              <>
+                                <Zap className="h-2 w-2 text-emerald-500" />
+                                Active Sync
+                              </>
+                            ) : "Manual Mode"}
+                          </span>
+                        </div>
+                      )}
+                      <div className={sidebarCollapsed ? "scale-75" : ""}>
+                        <Switch
+                          id="autonomous-mode"
+                          checked={isAutonomousMode}
+                          onCheckedChange={(checked) => toggleAutonomousMode.mutate(checked)}
+                          disabled={toggleAutonomousMode.isPending}
+                          className="data-[state=checked]:bg-primary"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
