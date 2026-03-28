@@ -112,18 +112,45 @@ export class MeetingReminderWorker {
     const history = lead?.id ? await storage.getMessagesByLeadId(lead.id) : [];
     const historyStr = history.slice(-3).map(m => `${m.direction === 'inbound' ? 'Lead' : 'AI'}: ${m.body}`).join('\n');
 
-    const systemPrompt = "You are a professional sales assistant. Craft a short, personalized meeting reminder.";
-    const prompt = `Craft a short, punchy ${type} reminder for an upcoming meeting.
-    Meeting: ${booking.title}
-    Time: ${new Date(booking.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-    Link: ${booking.meetingUrl || 'N/A'}
-    Recipient: ${recipientName}
-    Business: ${user.company || user.businessName || 'Our Team'}
-    
-    RECENT CONVERSATION CONTEXT:
-    ${historyStr || 'No previous history available.'}
-    
-    INSTRUCTION: Mention something small from the context if it makes sense to sound more human. Keep it under 2-3 sentences. Professional and helpful.`;
+    const systemPrompt = `
+You are a high-performing AI sales assistant specialized in writing concise, professional meeting reminders.
+
+Your goals:
+- Maximize clarity, professionalism, and response rates
+- Keep messages brief, natural, and human-like
+- Personalize when relevant, without sounding forced
+- Use soft, action-oriented phrasing (e.g., "Feel free to pick a time that works best for you") to increase reply rates
+
+Strict rules:
+- Output must be 1–2 sentences maximum
+- No emojis, no fluff, no filler phrases
+- Maintain a confident, polite, and professional tone
+- Do NOT invent details that are not provided
+- Only use context if it is clearly relevant and adds value
+- Always include the meeting time and link (if available)
+
+Output only the final message. No explanations.
+`;
+
+    const prompt = `
+Write a ${type} meeting reminder.
+
+Details:
+- Meeting title: ${booking.title}
+- Time: ${new Date(booking.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+- Meeting link: ${booking.meetingUrl || 'Not provided'}
+- Recipient name: ${recipientName}
+- Sender business: ${user.company || user.businessName || 'Our Team'}
+
+Context from previous conversation:
+${historyStr || 'None'}
+
+Instructions:
+- If useful, reference a small, relevant detail from the conversation to personalize the message
+- If no useful context exists, skip personalization
+- Keep the message clear, direct, and natural
+- Avoid sounding robotic or overly formal
+`;
 
     const { text } = await generateReply(systemPrompt, prompt);
 
@@ -150,13 +177,49 @@ export class MeetingReminderWorker {
 
     const calendarLink = (user as any).calendlyLink || (user as any).calendarLink;
     const bookingCta = calendarLink ? `Link: ${calendarLink}` : `Please reply to let us know when works best.`;
-    const prompt = `Craft a polite, frictionless email checking in on a missed meeting and proposing a reschedule.
-    Meeting: ${booking.title}
-    Recipient: ${recipientName}
-    Business: ${user.company || user.businessName || 'Our Team'}
-    ${bookingCta}
-    
-    INSTRUCTION: Assume they got caught up in something important. No guilt trips. Just offer them a way to grab another time. Keep it super short (2-3 sentences).`;
+    const systemPrompt = `
+You are a high-performing AI sales assistant specialized in writing concise, professional meeting reminders.
+
+Your goals:
+- Maximize clarity, professionalism, and response rates
+- Keep messages brief, natural, and human-like
+- Personalize when relevant, without sounding forced
+- Use soft, action-oriented phrasing (e.g., "Feel free to pick a time that works best for you") to increase reply rates
+
+Strict rules:
+- Output must be 1–2 sentences maximum
+- No emojis, no fluff, no filler phrases
+- Maintain a confident, polite, and professional tone
+- Do NOT invent details that are not provided
+- Only use context if it is clearly relevant and adds value
+- Always include the meeting time and link (if available)
+
+Output only the final message. No explanations.
+`;
+
+    const prompt = `
+Write a polite, frictionless missed-meeting follow-up email.
+
+Context:
+- Meeting title: ${booking.title}
+- Recipient name: ${recipientName}
+- Sender business: ${user.company || user.businessName || 'Our Team'}
+- Reschedule link / CTA: ${bookingCta}
+
+Instructions:
+- Assume the recipient was busy; do not assign blame or mention "missing" the meeting negatively
+- Keep tone calm, understanding, and professional
+- Keep it 2 sentences maximum (3 only if absolutely necessary)
+- Make rescheduling feel easy and low-pressure
+- Include the CTA naturally in the message
+- Do NOT sound pushy, salesy, or passive-aggressive
+- Do NOT invent details
+
+Output requirements:
+- Output only the final email message
+- No subject line, no placeholders, no extra commentary
+- Single short paragraph
+`;
 
     const { text } = await generateReply(systemPrompt, prompt);
 

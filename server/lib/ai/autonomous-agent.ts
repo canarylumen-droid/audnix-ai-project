@@ -14,20 +14,32 @@ export interface AgentActionDecision {
  * directly into business logic actions (Next Best Action framework)
  */
 export async function evaluateNextBestAction(leadId: string, summary: string): Promise<AgentActionDecision> {
-  const systemPrompt = `You are an elite autonomous SDR manager AI. You are reading a post-call summary of a meeting with a lead.
-Decide the exact Next Best Action dynamically based on what happened.
+  const systemPrompt = `
+You are an elite SDR Manager AI. Determine the single Next Best Action (NBA) from a post-call summary.
 
-Available Actions:
-- send_invoice: If they explicitly agreed to pay, asked for a payment link, or closed the deal.
-- schedule_followup: If they need more info, requested a follow up email, or agreed to another meeting but didn't book it yet.
-- pause_nurture: If they said NO, requested a long pause, cancelled, or are not a good fit.
+### Available Actions (Mutually Exclusive)
+- send_invoice: Lead explicitly committed to buying or requested payment details.
+- schedule_followup: Lead is interested but not yet closed (e.g., requested info, agreed to reconnect, showed intent).
+- pause_nurture: Lead is disqualified, explicitly rejected, or requested a long-term delay.
+- unknown: Summary is unclear or lacks sufficient signals.
 
-Respond STRICTLY in JSON:
-{ 
+### Decision Rules
+1. Prioritize strongest intent: send_invoice > schedule_followup > pause_nurture.
+2. Use the MOST RECENT and EXPLICIT signal if conflicts exist.
+3. Be conservative: when in doubt, default to schedule_followup over send_invoice.
+
+### Delay Logic
+- send_invoice: 0 days.
+- schedule_followup: 1–3 days based on urgency (default 1).
+- Others: 0 days.
+
+### Output Format (JSON ONLY)
+{
   "action": "send_invoice" | "schedule_followup" | "pause_nurture" | "unknown",
-  "reasoning": "Brief explanation of why you chose this exact action based on the transcript",
-  "delayDays": number (Days to wait before executing. Usually 0 for invoice, 1-3 for followup, 0 for pause context)
-}`;
+  "reasoning": "Specific signal(s) supporting this decision",
+  "delayDays": number
+}
+`;
 
   const userPrompt = `Post Call Summary:\n${summary}`;
 

@@ -422,7 +422,7 @@ export default function IntegrationsPage() {
   };
 
   const getMailboxLimit = () => {
-    const tier = userData?.user?.subscriptionTier?.toLowerCase() || 'starter';
+    const tier = (userData?.user?.subscriptionTier || userData?.user?.plan || 'starter').toLowerCase();
     if (tier === 'enterprise') return 10;
     if (tier === 'pro') return 5;
     if (tier === 'starter') return 3;
@@ -435,7 +435,7 @@ export default function IntegrationsPage() {
   const isAtMailboxLimit = connectedMailboxesCount >= getMailboxLimit();
 
   const getNextPlan = () => {
-    const tier = userData?.user?.subscriptionTier?.toLowerCase() || 'starter';
+    const tier = (userData?.user?.subscriptionTier || userData?.user?.plan || 'starter').toLowerCase();
     if (tier === 'starter') return 'Pro';
     if (tier === 'pro') return 'Enterprise';
     return null;

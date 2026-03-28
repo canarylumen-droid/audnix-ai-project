@@ -945,7 +945,7 @@ export class DrizzleStorage implements IStorage {
     
     // 1. Get user plan
     const user = await this.getUser(userId);
-    const plan = user?.subscriptionTier || 'free';
+    const plan = (user?.subscriptionTier || user?.plan || 'free').toLowerCase();
     const capabilities = getPlanCapabilities(plan);
     const limit = capabilities.mailboxLimit || 1;
 
