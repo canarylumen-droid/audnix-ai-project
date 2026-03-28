@@ -62,6 +62,9 @@ export class ReputationWorker {
                                 createdAt: new Date()
                             });
 
+                            const { calculateReputationScore } = await import('../email/reputation-monitor.js');
+                            await calculateReputationScore(integration.id);
+
                             wsSync.notifyStatsUpdated(user.id);
                         } catch (e) {
                             console.error(`Failed to save reputation for ${domain}:`, e);

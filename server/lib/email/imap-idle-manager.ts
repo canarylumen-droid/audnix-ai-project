@@ -503,6 +503,16 @@ class ImapIdleManager {
                             const { wsSync } = await import('../websocket-sync.js');
                             wsSync.notifyMessagesUpdated(userId, { event: 'INSERT', count: importRes.imported });
 
+                            // Phase 5: Wire the monitor into imap-idle-manager
+                            if (isSpam) {
+                                try {
+                                    const { calculateReputationScore } = await import('./reputation-monitor.js');
+                                    calculateReputationScore(integrationId).catch(console.error);
+                                } catch (err) {
+                                    console.error('[IMAP/Spam] Failed to trigger reputation monitor:', err);
+                                }
+                            }
+
                             // Trigger autonomous AI reply for new inbound messages
                             try {
                                 const { scheduleAutomatedEmailReply } = await import('../ai/email-automation.js');

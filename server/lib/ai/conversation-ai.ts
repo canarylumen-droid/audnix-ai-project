@@ -16,6 +16,7 @@ import { evaluateAndLogDecision } from './decision-engine.js';
 import { formatReplyForChannel } from './channel-reply-formatter.js';
 import { generateReply } from './ai-service.js';
 import { getStyleMarkers, type StyleMarkers } from './personality-learner.js';
+import { getCalendlyPrefillLink } from '../integrations/calendly.js';
 
 const isDemoMode = false;
 
@@ -332,10 +333,14 @@ LEAD PROFILE:
 - Name: ${lead.name}
 - Role: ${lead.role || "Prospect"}
 - Company: ${lead.company || "Unknown"}
+- City/Location: ${(lead as any).city || "Unknown"}
+- Timezone: ${(lead as any).timezone || "Unknown"}
 - Industry: ${(lead.metadata as any)?.industry || "General"}
 - Bio/Notes: ${lead.bio || "None provided"}
 - Channel: ${platform}
 - Warmth Level: ${isWarm ? 'Warm Engagement' : 'Cold Outreach'}
+
+Use their timezone when suggesting meeting times (e.g., "Does 2pm your time work?") if their timezone or city is known.
 `;
 
   const platformTone: Record<string, string> = {
@@ -367,7 +372,7 @@ How You Talk:
 - Every message must be a bridge. If they ask a question, answer it using brand info and immediately pivot to: "Actually, it's easier to map this against your specific roadmap. Are you open to a 10min sync?"
 - Short sentences. 2-3 sentences max for DMs, a short paragraph for email.
 - BE PUNCHY AND DIRECT. Do not "yap" or use unnecessary filler words. One strong point per message is better than three weak ones.
-- If the lead wants to book or schedule, use this link: ${userContext?.calendarLink || (user as any)?.calendarLink || "our booking page"}.
+- If the lead wants to book or schedule, use this exact personalized link: ${getCalendlyPrefillLink(userContext?.calendarLink || (user as any)?.calendarLink || "", lead)}
 - If lead mentions a specific time, confirm if it works or suggest the link to be sure.
 
 Your Personality:

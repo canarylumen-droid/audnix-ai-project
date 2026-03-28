@@ -62,7 +62,9 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
 
   const [campaignName, setCampaignName] = useState("");
   const [followUpDays, setFollowUpDays] = useState("3");
+  const [targetDays, setTargetDays] = useState(10); // User-configurable target days
   const [excludeWeekends, setExcludeWeekends] = useState(false);
+  const [aiAutonomousMode, setAiAutonomousMode] = useState(true);
   const [selectedMailboxes, setSelectedMailboxes] = useState<string[]>([]);
   const [replyTo, setReplyTo] = useState("");
 
@@ -104,6 +106,9 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
   const totalDailyVolume = selectedMailboxes.reduce((sum, id) => sum + (mailboxLimits[id] || 0), 0);
   const maxTotalVolume = selectedMailboxes.reduce((sum, id) => sum + (mailboxLimits[id] || 0) * (mailboxMaxMultipliers[id] || 3), 0);
 
+  const estimatedDays = leads.length > 0 && totalDailyVolume > 0 ? Math.ceil(leads.length / totalDailyVolume) : 0;
+  const isExtendedTimeline = estimatedDays > targetDays;
+
   useEffect(() => {
     const saved = localStorage.getItem("campaign_draft");
     if (saved) {
@@ -124,10 +129,10 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
 
   useEffect(() => {
     if (isOpen) {
-      const draft = { campaignName, subject, body, followUpSubject, followUpBody, followUpSubject2, followUpBody2, autoReplyBody, totalDailyVolume, followUpDays, excludeWeekends };
+      const draft = { campaignName, subject, body, followUpSubject, followUpBody, followUpSubject2, followUpBody2, autoReplyBody, totalDailyVolume, followUpDays, targetDays, excludeWeekends };
       localStorage.setItem("campaign_draft", JSON.stringify(draft));
     }
-  }, [campaignName, subject, body, followUpSubject, followUpBody, followUpSubject2, followUpBody2, autoReplyBody, totalDailyVolume, followUpDays, excludeWeekends, isOpen]);
+  }, [campaignName, subject, body, followUpSubject, followUpBody, followUpSubject2, followUpBody2, autoReplyBody, totalDailyVolume, followUpDays, targetDays, excludeWeekends, isOpen]);
 
   const variants = {
     enter: (direction: number) => ({ x: direction > 0 ? 50 : -50, opacity: 0 }),
@@ -185,6 +190,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
         leads: leads.map((l: any) => l.id || l),
         excludeWeekends,
         singleCampaign: true,
+        aiAutonomousMode,
         config: {
           dailyLimit: totalDailyVolume,
           mailboxLimits,
@@ -409,7 +415,23 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                                <p className="text-3xl font-black italic text-amber-600">+{maxTotalVolume - totalDailyVolume}</p>
                              </div>
                            </div>
-                           <p className="text-[10px] text-muted-foreground italic leading-relaxed pt-2 border-t border-primary/5">Flexible priority sends for follow-ups included.</p>
+                          <div className="space-y-4">
+                            <Label className="text-[10px] font-black uppercase tracking-widest opacity-40">Campaign Duration Goal: {targetDays} Days</Label>
+                            <Slider value={[targetDays]} onValueChange={v => setTargetDays(v[0])} min={1} max={30} step={1} className="py-2" />
+                            <p className="text-[10px] italic opacity-50">Set your ideal completion timeline. AI will warn you if daily limits exceed safety ceilings to reach this goal.</p>
+                          </div>
+                          
+                          {isExtendedTimeline && (
+                            <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl animate-in fade-in mt-4">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Sparkles className="w-4 h-4 text-amber-500" />
+                                <span className="text-[10px] font-black uppercase tracking-widest text-amber-600">Timeline Extended</span>
+                              </div>
+                              <p className="text-[11px] text-amber-700/80 leading-relaxed font-bold">
+                                Based on your {leads.length} leads and current mailbox limits, this campaign will safely complete in <strong>{estimatedDays} days</strong> instead of {targetDays}. Increase mailbox limits or add more mailboxes to speed up sending.
+                              </p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </motion.div>
@@ -424,6 +446,13 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="p-6 bg-primary/5 rounded-3xl border border-primary/20 flex items-center justify-between col-span-1 md:col-span-2">
+                          <div>
+                            <p className="text-[11px] font-black uppercase text-primary">AI Autonomous Engine</p>
+                            <p className="text-[10px] opacity-60 italic mt-1 max-w-lg">Allows the AI to automatically pause follow-ups, send invoices, and book Calendly meetings by reading Fathom call summaries and lead replies.</p>
+                          </div>
+                          <Switch checked={aiAutonomousMode} onCheckedChange={setAiAutonomousMode} className="scale-125 data-[state=checked]:bg-primary" />
+                        </div>
                         <div className="p-6 bg-muted/10 rounded-3xl border border-border/10 space-y-3">
                            <Label className="text-[9px] font-black uppercase opacity-40">Reply-To Routing</Label>
                            <Input value={replyTo} onChange={e => setReplyTo(e.target.value)} placeholder="alias@domain.com" className="bg-background border-border/20 font-black text-xs h-12 rounded-xl" />

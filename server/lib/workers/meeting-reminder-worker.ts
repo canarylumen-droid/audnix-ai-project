@@ -1,6 +1,6 @@
 import { db } from '../../db.js';
-import { calendarBookings, users, leads } from '../../../shared/schema.js';
-import { eq, and, gt, lt, isNull } from 'drizzle-orm';
+import { calendarBookings, users, leads, aiActionLogs } from '../../../shared/schema.js';
+import { eq, and, or, gt, lt, isNull } from 'drizzle-orm';
 import { storage } from '../../storage.js';
 import { sendEmail } from '../channels/email.js';
 import { generateReply } from '../ai/ai-service.js';
@@ -38,32 +38,54 @@ export class MeetingReminderWorker {
       const now = new Date();
       const oneHourFromNow = new Date(now.getTime() + 65 * 60 * 1000); // 65 min buffer
       
-      // Find bookings starting in the next ~hour that haven't had a reminder
+      // Find bookings starting in the next ~hour, or that were recently marked 'no_show', or just ended in the past 2 hours
       const upcomingBookings = await db.select().from(calendarBookings).where(
-        and(
-          eq(calendarBookings.status, 'scheduled'),
-          gt(calendarBookings.startTime, now),
-          lt(calendarBookings.startTime, oneHourFromNow)
+        or(
+          and(
+            eq(calendarBookings.status, 'scheduled'),
+            gt(calendarBookings.startTime, new Date(now.getTime() - 10 * 60 * 1000)), // up to 10 mins past start
+            lt(calendarBookings.startTime, oneHourFromNow)
+          ),
+          eq(calendarBookings.status, 'no_show'),
+          and(
+            eq(calendarBookings.status, 'scheduled'),
+            lt(calendarBookings.endTime, now),
+            gt(calendarBookings.endTime, new Date(now.getTime() - 120 * 60 * 1000))
+          )
         )
       );
 
       for (const booking of upcomingBookings) {
         const metadata = booking.metadata as any || {};
-        const reminder1hr = metadata.reminder1hr_sent;
         const reminder45m = metadata.reminder45m_sent;
+        const reminder5m = metadata.reminder5m_sent;
+        const noShowHandled = metadata.no_show_handled;
 
         const minutesUntil = Math.round((new Date(booking.startTime).getTime() - now.getTime()) / 60000);
+        const minutesSince = Math.round((now.getTime() - new Date(booking.startTime).getTime()) / 60000);
 
-        // 1 Hour Reminder (60-70 mins before)
-        if (minutesUntil <= 70 && minutesUntil >= 60 && !reminder1hr) {
-          await this.sendReminder(booking, '1-hour');
-          await this.markReminderSent(booking.id, 'reminder1hr_sent');
-        }
-        
-        // 45 Minute Reminder (40-50 mins before)
-        if (minutesUntil <= 50 && minutesUntil >= 40 && !reminder45m) {
+        // 45 Minute Reminder (40-55 mins before)
+        if (minutesUntil <= 55 && minutesUntil >= 40 && !reminder45m && booking.status === 'scheduled') {
           await this.sendReminder(booking, '45-minute');
           await this.markReminderSent(booking.id, 'reminder45m_sent');
+        }
+        
+        // 5 Minute Reminder (0-15 mins before)
+        if (minutesUntil <= 15 && minutesUntil >= 0 && !reminder5m && booking.status === 'scheduled') {
+          await this.sendReminder(booking, '5-minute');
+          await this.markReminderSent(booking.id, 'reminder5m_sent');
+        }
+
+        // No-Show Reschedule (30 mins after scheduled start time OR marked explicitly as no_show by Fathom)
+        if (booking.status === 'no_show' && minutesSince >= 30 && minutesSince <= 120 && !noShowHandled) {
+          await this.sendRescheduleEmail(booking);
+          await this.markReminderSent(booking.id, 'no_show_handled');
+        }
+
+        // Post-Meeting Autonomous Action via Fathom (Checks completed meetings)
+        if (booking.status === 'scheduled' && now.getTime() > new Date(booking.endTime).getTime() && !metadata.post_meeting_handled) {
+          await this.processPostMeetingSummary(booking);
+          await this.markReminderSent(booking.id, 'post_meeting_handled');
         }
       }
 
@@ -112,6 +134,126 @@ export class MeetingReminderWorker {
       `Reminder: ${booking.title} in ${type}`,
       { isHtml: true, leadId: booking.leadId }
     );
+  }
+
+  private async sendRescheduleEmail(booking: any): Promise<void> {
+    const user = await storage.getUserById(booking.userId);
+    if (!user) return;
+
+    const lead = booking.leadId ? await storage.getLeadById(booking.leadId) : null;
+    const recipientName = booking.attendeeName || lead?.name || 'there';
+    const recipientEmail = booking.attendeeEmail || lead?.email;
+
+    if (!recipientEmail) return;
+
+    console.log(`[MeetingReminder] Sending no-show reschedule email to ${recipientEmail} for "${booking.title}"`);
+
+    const calendarLink = (user as any).calendlyLink || (user as any).calendarLink;
+    const bookingCta = calendarLink ? `Link: ${calendarLink}` : `Please reply to let us know when works best.`;
+    const prompt = `Craft a polite, frictionless email checking in on a missed meeting and proposing a reschedule.
+    Meeting: ${booking.title}
+    Recipient: ${recipientName}
+    Business: ${user.company || user.businessName || 'Our Team'}
+    ${bookingCta}
+    
+    INSTRUCTION: Assume they got caught up in something important. No guilt trips. Just offer them a way to grab another time. Keep it super short (2-3 sentences).`;
+
+    const { text } = await generateReply(systemPrompt, prompt);
+
+    await sendEmail(
+      booking.userId,
+      recipientEmail,
+      text,
+      `Missed you for ${booking.title} - Reschedule?`,
+      { isHtml: true, leadId: booking.leadId }
+    );
+  }
+
+  private async processPostMeetingSummary(booking: any): Promise<void> {
+    const fathomApiKey = process.env.FATHOM_API_KEY;
+    if (!fathomApiKey || !booking.externalEventId) return;
+
+    const user = await storage.getUserById(booking.userId);
+    const lead = booking.leadId ? await storage.getLeadById(booking.leadId) : null;
+    
+    if (!user || !lead || !lead.email) return;
+
+    try {
+      console.log(`[MeetingReminder] Querying Fathom API for completed meeting ${booking.externalEventId}`);
+      // Query Fathom for the transcript/summary of the completed call
+      const fathomRes = await fetch(`https://api.fathom.video/v1/calls?event_id=${booking.externalEventId}`, {
+        headers: { 'Authorization': `Bearer ${fathomApiKey}` }
+      });
+
+      if (!fathomRes.ok) {
+        console.warn(`[MeetingReminder] Fathom API wait: Call summary not ready or 404 for ${booking.externalEventId}`);
+        // Let it retry next tick if it's just delayed
+        return;
+      }
+
+      const callData = await fathomRes.json();
+      
+      // Handle actual Fathom no-show status detection
+      if (callData.data && callData.data[0]?.status === 'no_show') {
+         await db.update(calendarBookings).set({ status: 'no_show' }).where({ id: booking.id });
+         return; // The no-show handler will pick it up
+      }
+
+      const summary = callData.data?.[0]?.summary || callData.data?.[0]?.transcript;
+      
+      // If Fathom doesn't have the summary or transcript yet, abort and try again later
+      if (!summary) {
+         console.warn(`[MeetingReminder] Fathom summary/transcript not available yet for ${booking.externalEventId}`);
+         return;
+      }
+
+      const systemPrompt = `You are an autonomous sales AI. Analyze the Fathom call summary. 
+Decide the exact next email to send. 
+Do NOT chase. Be helpful. 
+Respond ONLY with a JSON object: { "action": "invoice" | "follow_up" | "wait", "emailSubject": "...", "emailBody": "...", "reasoning": "..." }`;
+      
+      const prompt = `Call Summary: ${summary}\nLead Name: ${lead.name}\nBusiness: ${user.company || user.businessName || 'Our Team'}\nDecide next step.`;
+
+      const aiDecisionStr = await generateReply(systemPrompt, prompt);
+      
+      let decision;
+      try {
+        // Strip markdown if AI wraps it
+        const cleanedStr = aiDecisionStr.text.replace(/```json\n?|\n?```/gi, '').trim();
+        decision = JSON.parse(cleanedStr);
+      } catch (e) {
+        console.warn(`[MeetingReminder] JSON parse error for AI decision fallback:`, e);
+        return; // Skip and avoid sending garbage
+      }
+
+      // Record AI decision
+      await db.insert(aiActionLogs).values({
+        userId: booking.userId,
+        leadId: booking.leadId,
+        actionType: 'follow_up',
+        decision: decision.action === 'wait' ? 'wait' : 'act',
+        confidence: 0.95,
+        reasoning: decision.reasoning || `Analyzed Fathom call summary. Selected action: ${decision.action}.`
+      });
+
+      // Execute action if not waiting
+      if (decision.action !== 'wait' && decision.emailBody) {
+         console.log(`[MeetingReminder] Autonomous AI executing post-meeting action (${decision.action}) for ${lead.email}`);
+         await sendEmail(
+            booking.userId,
+            lead.email,
+            decision.emailBody,
+            decision.emailSubject || "Following up on our call",
+            { isHtml: true, leadId: lead.id }
+         );
+      }
+      
+      // Mark booking as completed via Fathom
+      await db.update(calendarBookings).set({ status: 'completed' }).where(eq(calendarBookings.id, booking.id));
+
+    } catch (err) {
+      console.error(`[MeetingReminder] Error processing Fathom post-meeting summary:`, err);
+    }
   }
 
   private async markReminderSent(id: string, field: string): Promise<void> {

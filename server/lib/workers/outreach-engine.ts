@@ -479,37 +479,43 @@ export class OutreachEngine {
           return result && result.overallStatus !== 'excellent' && result.overallStatus !== 'good';
         }).length;
         
-        let recentBounces = [];
-        try {
-          recentBounces = await storage.getRecentBounces(userId, 168);
-        } catch (e) {}
-        
-        const hardBounces = recentBounces.filter(b => b.bounceType === 'hard').length;
-        const softBounces = recentBounces.filter(b => b.bounceType === 'soft').length;
-        const spamBounces = recentBounces.filter(b => b.bounceType === 'spam').length;
-        
-        let reputationScore = 100;
-        const stats = await storage.getDashboardStats(userId, { integrationId: integration.id });
-        if (stats.totalLeads > 0) {
-          const bounceRate = ((hardBounces + spamBounces) / stats.totalLeads) * 100;
-          const bouncePenalty = (hardBounces * 10) + (softBounces * 2) + (spamBounces * 15);
-          reputationScore = Math.max(0, 100 - bouncePenalty - (bounceRate * 3));
-          if (stats.totalLeads > 100 && bounceRate < 2) {
-            reputationScore = Math.min(100, reputationScore + 5);
-          }
+        // Cruise Control: Phase 6
+        // Stop completely if the reputation monitor strictly paused the mailbox
+        if (integration.warmupStatus === 'paused') {
+            console.warn(`[OutreachEngine] 🛑 Mailbox ${integration.id} is PAUSED by the autonomous engine due to poor reputation.`);
+            return false;
         }
+
+        // Phase 6: Sync with Phase 5 Reputation Monitor
+        // Use the unified DB calculation tracked by reputation-monitor.ts
+        const reputationScore = integration.reputationScore ?? 100;
         
         const healthPenalty = (unverifiedDomains * 15);
         const domainHealth = Math.max(0, reputationScore - healthPenalty);
         
-        // Apply Autonomous Adaptive Thresholds
-        if (domainHealth < 30) {
-           // CRITICAL OVERRIDE: Automatically restrict to 5 safely
-           effectiveLimit = Math.min(5, effectiveLimit);
+        // Fetch user-configured thresholds instead of hardcoding mock data
+        let criticalThreshold = 30;
+        let cautiousThreshold = 55;
+        let criticalLimit = 5;
+
+        try {
+           const userRow = await db.select({ config: users.config }).from(users).where(eq(users.id, userId)).limit(1);
+           if (userRow[0] && userRow[0].config) {
+               const configParams = userRow[0].config as any;
+               if (configParams.reputationCriticalThreshold) criticalThreshold = configParams.reputationCriticalThreshold;
+               if (configParams.reputationCautiousThreshold) cautiousThreshold = configParams.reputationCautiousThreshold;
+               if (configParams.reputationCriticalLimit) criticalLimit = configParams.reputationCriticalLimit;
+           }
+        } catch(e) { /* fallback to defaults */ }
+
+        // Apply Autonomous Adaptive Thresholds using configured values
+        if (domainHealth < criticalThreshold) {
+           // CRITICAL OVERRIDE: Automatically restrict volume securely
+           effectiveLimit = Math.min(criticalLimit, effectiveLimit);
            console.log(`[OutreachEngine] ⚠️ CRITICAL DOMAIN HEALTH (${domainHealth}) for ${integration.id}. Sending drastically reduced to ${effectiveLimit}.`);
-        } else if (domainHealth < 55) {
+        } else if (domainHealth < cautiousThreshold) {
            // POOR/CAUTIOUS OVERRIDE: Automatically restrict by half safely
-           effectiveLimit = Math.max(5, Math.floor(effectiveLimit / 2));
+           effectiveLimit = Math.max(criticalLimit, Math.floor(effectiveLimit / 2));
            console.log(`[OutreachEngine] ⚠️ CAUTIOUS DOMAIN HEALTH (${domainHealth}) for ${integration.id}. Sending auto-reduced to ${effectiveLimit}.`);
         }
       } catch (err) {

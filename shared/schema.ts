@@ -129,6 +129,9 @@ export const leads = pgTable("leads", {
   archived: boolean("archived").notNull().default(false),
   tags: jsonb("tags").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
   integrationId: uuid("integration_id").references(() => integrations.id, { onDelete: "set null" }),
+  timezone: text("timezone"),
+  calendlyLink: text("calendly_link"),
+  fathomMeetingId: text("fathom_meeting_id"),
   metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -240,6 +243,9 @@ export const integrations = pgTable("integrations", {
   failureCount: integer("failure_count").notNull().default(0),
   dailyLimit: integer("daily_limit").notNull().default(50),
   spamRiskScore: real("spam_risk_score").notNull().default(0),
+  aiAutonomousMode: boolean("ai_autonomous_mode").notNull().default(false),
+  reputationScore: integer("reputation_score").notNull().default(100),
+  warmupStatus: text("warmup_status", { enum: ["active", "paused", "completed", "none"] }).notNull().default("none"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -408,6 +414,7 @@ export const outreachCampaigns = pgTable("outreach_campaigns", {
     replyEmail?: string;
   }>().notNull().default(sql`'{"dailyLimit": 50, "minDelayMinutes": 2}'::jsonb`),
   replyEmail: text("reply_email"),
+  aiAutonomousMode: boolean("ai_autonomous_mode").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 }, (table) => ({

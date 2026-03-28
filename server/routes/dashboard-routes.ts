@@ -340,6 +340,45 @@ router.get('/activity', requireAuth, async (req: Request, res: Response): Promis
 });
 
 /**
+ * GET /api/dashboard/ai-actions
+ * Get recent AI Action Logs for the autonomous dashboard feed
+ */
+router.get('/ai-actions', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.session?.userId!;
+    const { db } = await import('../db.js');
+    const { aiActionLogs, leads } = await import('../../shared/schema.js');
+    const { desc, eq } = await import('drizzle-orm');
+
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+
+    const logs = await db.select({
+      id: aiActionLogs.id,
+      actionType: aiActionLogs.actionType,
+      decision: aiActionLogs.decision,
+      intentScore: aiActionLogs.intentScore,
+      timingScore: aiActionLogs.timingScore,
+      confidence: aiActionLogs.confidence,
+      reasoning: aiActionLogs.reasoning,
+      outcome: aiActionLogs.outcome,
+      createdAt: aiActionLogs.createdAt,
+      leadName: leads.name,
+      leadEmail: leads.email
+    })
+    .from(aiActionLogs)
+    .leftJoin(leads, eq(aiActionLogs.leadId, leads.id))
+    .where(eq(aiActionLogs.userId, userId))
+    .orderBy(desc(aiActionLogs.createdAt))
+    .limit(limit);
+
+    res.json(logs);
+  } catch (error) {
+    console.error('Failed to fetch AI action logs:', error);
+    res.status(500).json({ error: 'Failed to fetch AI actions' });
+  }
+});
+
+/**
  * GET /api/user
  * Get current user (simple alias)
  */

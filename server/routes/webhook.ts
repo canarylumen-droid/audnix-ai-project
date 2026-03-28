@@ -5,6 +5,7 @@ import { stripe, verifyWebhookSignature, processTopupSuccess, PLANS } from '../l
 import { storage } from '../storage.js';
 import { handleCalendlyWebhook, handleCalendlyVerification, verifyCalendlySignature } from '../lib/webhooks/calendly-webhook.js';
 import { handleInstagramWebhook, handleInstagramVerification } from '../lib/webhooks/instagram-webhook.js';
+import { processFathomWebhook } from '../lib/ai/fathom-integration.js';
 import type { PlanType } from '../../shared/types.js';
 
 const router = Router();
@@ -58,6 +59,19 @@ router.post('/webhook/calendly', async (req: Request, res: Response): Promise<vo
   }
 
   await handleCalendlyWebhook(req, res);
+});
+
+/**
+ * Fathom AI webhook handler
+ */
+router.post('/webhook/fathom', async (req: Request, res: Response): Promise<void> => {
+  try {
+    await processFathomWebhook(req.body);
+    res.json({ received: true });
+  } catch (error: unknown) {
+    console.error('Fathom webhook error:', error);
+    res.status(500).json({ error: 'Webhook processing failed' });
+  }
 });
 
 /**

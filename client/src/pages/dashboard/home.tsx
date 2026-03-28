@@ -36,6 +36,7 @@ import { WelcomeCelebration } from "@/components/WelcomeCelebration";
 import { useState, useEffect, useRef } from "react";
 import { PremiumLoader } from "@/components/ui/premium-loader";
 import { MailboxSwitcher } from "@/components/outreach/MailboxSwitcher";
+import { AutonomousActionFeed } from "@/components/outreach/AutonomousActionFeed";
 
 interface UserProfile {
   id: string;
@@ -674,6 +675,10 @@ export default function DashboardHome() {
                 </div>
               </CardContent>
             </Card>
+
+            <div className="mt-6 h-[500px]">
+              <AutonomousActionFeed />
+            </div>
           </div>
 
           {/* Quick Actions / Getting Started */}

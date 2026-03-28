@@ -11,6 +11,8 @@ export interface IntentAnalysis {
   hasQuestion: boolean;
   hasObjection: boolean;
   wantsToSchedule: boolean;
+  isAvailableForMeeting: boolean;
+  suggestedMeetingTime?: string;
   readyToBuy: boolean;
   needsMoreInfo: boolean;
   confidence: number;
@@ -98,6 +100,8 @@ Analyze the entire thread context and the latest message. Return a JSON object w
   "hasQuestion": boolean,
   "hasObjection": boolean,
   "wantsToSchedule": boolean,
+  "isAvailableForMeeting": boolean, // If they explicitly say yes to a meeting or suggest a date/time
+  "suggestedMeetingTime": string | null, // Extract text like "Tuesday at 2pm" or "next week"
   "readyToBuy": boolean,
   "needsMoreInfo": boolean,
   "confidence": number,
