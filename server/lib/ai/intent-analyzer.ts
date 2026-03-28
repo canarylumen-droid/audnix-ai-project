@@ -269,6 +269,7 @@ function performBasicIntentAnalysis(message: string): IntentAnalysis {
     hasQuestion,
     hasObjection: lowerMessage.includes('but') || lowerMessage.includes('however'),
     wantsToSchedule: hasScheduling,
+    isAvailableForMeeting: hasScheduling, // For basic analysis, we assume if they want to schedule they are available
     readyToBuy: hasBuying,
     needsMoreInfo: hasQuestion && !hasNegative,
     confidence: 0.6,

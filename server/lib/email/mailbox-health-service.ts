@@ -513,7 +513,8 @@ class MailboxHealthService {
 
           // Phase 5: Use unified Reputation Monitor for all health & throttling calculations
           const { calculateReputationScore } = await import('./reputation-monitor.js');
-          const finalScore = await calculateReputationScore(integrationId);
+          const finalScore = await calculateReputationScore(integration.id);
+          const bounceRate = sentCount > 0 ? bounceCount / sentCount : 0;
 
           if (finalScore < 40) {
             // Unpause handled by reputation-monitor itself or we can force it here

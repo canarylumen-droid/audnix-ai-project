@@ -1,8 +1,8 @@
 import type { IStorage } from './storage.js';
 import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile, OtpCode, FollowUpQueue, InsertFollowUpQueue, OAuthAccount, InsertOAuthAccount, CalendarEvent, InsertCalendarEvent, AuditTrail, InsertAuditTrail, Organization, InsertOrganization, TeamMember, InsertTeamMember, Payment, InsertPayment, SmtpSettings, InsertSmtpSettings, EmailMessage, InsertEmailMessage, Notification, InsertNotification, Thread, InsertThread, LeadInsight, InsertLeadInsight } from "../shared/schema.js";
 import { db } from './db.js';
-import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes, payments, followUpQueue, oauthAccounts, calendarEvents, auditTrail, organizations, teamMembers, aiLearningPatterns, bounceTracker, smtpSettings, videoMonitors, processedComments, emailMessages, brandEmbeddings, threads, leadInsights } from "../shared/schema.js";
-import { eq, desc, and, gte, lte, sql, not, isNull, or, like, inArray } from "drizzle-orm";
+import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes, payments, followUpQueue, oauthAccounts, calendarEvents, auditTrail, organizations, teamMembers, aiLearningPatterns, bounceTracker, smtpSettings, videoMonitors, processedComments, emailMessages, brandEmbeddings, threads, leadInsights, outreachCampaigns, campaignLeads } from "../shared/schema.js";
+import { eq, desc, and, gte, lte, sql, not, isNull, or, like, inArray, exists } from "drizzle-orm";
 import { isValidUUID } from './lib/utils/validation.js';
 import crypto from 'crypto';
 import process from 'process';
@@ -396,11 +396,15 @@ export class DrizzleStorage implements IStorage {
     }
 
     if (options.excludeActiveCampaignLeads) {
-      const { campaignLeads } = await import('../shared/schema.js');
-      const activeLeadsSubquery = db
-        .select({ leadId: campaignLeads.leadId })
-        .from(campaignLeads);
-      conditions.push(not(inArray(leads.id, activeLeadsSubquery)) as any);
+      conditions.push(
+        not(
+          exists(
+            db.select()
+              .from(campaignLeads)
+              .where(eq(campaignLeads.leadId, leads.id))
+          )
+        ) as any
+      );
     }
 
     let query = db.select().from(leads)

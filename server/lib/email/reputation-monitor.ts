@@ -25,13 +25,13 @@ export async function calculateReputationScore(integrationId: string): Promise<n
       )
     );
 
-  const hardBounces = recentBounces.filter(b => b.bounceType === 'hard').length;
-  const softBounces = recentBounces.filter(b => b.bounceType === 'soft').length;
-  const spamComplaints = recentBounces.filter(b => b.bounceType === 'spam').length;
+  const hardBounces = recentBounces.filter((b: any) => b.bounceType === 'hard').length;
+  const softBounces = recentBounces.filter((b: any) => b.bounceType === 'soft').length;
+  const spamComplaints = recentBounces.filter((b: any) => b.bounceType === 'spam').length;
 
   // 2. RECOVERY LOGIC: Check if mailbox was healthy recently
   const lastBounce = recentBounces.length > 0 
-    ? Math.max(...recentBounces.map(b => new Date(b.createdAt).getTime()))
+    ? Math.max(...recentBounces.map((b: any) => new Date(b.createdAt).getTime()))
     : 0;
   
   const hoursSinceLastBounce = lastBounce > 0 
@@ -53,6 +53,7 @@ export async function calculateReputationScore(integrationId: string): Promise<n
   const currentSpamRisk = (100 - score) / 100; // 0.0 to 1.0
 
   let newDailyLimit = mailbox.dailyLimit || 50;
+  let newWarmupStatus = mailbox.warmupStatus || 'active';
   
   if (score < 40) {
     // 🔴 Reputation extremely low -> trigger an autonomous pause
@@ -82,7 +83,7 @@ export async function calculateReputationScore(integrationId: string): Promise<n
   await db.update(integrations).set({
     reputationScore: score,
     spamRiskScore: currentSpamRisk,
-    warmupStatus: newWarmupStatus,
+    warmupStatus: newWarmupStatus as any,
     dailyLimit: newDailyLimit,
     updatedAt: new Date()
   }).where(eq(integrations.id, integrationId));

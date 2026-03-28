@@ -128,6 +128,9 @@ function convertToSchemaLead(lead: LeadWithProfile): Lead {
     integrationId: (lead as any).integrationId || null,
     archived: false,
     metadata: lead.metadata || {},
+    timezone: (lead as any).timezone || "UTC",
+    calendlyLink: (lead as any).calendlyLink || null,
+    fathomMeetingId: (lead as any).fathomMeetingId || null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -153,6 +156,9 @@ function convertToLeadProfile(lead: LeadWithProfile): LeadProfile {
     createdAt: new Date(),
     updatedAt: new Date(),
     aiPaused: false,
+    timezone: (lead as any).timezone || "UTC",
+    calendlyLink: (lead as any).calendlyLink || null,
+    fathomMeetingId: (lead as any).fathomMeetingId || null,
   };
 }
 

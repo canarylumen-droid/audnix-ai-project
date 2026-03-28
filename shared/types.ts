@@ -48,6 +48,9 @@ export interface LeadProfile {
   aiPaused: boolean;
   pdfConfidence?: number | null;
   externalId?: string | null;
+  timezone?: string;
+  calendlyLink?: string | null;
+  fathomMeetingId?: string | null;
 }
 
 // ========== QUEUE & WORKER TYPES ==========

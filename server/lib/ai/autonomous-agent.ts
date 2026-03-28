@@ -171,6 +171,3 @@ Your goal: Determine the single Next Best Action (NBA) from a call summary and d
   return decision;
 }
 
-  return decision;
-}
-

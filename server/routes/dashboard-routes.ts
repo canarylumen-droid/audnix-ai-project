@@ -232,6 +232,26 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
        }
     });
 
+    // Fetch recent AI Action Logs for the dashboard
+    const { aiActionLogs: aiActionSchema, leads: leadsSchema } = await import('../../shared/schema.js');
+    const { desc: dDesc, eq: dEq } = await import('drizzle-orm');
+    
+    const aiLogs = await db.select({
+      id: aiActionSchema.id,
+      actionType: aiActionSchema.actionType,
+      decision: aiActionSchema.decision,
+      intentScore: aiActionSchema.intentScore,
+      confidence: aiActionSchema.confidence,
+      reasoning: aiActionSchema.reasoning,
+      createdAt: aiActionSchema.createdAt,
+      leadName: leadsSchema.name
+    })
+    .from(aiActionSchema)
+    .leftJoin(leadsSchema, dEq(aiActionSchema.leadId, leadsSchema.id))
+    .where(dEq(aiActionSchema.userId, userId))
+    .orderBy(dDesc(aiActionSchema.createdAt))
+    .limit(10);
+
     const responseData = {
       ...stats,
       domainHealth,

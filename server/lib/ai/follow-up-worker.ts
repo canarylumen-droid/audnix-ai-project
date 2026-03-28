@@ -315,6 +315,11 @@ export class FollowUpWorker {
       // Phase 7: Use expert pre-generated content if available
       const suggestedBody = (job.context as any)?.suggestedBody;
       const suggestedSubject = (job.context as any)?.suggestedSubject;
+      const customAutoReply = (job.context as any)?.customAutoReply;
+      const isAutoReply = (job.context as any)?.isAutoReply === true;
+      const intent = (job.context as any)?.intent || 'nurture';
+      const reasoning = (job.context as any)?.reasoning || '';
+      let aiReply = '';
 
       if (suggestedBody) {
         console.log(`[FOLLOW_UP_WORKER] Using expert pre-generated content for lead ${lead.email}`);

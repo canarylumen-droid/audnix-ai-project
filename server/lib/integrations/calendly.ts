@@ -40,3 +40,18 @@ export class CalendlyService {
 }
 
 export const calendlyService = new CalendlyService();
+
+/**
+ * Generates a pre-filled Calendly link with lead data
+ */
+export function getCalendlyPrefillLink(baseUrl: string, lead: any): string {
+  if (!baseUrl) return '';
+  try {
+    const url = new URL(baseUrl);
+    if (lead.name) url.searchParams.set('name', lead.name);
+    if (lead.email) url.searchParams.set('email', lead.email);
+    return url.toString();
+  } catch (e) {
+    return baseUrl;
+  }
+}

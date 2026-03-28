@@ -34,7 +34,17 @@ export interface IStorage {
   removeTeamMember(orgId: string, userId: string): Promise<void>;
 
   // Lead methods
-  getLeads(options: { userId: string; status?: string; channel?: string; search?: string; limit?: number; offset?: number; includeArchived?: boolean; integrationId?: string; excludeActiveCampaignLeads?: boolean }): Promise<Lead[]>;
+  getLeads(options: { 
+    userId: string; 
+    status?: string; 
+    channel?: string; 
+    search?: string; 
+    limit?: number; 
+    offset?: number; 
+    includeArchived?: boolean; 
+    integrationId?: string; 
+    excludeActiveCampaignLeads?: boolean 
+  }): Promise<Lead[]>;
   getLead(id: string): Promise<Lead | undefined>;
   getLeadById(id: string): Promise<Lead | undefined>;
   getLeadByEmail(email: string, userId: string): Promise<Lead | undefined>;
@@ -42,7 +52,7 @@ export interface IStorage {
   getLeadsCount(userId: string): Promise<number>;
   getLeadByUsername(username: string, channel: string): Promise<Lead | undefined>;
   getLeadBySocialId(socialId: string, channel: string): Promise<Lead | undefined>;
-  createLead(lead: Partial<InsertLead> & { userId: string; name: string; channel: string }, options?: { suppressNotification?: boolean }): Promise<Lead>;
+  createLead(lead: Partial<InsertLead> & { userId: string; name: string; channel: string }): Promise<Lead>;
   updateLead(id: string, updates: Partial<Lead>): Promise<Lead | undefined>;
   archiveLead(id: string, userId: string, archived: boolean): Promise<Lead | undefined>;
   deleteLead(id: string, userId: string): Promise<void>;
@@ -680,6 +690,9 @@ export class MemStorage implements IStorage {
       archived: insertLead.archived || false,
       tags: insertLead.tags || [],
       metadata: insertLead.metadata || {},
+      timezone: insertLead.timezone || "UTC",
+      calendlyLink: insertLead.calendlyLink || null,
+      fathomMeetingId: insertLead.fathomMeetingId || null,
       createdAt: now,
       updatedAt: now,
     };
@@ -915,6 +928,9 @@ export class MemStorage implements IStorage {
       failureCount: 0,
       dailyLimit: 50,
       spamRiskScore: 0,
+      aiAutonomousMode: (integration as any).aiAutonomousMode ?? true,
+      reputationScore: (integration as any).reputationScore || 100,
+      warmupStatus: (integration as any).warmupStatus || 'active',
       createdAt: now,
       updatedAt: now,
     };
