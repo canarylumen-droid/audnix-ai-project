@@ -47,6 +47,7 @@ export interface IStorage {
     excludeActiveCampaignLeads?: boolean 
   }): Promise<Lead[]>;
   getLead(id: string): Promise<Lead | undefined>;
+  getLeadByUsername(username: string, channel: string): Promise<Lead | undefined>;
   getLeadById(id: string): Promise<Lead | undefined>;
   getLeadByEmail(email: string, userId: string): Promise<Lead | undefined>;
   getExistingEmails(userId: string, emails: string[]): Promise<string[]>;
@@ -445,6 +446,9 @@ export class MemStorage implements IStorage {
   }
   async getLead(id: string): Promise<Lead | undefined> { return this.leads.get(id); }
   async getLeadById(id: string): Promise<Lead | undefined> { return this.getLead(id); }
+  async getLeadByUsername(username: string, channel: string): Promise<Lead | undefined> {
+    return Array.from(this.leads.values()).find(l => l.name === username && l.channel === channel);
+  }
   async getLeadByEmail(email: string, userId: string): Promise<Lead | undefined> {
     return Array.from(this.leads.values()).find(l => l.userId === userId && l.email?.toLowerCase() === email.toLowerCase());
   }
@@ -998,335 +1002,48 @@ export class MemStorage implements IStorage {
     conversionRate: number;
   }> {
     const overrideDates = options;
-  async calculateRevenue(userId: string, integrationId?: string): Promise<{ total: number; thisMonth: number; deals: any[] }> {
-    const deals = Array.from(this.deals.values()).filter(d => {
-      const matchesUser = d.userId === userId;
-      const lead = d.leadId ? this.leads.get(d.leadId) : null;
-      const matchesIntegration = !integrationId || (lead && lead.integrationId === integrationId);
-      return matchesUser && matchesIntegration;
-    });
-    const closedWon = deals.filter(d => d.status === 'closed_won' || d.status === 'converted');
+    const userLeads = Array.from(this.leads.values()).filter(l => l.userId === userId);
+    const totalLeads = userLeads.length;
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const total = closedWon.reduce((sum, d) => sum + (Number(d.value) || 0), 0);
-    const thisMonth = closedWon.filter(d => new Date(d.updatedAt || d.createdAt) >= startOfMonth).reduce((sum, d) => sum + (Number(d.value) || 0), 0);
-    return { total, thisMonth, deals: closedWon };
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(startOfDay.getTime() - 86400000);
+    const newLeads = userLeads.filter(l => l.status === 'new').length;
+    const activeLeads = userLeads.filter(l => ['contacted', 'warm', 'hot', 'engaged'].includes(l.status || '')).length;
+    const convertedLeads = userLeads.filter(l => l.status === 'converted').length;
+    const userMessages = Array.from(this.messages.values()).filter(m => m.userId === userId);
+    const totalMessages = userMessages.length;
+    const messagesToday = userMessages.filter(m => m.createdAt >= startOfDay).length;
+    const messagesYesterday = userMessages.filter(m => m.createdAt >= yesterday && m.createdAt < startOfDay).length;
+    const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
+
+    return {
+      totalLeads,
+      newLeads,
+      activeLeads,
+      convertedLeads,
+      hardenedLeads: 0,
+      bouncyLeads: 0,
+      recoveredLeads: 0,
+      positiveIntents: 0,
+      totalMessages,
+      messagesToday,
+      messagesYesterday,
+      pipelineValue: 0,
+      closedRevenue: 0,
+      openRate: 0,
+      responseRate: 0,
+      averageResponseTime: '0m',
+      queuedLeads: 0,
+      undeliveredLeads: 0,
+      conversionRate
+    };
   }
 
-  // --- Usage Methods ---
-  async createUsageTopup(data: any): Promise<any> {
-    const id = randomUUID();
-    const topup = { ...data, id, createdAt: new Date() };
-    if (!this.usageHistory.has(data.userId)) this.usageHistory.set(data.userId, []);
-    this.usageHistory.get(data.userId)!.push(topup);
-    return topup;
-  }
-  async getUsageHistory(userId: string, type?: string): Promise<any[]> {
-    let history = this.usageHistory.get(userId) || [];
-    if (type) history = history.filter(h => h.type === type);
-    return history.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-  }
-
-  // --- SMTP Settings ---
-  async getSmtpSettings(userId: string): Promise<SmtpSettings[]> { return []; }
-
-  // --- Follow Up Queue ---
-  async createFollowUp(data: InsertFollowUpQueue): Promise<FollowUpQueue> {
-    const id = randomUUID();
-    const followUp: FollowUpQueue = { id, userId: data.userId, leadId: data.leadId, channel: data.channel, scheduledAt: new Date(data.scheduledAt), status: data.status || "pending", processedAt: null, context: data.context || {}, errorMessage: null, createdAt: new Date() };
-    this.followUps.set(id, followUp);
-    return followUp;
-  }
-  async getPendingFollowUp(leadId: string): Promise<FollowUpQueue | undefined> {
-    return Array.from(this.followUps.values()).find(f => f.leadId === leadId && f.status === 'pending');
-  }
-  async getFollowUpById(id: string): Promise<FollowUpQueue | undefined> { return this.followUps.get(id); }
-  async updateFollowUp(id: string, updates: Partial<FollowUpQueue>): Promise<FollowUpQueue | undefined> {
-    const f = this.followUps.get(id);
-    if (!f) return undefined;
-    const updated = { ...f, ...updates };
-    this.followUps.set(id, updated);
-    return updated;
-  }
-  async getDueFollowUps(): Promise<FollowUpQueue[]> {
-    const now = new Date();
-    return Array.from(this.followUps.values()).filter(f => f.status === 'pending' && f.scheduledAt <= now);
-  }
-
-  // --- AI Learning ---
-  async getLearningPatterns(userId: string): Promise<AiLearningPattern[]> {
-    return Array.from(this.learningPatterns.values()).filter(p => p.userId === userId);
-  }
-  async recordLearningPattern(userId: string, key: string, success: boolean): Promise<void> {
-    const id = randomUUID();
-    this.learningPatterns.set(id, { id, userId, patternKey: key, strength: success ? 1 : 0, metadata: {}, lastUsedAt: new Date(), createdAt: new Date() });
-  }
-
-  // --- OAuth ---
-  async getOAuthAccount(userId: string, provider: string): Promise<OAuthAccount | undefined> {
-    return Array.from(this.oauthAccounts.values()).find(a => a.userId === userId && a.provider === provider);
-  }
-  async getSoonExpiringOAuthAccounts(provider: string, thresholdMinutes: number): Promise<OAuthAccount[]> {
-    const now = Date.now();
-    const threshold = now + thresholdMinutes * 60 * 1000;
-    return Array.from(this.oauthAccounts.values()).filter(a => a.provider === provider && a.expiresAt && a.expiresAt.getTime() < threshold);
-  }
-  async saveOAuthAccount(data: InsertOAuthAccount): Promise<OAuthAccount> {
-    const existing = await this.getOAuthAccount(data.userId, data.provider);
-    const id = existing ? existing.id : randomUUID();
-    const account: OAuthAccount = { ...data, id, createdAt: existing ? existing.createdAt : new Date(), updatedAt: new Date(), expiresAt: data.expiresAt ? new Date(data.expiresAt) : null, accessToken: data.accessToken || null, refreshToken: data.refreshToken || null, scope: data.scope || null, tokenType: data.tokenType || null, idToken: data.idToken || null, metadata: data.metadata || {} };
-    this.oauthAccounts.set(id, account);
-    return account;
-  }
-  async deleteOAuthAccount(userId: string, provider: string): Promise<void> {
-    const a = await this.getOAuthAccount(userId, provider);
-    if (a) this.oauthAccounts.delete(a.id);
-  }
-
-  // --- Integrations ---
-  async getIntegrations(userId: string): Promise<Integration[]> { return Array.from(this.integrations.values()).filter(i => i.userId === userId); }
-  async getIntegration(userId: string, provider: string): Promise<Integration | undefined> {
-    return Array.from(this.integrations.values()).find(i => i.userId === userId && i.provider === provider);
-  }
-  async getIntegrationById(id: string): Promise<Integration | undefined> { return this.integrations.get(id); }
-  async getIntegrationsByProvider(provider: string): Promise<Integration[]> {
-    return Array.from(this.integrations.values()).filter(i => i.provider === provider);
-  }
-  async createIntegration(i: Partial<InsertIntegration> & { userId: string; provider: string; encryptedMeta: string }): Promise<Integration> {
-    const id = randomUUID();
-    const entry: Integration = { id, userId: i.userId, provider: i.provider as any, encryptedMeta: i.encryptedMeta, connected: i.connected ?? true, accountType: null, lastSync: null, healthStatus: 'connected', lastHealthError: null, lastHealthCheckAt: null, mailboxPauseUntil: null, failureCount: 0, dailyLimit: 50, spamRiskScore: 0, aiAutonomousMode: true, reputationScore: 100, warmupStatus: 'active', createdAt: new Date(), updatedAt: new Date() };
-    this.integrations.set(id, entry);
-    return entry;
-  }
-  async updateIntegration(userId: string, provider: string, updates: Partial<Integration>): Promise<Integration | undefined> {
-    const i = await this.getIntegration(userId, provider);
-    if (!i) return undefined;
-    const updated = { ...i, ...updates, updatedAt: new Date() };
-    this.integrations.set(i.id, updated);
-    return updated;
-  }
-  async updateIntegrationById(id: string, updates: Partial<Integration>): Promise<Integration | undefined> {
-    const i = this.integrations.get(id);
-    if (!i) return undefined;
-    const updated = { ...i, ...updates, updatedAt: new Date() };
-    this.integrations.set(id, updated);
-    return updated;
-  }
-  async disconnectIntegration(userId: string, provider: string): Promise<void> {
-    const i = await this.getIntegration(userId, provider);
-    if (i) this.integrations.delete(i.id);
-  }
-  async deleteIntegration(userId: string, provider: string): Promise<void> { return this.disconnectIntegration(userId, provider); }
-  async deleteIntegrationById(id: string): Promise<void> { this.integrations.delete(id); }
-  async checkMailboxLimit(userId: string): Promise<{ allowed: boolean; current: number; limit: number; plan: string }> {
-    const user = this.users.get(userId);
-    const plan = user?.subscriptionTier || 'free';
-    const limit = plan === 'enterprise' ? 10 : 3;
-    const current = Array.from(this.integrations.values()).filter(i => i.userId === userId && i.provider === 'email').length;
-    return { allowed: current < limit, current, limit, plan };
-  }
-  async getIntegrationSentCount(userId: string, integrationId: string, since: Date): Promise<number> {
-    return Array.from(this.messages.values()).filter(m => m.userId === userId && (m as any).integrationId === integrationId && m.direction === 'outbound' && m.createdAt >= since).length;
-  }
-
-  // --- Video Monitors ---
-  async getVideoMonitors(userId: string): Promise<any[]> { return Array.from(this.videoMonitors.values()).filter(m => m.userId === userId); }
-  async createVideoMonitor(data: any): Promise<any> {
-    const id = randomUUID();
-    const monitor = { ...data, id, createdAt: new Date() };
-    this.videoMonitors.set(id, monitor);
-    return monitor;
-  }
-  async updateVideoMonitor(id: string, userId: string, updates: any): Promise<any> {
-    const m = this.videoMonitors.get(id);
-    if (!m || m.userId !== userId) return null;
-    const updated = { ...m, ...updates };
-    this.videoMonitors.set(id, updated);
-    return updated;
-  }
   async deleteVideoMonitor(id: string, userId: string): Promise<void> {
     const m = this.videoMonitors.get(id);
     if (m && m.userId === userId) this.videoMonitors.delete(id);
   }
-  async isCommentProcessed(commentId: string): Promise<boolean> { return this.processedComments.has(commentId); }
-  async markCommentProcessed(commentId: string, status: string, intentType: string): Promise<void> { this.processedComments.add(commentId); }
-  async getBrandKnowledge(userId: string): Promise<string> { return this.brandKnowledge.get(userId) || ''; }
 
-  // --- Deals ---
-  async getDeals(userId: string, integrationId?: string): Promise<any[]> {
-    return Array.from(this.deals.values()).filter(d => d.userId === userId);
-  }
-  async createDeal(data: any): Promise<any> {
-    const id = randomUUID();
-    const deal = { ...data, id, createdAt: new Date() };
-    this.deals.set(id, deal);
-    return deal;
-  }
-  async updateDeal(id: string, userId: string, updates: any): Promise<any> {
-    const d = this.deals.get(id);
-    if (!d || d.userId !== userId) return null;
-    const updated = { ...d, ...updates, updatedAt: new Date() };
-    this.deals.set(id, updated);
-    return updated;
-  }
-
-  // --- Payments ---
-  async createPayment(data: InsertPayment): Promise<Payment> {
-    const id = randomUUID();
-    const p: Payment = { ...data, id, createdAt: new Date(), updatedAt: new Date(), stripePaymentId: data.stripePaymentId || null, plan: data.plan || null, paymentLink: data.paymentLink || null, status: "pending", currency: "USD", webhookPayload: {} };
-    this.payments.set(id, p);
-    return p;
-  }
-  async getPayments(userId: string): Promise<Payment[]> { return Array.from(this.payments.values()).filter(p => p.userId === userId); }
-  async getPaymentById(id: string): Promise<Payment | undefined> { return this.payments.get(id); }
-  async updatePayment(id: string, updates: Partial<Payment>): Promise<Payment | undefined> {
-    const p = this.payments.get(id);
-    if (!p) return undefined;
-    const updated = { ...p, ...updates, updatedAt: new Date() };
-    this.payments.set(id, updated);
-    return updated;
-  }
-
-  // --- Calendar ---
-  async createCalendarEvent(data: InsertCalendarEvent): Promise<CalendarEvent> {
-    const id = randomUUID();
-    const e: CalendarEvent = { ...data, id, leadId: data.leadId || null, description: data.description || null, startTime: new Date(data.startTime), endTime: new Date(data.endTime), meetingUrl: data.meetingUrl || null, attendees: data.attendees || [], isAiBooked: data.isAiBooked || false, preCallNote: data.preCallNote || null, createdAt: new Date() };
-    this.calendarEvents.set(id, e);
-    return e;
-  }
-  async getCalendarEvents(userId: string): Promise<CalendarEvent[]> { return Array.from(this.calendarEvents.values()).filter(e => e.userId === userId); }
-
-  // --- Onboarding & OTP ---
-  async createOnboardingProfile(data: any): Promise<any> {
-    const id = randomUUID();
-    const p = { ...data, id, createdAt: new Date(), updatedAt: new Date() };
-    this.onboardingProfiles.set(data.userId, p);
-    return p;
-  }
-  async getOnboardingProfile(userId: string): Promise<any | undefined> { return this.onboardingProfiles.get(userId); }
-  async updateOnboardingProfile(userId: string, updates: any): Promise<any | undefined> {
-    const p = this.onboardingProfiles.get(userId);
-    if (!p) return undefined;
-    const updated = { ...p, ...updates, updatedAt: new Date() };
-    this.onboardingProfiles.set(userId, updated);
-    return updated;
-  }
-  async createOtpCode(data: { email: string; code: string; expiresAt: Date; attempts: number; verified: boolean; passwordHash?: string; purpose?: string }): Promise<any> {
-    const id = randomUUID();
-    const o = { ...data, id, purpose: data.purpose || 'login', createdAt: new Date(), updatedAt: new Date() };
-    this.otpCodes.set(id, o);
-    return o;
-  }
-  async getLatestOtpCode(email: string, purpose?: string): Promise<any> {
-    return Array.from(this.otpCodes.values()).filter(c => c.email === email && (!purpose || c.purpose === purpose)).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
-  }
-  async incrementOtpAttempts(id: string): Promise<void> {
-    const c = this.otpCodes.get(id);
-    if (c) { c.attempts++; c.updatedAt = new Date(); }
-  }
-  async markOtpVerified(id: string): Promise<void> {
-    const c = this.otpCodes.get(id);
-    if (c) { c.verified = true; c.updatedAt = new Date(); }
-  }
-  async cleanupDemoData(): Promise<{ deletedUsers: number }> {
-    let count = 0;
-    for (const [id, u] of this.users.entries()) { if (u.email.toLowerCase().endsWith('@demo.com')) { this.users.delete(id); count++; } }
-    return { deletedUsers: count };
-  }
-
-  // --- Voice ---
-  async getVoiceMinutesBalance(userId: string): Promise<number> {
-    const u = this.users.get(userId);
-    return (Number(u?.voiceMinutesUsed) || 0) + (Number(u?.voiceMinutesTopup) || 0);
-  }
-
-  // --- Analytics & Stats ---
-  async getAnalyticsSummary(userId: string, startDate: Date, integrationId?: string): Promise<{ summary: { totalLeads: number; conversions: number; conversionRate: string; active: number; ghosted: number; notInterested: number; leadsReplied: number; bestReplyHour: number | null; }; channelBreakdown: Array<{ channel: string; count: number; percentage: number }>; statusBreakdown: Array<{ status: string; count: number; percentage: number }>; timeline: Array<{ date: string; leads: number; conversions: number }>; positiveSentimentRate: string; }> {
-    const leads = Array.from(this.leads.values()).filter(l => l.userId === userId && new Date(l.createdAt) >= startDate);
-    const total = leads.length;
-    const conversions = leads.filter(l => l.status === 'converted').length;
-    return {
-      summary: { totalLeads: total, conversions, conversionRate: total > 0 ? ((conversions / total) * 100).toFixed(1) : '0', active: leads.filter(l => l.status === 'open').length, ghosted: 0, notInterested: 0, leadsReplied: 0, bestReplyHour: null },
-      channelBreakdown: [], statusBreakdown: [], timeline: [], positiveSentimentRate: '0'
-    };
-  }
-
-  async getDashboardStats(userId: string, options?: { start?: Date; end?: Date; integrationId?: string }): Promise<{ totalLeads: number; newLeads: number; activeLeads: number; convertedLeads: number; hardenedLeads: number; bouncyLeads: number; recoveredLeads: number; positiveIntents: number; totalMessages: number; messagesToday: number; messagesYesterday: number; pipelineValue: number; closedRevenue: number; openRate: number; responseRate: number; averageResponseTime: string; queuedLeads: number; undeliveredLeads: number; conversionRate: number; }> {
-    const leads = Array.from(this.leads.values()).filter(l => l.userId === userId);
-    return { totalLeads: leads.length, newLeads: 0, activeLeads: 0, convertedLeads: 0, hardenedLeads: 0, bouncyLeads: 0, recoveredLeads: 0, positiveIntents: 0, totalMessages: 0, messagesToday: 0, messagesYesterday: 0, pipelineValue: 0, closedRevenue: 0, openRate: 0, responseRate: 0, averageResponseTime: "0", queuedLeads: 0, undeliveredLeads: 0, conversionRate: 0 };
-  }
-
-  async getAnalyticsFull(userId: string, days: number, integrationId?: string): Promise<{ metrics: { sent: number; opened: number; replied: number; booked: number; leadsFiltered: number; conversionRate: number; responseRate: number; openRate: number; closedRevenue: number; pipelineValue: number; averageResponseTime: string; }; timeSeries: Array<{ name: string; sent_email: number; sent_instagram: number; opened: number; replied_email: number; replied_instagram: number; booked: number; }>; channelPerformance: Array<{ channel: string; value: number }>; recentEvents: Array<{ id: string; type: string; description: string; time: string; isNew: boolean }>; }> {
-    return { metrics: { sent: 0, opened: 0, replied: 0, booked: 0, leadsFiltered: 0, conversionRate: 0, responseRate: 0, openRate: 0, closedRevenue: 0, pipelineValue: 0, averageResponseTime: "0" }, timeSeries: [], channelPerformance: [], recentEvents: [] };
-  }
-
-  // --- Notifications ---
-  async getNotifications(userId: string, opts?: { limit?: number; offset?: number; dateFrom?: Date; dateTo?: Date; integrationId?: string }): Promise<Notification[]> {
-    let res = Array.from(this.notifications.values()).filter(n => n.userId === userId);
-    if (opts?.limit) res = res.slice(0, opts.limit);
-    return res;
-  }
-  async getUnreadNotificationCount(userId: string): Promise<number> { return Array.from(this.notifications.values()).filter(n => n.userId === userId && !n.isRead).length; }
-  async createNotification(data: InsertNotification): Promise<Notification> {
-    const id = randomUUID();
-    const n: Notification = { id, userId: data.userId, type: data.type, title: data.title, message: data.message, actionUrl: data.actionUrl || null, isRead: false, createdAt: new Date() };
-    this.notifications.set(id, n);
-    return n;
-  }
-  async markNotificationAsRead(id: string, userId?: string): Promise<Notification | undefined> {
-    const n = this.notifications.get(id);
-    if (n && (!userId || n.userId === userId)) { n.isRead = true; return n; }
-    return undefined;
-  }
-  async markNotificationRead(id: string, userId?: string): Promise<Notification | undefined> { return this.markNotificationAsRead(id, userId); }
-  async markAllNotificationsAsRead(userId: string): Promise<void> { Array.from(this.notifications.values()).filter(n => n.userId === userId).forEach(n => n.isRead = true); }
-  async clearAllNotifications(userId: string): Promise<void> { Array.from(this.notifications.values()).filter(n => n.userId === userId).forEach(n => this.notifications.delete(n.id)); }
-  async deleteNotification(id: string, userId: string): Promise<void> { const n = this.notifications.get(id); if (n && n.userId === userId) this.notifications.delete(id); }
-
-  // --- Insights ---
-  async getLeadInsight(leadId: string): Promise<LeadInsight | undefined> { return Array.from(this.leadInsightsStore.values()).find(i => i.leadId === leadId); }
-  async upsertLeadInsight(i: InsertLeadInsight): Promise<LeadInsight> {
-    const existing = await this.getLeadInsight(i.leadId);
-    const id = existing ? existing.id : randomUUID();
-    const insight: LeadInsight = { ...i, id, createdAt: existing ? existing.createdAt : new Date(), intent: i.intent || null, intentScore: i.intentScore ?? 0, summary: i.summary || null, nextNextStep: i.nextNextStep || null, competitors: i.competitors || [], painPoints: i.painPoints || [], budget: i.budget || null, timeline: i.timeline || null, lastAnalyzedAt: i.lastAnalyzedAt ? new Date(i.lastAnalyzedAt) : new Date(), metadata: i.metadata || {} };
-    this.leadInsightsStore.set(id, insight);
-    return insight;
-  }
-
-  // --- Permanent Email Storage ---
-  async createEmailMessage(m: InsertEmailMessage): Promise<EmailMessage> {
-    const id = randomUUID();
-    const entry: EmailMessage = { ...m, id, createdAt: new Date() } as any;
-    this.emailMessages.set(id, entry);
-    return entry;
-  }
-  async getEmailMessages(userId: string): Promise<EmailMessage[]> { return Array.from(this.emailMessages.values()).filter(m => m.userId === userId); }
-  async getEmailMessageByMessageId(messageId: string): Promise<EmailMessage | undefined> {
-    return Array.from(this.emailMessages.values()).find(m => m.messageId === messageId);
-  }
-
-  // --- Threads ---
-  async getOrCreateThread(userId: string, leadId: string, subject: string, providerThreadId?: string): Promise<Thread> {
-    const existing = Array.from(this.threads.values()).find(t => t.userId === userId && t.leadId === leadId);
-    if (existing) return existing;
-    const id = randomUUID();
-    const t: Thread = { id, userId, leadId, subject, lastMessageAt: new Date(), metadata: providerThreadId ? { providerThreadId } : {}, createdAt: new Date() };
-    this.threads.set(id, t);
-    return t;
-  }
-  async getThreadsByLeadId(leadId: string): Promise<Thread[]> { return Array.from(this.threads.values()).filter(t => t.leadId === leadId); }
-  async updateThread(id: string, updates: Partial<Thread>): Promise<Thread | undefined> {
-    const t = this.threads.get(id);
-    if (!t) return undefined;
-    const updated = { ...t, ...updates };
-    this.threads.set(id, updated);
-    return updated;
-  }
-
-  // --- Bounces & Domain ---
-  async getRecentBounces(userId: string, hours: number = 168): Promise<any[]> { return []; }
-  async getDomainVerifications(userId: string, limit: number = 10): Promise<any[]> { return []; }
-  async createDomainVerification(userId: string, data: any): Promise<any> { return null; }
 
 }
 

@@ -85,8 +85,7 @@ export function EmailSetupUI() {
           smtpHost: data.smtp?.host || prev.smtpHost,
           smtpPort: data.smtp?.port || prev.smtpPort,
           imapHost: data.imap?.host || prev.imapHost,
-          imapPort: data.imap?.port || prev.imapPort,
-          fromName: data.suggestedName || prev.fromName
+          imapPort: data.imap?.port || prev.imapPort
         }));
         
         if (data.appPasswordGuide) {
@@ -248,18 +247,15 @@ export function EmailSetupUI() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Common Email Server Settings */}
-            <div className="bg-blue-500/5 border border-blue-500/20 rounded p-3">
-              <p className="text-xs font-medium text-blue-700 dark:text-blue-400 mb-2">
-                💡 Common Business Email Server Settings:
+            {/* Smart Auto-Detection Info */}
+            <div className="bg-green-500/5 border border-green-500/20 rounded p-3">
+              <p className="text-xs font-medium text-green-700 dark:text-green-400 mb-2">
+                🔄 Smart Auto-Detection
               </p>
-              <div className="text-xs space-y-1">
-                <p>Enter your business email SMTP/IMAP settings below. Most business email providers use:</p>
-                <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
-                  <li>SMTP Port: 587 (TLS) or 465 (SSL)</li>
-                  <li>IMAP Port: 993 (SSL)</li>
-                </ul>
-                <p className="pt-1">Contact your email provider or IT admin for exact server addresses.</p>
+              <div className="text-xs space-y-1 text-muted-foreground">
+                <p>Enter your email address below — we'll <strong>auto-detect</strong> the correct SMTP/IMAP settings.</p>
+                <p>If the auto-detected port doesn't work, we'll <strong>automatically try the alternative port</strong> (465 ↔ 587).</p>
+                <p className="pt-1">✅ Gmail, Outlook, Yahoo, Zoho, iCloud, Hostinger, GoDaddy, and more are fully supported.</p>
               </div>
             </div>
 
@@ -315,12 +311,12 @@ export function EmailSetupUI() {
               )}
 
               <div>
-                <label className="block text-sm font-medium mb-1">From Name (Display Name)</label>
+                <label className="block text-sm font-medium mb-1">Display Name <span className="text-xs text-muted-foreground">(optional — shown as sender name)</span></label>
                 <Input
-                  placeholder="e.g. John Doe"
+                  placeholder="Your Name or Business Name"
                   value={config.fromName}
                   onChange={(e) => setConfig({ ...config, fromName: e.target.value })}
-                  className="font-mono text-sm"
+                  className="text-sm"
                 />
               </div>
 

@@ -214,33 +214,68 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
       provider: 'custom'
     };
 
-    // --- VERIFY CREDENTIALS BEFORE SAVING ---
+    // --- SMART MULTI-PORT SMTP VERIFICATION ---
+    // Try the user's port first, then auto-fallback to the alternate port.
+    // This fixes the #1 connection issue: users pick 587 but their provider needs 465 (or vice versa).
     console.log(`[Email Connect] Verifying credentials for ${email}...`);
-    try {
+
+    const trySmtpVerify = async (host: string, port: number): Promise<boolean> => {
       const nodemailer = await import('nodemailer');
       const transporter = nodemailer.createTransport({
-        host: credentials.smtp_host,
-        port: credentials.smtp_port,
-        secure: credentials.smtp_port === 465,
+        host,
+        port,
+        secure: port === 465,
         auth: {
           user: credentials.smtp_user,
           pass: credentials.smtp_pass,
         },
         tls: {
-          rejectUnauthorized: false // Allow self-signed certs for broad compatibility
+          rejectUnauthorized: false
         },
-        connectionTimeout: 15000, // 15s — enough for slow providers
-        greetingTimeout: 10000,   // 10s for SMTP greeting
-        socketTimeout: 15000      // 15s socket idle timeout
+        connectionTimeout: 20000,
+        greetingTimeout: 15000,
+        socketTimeout: 20000
       });
-
       await transporter.verify();
-      console.log(`[Email Connect] SMTP Verification Successful`);
-    } catch (verifyError: any) {
-      console.error(`[Email Connect] Verification Failed:`, verifyError);
-      const errorInfo = getSmtpErrorDetails(verifyError, credentials.smtp_host!);
+      return true;
+    };
+
+    // Build the list of ports to try: user's choice first, then the alternative
+    const userPort = credentials.smtp_port || 587;
+    const altPort = userPort === 465 ? 587 : 465;
+    const portsToTry = [userPort, altPort];
+
+    let verifiedPort: number | null = null;
+    let lastVerifyError: any = null;
+
+    for (const port of portsToTry) {
+      try {
+        console.log(`[Email Connect] Trying ${credentials.smtp_host}:${port} (secure=${port === 465})...`);
+        await trySmtpVerify(credentials.smtp_host!, port);
+        verifiedPort = port;
+        console.log(`[Email Connect] ✅ SMTP Verification Successful on port ${port}`);
+        break;
+      } catch (err: any) {
+        console.warn(`[Email Connect] ❌ Port ${port} failed: ${err.code || err.message}`);
+        lastVerifyError = err;
+        // If auth failed (wrong password), don't bother trying another port
+        if (err.code === 'EAUTH' || err.responseCode === 535) {
+          break;
+        }
+      }
+    }
+
+    if (verifiedPort === null) {
+      console.error(`[Email Connect] All ports failed for ${email}`);
+      const errorInfo = getSmtpErrorDetails(lastVerifyError, credentials.smtp_host!);
       res.status(400).json(errorInfo);
       return;
+    }
+
+    // Update credentials with the port that actually worked
+    if (verifiedPort !== userPort) {
+      console.log(`[Email Connect] Auto-corrected port from ${userPort} → ${verifiedPort}`);
+      credentials.smtp_port = verifiedPort;
     }
     // ----------------------------------------
 

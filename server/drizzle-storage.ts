@@ -17,6 +17,13 @@ function checkDatabase() {
 }
 
 export class DrizzleStorage implements IStorage {
+  async toggleAi(leadId: string, paused: boolean): Promise<void> {
+    checkDatabase();
+    const [lead] = await db.select().from(leads).where(eq(leads.id, leadId)).limit(1);
+    if (!lead) return;
+    const metadata = { ...((lead.metadata as any) || {}), aiPaused: paused };
+    await db.update(leads).set({ metadata }).where(eq(leads.id, leadId));
+  }
   async getIntegrationSentCount(userId: string, integrationId: string, since: Date): Promise<number> {
     checkDatabase();
     const [result] = await db
