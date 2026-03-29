@@ -62,6 +62,31 @@ const PROVIDER_MAP: Record<string, EmailSettings> = {
         imap: { host: 'imap.mail.yahoo.com', port: 993 },
         provider: 'yahoo'
     },
+    'zoho.com': {
+        smtp: { host: 'smtp.zoho.com', port: 465 },
+        imap: { host: 'imap.zoho.com', port: 993 },
+        provider: 'zoho'
+    },
+    'protonmail.com': {
+        smtp: { host: '127.0.0.1', port: 1025 },
+        imap: { host: '127.0.0.1', port: 1143 },
+        provider: 'protonmail'
+    },
+    'proton.me': {
+        smtp: { host: '127.0.0.1', port: 1025 },
+        imap: { host: '127.0.0.1', port: 1143 },
+        provider: 'protonmail'
+    },
+    'aol.com': {
+        smtp: { host: 'smtp.aol.com', port: 465 },
+        imap: { host: 'imap.aol.com', port: 993 },
+        provider: 'aol'
+    },
+    'gmx.com': {
+        smtp: { host: 'mail.gmx.com', port: 587 },
+        imap: { host: 'imap.gmx.com', port: 993 },
+        provider: 'gmx'
+    },
     'hostinger.com': {
         smtp: { host: 'smtp.hostinger.com', port: 465 },
         imap: { host: 'imap.hostinger.com', port: 993 },
@@ -73,19 +98,22 @@ export class EmailDiscoveryService {
     /**
      * Resolve settings for a given email address
      */
-    static async discoverSettings(email: string): Promise<EmailSettings | null> {
+    static async discoverSettings(email: string): Promise<EmailSettings & { suggestedName?: string } | null> {
         const domain = email.split('@')[1]?.toLowerCase();
         if (!domain) return null;
 
+        const suggestedName = this.suggestNameFromEmail(email);
+
         // 1. Check known providers
         if (PROVIDER_MAP[domain]) {
-            return PROVIDER_MAP[domain];
+            return {
+                ...PROVIDER_MAP[domain],
+                suggestedName
+            };
         }
 
         // 2. Heuristic: try common subdomains
         try {
-            // In a real implementation, we might do DNS MX or SRV record lookups here.
-            // For now, we'll suggest common patterns for unknown domains.
             return {
                 smtp: {
                     host: `smtp.${domain}`,
@@ -95,10 +123,34 @@ export class EmailDiscoveryService {
                     host: `imap.${domain}`,
                     port: 993
                 },
-                provider: 'custom'
+                provider: 'custom',
+                suggestedName
             };
         } catch (e) {
-            return null;
+            return {
+                smtp: { host: `smtp.${domain}`, port: 587 },
+                imap: { host: `imap.${domain}`, port: 993 },
+                provider: 'custom',
+                suggestedName
+            };
         }
     }
+
+    /**
+     * Extract a likely display name from an email address
+     */
+    static suggestNameFromEmail(email: string): string {
+        const prefix = email.split('@')[0];
+        if (!prefix) return '';
+
+        // Handle common delimiters: dots, underscores, plus signs
+        const parts = prefix.split(/[._+]/);
+        
+        // Capitalize each part and join with spaces
+        return parts
+            .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+            .filter(part => !/^\d+$/.test(part)) // Filter out purely numeric parts
+            .join(' ');
+    }
 }
+

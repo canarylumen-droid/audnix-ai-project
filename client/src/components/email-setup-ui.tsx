@@ -41,6 +41,8 @@ export function EmailSetupUI() {
   const [importStats, setImportStats] = useState({ imported: 0, skipped: 0, errors: 0 });
   const [showSetup, setShowSetup] = useState(false);
   const [showFilterInfo, setShowFilterInfo] = useState(false);
+  const [appPasswordGuide, setAppPasswordGuide] = useState<any>(null);
+  const [discovering, setDiscovering] = useState(false);
 
   useEffect(() => {
     fetchStatus();
@@ -62,6 +64,42 @@ export function EmailSetupUI() {
       console.error('Failed to fetch email status:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDiscover = async (email: string) => {
+    if (!email || !email.includes('@')) return;
+    setDiscovering(true);
+    try {
+      const res = await fetch('/api/custom-email/discover', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setConfig(prev => ({
+          ...prev,
+          smtpHost: data.smtp?.host || prev.smtpHost,
+          smtpPort: data.smtp?.port || prev.smtpPort,
+          imapHost: data.imap?.host || prev.imapHost,
+          imapPort: data.imap?.port || prev.imapPort
+        }));
+        
+        if (data.appPasswordGuide) {
+          setAppPasswordGuide(data.appPasswordGuide);
+        } else {
+          setAppPasswordGuide(null);
+        }
+
+        if (data.smtp?.host) {
+          toast({ title: 'Settings Found', description: `Detected settings for ${email}` });
+        }
+      }
+    } catch (error) {
+      console.error('Discovery failed:', error);
+    } finally {
+      setDiscovering(false);
     }
   };
 
@@ -241,9 +279,36 @@ export function EmailSetupUI() {
                   placeholder="your-email@company.com"
                   value={config.email}
                   onChange={(e) => setConfig({ ...config, email: e.target.value })}
+                  onBlur={() => handleDiscover(config.email)}
                   className="font-mono text-sm"
                 />
               </div>
+
+              {appPasswordGuide && (
+                <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-lg p-4 space-y-3 animate-in slide-in-from-top-2">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-indigo-500" />
+                    <p className="text-xs font-bold text-indigo-700 dark:text-indigo-400">
+                      {appPasswordGuide.provider} Guide
+                    </p>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {appPasswordGuide.instructions}
+                  </p>
+                  <ul className="text-[11px] space-y-1.5 list-disc list-inside text-muted-foreground ml-1">
+                    {appPasswordGuide.steps.map((step: string, i: number) => (
+                      <li key={i}>{step}</li>
+                    ))}
+                  </ul>
+                  <Button 
+                    variant="link" 
+                    className="p-0 h-auto text-xs text-indigo-600 font-bold"
+                    onClick={() => window.open(appPasswordGuide.link, '_blank')}
+                  >
+                    Open Security Settings <ArrowRight className="w-3 h-3 ml-1" />
+                  </Button>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium mb-1">Password / App Password</label>

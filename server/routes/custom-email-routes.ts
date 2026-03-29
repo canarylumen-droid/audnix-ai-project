@@ -18,42 +18,43 @@ router.post('/discover', requireAuth, async (req: Request, res: Response) => {
     if (!email) return res.status(400).json({ error: 'Email is required' });
 
     const settings: any = await EmailDiscoveryService.discoverSettings(email);
+    if (!settings) return res.json({ provider: 'custom', suggestedName: EmailDiscoveryService.suggestNameFromEmail(email) });
     
     // Add App Password Guidance based on detected domain
     const domain = email.split('@')[1]?.toLowerCase();
     if (domain) {
       if (domain.includes('gmail.com') || domain.includes('googlemail.com')) {
         settings.appPasswordGuide = {
-          provider: 'Google / Gmail',
-          instructions: 'Google requires an **App Password** if 2FA is enabled. You cannot use your regular account password.',
-          link: 'https://myaccount.google.com/apppasswords',
-          steps: [
-            'Go to your Google Account Security settings.',
-            'Select "App passwords" under "How you sign in to Google".',
-            'Select "Mail" and "Other (Custom name)" like "Audnix AI".',
-            'Copy the 16-character code and use it as your password here.'
-          ]
+            provider: 'Google / Gmail',
+            instructions: 'Google **strictly requires** an App Password for SMTP/IMAP connections when 2nd-Step Verification is enabled. Your regular login password will NOT work.',
+            link: 'https://myaccount.google.com/apppasswords',
+            steps: [
+              'Log in to your Google Account settings.',
+              'Search for "App Passwords" in the search bar.',
+              'App name: "Audnix AI" (or similar).',
+              'Copy the 16-character code (no spaces) into the Password field below.'
+            ]
         };
-      } else if (domain.includes('outlook.com') || domain.includes('hotmail.com') || domain.includes('live.com') || domain.includes('msn.com')) {
+      } else if (domain.includes('outlook.com') || domain.includes('hotmail.com') || domain.includes('live.com') || domain.includes('msn.com') || domain.includes('office365.com')) {
         settings.appPasswordGuide = {
-          provider: 'Microsoft / Outlook',
-          instructions: 'Microsoft accounts with Two-Step Verification enabled require an **App Password**.',
-          link: 'https://account.live.com/proofs/AppPassword',
-          steps: [
-            'Log in to your Microsoft Account.',
-            'Go to Security > Advanced security options.',
-            'Look for "App passwords" and click "Create a new app password".',
-            'Use the generated password in the Audnix settings.'
-          ]
+            provider: 'Microsoft / Outlook',
+            instructions: 'Personal Outlook/Hotmail accounts with 2-Step Verification require an App Password.',
+            link: 'https://account.live.com/proofs/AppPassword',
+            steps: [
+              'Log in to your Microsoft Account.',
+              'Security > Advanced security options.',
+              'Click "Create a new app password".',
+              'Copy the unique code into the Password field below.'
+            ]
         };
       } else if (domain.includes('zoho.')) {
         settings.appPasswordGuide = {
           provider: 'Zoho Mail',
-          instructions: 'Zoho requires an **Application-Specific Password** if 2FA is enabled.',
+          instructions: 'Zoho requires an Application-Specific Password for 2FA-enabled accounts.',
           link: 'https://accounts.zoho.com/home#security/app_password',
           steps: [
             'Log in to Zoho Accounts.',
-            'Navigate to Security > App Passwords.',
+            'Security > App Passwords.',
             'Generate a new password for "Audnix AI".'
           ]
         };
@@ -66,6 +67,7 @@ router.post('/discover', requireAuth, async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Discovery failed' });
   }
 });
+
 
 // Common SMTP hostname typos and their corrections
 const HOSTNAME_TYPO_MAP: Record<string, string> = {

@@ -388,24 +388,28 @@ export default function IntegrationsPage() {
       return res.json();
     },
     onSuccess: (data) => {
-      if (data.smtp?.host) {
-        setCustomEmailConfig(prev => ({
-          ...prev,
-          smtpHost: data.smtp.host,
-          smtpPort: String(data.smtp.port || 587),
-          imapHost: data.imap?.host || prev.imapHost,
-          imapPort: String(data.imap?.port || 993)
-        }));
-        
-        if (data.appPasswordGuide) {
-          setAppPasswordGuide(data.appPasswordGuide);
-        } else {
-          setAppPasswordGuide(null);
+      setCustomEmailConfig(prev => {
+        const next = { ...prev };
+        if (data.smtp?.host) {
+          next.smtpHost = data.smtp.host;
+          next.smtpPort = String(data.smtp.port || 587);
+          next.imapHost = data.imap?.host || prev.imapHost;
+          next.imapPort = String(data.imap?.port || 993);
         }
-
-        toast({ title: "Settings Found", description: `Automatically detected settings for ${customEmailConfig.email}` });
+        if (data.suggestedName && !prev.fromName) {
+          next.fromName = data.suggestedName;
+        }
+        return next;
+      });
+      
+      if (data.appPasswordGuide) {
+        setAppPasswordGuide(data.appPasswordGuide);
       } else {
         setAppPasswordGuide(null);
+      }
+
+      if (data.smtp?.host) {
+        toast({ title: "Settings Found", description: `Automatically detected settings for ${customEmailConfig.email}` });
       }
     }
   });
@@ -650,6 +654,11 @@ export default function IntegrationsPage() {
                           placeholder="your@email.com"
                           value={customEmailConfig.email}
                           onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, email: e.target.value })}
+                          onBlur={() => {
+                            if (customEmailConfig.email.includes('@') && customEmailConfig.email.includes('.')) {
+                              discoverSettingsMutation.mutate(customEmailConfig.email);
+                            }
+                          }}
                           className="rounded-xl border-border/50 focus:ring-primary/20"
                         />
                         <Button
@@ -659,7 +668,7 @@ export default function IntegrationsPage() {
                           disabled={!customEmailConfig.email.includes('@') || discoverSettingsMutation.isPending}
                         >
                           {discoverSettingsMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-                          Auto-Discover
+                          {discoverSettingsMutation.isPending ? "Discovering..." : "Auto-Discover"}
                         </Button>
                       </div>
                     </div>
