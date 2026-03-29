@@ -218,6 +218,15 @@ export class FollowUpWorker {
         .set({ status: 'processing' })
         .where(eq(followUpQueue.id, job.id));
 
+      // Attempt to reserve the lead to prevent race conditions (Phase 13: Mutex Lock)
+      const reserved = await storage.reserveLeadForAction(job.leadId, 'follow_up');
+      if (!reserved) {
+        console.log(`[FollowUpWorker] Lead ${job.leadId} is currently locked by another process. Skipping.`);
+        // Mark job as pending again so it can be picked up later
+        await db.update(followUpQueue).set({ status: 'pending' }).where(eq(followUpQueue.id, job.id));
+        return;
+      }
+
       // Get lead details
       const leadResults = await db
         .select()

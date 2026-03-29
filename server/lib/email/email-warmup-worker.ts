@@ -149,23 +149,46 @@ class EmailWarmupWorker {
       const user = await storage.getUserById(userId);
       if (!user?.createdAt) return;
 
-      // Calculate warmup day based on account age (not calendar day)
-      const daysSinceCreated = Math.floor(
-        (now.getTime() - user.createdAt.getTime()) / (1000 * 60 * 60 * 24)
-      ) + 1;
+      // --- ADVANCED (PHASE 13): REPUTATION-DRIVEN SCALING ---
+      // Instead of relying on a static day index, we query the reputation monitor
+      // to see the REAL health of this user's mailboxes.
+      const { calculateReputationScore } = await import('./reputation-monitor.js');
+      
+      const userIntegrations = await storage.getIntegrations(userId);
+      const emailIntegrations = userIntegrations.filter(i => 
+        ['gmail', 'outlook', 'custom_email'].includes(i.provider) && i.connected
+      );
 
-      // Use daysSinceCreated to determine warmup level (max day 10)
-      const warmupDay = Math.min(daysSinceCreated, 10);
-      const schedule = WARMUP_SCHEDULE[warmupDay - 1] || WARMUP_SCHEDULE[9];
+      let maxReputation = 0;
+      let existingLimit = 50;
+
+      for (const integration of emailIntegrations) {
+        const score = await calculateReputationScore(integration.id);
+        maxReputation = Math.max(maxReputation, score);
+        existingLimit = Math.max(existingLimit, integration.dailyLimit || 50);
+      }
+
+      // Dynamic Limit Logic:
+      // 1. If reputation is excellent (>90), we can spike the warmup faster.
+      // 2. If reputation is poor (<50), we freeze or slash the limit.
+      let newDailyLimit = existingLimit;
+
+      if (maxReputation > 90) {
+        // High confidence: Spike limit by 20% or +25 emails
+        newDailyLimit = Math.min(500, existingLimit + Math.max(25, Math.floor(existingLimit * 0.2)));
+      } else if (maxReputation < 50) {
+        // Poor health: Slash limit by 50%
+        newDailyLimit = Math.max(10, Math.floor(existingLimit * 0.5));
+      }
 
       await db.insert(emailWarmupSchedules).values({
         userId,
-        day: today, // Calendar day for deduplication
-        dailyLimit: schedule.emailsToSend,
+        day: today, 
+        dailyLimit: newDailyLimit,
         randomDelay: true
       });
 
-      console.log(`🔥 Warmup schedule set for ${user.email}: Day ${warmupDay}, ${schedule.emailsToSend} emails`);
+      console.log(`🚀 [Dynamic Warmup] Updated ${user.email}: Limit set to ${newDailyLimit} based on ${maxReputation}/100 reputation.`);
     } catch (error) {
       console.error('Error updating warmup schedule:', error);
     }

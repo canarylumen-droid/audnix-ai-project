@@ -278,6 +278,11 @@ class EmailSyncWorker {
 
       for (const lead of leads) {
         if (['cold', 'not_interested', 'converted'].includes(lead.status)) continue;
+
+        // CHECK: Only auto-expire (move to cold) if autonomous mode is ON
+        const user = await storage.getUserById(userId);
+        if ((user?.config as any)?.autonomousMode === false) continue;
+
         if (lead.lastMessageAt) {
           if (now.getTime() - new Date(lead.lastMessageAt).getTime() > threshold) {
             await storage.updateLead(lead.id, {

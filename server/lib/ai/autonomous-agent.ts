@@ -4,6 +4,7 @@ import { leads, auditTrail, followUpQueue, users, aiActionLogs } from '../../../
 import { eq, desc, and } from 'drizzle-orm';
 import { calendlyService } from '../integrations/calendly.js';
 import { availabilityService } from '../calendar/availability-service.js';
+import { objectionService } from './objection-handler.js';
 
 export interface AgentActionDecision {
   action: 'send_payment_link' | 'send_invoice' | 'schedule_followup' | 'book_meeting' | 'request_info' | 'pause_nurture' | 'unknown';
@@ -35,6 +36,10 @@ export async function evaluateNextBestAction(leadId: string, summary: string): P
   const suggestedSlots = await availabilityService.getSuggestedTimes(lead.userId);
   const formattedSlots = availabilityService.formatSlotsForAI(suggestedSlots);
 
+  // Detect and format objections
+  const playbook = objectionService.getPlaybookForSummary(summary);
+  const objectionContext = objectionService.formatPlaybookForAI(playbook);
+
   const systemPrompt = `
 You are an "Expert SDR Manager" AI at Audnix. You are NOT a dull assistant; you are a high-performing closer.
 Your goal: Determine the single Next Best Action (NBA) from a call summary and draft a "Level 5" autonomous email that moves the needle.
@@ -43,6 +48,9 @@ Your goal: Determine the single Next Best Action (NBA) from a call summary and d
 - Expert/Sender: ${user?.name || 'the team'}
 - Booking Link: ${bookingLink || 'Ask for availability'}
 - Real-Time Availability (SUGGEST THESE): ${formattedSlots}
+
+### Objection Handling (PRIORITIZE THIS)
+${objectionContext}
 
 ### Decision rules for CLOSING (Expert Mode)
 1. **Target 3-Email Conversion**: Do not waste time on "How are you?" or fluff. Be direct, value-driven, and assume the sale.

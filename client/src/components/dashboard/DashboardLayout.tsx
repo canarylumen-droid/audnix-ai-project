@@ -162,6 +162,11 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
   const isAutonomousMode = (user as any)?.config?.autonomousMode !== false;
   const isCalendarConnected = !!(user?.calendlyAccessToken || user?.calendarLink);
 
+  const { data: aiActions } = useQuery<any[]>({
+    queryKey: ["/api/dashboard/ai-actions"],
+    refetchInterval: 10000, // Refetch every 10 seconds for "live" feel
+  });
+
   const toggleAutonomousMode = useMutation({
     mutationFn: async (autonomousMode: boolean) => {
       return apiRequest('PATCH', '/api/user/config', { autonomousMode });
@@ -471,6 +476,46 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                         />
                       </div>
                     </div>
+
+                    {/* Live AI Activity Feed (Phase 13) */}
+                    {!sidebarCollapsed && isAutonomousMode && (
+                      <div className="mt-4 px-1">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Live Activity</span>
+                          <span className="flex h-1.5 w-1.5 rounded-full bg-primary/40 animate-pulse" />
+                        </div>
+                        <div className="space-y-2 max-h-[120px] overflow-hidden mask-fade-bottom">
+                          {aiActions && aiActions.length > 0 ? (
+                            aiActions.slice(0, 3).map((log, i) => (
+                              <motion.div 
+                                key={log.id} 
+                                initial={{ opacity: 0, x: -10 }} 
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: i * 0.1 }}
+                                className="flex flex-col gap-1 p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[9px] font-bold text-foreground/80 truncate max-w-[80px]">{log.leadName || "System"}</span>
+                                  <span className={cn(
+                                    "text-[8px] font-black uppercase px-1 rounded shadow-sm",
+                                    log.decision === 'act' ? "bg-emerald-500/20 text-emerald-500" : "bg-blue-500/20 text-blue-500"
+                                  )}>
+                                    {log.decision}
+                                  </span>
+                                </div>
+                                <p className="text-[8px] text-muted-foreground leading-tight line-clamp-2">
+                                  {log.reasoning || "Analyzing next best action..."}
+                                </p>
+                              </motion.div>
+                            ))
+                          ) : (
+                            <div className="py-4 text-center">
+                              <p className="text-[8px] text-muted-foreground uppercase tracking-widest opacity-30">Listening...</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

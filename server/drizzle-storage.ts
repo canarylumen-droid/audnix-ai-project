@@ -557,6 +557,37 @@ export class DrizzleStorage implements IStorage {
     return result;
   }
 
+  async reserveLeadForAction(leadId: string, workerName: string, durationMs: number = 5000): Promise<boolean> {
+    checkDatabase();
+    if (!isValidUUID(leadId)) return false;
+
+    try {
+      const now = new Date();
+      const lockThreshold = new Date(now.getTime() - durationMs);
+
+      // Atomic update to prevent race conditions across multiple worker ticks or processes
+      const result = await db.execute(sql`
+        UPDATE leads 
+        SET metadata = metadata || jsonb_build_object(
+          'processing_lock_at', ${now.toISOString()},
+          'processing_worker', ${workerName},
+          'processing_lock_duration', ${durationMs}
+        )
+        WHERE id = ${leadId}
+        AND (
+          (metadata->>'processing_lock_at') IS NULL
+          OR (metadata->>'processing_lock_at')::timestamp < ${lockThreshold.toISOString()}::timestamp
+        )
+        RETURNING id;
+      `);
+
+      return (result.rows?.length || 0) > 0;
+    } catch (error) {
+      console.error(`[Mutex] Conflict reservation error for lead ${leadId}:`, error);
+      return false;
+    }
+  }
+
   async archiveLead(id: string, userId: string, archived: boolean): Promise<Lead | undefined> {
     checkDatabase();
     const [result] = await db

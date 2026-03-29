@@ -54,6 +54,7 @@ export interface IStorage {
   getLeadBySocialId(socialId: string, channel: string): Promise<Lead | undefined>;
   createLead(lead: Partial<InsertLead> & { userId: string; name: string; channel: string }): Promise<Lead>;
   updateLead(id: string, updates: Partial<Lead>): Promise<Lead | undefined>;
+  reserveLeadForAction(leadId: string, workerName: string, durationMs?: number): Promise<boolean>;
   archiveLead(id: string, userId: string, archived: boolean): Promise<Lead | undefined>;
   deleteLead(id: string, userId: string): Promise<void>;
   archiveMultipleLeads(ids: string[], userId: string, archived: boolean): Promise<void>;

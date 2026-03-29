@@ -385,6 +385,15 @@ export async function distributeLeadsFromPool(userId: string, targetIntegrationI
       for (const mb of sortedMailboxes) {
         if (mb.remainingCapacity > 0 && poolIndex < leadsToDistribute.length) {
           const lead = leadsToDistribute[poolIndex];
+          
+          // Attempt to reserve the lead to prevent race conditions during distribution
+          const reserved = await storage.reserveLeadForAction(lead.id, 'distribution');
+          if (!reserved) {
+            console.log(`[LeadPool] Lead ${lead.id} is already being processed. skipping.`);
+            poolIndex++;
+            continue;
+          }
+
           await storage.updateLead(lead.id, { integrationId: mb.id });
           
           mb.remainingCapacity--;
