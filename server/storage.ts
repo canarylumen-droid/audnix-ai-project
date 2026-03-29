@@ -624,7 +624,6 @@ export class MemStorage implements IStorage {
   }
 
   // Usage tracking
-  private usageHistory: Map<string, any[]> = new Map();
 
   async createUsageTopup(data: any): Promise<any> {
     const id = randomUUID();
@@ -835,9 +834,8 @@ export class MemStorage implements IStorage {
       id,
       userId,
       patternKey: key,
-      successCount: success ? 1 : 0,
-      failureCount: success ? 0 : 1,
-      lastObservedAt: new Date(),
+      strength: success ? 1 : 0,
+      lastUsedAt: new Date(),
       metadata: {},
       createdAt: new Date(),
     };
@@ -846,7 +844,6 @@ export class MemStorage implements IStorage {
 
 
   // ========== OAuth Accounts ==========
-  private oauthAccounts: Map<string, OAuthAccount> = new Map();
 
   async getOAuthAccount(userId: string, provider: string): Promise<OAuthAccount | undefined> {
     return Array.from(this.oauthAccounts.values()).find(
@@ -923,39 +920,11 @@ export class MemStorage implements IStorage {
   // ========== Audit Trail ==========
 
 
-  async toggleAi(leadId: string, paused: boolean): Promise<void> {
-    const lead = this.leads.get(leadId);
-    if (lead) {
-      this.leads.set(leadId, { ...lead, aiPaused: paused });
-    }
-  }
-
-  async reserveLeadForAction(leadId: string, workerName: string, durationMs: number = 5000): Promise<boolean> {
-    const lead = this.leads.get(leadId);
-    if (!lead) return false;
-    
-    const now = new Date();
-    const lockAt = (lead.metadata as any)?.processing_lock_at;
-    const lockThreshold = new Date(now.getTime() - durationMs);
-
-    if (!lockAt || new Date(lockAt) < lockThreshold) {
-      lead.metadata = {
-        ...(lead.metadata as any || {}),
-        processing_lock_at: now.toISOString(),
-        processing_worker: workerName,
-        processing_lock_duration: durationMs
-      };
-      this.leads.set(leadId, lead);
-      return true;
-    }
-    return false;
-  }
-
   async checkMailboxLimit(userId: string): Promise<{ allowed: boolean; current: number; limit: number; plan: string }> {
     const user = this.users.get(userId);
     const plan = user?.plan || 'free';
     const limit = plan === 'enterprise' ? 10 : 3;
-    const current = Array.from(this.integrations.values()).filter(i => i.userId === userId && i.provider === 'email').length;
+    const current = Array.from(this.integrations.values()).filter(i => i.userId === userId && ['custom_email', 'gmail', 'outlook'].includes(i.provider)).length;
     return { allowed: current < limit, current, limit, plan };
   }
 
@@ -1038,6 +1007,35 @@ export class MemStorage implements IStorage {
       conversionRate
     };
   }
+
+  async createIntegration(integration: any): Promise<Integration> { const id = randomUUID(); const i: Integration = { ...integration, id, createdAt: new Date() } as any; this.integrations.set(id, i); return i; }
+  async getIntegration(userId: string, provider: string): Promise<Integration | undefined> { return Array.from(this.integrations.values()).find(i => i.userId === userId && i.provider === provider); }
+  async getIntegrationById(id: string): Promise<Integration | undefined> { return this.integrations.get(id); }
+  async getIntegrations(userId: string): Promise<Integration[]> { return Array.from(this.integrations.values()).filter(i => i.userId === userId); }
+  async getIntegrationsByProvider(provider: string): Promise<Integration[]> { return Array.from(this.integrations.values()).filter(i => i.provider === provider); }
+  async updateIntegration(userId: string, provider: string, updates: Partial<Integration>): Promise<Integration | undefined> { const i = await this.getIntegration(userId, provider); if (!i) return undefined; const updated = { ...i, ...updates } as Integration; this.integrations.set(i.id, updated); return updated; }
+  async updateIntegrationById(id: string, updates: Partial<Integration>): Promise<Integration | undefined> { const i = this.integrations.get(id); if (!i) return undefined; const updated = { ...i, ...updates } as Integration; this.integrations.set(id, updated); return updated; }
+  async disconnectIntegration(userId: string, provider: string): Promise<void> { await this.updateIntegration(userId, provider, { connected: false }); }
+  async deleteIntegration(userId: string, provider: string): Promise<void> { const i = await this.getIntegration(userId, provider); if (i) this.integrations.delete(i.id); }
+  async deleteIntegrationById(id: string): Promise<void> { this.integrations.delete(id); }
+
+  async isCommentProcessed(commentId: string): Promise<boolean> { return this.processedComments.has(commentId); }
+  async markCommentProcessed(commentId: string, status: string, intentType: string): Promise<void> { this.processedComments.add(commentId); }
+  async getBrandKnowledge(userId: string): Promise<string> { return this.brandKnowledge.get(userId) || ''; }
+
+  async getVideoMonitors(userId: string): Promise<any[]> { return Array.from(this.videoMonitors.values()).filter(v => v.userId === userId); }
+  async createVideoMonitor(data: any): Promise<any> { const id = randomUUID(); const v = { ...data, id, createdAt: new Date() }; this.videoMonitors.set(id, v); return v; }
+  async updateVideoMonitor(id: string, userId: string, updates: any): Promise<any> { const v = this.videoMonitors.get(id); if(v && v.userId === userId) { const u = {...v, ...updates}; this.videoMonitors.set(id, u); return u; } return undefined; }
+
+  async createDeal(data: any): Promise<any> { const id = randomUUID(); const deal = { ...data, id, createdAt: new Date() }; this.deals.set(id, deal); return deal; }
+  async updateDeal(id: string, userId: string, updates: any): Promise<any> { const d = this.deals.get(id); if (!d || d.userId !== userId) return null; const updated = { ...d, ...updates, updatedAt: new Date() }; this.deals.set(id, updated); return updated; }
+
+  async getLeadInsight(leadId: string): Promise<LeadInsight | undefined> { return Array.from(this.leadInsightsStore.values()).find(i => i.leadId === leadId); }
+  async upsertLeadInsight(i: any): Promise<LeadInsight> { const existing = await this.getLeadInsight(i.leadId); const id = existing ? existing.id : randomUUID(); const insight: LeadInsight = { ...i, id, createdAt: existing ? existing.createdAt : new Date() } as any; this.leadInsightsStore.set(id, insight); return insight; }
+
+  async getOrCreateThread(userId: string, leadId: string, subject: string, providerThreadId?: string): Promise<Thread> { const existing = Array.from(this.threads.values()).find(t => t.userId === userId && t.leadId === leadId); if (existing) return existing; const id = randomUUID(); const t: Thread = { id, userId, leadId, subject, lastMessageAt: new Date(), metadata: providerThreadId ? { providerThreadId } : {}, createdAt: new Date() } as any; this.threads.set(id, t); return t; }
+  async getThreadsByLeadId(leadId: string): Promise<Thread[]> { return Array.from(this.threads.values()).filter(t => t.leadId === leadId); }
+  async updateThread(id: string, updates: Partial<Thread>): Promise<Thread | undefined> { const t = this.threads.get(id); if (!t) return undefined; const updated = { ...t, ...updates } as Thread; this.threads.set(id, updated); return updated; }
 
   async deleteVideoMonitor(id: string, userId: string): Promise<void> {
     const m = this.videoMonitors.get(id);
