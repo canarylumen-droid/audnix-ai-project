@@ -970,7 +970,6 @@ export class MemStorage implements IStorage {
     undeliveredLeads: number;
     conversionRate: number;
   }> {
-    const overrideDates = options;
     const userLeads = Array.from(this.leads.values()).filter(l => l.userId === userId);
     const totalLeads = userLeads.length;
     const now = new Date();
@@ -1008,43 +1007,128 @@ export class MemStorage implements IStorage {
     };
   }
 
-  async createIntegration(integration: any): Promise<Integration> { const id = randomUUID(); const i: Integration = { ...integration, id, createdAt: new Date() } as any; this.integrations.set(id, i); return i; }
-  async getIntegration(userId: string, provider: string): Promise<Integration | undefined> { return Array.from(this.integrations.values()).find(i => i.userId === userId && i.provider === provider); }
-  async getIntegrationById(id: string): Promise<Integration | undefined> { return this.integrations.get(id); }
-  async getIntegrations(userId: string): Promise<Integration[]> { return Array.from(this.integrations.values()).filter(i => i.userId === userId); }
-  async getIntegrationsByProvider(provider: string): Promise<Integration[]> { return Array.from(this.integrations.values()).filter(i => i.provider === provider); }
-  async updateIntegration(userId: string, provider: string, updates: Partial<Integration>): Promise<Integration | undefined> { const i = await this.getIntegration(userId, provider); if (!i) return undefined; const updated = { ...i, ...updates } as Integration; this.integrations.set(i.id, updated); return updated; }
-  async updateIntegrationById(id: string, updates: Partial<Integration>): Promise<Integration | undefined> { const i = this.integrations.get(id); if (!i) return undefined; const updated = { ...i, ...updates } as Integration; this.integrations.set(id, updated); return updated; }
-  async disconnectIntegration(userId: string, provider: string): Promise<void> { await this.updateIntegration(userId, provider, { connected: false }); }
-  async deleteIntegration(userId: string, provider: string): Promise<void> { const i = await this.getIntegration(userId, provider); if (i) this.integrations.delete(i.id); }
-  async deleteIntegrationById(id: string): Promise<void> { this.integrations.delete(id); }
+  async createIntegration(integration: any): Promise<Integration> {
+    const id = randomUUID();
+    const i: Integration = { ...integration, id, createdAt: new Date() } as any;
+    this.integrations.set(id, i);
+    return i;
+  }
+  async getIntegration(userId: string, provider: string): Promise<Integration | undefined> {
+    return Array.from(this.integrations.values()).find(i => i.userId === userId && i.provider === provider);
+  }
+  async getIntegrationById(id: string): Promise<Integration | undefined> {
+    return this.integrations.get(id);
+  }
+  async getIntegrations(userId: string): Promise<Integration[]> {
+    return Array.from(this.integrations.values()).filter(i => i.userId === userId);
+  }
+  async getIntegrationsByProvider(provider: string): Promise<Integration[]> {
+    return Array.from(this.integrations.values()).filter(i => i.provider === provider);
+  }
+  async updateIntegration(userId: string, provider: string, updates: Partial<Integration>): Promise<Integration | undefined> {
+    const i = await this.getIntegration(userId, provider);
+    if (!i) return undefined;
+    const updated = { ...i, ...updates } as Integration;
+    this.integrations.set(i.id, updated);
+    return updated;
+  }
+  async updateIntegrationById(id: string, updates: Partial<Integration>): Promise<Integration | undefined> {
+    const i = this.integrations.get(id);
+    if (!i) return undefined;
+    const updated = { ...i, ...updates } as Integration;
+    this.integrations.set(id, updated);
+    return updated;
+  }
+  async disconnectIntegration(userId: string, provider: string): Promise<void> {
+    await this.updateIntegration(userId, provider, { connected: false });
+  }
+  async deleteIntegration(userId: string, provider: string): Promise<void> {
+    const i = await this.getIntegration(userId, provider);
+    if (i) this.integrations.delete(i.id);
+  }
+  async deleteIntegrationById(id: string): Promise<void> {
+    this.integrations.delete(id);
+  }
 
-  async isCommentProcessed(commentId: string): Promise<boolean> { return this.processedComments.has(commentId); }
-  async markCommentProcessed(commentId: string, status: string, intentType: string): Promise<void> { this.processedComments.add(commentId); }
-  async getBrandKnowledge(userId: string): Promise<string> { return this.brandKnowledge.get(userId) || ''; }
+  async isCommentProcessed(commentId: string): Promise<boolean> {
+    return this.processedComments.has(commentId);
+  }
+  async markCommentProcessed(commentId: string, status: string, intentType: string): Promise<void> {
+    this.processedComments.add(commentId);
+  }
+  async getBrandKnowledge(userId: string): Promise<string> {
+    return this.brandKnowledge.get(userId) || '';
+  }
 
-  async getVideoMonitors(userId: string): Promise<any[]> { return Array.from(this.videoMonitors.values()).filter(v => v.userId === userId); }
-  async createVideoMonitor(data: any): Promise<any> { const id = randomUUID(); const v = { ...data, id, createdAt: new Date() }; this.videoMonitors.set(id, v); return v; }
-  async updateVideoMonitor(id: string, userId: string, updates: any): Promise<any> { const v = this.videoMonitors.get(id); if(v && v.userId === userId) { const u = {...v, ...updates}; this.videoMonitors.set(id, u); return u; } return undefined; }
-
-  async createDeal(data: any): Promise<any> { const id = randomUUID(); const deal = { ...data, id, createdAt: new Date() }; this.deals.set(id, deal); return deal; }
-  async updateDeal(id: string, userId: string, updates: any): Promise<any> { const d = this.deals.get(id); if (!d || d.userId !== userId) return null; const updated = { ...d, ...updates, updatedAt: new Date() }; this.deals.set(id, updated); return updated; }
-
-  async getLeadInsight(leadId: string): Promise<LeadInsight | undefined> { return Array.from(this.leadInsightsStore.values()).find(i => i.leadId === leadId); }
-  async upsertLeadInsight(i: any): Promise<LeadInsight> { const existing = await this.getLeadInsight(i.leadId); const id = existing ? existing.id : randomUUID(); const insight: LeadInsight = { ...i, id, createdAt: existing ? existing.createdAt : new Date() } as any; this.leadInsightsStore.set(id, insight); return insight; }
-
-  async getOrCreateThread(userId: string, leadId: string, subject: string, providerThreadId?: string): Promise<Thread> { const existing = Array.from(this.threads.values()).find(t => t.userId === userId && t.leadId === leadId); if (existing) return existing; const id = randomUUID(); const t: Thread = { id, userId, leadId, subject, lastMessageAt: new Date(), metadata: providerThreadId ? { providerThreadId } : {}, createdAt: new Date() } as any; this.threads.set(id, t); return t; }
-  async getThreadsByLeadId(leadId: string): Promise<Thread[]> { return Array.from(this.threads.values()).filter(t => t.leadId === leadId); }
-  async updateThread(id: string, updates: Partial<Thread>): Promise<Thread | undefined> { const t = this.threads.get(id); if (!t) return undefined; const updated = { ...t, ...updates } as Thread; this.threads.set(id, updated); return updated; }
-
+  async getVideoMonitors(userId: string): Promise<any[]> {
+    return Array.from(this.videoMonitors.values()).filter(v => v.userId === userId);
+  }
+  async createVideoMonitor(data: any): Promise<any> {
+    const id = randomUUID();
+    const v = { ...data, id, createdAt: new Date() };
+    this.videoMonitors.set(id, v);
+    return v;
+  }
+  async updateVideoMonitor(id: string, userId: string, updates: any): Promise<any> {
+    const v = this.videoMonitors.get(id);
+    if (v && v.userId === userId) {
+      const u = { ...v, ...updates };
+      this.videoMonitors.set(id, u);
+      return u;
+    }
+    return undefined;
+  }
   async deleteVideoMonitor(id: string, userId: string): Promise<void> {
     const m = this.videoMonitors.get(id);
     if (m && m.userId === userId) this.videoMonitors.delete(id);
   }
 
+  async createDeal(data: any): Promise<any> {
+    const id = randomUUID();
+    const deal = { ...data, id, createdAt: new Date() };
+    this.deals.set(id, deal);
+    return deal;
+  }
+  async updateDeal(id: string, userId: string, updates: any): Promise<any> {
+    const d = this.deals.get(id);
+    if (!d || d.userId !== userId) return null;
+    const updated = { ...d, ...updates, updatedAt: new Date() };
+    this.deals.set(id, updated);
+    return updated;
+  }
 
+  async getLeadInsight(leadId: string): Promise<LeadInsight | undefined> {
+    return Array.from(this.leadInsightsStore.values()).find(i => i.leadId === leadId);
+  }
+  async upsertLeadInsight(i: any): Promise<LeadInsight> {
+    const existing = await this.getLeadInsight(i.leadId);
+    const id = existing ? existing.id : randomUUID();
+    const insight: LeadInsight = { ...i, id, createdAt: existing ? existing.createdAt : new Date() } as any;
+    this.leadInsightsStore.set(id, insight);
+    return insight;
+  }
+
+  async getOrCreateThread(userId: string, leadId: string, subject: string, providerThreadId?: string): Promise<Thread> {
+    const existing = Array.from(this.threads.values()).find(t => t.userId === userId && t.leadId === leadId);
+    if (existing) return existing;
+    const id = randomUUID();
+    const t: Thread = { id, userId, leadId, subject, lastMessageAt: new Date(), metadata: providerThreadId ? { providerThreadId } : {}, createdAt: new Date() } as any;
+    this.threads.set(id, t);
+    return t;
+  }
+  async getThreadsByLeadId(leadId: string): Promise<Thread[]> {
+    return Array.from(this.threads.values()).filter(t => t.leadId === leadId);
+  }
+  async updateThread(id: string, updates: Partial<Thread>): Promise<Thread | undefined> {
+    const t = this.threads.get(id);
+    if (!t) return undefined;
+    const updated = { ...t, ...updates } as Thread;
+    this.threads.set(id, updated);
+    return updated;
+  }
 }
 
 export const storage: IStorage = drizzleStorage;
 
-console.log("✓ Using DrizzleStorage with PostgreSQL (persistent storage enabled)");
+
+console.log("✓ Using DrizzleStorage with PostgreSQL (persistent storage enabled)");
