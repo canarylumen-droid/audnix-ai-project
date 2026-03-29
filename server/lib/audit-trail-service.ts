@@ -28,7 +28,7 @@ export interface AuditAction {
 export interface AuditTrailEntry {
   id: string;
   userId: string;
-  leadId: string;
+  leadId: string | null;
   action: string;
   messageId: string | null;
   details: Record<string, unknown>;
@@ -167,7 +167,7 @@ export class AuditTrailService {
     try {
       await db.insert(auditTrail).values({
         userId,
-        leadId: "", // Campaign-level action
+        leadId: null, // Campaign-level action
         action,
         details: {
           campaignId,
@@ -188,7 +188,7 @@ export class AuditTrailService {
     try {
       await db.insert(auditTrail).values({
         userId,
-        leadId: "",
+        leadId: null,
         action: "upload_rate_limited",
         details: {
           reason,
@@ -299,7 +299,7 @@ export class AuditTrailService {
         .from(auditTrail)
         .where(
           and(
-            eq(auditTrail.leadId, leadId),
+            leadId ? eq(auditTrail.leadId, leadId) : sql`TRUE`,
             eq(auditTrail.action, "intent_detected"),
             sql`(${auditTrail.details}->>'intent') = ${intent}`,
             sql`(${auditTrail.createdAt}) > ${yesterday}`

@@ -655,7 +655,7 @@ export const oauthAccounts = pgTable("oauth_accounts", {
 export const auditTrail = pgTable("audit_trail", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+  leadId: uuid("lead_id").references(() => leads.id, { onDelete: "cascade" }),
   integrationId: uuid("integration_id").references(() => integrations.id, { onDelete: "cascade" }),
   action: text("action").notNull(), // "ai_message_sent", "opt_out_toggled", "pdf_processed", "upload_rate_limited"
   messageId: uuid("message_id"),
