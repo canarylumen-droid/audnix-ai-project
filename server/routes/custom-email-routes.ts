@@ -17,10 +17,10 @@ router.post('/discover', requireAuth, async (req: Request, res: Response) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'Email is required' });
 
-    const settings: any = await EmailDiscoveryService.discoverSettings(email);
-    if (!settings) return res.json({ provider: 'custom', suggestedName: EmailDiscoveryService.suggestNameFromEmail(email) });
+    const result: any = await EmailDiscoveryService.discoverSettings(email);
+    if (!result) return res.json({ provider: 'custom', suggestedName: EmailDiscoveryService.suggestNameFromEmail(email) });
     
-    // Add App Password Guidance based on detected domain
+    const settings = { ...result };
     const domain = email.split('@')[1]?.toLowerCase();
     if (domain) {
       if (domain.includes('gmail.com') || domain.includes('googlemail.com')) {
@@ -91,10 +91,10 @@ function getSmtpErrorDetails(error: any, host: string): { error: string; details
   if (code === 'ETIMEDOUT' || code === 'ESOCKET') {
     return {
       error: `Connection timed out to ${host}.${typoHint}`,
-      details: `The server at ${host} did not respond on the specified port. This usually means the hostname is wrong, the port is blocked, or the server is down.`,
+      details: `The server at ${host} did not respond on the specified port. This usually means the hostname is wrong, the port is blocked by a firewall, or the server is down.`,
       tip: typoHint
         ? `Check for typos in the hostname.${typoHint}`
-        : 'Double-check the SMTP hostname and port. Common ports: 465 (SSL), 587 (STARTTLS), 25 (unencrypted). If you have 2FA enabled, use an App Password.'
+        : 'Double-check the SMTP host and port. Port 465 usually requires SSL/TLS, and 587 requires STARTTLS. If you are on a VPS, port 25 may be blocked.'
     };
   }
 

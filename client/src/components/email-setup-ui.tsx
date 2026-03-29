@@ -21,6 +21,7 @@ interface EmailConfig {
   imapPort: number;
   email: string;
   password: string;
+  fromName: string;
 }
 
 export function EmailSetupUI() {
@@ -33,7 +34,8 @@ export function EmailSetupUI() {
     imapHost: '',
     imapPort: 993,
     email: '',
-    password: ''
+    password: '',
+    fromName: ''
   });
   const [connecting, setConnecting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
@@ -83,7 +85,8 @@ export function EmailSetupUI() {
           smtpHost: data.smtp?.host || prev.smtpHost,
           smtpPort: data.smtp?.port || prev.smtpPort,
           imapHost: data.imap?.host || prev.imapHost,
-          imapPort: data.imap?.port || prev.imapPort
+          imapPort: data.imap?.port || prev.imapPort,
+          fromName: data.suggestedName || prev.fromName
         }));
         
         if (data.appPasswordGuide) {
@@ -127,7 +130,8 @@ export function EmailSetupUI() {
           imapHost: config.imapHost,
           imapPort: config.imapPort,
           email: config.email,
-          password: config.password
+          password: config.password,
+          fromName: config.fromName
         })
       });
 
@@ -156,7 +160,7 @@ export function EmailSetupUI() {
         queryClient.invalidateQueries({ queryKey: ["/api/dashboard/analytics/full"] });
         queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
 
-        setConfig({ smtpHost: '', smtpPort: 587, imapHost: '', imapPort: 993, email: '', password: '' });
+        setConfig({ smtpHost: '', smtpPort: 587, imapHost: '', imapPort: 993, email: '', password: '', fromName: '' });
         setShowFilterInfo(false);
         setShowSetup(false);
         await fetchStatus();
@@ -311,6 +315,16 @@ export function EmailSetupUI() {
               )}
 
               <div>
+                <label className="block text-sm font-medium mb-1">From Name (Display Name)</label>
+                <Input
+                  placeholder="e.g. John Doe"
+                  value={config.fromName}
+                  onChange={(e) => setConfig({ ...config, fromName: e.target.value })}
+                  className="font-mono text-sm"
+                />
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium mb-1">Password / App Password</label>
                 <Input
                   type="password"
@@ -429,7 +443,7 @@ export function EmailSetupUI() {
                   variant="outline"
                   onClick={() => {
                     setShowSetup(false);
-                    setConfig({ smtpHost: '', smtpPort: 587, imapHost: '', imapPort: 993, email: '', password: '' });
+                    setConfig({ smtpHost: '', smtpPort: 587, imapHost: '', imapPort: 993, email: '', password: '', fromName: '' });
                   }}
                 >
                   Cancel

@@ -63,9 +63,34 @@ const PROVIDER_MAP: Record<string, EmailSettings> = {
         provider: 'yahoo'
     },
     'zoho.com': {
-        smtp: { host: 'smtp.zoho.com', port: 465 },
-        imap: { host: 'imap.zoho.com', port: 993 },
+        smtp: { host: 'smtppro.zoho.com', port: 465 },
+        imap: { host: 'imappro.zoho.com', port: 993 },
         provider: 'zoho'
+    },
+    'zoho.in': {
+        smtp: { host: 'smtppro.zoho.in', port: 465 },
+        imap: { host: 'imappro.zoho.in', port: 993 },
+        provider: 'zoho'
+    },
+    'office365.com': {
+        smtp: { host: 'smtp.office365.com', port: 587 },
+        imap: { host: 'outlook.office365.com', port: 993 },
+        provider: 'outlook'
+    },
+    'microsoft365.com': {
+        smtp: { host: 'smtp.office365.com', port: 587 },
+        imap: { host: 'outlook.office365.com', port: 993 },
+        provider: 'outlook'
+    },
+    'privateemail.com': {
+        smtp: { host: 'mail.privateemail.com', port: 465 },
+        imap: { host: 'mail.privateemail.com', port: 993 },
+        provider: 'namecheap'
+    },
+    'secureserver.net': {
+        smtp: { host: 'smtpout.secureserver.net', port: 465 },
+        imap: { host: 'imap.secureserver.net', port: 993 },
+        provider: 'godaddy'
     },
     'protonmail.com': {
         smtp: { host: '127.0.0.1', port: 1025 },
