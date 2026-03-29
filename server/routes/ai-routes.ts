@@ -446,7 +446,6 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
               } catch (dbErr) {
                 // If a chunk fails (e.g. malformed data), we don't want to kill the whole import
                 console.error(`[CSV Import] Chunk starting at ${i} failed to insert:`, dbErr);
-                results.errors.push(`Chunk starting at row ${i + 1}: Batch insert failed. These leads may have been skipped.`);
               }
             }
 
