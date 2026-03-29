@@ -41,15 +41,7 @@ export function NotificationBell() {
 
   });
 
-  // Play notification sound
-  const playNotificationSound = () => {
-    const audio = new Audio('/sounds/notification.mp3');
-    audio.volume = 0.6;
-    audio.play().catch((e) => {
-      console.log('Audio play failed:', e);
-      // Browser might block auto-play
-    });
-  };
+
 
   // Monitor for changes
   useEffect(() => {
@@ -57,7 +49,6 @@ export function NotificationBell() {
       if (notifications.unreadCount > count) {
         // New notification came in
         setIsWiggling(true);
-        playNotificationSound();
 
         if (navigator.vibrate) {
           navigator.vibrate([200, 100, 200]);
@@ -79,7 +70,6 @@ export function NotificationBell() {
       
       if (data?.type === 'lead_reply' || data?.type === 'conversion' || data?.type === 'new_lead') {
         setIsWiggling(true);
-        playNotificationSound();
         setTimeout(() => setIsWiggling(false), 1000);
       }
     };
@@ -134,7 +124,7 @@ export function NotificationBell() {
       queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
       setShowDropdown(false);
       toast({ title: "Notifications cleared" });
-    } catch (err) {
+    } catch (error) {
       toast({ title: "Error", description: "Failed to clear notifications", variant: "destructive" });
     }
   };

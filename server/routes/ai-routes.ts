@@ -384,28 +384,41 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
               uniqueChunk.splice(remainingSpace);
             }
 
-            // Fast verification for the unique chunk
-            const verifiedChunk = await Promise.all(uniqueChunk.map(async (leadData) => {
-              if (leadData.email) {
-                try {
-                  // Use verifier for basic check (fast)
-                  const vResult = await verifier.verify(leadData.email);
-                  return {
-                    ...leadData,
-                    verified: vResult.valid,
-                    bouncy: !vResult.valid && vResult.reason.includes('rejected'),
-                    metadata: {
-                      ...leadData.metadata,
-                      verification_reason: vResult.reason,
-                      risk_level: vResult.riskLevel
-                    }
-                  };
-                } catch (e) {
-                  return leadData;
+            const skipVerification = req.body.skipVerification === 'true';
+
+            // Verification/Processing for the unique chunk (Resilient)
+            let verifiedChunk;
+            try {
+              verifiedChunk = await Promise.all(uniqueChunk.map(async (leadData) => {
+                if (leadData.email && !skipVerification) {
+                  try {
+                    // Verifier with timeout logic to prevent hangs
+                    const verifyPromise = verifier.verify(leadData.email);
+                    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000));
+                    
+                    const vResult: any = await Promise.race([verifyPromise, timeoutPromise]);
+                    
+                    return {
+                      ...leadData,
+                      verified: vResult.valid,
+                      bouncy: !vResult.valid && vResult.reason.includes('rejected'),
+                      metadata: {
+                        ...leadData.metadata,
+                        verification_reason: vResult.reason,
+                        risk_level: vResult.riskLevel
+                      }
+                    };
+                  } catch (e) {
+                    console.warn(`[CSV Import] Verification skipped for ${leadData.email} (timeout or error)`);
+                    return { ...leadData, verified: false };
+                  }
                 }
-              }
-              return leadData;
-            }));
+                return { ...leadData, verified: false };
+              }));
+            } catch (pErr) {
+              console.error("[CSV Import] Verified chunk processing failed, falling back to raw data", pErr);
+              verifiedChunk = uniqueChunk.map(l => ({ ...l, verified: false }));
+            }
 
             const leadsChunk = verifiedChunk.map(leadData => ({
               userId,
@@ -426,18 +439,28 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
             }));
 
             if (leadsChunk.length > 0) {
-              await db.insert(leads).values(leadsChunk as any);
-              leadsToSave.push(...leadsChunk);
-              filteredCount += verifiedChunk.filter(l => (l as any).bouncy).length;
+              try {
+                await db.insert(leads).values(leadsChunk as any);
+                leadsToSave.push(...leadsChunk);
+                filteredCount += verifiedChunk.filter(l => (l as any).bouncy).length;
+              } catch (dbErr) {
+                // If a chunk fails (e.g. malformed data), we don't want to kill the whole import
+                console.error(`[CSV Import] Chunk starting at ${i} failed to insert:`, dbErr);
+                results.errors.push(`Chunk starting at row ${i + 1}: Batch insert failed. These leads may have been skipped.`);
+              }
             }
 
-            // Update process log
-            await db.update(aiProcessLogs)
-              .set({
-                processedItems: Math.min(i + chunkSize, processedLeads.length),
-                updatedAt: new Date()
-              })
-              .where(eq(aiProcessLogs.id, processLog.id));
+            // Update process log - separate block to ensure it updates even if insert fails
+            try {
+              await db.update(aiProcessLogs)
+                .set({
+                  processedItems: Math.min(i + chunkSize, processedLeads.length),
+                  updatedAt: new Date()
+                })
+                .where(eq(aiProcessLogs.id, processLog.id));
+            } catch (logErr) {
+              console.warn("[CSV Import] Failed to update process log progress:", logErr);
+            }
           }
 
           // Mark process as completed
@@ -454,14 +477,6 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
             })
             .where(eq(aiProcessLogs.id, processLog.id));
 
-          // Notify user of completion with summary
-          await wsSync.notifyNotification(userId, {
-            type: 'lead_import',
-            title: 'Leads Processed',
-            message: `Successfully processed ${leadsToSave.length} new leads.`,
-            metadata: { newCount: leadsToSave.length }
-          });
-          
           // Professional Distribution Trigger
           try {
             const { distributeLeadsFromPool } = await import('../lib/sales-engine/outreach-engine.js');
@@ -470,7 +485,8 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
             console.error('[CSV Import] Lead distribution failed:', distErr);
           }
 
-          wsSync.notifyLeadsUpdated(userId);
+          // Notify frontend to refresh data (no sound — the notification event handles that)
+          wsSync.notifyLeadsUpdated(userId, { type: 'bulk_import', count: leadsToSave.length });
           wsSync.notifyStatsUpdated(userId, { integrationId: req.body.integrationId });
 
           res.json({
@@ -481,19 +497,23 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
             processId: processLog.id
           });
 
-          // Create notification for import
+          // Create single aggregate notification for import (only one sound plays)
           if (leadsToSave.length > 0 || duplicateCount > 0 || filteredCount > 0) {
             try {
               await storage.createNotification({
                 userId,
                 type: 'lead_import',
-                title: '📥 CSV Import Summary',
-                message: `Import complete: ${leadsToSave.length} new leads, ${duplicateCount} duplicates skipped, ${filteredCount} invalid emails filtered.`,
+                title: '📥 CSV Import Complete',
+                message: `${leadsToSave.length} leads imported${duplicateCount > 0 ? `, ${duplicateCount} duplicates skipped` : ''}${filteredCount > 0 ? `, ${filteredCount} invalid filtered` : ''}.`,
                 metadata: { source: 'csv_upload', count: leadsToSave.length, duplicates: duplicateCount, filtered: filteredCount, fileName: file.originalname }
               });
-              const { wsSync } = await import('../lib/websocket-sync.js');
-              wsSync.notifyNotification(userId, { type: 'lead_import', count: leadsToSave.length, duplicates: duplicateCount, filtered: filteredCount });
-              wsSync.notifyLeadsUpdated(userId, { type: 'leads_imported', count: leadsToSave.length });
+              // Single notification event — triggers one sound on the frontend
+              wsSync.notifyNotification(userId, {
+                type: 'lead_import',
+                title: '📥 CSV Import Complete',
+                message: `${leadsToSave.length} leads imported successfully.`,
+                playSound: true
+              });
             } catch (notifErr) {
               console.warn('[CSV Import] Failed to create notification:', notifErr);
             }

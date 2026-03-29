@@ -405,8 +405,6 @@ app.use((req, res, next) => {
 
       // Allow standard subdomains and common deployment platforms
       const isAllowedSuffix =
-        originUrl.hostname.endsWith(".replit.app") ||
-        originUrl.hostname.endsWith(".replit.dev") ||
         originUrl.hostname.endsWith(".railway.app") ||
         originUrl.hostname === "audnixai.com" ||
         originUrl.hostname.endsWith(".audnixai.com") ||
@@ -456,11 +454,9 @@ app.use((req, res, next) => {
   const isAllowedDomain =
     !origin ||
     ALLOWED_ORIGINS.includes(origin) ||
-    origin.endsWith(".replit.dev") ||
-    origin.endsWith(".repl.co") ||
     origin.endsWith(".railway.app") ||
     origin.endsWith(".up.railway.app") ||
-    origin.endsWith(".replit.app");
+    origin.endsWith(".audnixai.com");
 
   if (isAllowedDomain && origin) {
     res.setHeader("Access-Control-Allow-Origin", origin);

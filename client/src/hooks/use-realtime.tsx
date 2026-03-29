@@ -35,35 +35,7 @@ const showPushNotification = async (title: string, options: any) => {
   }
 };
 
-// Notification sound with audio context fallback
-const playNotificationSound = () => {
-  try {
-    const audio = new Audio('/sounds/notification.mp3');
-    audio.volume = 0.5;
-    const playPromise = audio.play();
 
-    if (playPromise !== undefined) {
-      playPromise.catch(() => {
-        // Fallback to Web Audio Oscillator for "unlocked" feel
-        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        if (audioCtx.state === 'suspended') return;
-
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.5);
-      });
-    }
-  } catch (err) {
-    console.log('Notification sound fallback error');
-  }
-};
 
 const playSentSound = () => {
   try {
@@ -211,8 +183,7 @@ export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/activity'] });
 
       // Handle INSERT notifications
-      if (payload.event === 'INSERT' && payload.lead) {
-        playNotificationSound();
+      if (payload.event === 'INSERT' && payload.lead && payload.type !== 'bulk_import') {
         toast({
           title: '🎯 New Lead Captured',
           description: `${payload.lead.name} from ${payload.lead.channel}`,
@@ -226,7 +197,6 @@ export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
 
       // Handle UPDATE status changes
       if (payload.event === 'UPDATE' && payload.lead?.status === 'converted') {
-        playNotificationSound();
         toast({
           title: '🎉 Conversion!',
           description: `${payload.lead.name} converted to customer`,
@@ -270,7 +240,6 @@ export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
 
       // Notification for inbound messages
       if (payload.message?.direction === 'inbound') {
-        playNotificationSound();
         toast({
           title: '💬 New Message',
           description: 'You have a new message from a lead',
@@ -295,12 +264,8 @@ export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
         return;
       }
 
-      // Throttle sound (500ms to keep it responsive)
-      const now = Date.now();
-      if (now - lastNotificationTime.current > 500) {
-        playNotificationSound();
-        lastNotificationTime.current = now;
-      }
+      // Sound and debouncing now handled centrally by NotificationSound component
+      // We only handle toast and push notification here
 
       const relativeTime = getRelativeTime(payload.created_at || new Date());
       toast({
@@ -323,7 +288,6 @@ export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
       queryClient.invalidateQueries({ queryKey: ['/api/calendar'] });
 
       if (payload.event === 'INSERT' && payload.eventData?.is_ai_booked) {
-        playNotificationSound();
         toast({
           title: '📅 Meeting Booked',
           description: `AI scheduled: ${payload.eventData.title}`,
@@ -356,7 +320,6 @@ export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
 
       if (payload?.isNew) {
-        playNotificationSound();
         toast({
           title: '🤖 New AI Insight',
           description: 'A new strategic insight is ready for review.',
@@ -381,7 +344,7 @@ export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
       if (payload.type === 'email_sent') {
         playSentSound();
       } else if (payload.type === 'email_received' || payload.type === 'message_received') {
-        playNotificationSound();
+        // Sound handled by NotificationSound
       } else if (payload.type === 'email_deleted_externally') {
         // Refresh all relevant views for consistency
         queryClient.invalidateQueries({ queryKey: ['/api/leads'] });
@@ -417,7 +380,6 @@ export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
 
       const { title, message, url, tag } = payload;
 
-      playNotificationSound();
       toast({
         title,
         description: message,

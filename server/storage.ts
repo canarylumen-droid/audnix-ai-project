@@ -52,7 +52,7 @@ export interface IStorage {
   getLeadsCount(userId: string): Promise<number>;
   getLeadByUsername(username: string, channel: string): Promise<Lead | undefined>;
   getLeadBySocialId(socialId: string, channel: string): Promise<Lead | undefined>;
-  createLead(lead: Partial<InsertLead> & { userId: string; name: string; channel: string }): Promise<Lead>;
+  createLead(lead: Partial<InsertLead> & { userId: string; name: string; channel: string }, options?: { suppressNotification?: boolean }): Promise<Lead>;
   updateLead(id: string, updates: Partial<Lead>): Promise<Lead | undefined>;
   reserveLeadForAction(leadId: string, workerName: string, durationMs?: number): Promise<boolean>;
   archiveLead(id: string, userId: string, archived: boolean): Promise<Lead | undefined>;

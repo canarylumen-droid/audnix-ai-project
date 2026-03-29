@@ -17,9 +17,52 @@ router.post('/discover', requireAuth, async (req: Request, res: Response) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'Email is required' });
 
-    const settings = await EmailDiscoveryService.discoverSettings(email);
+    const settings: any = await EmailDiscoveryService.discoverSettings(email);
+    
+    // Add App Password Guidance based on detected domain
+    const domain = email.split('@')[1]?.toLowerCase();
+    if (domain) {
+      if (domain.includes('gmail.com') || domain.includes('googlemail.com')) {
+        settings.appPasswordGuide = {
+          provider: 'Google / Gmail',
+          instructions: 'Google requires an **App Password** if 2FA is enabled. You cannot use your regular account password.',
+          link: 'https://myaccount.google.com/apppasswords',
+          steps: [
+            'Go to your Google Account Security settings.',
+            'Select "App passwords" under "How you sign in to Google".',
+            'Select "Mail" and "Other (Custom name)" like "Audnix AI".',
+            'Copy the 16-character code and use it as your password here.'
+          ]
+        };
+      } else if (domain.includes('outlook.com') || domain.includes('hotmail.com') || domain.includes('live.com') || domain.includes('msn.com')) {
+        settings.appPasswordGuide = {
+          provider: 'Microsoft / Outlook',
+          instructions: 'Microsoft accounts with Two-Step Verification enabled require an **App Password**.',
+          link: 'https://account.live.com/proofs/AppPassword',
+          steps: [
+            'Log in to your Microsoft Account.',
+            'Go to Security > Advanced security options.',
+            'Look for "App passwords" and click "Create a new app password".',
+            'Use the generated password in the Audnix settings.'
+          ]
+        };
+      } else if (domain.includes('zoho.')) {
+        settings.appPasswordGuide = {
+          provider: 'Zoho Mail',
+          instructions: 'Zoho requires an **Application-Specific Password** if 2FA is enabled.',
+          link: 'https://accounts.zoho.com/home#security/app_password',
+          steps: [
+            'Log in to Zoho Accounts.',
+            'Navigate to Security > App Passwords.',
+            'Generate a new password for "Audnix AI".'
+          ]
+        };
+      }
+    }
+
     res.json(settings);
   } catch (error) {
+    console.error('[Email Discovery] Error:', error);
     res.status(500).json({ error: 'Discovery failed' });
   }
 });
@@ -77,7 +120,7 @@ function getSmtpErrorDetails(error: any, host: string): { error: string; details
     return {
       error: 'Authentication failed. Please check your password.',
       details: error.message,
-      tip: 'If you have 2FA enabled, you MUST use an App Password instead of your regular password.'
+      tip: 'If you have Two-Factor Authentication (2FA) enabled, you MUST use an **App Password**. Regular account passwords will not work. Check your email provider settings to generate one.'
     };
   }
 

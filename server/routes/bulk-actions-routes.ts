@@ -117,12 +117,21 @@ router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Pr
           userId,
           type: 'lead_import',
           title: '📥 Bulk Leads Imported',
-          message: `${results.leadsImported} leads added to your active pipeline.`,
-          metadata: { count: results.leadsImported, source: 'bulk_json' }
+          message: `${results.leadsImported} leads added to your pipeline.${results.leadsFiltered > 0 ? ` ${results.leadsFiltered} duplicates filtered.` : ''}`,
+          metadata: { count: results.leadsImported, filtered: results.leadsFiltered, source: 'bulk_json' }
         });
 
         const { wsSync } = await import('../lib/websocket-sync.js');
-        wsSync.notifyLeadsUpdated(userId, { type: 'leads_imported', count: results.leadsImported });
+        // Single notification event — triggers one sound on frontend
+        wsSync.notifyNotification(userId, {
+          type: 'lead_import',
+          title: '📥 Bulk Leads Imported',
+          message: `${results.leadsImported} leads added to your pipeline.`,
+          playSound: true
+        });
+        // Refresh data without triggering per-lead sounds
+        wsSync.notifyLeadsUpdated(userId, { type: 'bulk_import', count: results.leadsImported });
+        wsSync.notifyStatsUpdated(userId);
       } catch (notifErr) {
         console.warn('[Bulk Import] Failed to create aggregate notification:', notifErr);
       }

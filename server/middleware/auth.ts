@@ -56,7 +56,21 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   }
 
   // Verify user exists in database
-  const user = await storage.getUserById(userId);
+  // IMPORTANT: Wrap in try-catch to handle transient DB errors (quota, connection timeout)
+  // WITHOUT destroying the session. Only destroy session when user genuinely doesn't exist.
+  let user;
+  try {
+    user = await storage.getUserById(userId);
+  } catch (dbError: any) {
+    // Transient DB error — do NOT destroy the session
+    console.warn(`[AUTH] DB lookup failed for user ${userId} (transient error, session preserved):`, dbError?.message || dbError);
+    return res.status(503).json({
+      error: "Service temporarily unavailable",
+      message: "Database is temporarily busy. Please retry in a moment.",
+      code: "DB_TRANSIENT_ERROR"
+    });
+  }
+
   if (!user) {
     console.warn(`[AUTH] Rejected 401: User ${userId} not found in database. Possible deleted user with active session.`);
 

@@ -214,6 +214,7 @@ export default function IntegrationsPage() {
   const [disconnectProvider, setDisconnectProvider] = useState<string | null>(null);
 
   const [isUploadingVoice, setIsUploadingVoice] = useState(false);
+  const [appPasswordGuide, setAppPasswordGuide] = useState<any>(null);
   const voiceInputRef = useRef<HTMLInputElement>(null);
 
   const { data: integrationsData, isLoading } = useQuery<IntegrationsResponse>({
@@ -395,7 +396,16 @@ export default function IntegrationsPage() {
           imapHost: data.imap?.host || prev.imapHost,
           imapPort: String(data.imap?.port || 993)
         }));
+        
+        if (data.appPasswordGuide) {
+          setAppPasswordGuide(data.appPasswordGuide);
+        } else {
+          setAppPasswordGuide(null);
+        }
+
         toast({ title: "Settings Found", description: `Automatically detected settings for ${customEmailConfig.email}` });
+      } else {
+        setAppPasswordGuide(null);
       }
     }
   });
@@ -654,14 +664,64 @@ export default function IntegrationsPage() {
                       </div>
                     </div>
                     <div className="space-y-1.5 md:col-span-2">
-                      <Label className="text-xs font-semibold text-muted-foreground ml-1">From Name (Displayed to recipients)</Label>
-                      <Input
-                        placeholder="John Doe"
-                        value={customEmailConfig.fromName}
-                        onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, fromName: e.target.value })}
-                        className="rounded-xl border-border/50 focus:ring-primary/20"
-                      />
-                    </div>
+                        <Input
+                          placeholder="John Doe"
+                          value={customEmailConfig.fromName}
+                          onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, fromName: e.target.value })}
+                          className="rounded-xl border-border/50 focus:ring-primary/20"
+                        />
+                      </div>
+
+                      {/* Dynamic App Password Guide */}
+                      <AnimatePresence>
+                        {appPasswordGuide && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="md:col-span-2 overflow-hidden"
+                          >
+                            <div className="p-5 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 space-y-4">
+                              <div className="flex items-start gap-4">
+                                <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-500">
+                                  <ShieldCheck className="h-5 w-5" />
+                                </div>
+                                <div className="space-y-1">
+                                  <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
+                                    {appPasswordGuide.provider} Security Guide
+                                    <Badge className="bg-indigo-500/10 text-indigo-500 border-0 text-[9px] font-black tracking-widest px-1.5 py-0">Required for 2FA</Badge>
+                                  </h4>
+                                  <p className="text-xs text-muted-foreground leading-relaxed">{appPasswordGuide.instructions}</p>
+                                </div>
+                              </div>
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-12">
+                                <div className="space-y-3">
+                                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">Setup Steps</p>
+                                  <div className="space-y-2">
+                                    {appPasswordGuide.steps.map((step: string, idx: number) => (
+                                      <div key={idx} className="flex gap-3">
+                                        <div className="h-4 w-4 rounded-full bg-indigo-500/10 flex items-center justify-center text-[8px] font-bold text-indigo-500 mt-0.5 shrink-0">{idx + 1}</div>
+                                        <p className="text-[10px] text-muted-foreground leading-tight">{step}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                                <div className="flex flex-col justify-end gap-3">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="rounded-xl border-indigo-500/20 text-indigo-500 hover:bg-indigo-500/10 text-[10px] font-black uppercase tracking-widest h-9"
+                                    onClick={() => window.open(appPasswordGuide.link, '_blank')}
+                                  >
+                                    Open {appPasswordGuide.provider} Security Settings <ArrowRight className="ml-2 h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     
                     {[
                       { label: "SMTP Host", key: "smtpHost", placeholder: "e.g. smtp.gmail.com" },
