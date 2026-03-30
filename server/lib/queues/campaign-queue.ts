@@ -554,10 +554,13 @@ async function processFollowUp(data: FollowUpJobData): Promise<void> {
   const [lead] = await db.select().from(leads).where(eq(leads.id, leadEntry.leadId));
   if (!lead?.email || lead.aiPaused) return;
 
-  // 4. Check if the lead has replied since the follow-up was scheduled
-  if (lead.status === 'replied' || lead.status === 'converted' || lead.status === 'booked') return;
+  // 4. Check if the lead has replied or unsubscribed since the follow-up was scheduled
+  if (lead.status === 'replied' || lead.status === 'converted' || lead.status === 'booked' || lead.status === 'unsubscribed') {
+    return;
+  }
 
   // 5. Check unified daily budget (Max Capacity)
+
   const sentToday = await getMailboxSentCount(userId, integrationId);
 
   // Pull limits from campaign config or mailbox metadata

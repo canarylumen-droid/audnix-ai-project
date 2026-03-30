@@ -116,6 +116,21 @@ const PROVIDER_MAP: Record<string, EmailSettings> = {
         smtp: { host: 'smtp.hostinger.com', port: 465 },
         imap: { host: 'imap.hostinger.com', port: 993 },
         provider: 'hostinger'
+    },
+    'fastmail.com': {
+        smtp: { host: 'smtp.fastmail.com', port: 465 },
+        imap: { host: 'imap.fastmail.com', port: 993 },
+        provider: 'fastmail'
+    },
+    'dreamhost.com': {
+        smtp: { host: 'smtp.dreamhost.com', port: 465 },
+        imap: { host: 'imap.dreamhost.com', port: 993 },
+        provider: 'dreamhost'
+    },
+    'rackspace.com': {
+        smtp: { host: 'smtp.emailsrvr.com', port: 465 },
+        imap: { host: 'secure.emailsrvr.com', port: 993 },
+        provider: 'rackspace'
     }
 };
 
@@ -138,44 +153,42 @@ export class EmailDiscoveryService {
         }
 
         // 2. Heuristic: try common subdomains
-        try {
-            return {
-                smtp: {
-                    host: `smtp.${domain}`,
-                    port: 587
-                },
-                imap: {
-                    host: `imap.${domain}`,
-                    port: 993
-                },
-                provider: 'custom',
-                suggestedName
-            };
-        } catch (e) {
-            return {
-                smtp: { host: `smtp.${domain}`, port: 587 },
-                imap: { host: `imap.${domain}`, port: 993 },
-                provider: 'custom',
-                suggestedName
-            };
-        }
+        return {
+            smtp: {
+                host: `smtp.${domain}`,
+                port: 587
+            },
+            imap: {
+                host: `imap.${domain}`,
+                port: 993
+            },
+            provider: 'custom',
+            suggestedName
+        };
     }
 
     /**
      * Extract a likely display name from an email address
      */
     static suggestNameFromEmail(email: string): string {
-        const prefix = email.split('@')[0];
-        if (!prefix) return '';
+        try {
+            const prefix = email.split('@')[0];
+            if (!prefix) return '';
 
-        // Handle common delimiters: dots, underscores, plus signs
-        const parts = prefix.split(/[._+]/);
-        
-        // Capitalize each part and join with spaces
-        return parts
-            .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-            .filter(part => !/^\d+$/.test(part)) // Filter out purely numeric parts
-            .join(' ');
+            // Handle common delimiters: dots, underscores, plus signs, hyphens
+            const parts = prefix.split(/[._+\-]/);
+            
+            // Capitalize each part and join with spaces
+            return parts
+                .map(part => part.trim())
+                .filter(part => part.length > 0)
+                .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+                .filter(part => !/^\d+$/.test(part)) // Filter out purely numeric parts
+                .join(' ')
+                .trim();
+        } catch (e) {
+            return '';
+        }
     }
 }
 

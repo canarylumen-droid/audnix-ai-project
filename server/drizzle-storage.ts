@@ -1604,9 +1604,18 @@ export class DrizzleStorage implements IStorage {
   // ========== Audit Trail ==========
   async createAuditLog(data: InsertAuditTrail): Promise<AuditTrail> {
     checkDatabase();
-    const [result] = await db.insert(auditTrail).values(data).returning();
+    
+    // Defensive normalization: PostgreSQL UUID fields cannot be empty strings
+    const sanitizedData = {
+      ...data,
+      leadId: (data.leadId && data.leadId.length > 0) ? data.leadId : null,
+      integrationId: (data.integrationId && data.integrationId.length > 0) ? data.integrationId : null,
+    };
+
+    const [result] = await db.insert(auditTrail).values(sanitizedData).returning();
     return result;
   }
+
 
   async getAuditLogs(userId: string, options?: { integrationId?: string, daysFilter?: number, limit?: number, offset?: number }): Promise<AuditTrail[]> {
     checkDatabase();

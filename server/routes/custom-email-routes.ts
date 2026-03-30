@@ -88,13 +88,16 @@ function getSmtpErrorDetails(error: any, host: string): { error: string; details
     ? ` It looks like "${host}" may be a typo — did you mean "${host.replace(hostDomain, suggestedDomain)}"?`
     : '';
 
-  if (code === 'ETIMEDOUT' || code === 'ESOCKET') {
+  if (code === 'ETIMEDOUT' || code === 'ESOCKET' || code === 'ECONNREFUSED') {
+    const isPort25 = error.port === 25;
     return {
-      error: `Connection timed out to ${host}.${typoHint}`,
-      details: `The server at ${host} did not respond on the specified port. This usually means the hostname is wrong, the port is blocked by a firewall, or the server is down.`,
+      error: `Connection failed to ${host} on port ${error.port || 'unknown'}.${typoHint}`,
+      details: isPort25 
+        ? `Port 25 is frequently blocked by hosting providers (like Railway, AWS, DigitalOcean) to prevent spam. Please try using port 587 or 465 instead.`
+        : `The server at ${host} did not respond. This usually means the port is blocked by a firewall or the hostname is incorrect.`,
       tip: typoHint
         ? `Check for typos in the hostname.${typoHint}`
-        : 'Double-check the SMTP host and port. Port 465 usually requires SSL/TLS, and 587 requires STARTTLS. If you are on a VPS, port 25 may be blocked.'
+        : (isPort25 ? 'Switch to port 587 (STARTTLS) or 465 (SSL/TLS).' : 'Double-check the SMTP host and port. We tried common ports (587, 465) automatically but none responded.')
     };
   }
 
@@ -221,29 +224,36 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
 
     const trySmtpVerify = async (host: string, port: number): Promise<boolean> => {
       const nodemailer = await import('nodemailer');
+      // Port 465 is usually legacy SSL/TLS. 587 is STARTTLS.
+      const isSecure = port === 465;
+      
       const transporter = nodemailer.createTransport({
         host,
         port,
-        secure: port === 465,
+        secure: isSecure,
         auth: {
           user: credentials.smtp_user,
           pass: credentials.smtp_pass,
         },
         tls: {
+          // Many business servers use self-signed certs or have hostname mismatches
           rejectUnauthorized: false
         },
-        connectionTimeout: 20000,
-        greetingTimeout: 15000,
-        socketTimeout: 20000
+        // For port 587, we often need to explicitly require TLS
+        requireTLS: port === 587 || port === 2525,
+        connectionTimeout: 10000, // Faster timeout for scanning
+        greetingTimeout: 10000,
+        socketTimeout: 15000
       });
       await transporter.verify();
       return true;
     };
 
-    // Build the list of ports to try: user's choice first, then the alternative
+    // Build the "Smart Scan" list: user's choice first, then industry standards
     const userPort = credentials.smtp_port || 587;
-    const altPort = userPort === 465 ? 587 : 465;
-    const portsToTry = [userPort, altPort];
+    const scanPorts = [587, 465, 2525, 25];
+    // Create unique list starting with userPort
+    const portsToTry = Array.from(new Set([userPort, ...scanPorts]));
 
     let verifiedPort: number | null = null;
     let lastVerifyError: any = null;

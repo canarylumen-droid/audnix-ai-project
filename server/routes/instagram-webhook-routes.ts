@@ -74,8 +74,11 @@ export default function registerInstagramWebhookRoutes(app: Express) {
   const META_APP_SECRET = process.env.META_APP_SECRET;
 
   if (!META_APP_SECRET) {
-    webhookLog("⚠️  META_APP_SECRET not set - signature verification will fail");
+    webhookLog("⚠️  [CRITICAL] META_APP_SECRET is not configured in environment variables.");
+    webhookLog("👉  Signature verification for Instagram events will be DISABLED.");
+    webhookLog("👉  To fix, add META_APP_SECRET (from Meta Dev Dashboard) to your .env or platform secrets.");
   }
+
 
   /**
    * GET /api/webhook/instagram

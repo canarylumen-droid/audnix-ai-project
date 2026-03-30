@@ -45,6 +45,9 @@ export function EmailSetupUI() {
   const [showFilterInfo, setShowFilterInfo] = useState(false);
   const [appPasswordGuide, setAppPasswordGuide] = useState<any>(null);
   const [discovering, setDiscovering] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [lastDetectedDomain, setLastDetectedDomain] = useState('');
+  const [connectionStep, setConnectionStep] = useState<string>('');
 
   useEffect(() => {
     fetchStatus();
@@ -69,8 +72,12 @@ export function EmailSetupUI() {
     }
   };
 
-  const handleDiscover = async (email: string) => {
+  const handleDiscover = async (email: string, isInitial = false) => {
     if (!email || !email.includes('@')) return;
+    const domain = email.split('@')[1]?.toLowerCase();
+    if (!isInitial && domain === lastDetectedDomain) return;
+    
+    setLastDetectedDomain(domain || '');
     setDiscovering(true);
     try {
       const res = await fetch('/api/custom-email/discover', {
@@ -85,7 +92,8 @@ export function EmailSetupUI() {
           smtpHost: data.smtp?.host || prev.smtpHost,
           smtpPort: data.smtp?.port || prev.smtpPort,
           imapHost: data.imap?.host || prev.imapHost,
-          imapPort: data.imap?.port || prev.imapPort
+          imapPort: data.imap?.port || prev.imapPort,
+          fromName: prev.fromName || data.suggestedName || ''
         }));
         
         if (data.appPasswordGuide) {
@@ -94,7 +102,7 @@ export function EmailSetupUI() {
           setAppPasswordGuide(null);
         }
 
-        if (data.smtp?.host) {
+        if (data.smtp?.host && !isInitial) {
           toast({ title: 'Settings Found', description: `Detected settings for ${email}` });
         }
       }
@@ -119,6 +127,7 @@ export function EmailSetupUI() {
     setImportProgress(0);
 
     try {
+      setConnectionStep('Initializing connection...');
       const res = await fetch('/api/custom-email/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -133,6 +142,8 @@ export function EmailSetupUI() {
           fromName: config.fromName
         })
       });
+
+      setConnectionStep('Verifying SMTP & scanning ports...');
 
       if (res.ok) {
         const data = await res.json();
@@ -278,11 +289,24 @@ export function EmailSetupUI() {
                   type="email"
                   placeholder="your-email@company.com"
                   value={config.email}
-                  onChange={(e) => setConfig({ ...config, email: e.target.value })}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setConfig({ ...config, email: val });
+                    if (val.includes('@') && val.split('@')[1]?.length > 3) {
+                      handleDiscover(val, true);
+                    }
+                  }}
                   onBlur={() => handleDiscover(config.email)}
                   className="font-mono text-sm"
                 />
               </div>
+
+              {discovering && (
+                <div className="flex items-center gap-2 text-[10px] text-cyan-600 animate-pulse">
+                   <div className="w-2 h-2 rounded-full bg-cyan-600"></div>
+                   Checking for provider settings...
+                </div>
+              )}
 
               {appPasswordGuide && (
                 <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-lg p-4 space-y-3 animate-in slide-in-from-top-2">
@@ -331,60 +355,78 @@ export function EmailSetupUI() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium mb-1">SMTP Host (Sending)</label>
-                  <Input
-                    placeholder="smtp.office365.com"
-                    value={config.smtpHost}
-                    onChange={(e) => setConfig({ ...config, smtpHost: e.target.value })}
-                    className="font-mono text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">SMTP Port</label>
-                  <Input
-                    type="number"
-                    placeholder="587"
-                    value={config.smtpPort}
-                    onChange={(e) => setConfig({ ...config, smtpPort: parseInt(e.target.value) || 587 })}
-                    className="font-mono text-sm"
-                  />
-                </div>
+              <div className="flex items-center justify-between pb-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Connection Settings</p>
+                <Button 
+                  variant="link" 
+                  size="sm" 
+                  className="h-auto p-0 text-[10px] text-cyan-600"
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                >
+                  {showAdvanced ? 'Hide Advanced' : 'Show Advanced Settings'}
+                </Button>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium mb-1">IMAP Host (Reading)</label>
-                  <Input
-                    placeholder="imap.office365.com"
-                    value={config.imapHost}
-                    onChange={(e) => setConfig({ ...config, imapHost: e.target.value })}
-                    className="font-mono text-sm"
-                  />
+              {showAdvanced && (
+                <div className="space-y-3 p-3 bg-black/5 rounded-lg border border-border/50 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">SMTP Host (Sending)</label>
+                      <Input
+                        placeholder="smtp.office365.com"
+                        value={config.smtpHost}
+                        onChange={(e) => setConfig({ ...config, smtpHost: e.target.value })}
+                        className="font-mono text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">SMTP Port</label>
+                      <Input
+                        type="number"
+                        placeholder="587"
+                        value={config.smtpPort}
+                        onChange={(e) => setConfig({ ...config, smtpPort: parseInt(e.target.value) || 587 })}
+                        className="font-mono text-sm"
+                      />
+                      <p className="text-[10px] text-muted-foreground mt-1">Common: 587 (TLS), 465 (SSL)</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">IMAP Host (Reading)</label>
+                      <Input
+                        placeholder="imap.office365.com"
+                        value={config.imapHost}
+                        onChange={(e) => setConfig({ ...config, imapHost: e.target.value })}
+                        className="font-mono text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">IMAP Port</label>
+                      <Input
+                        type="number"
+                        placeholder="993"
+                        value={config.imapPort}
+                        onChange={(e) => setConfig({ ...config, imapPort: parseInt(e.target.value) || 993 })}
+                        className="font-mono text-sm"
+                      />
+                      <p className="text-[10px] text-muted-foreground mt-1">Standard IMAP: 993</p>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">IMAP Port</label>
-                  <Input
-                    type="number"
-                    placeholder="993"
-                    value={config.imapPort}
-                    onChange={(e) => setConfig({ ...config, imapPort: parseInt(e.target.value) || 993 })}
-                    className="font-mono text-sm"
-                  />
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Import Progress */}
             {importing && (
               <div className="bg-amber-500/5 border border-amber-500/20 rounded p-3 space-y-2">
                 <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
-                  ⏳ Importing your contacts...
+                  ⏳ {connectionStep || 'Importing your contacts...'}
                 </p>
                 <Progress value={importProgress} className="h-2" />
                 <p className="text-xs text-gray-600 dark:text-gray-400">
-                  {importProgress}% complete • This usually takes 30 seconds
+                  {importProgress}% complete • This usually takes 30-60 seconds
                 </p>
               </div>
             )}
