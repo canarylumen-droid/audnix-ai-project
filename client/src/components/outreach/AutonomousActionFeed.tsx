@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Zap, Calendar, Mail, AlertTriangle, CheckCircle2, MoreHorizontal } from "lucide-react";
+import { Zap, Calendar, Mail, AlertTriangle, CheckCircle2, MoreHorizontal, ShieldCheck } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
 

@@ -74,6 +74,7 @@ interface UserData {
     id: string;
     email: string;
     subscriptionTier?: string;
+    plan?: string;
     totalLeads?: number;
   };
 }

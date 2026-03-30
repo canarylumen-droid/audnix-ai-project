@@ -1,4 +1,4 @@
-CREATE TABLE "ai_action_logs" (
+CREATE TABLE IF NOT EXISTS "ai_action_logs" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"lead_id" uuid,
@@ -15,7 +15,7 @@ CREATE TABLE "ai_action_logs" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "api_keys" (
+CREATE TABLE IF NOT EXISTS "api_keys" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"name" text NOT NULL,
@@ -26,7 +26,7 @@ CREATE TABLE "api_keys" (
 	CONSTRAINT "api_keys_key_unique" UNIQUE("key")
 );
 --> statement-breakpoint
-CREATE TABLE "audit_trail" (
+CREATE TABLE IF NOT EXISTS "audit_trail" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"lead_id" uuid NOT NULL,
@@ -36,7 +36,7 @@ CREATE TABLE "audit_trail" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "automation_rules" (
+CREATE TABLE IF NOT EXISTS "automation_rules" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"name" text NOT NULL,
@@ -56,7 +56,7 @@ CREATE TABLE "automation_rules" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "automations" (
+CREATE TABLE IF NOT EXISTS "automations" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"name" text NOT NULL,
@@ -69,7 +69,7 @@ CREATE TABLE "automations" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "bounce_tracker" (
+CREATE TABLE IF NOT EXISTS "bounce_tracker" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"lead_id" uuid NOT NULL,
@@ -80,7 +80,7 @@ CREATE TABLE "bounce_tracker" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "brand_embeddings" (
+CREATE TABLE IF NOT EXISTS "brand_embeddings" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"source" text NOT NULL,
@@ -90,7 +90,7 @@ CREATE TABLE "brand_embeddings" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "calendar_bookings" (
+CREATE TABLE IF NOT EXISTS "calendar_bookings" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"lead_id" uuid,
@@ -112,7 +112,7 @@ CREATE TABLE "calendar_bookings" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "calendar_events" (
+CREATE TABLE IF NOT EXISTS "calendar_events" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"lead_id" uuid,
@@ -129,7 +129,7 @@ CREATE TABLE "calendar_events" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "calendar_settings" (
+CREATE TABLE IF NOT EXISTS "calendar_settings" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"calendly_token" text,
@@ -155,7 +155,7 @@ CREATE TABLE "calendar_settings" (
 	CONSTRAINT "calendar_settings_user_id_unique" UNIQUE("user_id")
 );
 --> statement-breakpoint
-CREATE TABLE "content_library" (
+CREATE TABLE IF NOT EXISTS "content_library" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"type" text NOT NULL,
@@ -174,7 +174,7 @@ CREATE TABLE "content_library" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "conversation_events" (
+CREATE TABLE IF NOT EXISTS "conversation_events" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"lead_id" uuid,
@@ -191,7 +191,7 @@ CREATE TABLE "conversation_events" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "deals" (
+CREATE TABLE IF NOT EXISTS "deals" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"lead_id" uuid NOT NULL,
 	"user_id" uuid NOT NULL,
@@ -206,7 +206,7 @@ CREATE TABLE "deals" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "email_warmup_schedules" (
+CREATE TABLE IF NOT EXISTS "email_warmup_schedules" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"day" integer NOT NULL,
@@ -215,7 +215,7 @@ CREATE TABLE "email_warmup_schedules" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "follow_up_queue" (
+CREATE TABLE IF NOT EXISTS "follow_up_queue" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"lead_id" uuid NOT NULL,
@@ -228,7 +228,7 @@ CREATE TABLE "follow_up_queue" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "insights" (
+CREATE TABLE IF NOT EXISTS "insights" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"period" jsonb NOT NULL,
@@ -238,7 +238,7 @@ CREATE TABLE "insights" (
 	"generated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "integrations" (
+CREATE TABLE IF NOT EXISTS "integrations" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"provider" text NOT NULL,
@@ -249,7 +249,7 @@ CREATE TABLE "integrations" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "leads" (
+CREATE TABLE IF NOT EXISTS "leads" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"external_id" text,
@@ -269,7 +269,7 @@ CREATE TABLE "leads" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "messages" (
+CREATE TABLE IF NOT EXISTS "messages" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"lead_id" uuid NOT NULL,
 	"user_id" uuid NOT NULL,
@@ -281,7 +281,7 @@ CREATE TABLE "messages" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "notifications" (
+CREATE TABLE IF NOT EXISTS "notifications" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"type" text NOT NULL,
@@ -293,7 +293,7 @@ CREATE TABLE "notifications" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "oauth_accounts" (
+CREATE TABLE IF NOT EXISTS "oauth_accounts" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"provider" text NOT NULL,
@@ -308,7 +308,7 @@ CREATE TABLE "oauth_accounts" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "onboarding_profiles" (
+CREATE TABLE IF NOT EXISTS "onboarding_profiles" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"completed" boolean DEFAULT false NOT NULL,
@@ -323,7 +323,7 @@ CREATE TABLE "onboarding_profiles" (
 	CONSTRAINT "onboarding_profiles_user_id_unique" UNIQUE("user_id")
 );
 --> statement-breakpoint
-CREATE TABLE "otp_codes" (
+CREATE TABLE IF NOT EXISTS "otp_codes" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"email" text NOT NULL,
 	"code" text NOT NULL,
@@ -335,7 +335,7 @@ CREATE TABLE "otp_codes" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "pdf_analytics" (
+CREATE TABLE IF NOT EXISTS "pdf_analytics" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"file_name" text NOT NULL,
@@ -346,7 +346,7 @@ CREATE TABLE "pdf_analytics" (
 	"processed_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "processed_comments" (
+CREATE TABLE IF NOT EXISTS "processed_comments" (
 	"id" text PRIMARY KEY NOT NULL,
 	"comment_id" text NOT NULL,
 	"action" text NOT NULL,
@@ -355,7 +355,7 @@ CREATE TABLE "processed_comments" (
 	CONSTRAINT "processed_comments_comment_id_unique" UNIQUE("comment_id")
 );
 --> statement-breakpoint
-CREATE TABLE "prospects" (
+CREATE TABLE IF NOT EXISTS "prospects" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"entity" text NOT NULL,
@@ -374,7 +374,7 @@ CREATE TABLE "prospects" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "team_members" (
+CREATE TABLE IF NOT EXISTS "team_members" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"organization_id" uuid NOT NULL,
 	"user_id" uuid NOT NULL,
@@ -384,7 +384,7 @@ CREATE TABLE "team_members" (
 	"accepted_at" timestamp
 );
 --> statement-breakpoint
-CREATE TABLE "upload_rate_limit" (
+CREATE TABLE IF NOT EXISTS "upload_rate_limit" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"uploads" integer DEFAULT 0 NOT NULL,
@@ -392,7 +392,7 @@ CREATE TABLE "upload_rate_limit" (
 	"window_size_minutes" integer DEFAULT 60 NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "usage_topups" (
+CREATE TABLE IF NOT EXISTS "usage_topups" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"type" text NOT NULL,
@@ -401,7 +401,7 @@ CREATE TABLE "usage_topups" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "users" (
+CREATE TABLE IF NOT EXISTS "users" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"supabase_id" text,
 	"email" text NOT NULL,
@@ -440,7 +440,7 @@ CREATE TABLE "users" (
 	CONSTRAINT "users_email_unique" UNIQUE("email")
 );
 --> statement-breakpoint
-CREATE TABLE "video_assets" (
+CREATE TABLE IF NOT EXISTS "video_assets" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"platform" text DEFAULT 'instagram' NOT NULL,
@@ -461,7 +461,7 @@ CREATE TABLE "video_assets" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "video_monitors" (
+CREATE TABLE IF NOT EXISTS "video_monitors" (
 	"id" text PRIMARY KEY NOT NULL,
 	"user_id" uuid NOT NULL,
 	"video_id" text NOT NULL,
@@ -475,7 +475,7 @@ CREATE TABLE "video_monitors" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "voice_settings" (
+CREATE TABLE IF NOT EXISTS "voice_settings" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"is_active" boolean DEFAULT false NOT NULL,
@@ -488,7 +488,7 @@ CREATE TABLE "voice_settings" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "webhooks" (
+CREATE TABLE IF NOT EXISTS "webhooks" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"url" text NOT NULL,

@@ -1126,6 +1126,54 @@ export class MemStorage implements IStorage {
     this.threads.set(id, updated);
     return updated;
   }
+
+  // Analytics
+  async getAnalyticsSummary(userId: string, startDate: Date, integrationId?: string): Promise<any> {
+    return {
+      summary: { totalLeads: 0, conversions: 0, conversionRate: "0%", active: 0, ghosted: 0, notInterested: 0, leadsReplied: 0, bestReplyHour: null },
+      channelBreakdown: [], statusBreakdown: [], timeline: [], positiveSentimentRate: "0%"
+    };
+  }
+
+  async getAnalyticsFull(userId: string, days: number, integrationId?: string): Promise<any> {
+    return { metrics: { sent: 0, opened: 0, replied: 0, booked: 0, leadsFiltered: 0, conversionRate: 0, responseRate: 0, openRate: 0, closedRevenue: 0, pipelineValue: 0, averageResponseTime: "0" }, timeSeries: [], channelPerformance: [], recentEvents: [] };
+  }
+
+  // Notifications
+  async getNotifications(userId: string, opts?: any): Promise<Notification[]> {
+    return Array.from(this.notifications.values()).filter(n => n.userId === userId);
+  }
+  async getUnreadNotificationCount(userId: string): Promise<number> {
+    return Array.from(this.notifications.values()).filter(n => n.userId === userId && !n.isRead).length;
+  }
+  async createNotification(data: InsertNotification): Promise<Notification> {
+    const id = randomUUID();
+    const n = { ...data, id, isRead: false, createdAt: new Date() } as any;
+    this.notifications.set(id, n);
+    return n;
+  }
+  async markNotificationAsRead(id: string, userId?: string): Promise<Notification | undefined> {
+    const n = this.notifications.get(id);
+    if (!n) return undefined;
+    n.isRead = true;
+    return n;
+  }
+  async markNotificationRead(id: string, userId?: string): Promise<Notification | undefined> {
+    return this.markNotificationAsRead(id, userId);
+  }
+  async markAllNotificationsAsRead(userId: string): Promise<void> {
+    for (const n of this.notifications.values()) {
+      if (n.userId === userId) n.isRead = true;
+    }
+  }
+  async clearAllNotifications(userId: string): Promise<void> {
+    for (const [id, n] of this.notifications.entries()) {
+      if (n.userId === userId) this.notifications.delete(id);
+    }
+  }
+  async deleteNotification(id: string, userId: string): Promise<void> {
+    this.notifications.delete(id);
+  }
 }
 
 export const storage: IStorage = drizzleStorage;

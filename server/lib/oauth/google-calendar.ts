@@ -20,7 +20,9 @@ export class GoogleCalendarOAuth {
     };
 
     if (!this.config.clientId || !this.config.clientSecret) {
-      console.warn('⚠️  Google Calendar: OAuth credentials not configured. Users cannot connect calendars.');
+      if (process.env.DEBUG_OAUTH) {
+        console.warn('⚠️  Google Calendar: OAuth credentials not configured. Users cannot connect calendars.');
+      }
     }
 
     this.oauth2Client = new google.auth.OAuth2(

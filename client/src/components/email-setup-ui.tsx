@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { AlertCircle, CheckCircle, Unlink, Mail, ArrowRight } from 'lucide-react';
+import { AlertCircle, CheckCircle, Unlink, Mail, ArrowRight, Shield, Info } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Progress } from './ui/progress';
 import { EmailFilterIntelligence } from './email-filter-intelligence';
@@ -325,8 +325,8 @@ export function EmailSetupUI() {
                     ))}
                   </ul>
                   <Button 
-                    variant="link" 
-                    className="p-0 h-auto text-xs text-indigo-600 font-bold"
+                    variant="ghost" 
+                    className="p-0 h-auto text-xs text-indigo-600 font-bold hover:bg-transparent underline underline-offset-4"
                     onClick={() => window.open(appPasswordGuide.link, '_blank')}
                   >
                     Open Security Settings <ArrowRight className="w-3 h-3 ml-1" />
@@ -358,9 +358,9 @@ export function EmailSetupUI() {
               <div className="flex items-center justify-between pb-1">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Connection Settings</p>
                 <Button 
-                  variant="link" 
+                  variant="ghost" 
                   size="sm" 
-                  className="h-auto p-0 text-[10px] text-cyan-600"
+                  className="h-auto p-0 text-[10px] text-cyan-600 hover:bg-transparent underline underline-offset-4 font-bold"
                   onClick={() => setShowAdvanced(!showAdvanced)}
                 >
                   {showAdvanced ? 'Hide Advanced' : 'Show Advanced Settings'}

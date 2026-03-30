@@ -79,9 +79,9 @@ BEGIN
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
     
-    CREATE INDEX idx_ai_action_logs_user ON ai_action_logs(user_id, created_at DESC);
-    CREATE INDEX idx_ai_action_logs_lead ON ai_action_logs(lead_id);
-    CREATE INDEX idx_ai_action_logs_type ON ai_action_logs(action_type);
+    CREATE INDEX IF NOT EXISTS idx_ai_action_logs_user ON ai_action_logs(user_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_ai_action_logs_lead ON ai_action_logs(lead_id);
+    CREATE INDEX IF NOT EXISTS idx_ai_action_logs_type ON ai_action_logs(action_type);
   END IF;
 
   -- Calendar Bookings for tracking AI-scheduled meetings
@@ -108,8 +108,8 @@ BEGIN
       updated_at TIMESTAMPTZ DEFAULT NOW()
     );
     
-    CREATE INDEX idx_calendar_bookings_user ON calendar_bookings(user_id, start_time);
-    CREATE INDEX idx_calendar_bookings_lead ON calendar_bookings(lead_id);
-    CREATE INDEX idx_calendar_bookings_status ON calendar_bookings(status);
+    CREATE INDEX IF NOT EXISTS idx_calendar_bookings_user ON calendar_bookings(user_id, start_time);
+    CREATE INDEX IF NOT EXISTS idx_calendar_bookings_lead ON calendar_bookings(lead_id);
+    CREATE INDEX IF NOT EXISTS idx_calendar_bookings_status ON calendar_bookings(status);
   END IF;
 END $$;

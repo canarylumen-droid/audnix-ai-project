@@ -100,6 +100,8 @@ interface UserProfile {
   role?: 'admin' | 'member';
   plan?: string;
   trialExpiresAt?: string;
+  calendlyAccessToken?: string;
+  calendarLink?: string;
   metadata?: {
     onboardingCompleted?: boolean;
     [key: string]: unknown;

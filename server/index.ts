@@ -511,56 +511,86 @@ async function runMigrations() {
     const PORT = parseInt(process.env.PORT || "5000", 10);
     server.listen(PORT, "0.0.0.0", () => {
       log(`🚀 Server running at http://0.0.0.0:${PORT}`);
-    });
-  }
-  if (process.env.DATABASE_URL) {
-    await runMigrations();
-
-    if (!process.env.VERCEL) {
-      // Worker error wrapper for graceful degradation
-      const startWorker = (name: string, startFn: () => void) => {
-        try {
-          startFn();
-          console.log(`✅ ${name} worker started`);
-        } catch (error) {
-          console.error(`❌ ${name} worker failed to start:`, error);
-        }
-      };
-
-      // START WORKERS: Follow-up and Outreach engines
-      startWorker("Follow-up", () => followUpWorker.start());
-      startWorker("Outreach", () => outreachEngine.start());
-
-      startWorker("Video comment", () => startVideoCommentMonitoring());
-      startWorker("Email sync", () => emailSyncWorker.start());
-      startWorker("Payment approval", () => paymentAutoApprovalWorker.start());
-      startWorker("Email warmup", () => emailWarmupWorker.start());
-      startWorker("Reputation", () => reputationWorker.start());
-      startWorker("Meeting Reminders", () => meetingReminderWorker.start());
-      // startWorker("Lead Expiry", () => leadExpiryWorker.start());
-
-      // Real-time IMAP IDLE Manager
-      const { imapIdleManager } = await import("./lib/email/imap-idle-manager.js");
-      startWorker("IMAP IDLE", () => imapIdleManager.start());
-      startWorker("Email sync queue", () => {
-        // Just need to ensure it's imported to register the worker
-        console.log("Registered email sync queue worker");
-      });
-
-      // Mailbox Health Monitoring & Lead Redistribution
-      startWorker("Mailbox Health", () => mailboxHealthService.start());
-      startWorker("Lead Redistribution", () => redistributionWorker.start());
-
-      // AI Provider Smoke Test
-      const { getAIStatus } = await import("./lib/ai/ai-service.js");
-      const aiStatus = getAIStatus();
-      console.log(`🤖 AI Engine initialized. Active Provider: ${aiStatus.activeProvider}`);
-      Object.entries(aiStatus.providers).forEach(([p, s]: [string, any]) => {
-          if (s.configured) {
-              console.log(`   - ${p}: ${s.available ? '✅ Online' : '⚠️ Offline/Cooldown'}`);
+      
+      // Post-startup initialization (Non-blocking)
+      (async () => {
+        if (process.env.DATABASE_URL) {
+          try {
+            log("📦 Initializing database & migrations...");
+            await runMigrations();
+            log("✅ Database ready");
+          } catch (e) {
+            log(`❌ Migration failed: ${e instanceof Error ? e.message : String(e)}`, "error");
           }
+
+          // Delay worker startup slightly to ensure web server is fully responsive
+          const WORKER_STARTUP_DELAY = 3000;
+          setTimeout(async () => {
+            log("⚙️ Starting background workers...");
+            
+            // Worker error wrapper for graceful degradation
+            const startWorker = (name: string, startFn: () => void) => {
+              try {
+                startFn();
+                console.log(`   - ${name} worker: ✅ Online`);
+              } catch (error) {
+                console.error(`   - ${name} worker: ❌ Failed:`, error);
+              }
+            };
+
+            // START WORKERS: Follow-up and Outreach engines
+            startWorker("Follow-up", () => followUpWorker.start());
+            startWorker("Outreach", () => outreachEngine.start());
+            startWorker("Video comment", () => startVideoCommentMonitoring());
+            startWorker("Email sync", () => emailSyncWorker.start());
+            startWorker("Payment approval", () => paymentAutoApprovalWorker.start());
+            startWorker("Email warmup", () => emailWarmupWorker.start());
+            startWorker("Reputation", () => reputationWorker.start());
+            startWorker("Meeting Reminders", () => meetingReminderWorker.start());
+
+            // Real-time IMAP IDLE Manager
+            try {
+              const { imapIdleManager } = await import("./lib/email/imap-idle-manager.js");
+              startWorker("IMAP IDLE", () => imapIdleManager.start());
+            } catch (e) {
+              log("⚠️ IMAP IDLE Manager could not be imported", "error");
+            }
+
+            // Mailbox Health Monitoring & Lead Redistribution
+            startWorker("Mailbox Health", () => mailboxHealthService.start());
+            startWorker("Lead Redistribution", () => redistributionWorker.start());
+
+            // AI Provider Smoke Test
+            try {
+              const { getAIStatus } = await import("./lib/ai/ai-service.js");
+              const aiStatus = getAIStatus();
+              console.log(`🤖 AI Engine initialized. Active Provider: ${aiStatus.activeProvider}`);
+            } catch (e) {
+              log("⚠️ AI Service could not be initialized", "error");
+            }
+          }, WORKER_STARTUP_DELAY);
+        }
+      })();
+    });
+
+    // Graceful Shutdown Handlers
+    const shutdown = async (signal: string) => {
+      log(`🛑 Received ${signal}. Shutting down gracefully...`);
+      // Add any specific cleanup logic here (e.g., closing DB pool, stopping workers)
+      server.close(() => {
+        log("👋 Server closed. Process exiting.");
+        process.exit(0);
       });
-    }
+      
+      // Force exit after 10s if graceful shutdown fails
+      setTimeout(() => {
+        log("⚠️ Forceful shutdown triggered");
+        process.exit(1);
+      }, 10000);
+    };
+
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
   }
 })();
 

@@ -715,7 +715,7 @@ export default function DashboardHome() {
 
             <ReputationCard 
               score={stats?.health?.score ?? 100}
-              status={stats?.health?.status ?? 'healthy'}
+              status={(stats?.health?.status === 'warning' ? 'fair' : (stats?.health?.status || 'healthy')) as any}
               bounces={stats?.health?.bounces ?? { hard: 0, soft: 0, spam: 0, total: 0 }}
               isLoading={statsLoading}
             />
