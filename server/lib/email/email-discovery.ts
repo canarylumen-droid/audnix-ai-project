@@ -18,12 +18,12 @@ interface EmailSettings {
 
 const PROVIDER_MAP: Record<string, EmailSettings> = {
     'gmail.com': {
-        smtp: { host: 'smtp.gmail.com', port: 587 },
+        smtp: { host: 'smtp.gmail.com', port: 465 },
         imap: { host: 'imap.gmail.com', port: 993 },
         provider: 'gmail'
     },
     'googlemail.com': {
-        smtp: { host: 'smtp.gmail.com', port: 587 },
+        smtp: { host: 'smtp.gmail.com', port: 465 },
         imap: { host: 'imap.gmail.com', port: 993 },
         provider: 'gmail'
     },

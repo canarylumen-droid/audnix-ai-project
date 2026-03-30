@@ -500,43 +500,127 @@ CREATE TABLE IF NOT EXISTS "webhooks" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "ai_action_logs" ADD CONSTRAINT "ai_action_logs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "ai_action_logs" ADD CONSTRAINT "ai_action_logs_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "api_keys" ADD CONSTRAINT "api_keys_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "audit_trail" ADD CONSTRAINT "audit_trail_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "audit_trail" ADD CONSTRAINT "audit_trail_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "automation_rules" ADD CONSTRAINT "automation_rules_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "automations" ADD CONSTRAINT "automations_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "bounce_tracker" ADD CONSTRAINT "bounce_tracker_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "bounce_tracker" ADD CONSTRAINT "bounce_tracker_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "brand_embeddings" ADD CONSTRAINT "brand_embeddings_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "calendar_bookings" ADD CONSTRAINT "calendar_bookings_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "calendar_bookings" ADD CONSTRAINT "calendar_bookings_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "calendar_events" ADD CONSTRAINT "calendar_events_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "calendar_events" ADD CONSTRAINT "calendar_events_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "calendar_settings" ADD CONSTRAINT "calendar_settings_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "content_library" ADD CONSTRAINT "content_library_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "conversation_events" ADD CONSTRAINT "conversation_events_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "conversation_events" ADD CONSTRAINT "conversation_events_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "deals" ADD CONSTRAINT "deals_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "deals" ADD CONSTRAINT "deals_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "email_warmup_schedules" ADD CONSTRAINT "email_warmup_schedules_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "follow_up_queue" ADD CONSTRAINT "follow_up_queue_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "follow_up_queue" ADD CONSTRAINT "follow_up_queue_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "insights" ADD CONSTRAINT "insights_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "integrations" ADD CONSTRAINT "integrations_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "leads" ADD CONSTRAINT "leads_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "messages" ADD CONSTRAINT "messages_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "messages" ADD CONSTRAINT "messages_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "notifications" ADD CONSTRAINT "notifications_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "oauth_accounts" ADD CONSTRAINT "oauth_accounts_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "onboarding_profiles" ADD CONSTRAINT "onboarding_profiles_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "pdf_analytics" ADD CONSTRAINT "pdf_analytics_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "prospects" ADD CONSTRAINT "prospects_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "team_members" ADD CONSTRAINT "team_members_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "upload_rate_limit" ADD CONSTRAINT "upload_rate_limit_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "usage_topups" ADD CONSTRAINT "usage_topups_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "video_assets" ADD CONSTRAINT "video_assets_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "video_monitors" ADD CONSTRAINT "video_monitors_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "voice_settings" ADD CONSTRAINT "voice_settings_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "webhooks" ADD CONSTRAINT "webhooks_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ai_action_logs_user_id_users_id_fk') THEN 
+        ALTER TABLE "ai_action_logs" ADD CONSTRAINT "ai_action_logs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ai_action_logs_lead_id_leads_id_fk') THEN 
+        ALTER TABLE "ai_action_logs" ADD CONSTRAINT "ai_action_logs_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE set null ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'api_keys_user_id_users_id_fk') THEN 
+        ALTER TABLE "api_keys" ADD CONSTRAINT "api_keys_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'audit_trail_user_id_users_id_fk') THEN 
+        ALTER TABLE "audit_trail" ADD CONSTRAINT "audit_trail_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'audit_trail_lead_id_leads_id_fk') THEN 
+        ALTER TABLE "audit_trail" ADD CONSTRAINT "audit_trail_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'automation_rules_user_id_users_id_fk') THEN 
+        ALTER TABLE "automation_rules" ADD CONSTRAINT "automation_rules_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'automations_user_id_users_id_fk') THEN 
+        ALTER TABLE "automations" ADD CONSTRAINT "automations_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'bounce_tracker_user_id_users_id_fk') THEN 
+        ALTER TABLE "bounce_tracker" ADD CONSTRAINT "bounce_tracker_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'bounce_tracker_lead_id_leads_id_fk') THEN 
+        ALTER TABLE "bounce_tracker" ADD CONSTRAINT "bounce_tracker_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'brand_embeddings_user_id_users_id_fk') THEN 
+        ALTER TABLE "brand_embeddings" ADD CONSTRAINT "brand_embeddings_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'calendar_bookings_user_id_users_id_fk') THEN 
+        ALTER TABLE "calendar_bookings" ADD CONSTRAINT "calendar_bookings_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'calendar_bookings_lead_id_leads_id_fk') THEN 
+        ALTER TABLE "calendar_bookings" ADD CONSTRAINT "calendar_bookings_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE set null ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'calendar_events_user_id_users_id_fk') THEN 
+        ALTER TABLE "calendar_events" ADD CONSTRAINT "calendar_events_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'calendar_events_lead_id_leads_id_fk') THEN 
+        ALTER TABLE "calendar_events" ADD CONSTRAINT "calendar_events_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE set null ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'calendar_settings_user_id_users_id_fk') THEN 
+        ALTER TABLE "calendar_settings" ADD CONSTRAINT "calendar_settings_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'content_library_user_id_users_id_fk') THEN 
+        ALTER TABLE "content_library" ADD CONSTRAINT "content_library_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'conversation_events_user_id_users_id_fk') THEN 
+        ALTER TABLE "conversation_events" ADD CONSTRAINT "conversation_events_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'conversation_events_lead_id_leads_id_fk') THEN 
+        ALTER TABLE "conversation_events" ADD CONSTRAINT "conversation_events_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE set null ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'deals_lead_id_leads_id_fk') THEN 
+        ALTER TABLE "deals" ADD CONSTRAINT "deals_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'deals_user_id_users_id_fk') THEN 
+        ALTER TABLE "deals" ADD CONSTRAINT "deals_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'email_warmup_schedules_user_id_users_id_fk') THEN 
+        ALTER TABLE "email_warmup_schedules" ADD CONSTRAINT "email_warmup_schedules_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'follow_up_queue_user_id_users_id_fk') THEN 
+        ALTER TABLE "follow_up_queue" ADD CONSTRAINT "follow_up_queue_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'follow_up_queue_lead_id_leads_id_fk') THEN 
+        ALTER TABLE "follow_up_queue" ADD CONSTRAINT "follow_up_queue_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'insights_user_id_users_id_fk') THEN 
+        ALTER TABLE "insights" ADD CONSTRAINT "insights_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'integrations_user_id_users_id_fk') THEN 
+        ALTER TABLE "integrations" ADD CONSTRAINT "integrations_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'leads_user_id_users_id_fk') THEN 
+        ALTER TABLE "leads" ADD CONSTRAINT "leads_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'messages_lead_id_leads_id_fk') THEN 
+        ALTER TABLE "messages" ADD CONSTRAINT "messages_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'messages_user_id_users_id_fk') THEN 
+        ALTER TABLE "messages" ADD CONSTRAINT "messages_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'notifications_user_id_users_id_fk') THEN 
+        ALTER TABLE "notifications" ADD CONSTRAINT "notifications_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'oauth_accounts_user_id_users_id_fk') THEN 
+        ALTER TABLE "oauth_accounts" ADD CONSTRAINT "oauth_accounts_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'onboarding_profiles_user_id_users_id_fk') THEN 
+        ALTER TABLE "onboarding_profiles" ADD CONSTRAINT "onboarding_profiles_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pdf_analytics_user_id_users_id_fk') THEN 
+        ALTER TABLE "pdf_analytics" ADD CONSTRAINT "pdf_analytics_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'prospects_user_id_users_id_fk') THEN 
+        ALTER TABLE "prospects" ADD CONSTRAINT "prospects_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'team_members_user_id_users_id_fk') THEN 
+        ALTER TABLE "team_members" ADD CONSTRAINT "team_members_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'upload_rate_limit_user_id_users_id_fk') THEN 
+        ALTER TABLE "upload_rate_limit" ADD CONSTRAINT "upload_rate_limit_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'usage_topups_user_id_users_id_fk') THEN 
+        ALTER TABLE "usage_topups" ADD CONSTRAINT "usage_topups_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'video_assets_user_id_users_id_fk') THEN 
+        ALTER TABLE "video_assets" ADD CONSTRAINT "video_assets_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'video_monitors_user_id_users_id_fk') THEN 
+        ALTER TABLE "video_monitors" ADD CONSTRAINT "video_monitors_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'voice_settings_user_id_users_id_fk') THEN 
+        ALTER TABLE "voice_settings" ADD CONSTRAINT "voice_settings_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'webhooks_user_id_users_id_fk') THEN 
+        ALTER TABLE "webhooks" ADD CONSTRAINT "webhooks_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+END $$;
+

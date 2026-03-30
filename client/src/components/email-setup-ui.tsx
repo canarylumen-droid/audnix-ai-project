@@ -96,10 +96,16 @@ export function EmailSetupUI() {
           fromName: prev.fromName || data.suggestedName || ''
         }));
         
-        if (data.appPasswordGuide) {
-          setAppPasswordGuide(data.appPasswordGuide);
+        if (data.provider === 'gmail') {
+          setAppPasswordGuide({
+            ...data.appPasswordGuide,
+            steps: [
+              ...data.appPasswordGuide.steps,
+              'IMPORTANT: Enable IMAP in Gmail Settings > Forwarding and POP/IMAP > Enable IMAP.'
+            ]
+          });
         } else {
-          setAppPasswordGuide(null);
+          setAppPasswordGuide(data.appPasswordGuide);
         }
 
         if (data.smtp?.host && !isInitial) {
@@ -127,11 +133,17 @@ export function EmailSetupUI() {
     setImportProgress(0);
 
     try {
-      setConnectionStep('Initializing connection...');
+      setConnectionStep('Initializing secure connection...');
+      
+      // Use an AbortController for a 45s fail-safe timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 45000);
+
       const res = await fetch('/api/custom-email/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
+        signal: controller.signal,
         body: JSON.stringify({
           smtpHost: config.smtpHost,
           smtpPort: config.smtpPort,
@@ -143,7 +155,8 @@ export function EmailSetupUI() {
         })
       });
 
-      setConnectionStep('Verifying SMTP & scanning ports...');
+      clearTimeout(timeoutId);
+      setConnectionStep('Checking SMTP & scanning ports...');
 
       if (res.ok) {
         const data = await res.json();
@@ -179,8 +192,16 @@ export function EmailSetupUI() {
         const description = error.tip ? `${error.error}\n\n💡 ${error.tip}` : error.error;
         toast({ title: 'Connection Failed', description, variant: 'destructive' });
       }
-    } catch (error) {
-      toast({ title: 'Error', description: 'Failed to connect email', variant: 'destructive' });
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        toast({ 
+            title: 'Request Timed Out', 
+            description: 'The connection scan took too long. Check your server status or try again.', 
+            variant: 'destructive' 
+        });
+      } else {
+        toast({ title: 'Error', description: 'Failed to connect email. Check your password or IMAP settings.', variant: 'destructive' });
+      }
     } finally {
       setConnecting(false);
       setImporting(false);

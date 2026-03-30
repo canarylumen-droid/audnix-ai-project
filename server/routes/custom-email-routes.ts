@@ -6,6 +6,7 @@ import { pagedEmailImport } from '../lib/imports/paged-email-importer.js';
 import { smtpAbuseProtection } from '../lib/email/smtp-abuse-protection.js';
 import { bounceHandler } from '../lib/email/bounce-handler.js';
 import { EmailDiscoveryService } from '../lib/email/email-discovery.js';
+import Imap from 'imap';
 
 const router = Router();
 
@@ -217,14 +218,11 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
       provider: 'custom'
     };
 
-    // --- SMART MULTI-PORT SMTP VERIFICATION ---
-    // Try the user's port first, then auto-fallback to the alternate port.
-    // This fixes the #1 connection issue: users pick 587 but their provider needs 465 (or vice versa).
-    console.log(`[Email Connect] Verifying credentials for ${email}...`);
+    // --- PARALLEL SMTP & IMAP VERIFICATION ---
+    console.log(`[Email Connect] Verifying both SMTP and IMAP for ${email}...`);
 
     const trySmtpVerify = async (host: string, port: number): Promise<boolean> => {
       const nodemailer = await import('nodemailer');
-      // Port 465 is usually legacy SSL/TLS. 587 is STARTTLS.
       const isSecure = port === 465;
       
       const transporter = nodemailer.createTransport({
@@ -235,58 +233,92 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
           user: credentials.smtp_user,
           pass: credentials.smtp_pass,
         },
-        tls: {
-          // Many business servers use self-signed certs or have hostname mismatches
-          rejectUnauthorized: false
-        },
-        // For port 587, we often need to explicitly require TLS
+        tls: { rejectUnauthorized: false },
         requireTLS: port === 587 || port === 2525,
-        connectionTimeout: 10000, // Faster timeout for scanning
-        greetingTimeout: 10000,
-        socketTimeout: 15000
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+        socketTimeout: 20000
       });
       await transporter.verify();
       return true;
     };
 
-    // Build the "Smart Scan" list: user's choice first, then industry standards
-    const userPort = credentials.smtp_port || 587;
-    const scanPorts = [587, 465, 2525, 25];
-    // Create unique list starting with userPort
-    const portsToTry = Array.from(new Set([userPort, ...scanPorts]));
+    const tryImapVerify = async (host: string, port: number): Promise<boolean> => {
+      return new Promise((resolve, reject) => {
+        const imap = new Imap({
+          user: credentials.smtp_user!,
+          password: credentials.smtp_pass!,
+          host: host,
+          port: port,
+          tls: true,
+          tlsOptions: { rejectUnauthorized: false },
+          connTimeout: 15000,
+          authTimeout: 15000
+        });
 
-    let verifiedPort: number | null = null;
-    let lastVerifyError: any = null;
+        imap.once('ready', () => {
+          imap.end();
+          resolve(true);
+        });
 
-    for (const port of portsToTry) {
+        imap.once('error', (err: any) => {
+          imap.end();
+          reject(err);
+        });
+
+        imap.connect();
+      });
+    };
+
+    // Build the prioritized scan list
+    // If it's Gmail, try 465/587 first as they're standard
+    const isGmail = email.toLowerCase().endsWith('@gmail.com') || email.toLowerCase().endsWith('@googlemail.com');
+    const userSmtpPort = credentials.smtp_port || (isGmail ? 465 : 587);
+    const smtpPorts = Array.from(new Set([userSmtpPort, 465, 587, 2525]));
+    
+    let verifiedSmtpPort: number | null = null;
+    let verifiedImapPort: number | null = null;
+    let lastError: any = null;
+
+    // STEP A: Verify SMTP with auto-fallback
+    // We do this first because many systems block 25/587 but not 465
+    for (const port of smtpPorts) {
       try {
-        console.log(`[Email Connect] Trying ${credentials.smtp_host}:${port} (secure=${port === 465})...`);
+        console.log(`[Email Connect] Trying SMTP ${credentials.smtp_host}:${port}...`);
         await trySmtpVerify(credentials.smtp_host!, port);
-        verifiedPort = port;
-        console.log(`[Email Connect] ✅ SMTP Verification Successful on port ${port}`);
+        verifiedSmtpPort = port;
         break;
       } catch (err: any) {
-        console.warn(`[Email Connect] ❌ Port ${port} failed: ${err.code || err.message}`);
-        lastVerifyError = err;
-        // If auth failed (wrong password), don't bother trying another port
-        if (err.code === 'EAUTH' || err.responseCode === 535) {
-          break;
-        }
+        console.warn(`[Email Connect] SMTP Port ${port} failed: ${err.code || err.message}`);
+        lastError = err;
+        if (err.code === 'EAUTH' || err.responseCode === 535) break; 
       }
     }
 
-    if (verifiedPort === null) {
-      console.error(`[Email Connect] All ports failed for ${email}`);
-      const errorInfo = getSmtpErrorDetails(lastVerifyError, credentials.smtp_host!);
-      res.status(400).json(errorInfo);
-      return;
+    if (!verifiedSmtpPort) {
+        const errInfo = getSmtpErrorDetails(lastError, credentials.smtp_host!);
+        res.status(400).json(errInfo);
+        return;
     }
 
-    // Update credentials with the port that actually worked
-    if (verifiedPort !== userPort) {
-      console.log(`[Email Connect] Auto-corrected port from ${userPort} → ${verifiedPort}`);
-      credentials.smtp_port = verifiedPort;
+    // STEP B: Verify IMAP
+    try {
+        console.log(`[Email Connect] Verifying IMAP ${credentials.imap_host}:${credentials.imap_port}...`);
+        await tryImapVerify(credentials.imap_host!, credentials.imap_port!);
+        verifiedImapPort = credentials.imap_port ?? null;
+    } catch (imapErr: any) {
+        console.warn(`[Email Connect] IMAP Verification failed: ${imapErr.message}`);
+        res.status(400).json({
+            error: "IMAP Connection Failed",
+            details: imapErr.message,
+            tip: isGmail 
+                ? "Gmail requires IMAP to be manually enabled in your settings. Go to Gmail > Settings > Forwarding and POP/IMAP and click 'Enable IMAP'."
+                : "Check your IMAP host and port. Ensure you are using 'App Passwords' if 2FA is enabled."
+        });
+        return;
     }
+
+    credentials.smtp_port = verifiedSmtpPort;
     // ----------------------------------------
 
     let encryptedMeta: string;
