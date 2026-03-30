@@ -541,7 +541,7 @@ export class MemStorage implements IStorage {
   async getTotalLeadsCount(): Promise<number> { return this.leads.size; }
   async createAuditLog(data: InsertAuditTrail): Promise<AuditTrail> {
     const id = randomUUID();
-    const log: AuditTrail = { ...data, id, createdAt: new Date(), integrationId: data.integrationId || null, messageId: data.messageId || null, details: data.details || {} };
+    const log: AuditTrail = { ...data, id, createdAt: new Date(), leadId: data.leadId ?? null, integrationId: data.integrationId || null, messageId: data.messageId || null, details: data.details || {} };
     this.auditLogs.set(id, log);
     return log;
   }
