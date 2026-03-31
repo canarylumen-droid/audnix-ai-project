@@ -1,6 +1,5 @@
 import { google } from 'googleapis';
 import crypto from 'crypto';
-// import { supabaseAdmin } from '../supabase-admin.js'; // Removed
 import { storage } from '../../storage.js';
 import { encrypt, decrypt } from '../crypto/encryption.js';
 import { getOAuthRedirectUrl } from '../config/oauth-redirects.js';
@@ -48,7 +47,6 @@ export class GmailOAuth {
    * Generate OAuth authorization URL
    */
   getAuthorizationUrl(state: string): string {
-
     const scopes = [
       'https://www.googleapis.com/auth/gmail.readonly',
       'https://www.googleapis.com/auth/gmail.send',
@@ -59,14 +57,12 @@ export class GmailOAuth {
       'https://www.googleapis.com/auth/userinfo.profile'
     ];
 
-    const url = this.oauth2Client.generateAuthUrl({
-      access_type: 'offline', // Required for refresh token
+    return this.oauth2Client.generateAuthUrl({
+      access_type: 'offline',
       scope: scopes,
       state: state,
-      prompt: 'consent' // Force consent to ensure refresh token
+      prompt: 'consent'
     });
-
-    return url;
   }
 
   /**
@@ -86,12 +82,10 @@ export class GmailOAuth {
    */
   async getGmailProfile(accessToken: string): Promise<GmailProfile> {
     this.oauth2Client.setCredentials({ access_token: accessToken });
-
     const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
 
     try {
       const response = await gmail.users.getProfile({ userId: 'me' });
-
       return {
         emailAddress: response.data.emailAddress || '',
         messagesTotal: response.data.messagesTotal || 0,
@@ -108,7 +102,6 @@ export class GmailOAuth {
    */
   async getUserProfile(accessToken: string): Promise<any> {
     this.oauth2Client.setCredentials({ access_token: accessToken });
-
     const oauth2 = google.oauth2({ version: 'v2', auth: this.oauth2Client });
 
     try {
@@ -140,81 +133,51 @@ export class GmailOAuth {
     const encryptedAccessToken = await encrypt(tokens.access_token);
     const encryptedRefreshToken = tokens.refresh_token ? await encrypt(tokens.refresh_token) : null;
 
-    const expiresAt = tokens.expiry_date ?
-      new Date(tokens.expiry_date) :
-      new Date(Date.now() + (60 * 60 * 1000)); // 1 hour default
+    const expiresAt = tokens.expiry_date
+      ? new Date(tokens.expiry_date)
+      : new Date(Date.now() + 60 * 60 * 1000); // 1 hour default
 
-    // Save to oauth_accounts table
     await storage.saveOAuthAccount({
-      userId: userId,
-      provider: 'google', // Fixed: 'gmail' is not in the allowed enum
-      providerAccountId: profile.emailAddress || profile.email, // Using email as ID for Gmail usually
+      userId,
+      provider: 'google',
+      providerAccountId: profile.emailAddress || profile.email,
       accessToken: encryptedAccessToken,
       refreshToken: encryptedRefreshToken,
-      expiresAt: expiresAt,
+      expiresAt,
       scope: tokens.scope,
       tokenType: tokens.token_type
     });
-
-    // Note: We no longer update a single 'gmail_connected' flag in user metadata 
-    // because we support multiple connected accounts. The source of truth 
-    // is the integrations and oauth_accounts tables.
-    /*
-    await storage.updateUser(userId, {
-      metadata: {
-        gmail_email: profile.emailAddress || profile.email,
-        gmail_connected: true
-      }
-    });
-    */
   }
 
   /**
-   * Get valid access token (refresh if needed)
+   * Get valid access token, refreshing if needed
    */
   async getValidToken(userId: string, emailAddress?: string): Promise<string | null> {
-    let tokenData;
-    if (emailAddress) {
-      tokenData = await storage.getOAuthAccountByAccountId(userId, 'google', emailAddress);
-    } else {
-      tokenData = await storage.getOAuthAccount(userId, 'google');
-    }
+    const tokenData = await storage.getOAuthAccount(userId, 'google', emailAddress);
 
-    if (!tokenData) {
-      return null;
-    }
+    if (!tokenData) return null;
 
-    // Check if token is expired
     const expiresAt = tokenData.expiresAt ? new Date(tokenData.expiresAt) : new Date(0);
     const now = new Date();
 
-    // Refresh if expired or about to expire (5 minutes buffer)
+    // Refresh if expired or expiring within 5 minutes
     if (expiresAt <= new Date(now.getTime() + 5 * 60 * 1000)) {
-      if (!tokenData.refreshToken) {
-        // No refresh token available, user needs to re-authenticate
-        return null;
-      }
+      if (!tokenData.refreshToken) return null;
 
       try {
-        // Refresh the token
         const decryptedRefreshToken = await decrypt(tokenData.refreshToken);
         const newTokens = await this.refreshAccessToken(decryptedRefreshToken);
-
-        // Update stored tokens
         const encryptedNewAccessToken = await encrypt(newTokens.access_token);
-        const newExpiresAt = newTokens.expiry_date ?
-          new Date(newTokens.expiry_date) :
-          new Date(Date.now() + (60 * 60 * 1000));
+        const newExpiresAt = newTokens.expiry_date
+          ? new Date(newTokens.expiry_date)
+          : new Date(Date.now() + 60 * 60 * 1000);
 
         await storage.saveOAuthAccount({
-          userId: userId,
+          userId,
           provider: 'google',
           providerAccountId: tokenData.providerAccountId,
           accessToken: encryptedNewAccessToken,
-          refreshToken: tokenData.refreshToken, // Keep existing encrypted refresh token unless new one provided?
-          // Google usually doesn't rotate refresh tokens on access token refresh, mostly.
-          // If newTokens has refresh_token use it, else keep old.
-          // Code below assumes keeping old if logic allows.
+          refreshToken: tokenData.refreshToken,
           expiresAt: newExpiresAt,
           scope: newTokens.scope,
           tokenType: newTokens.token_type
@@ -227,20 +190,16 @@ export class GmailOAuth {
       }
     }
 
-    // Token is still valid
     if (!tokenData.accessToken) return null;
-    const decryptedToken = await decrypt(tokenData.accessToken);
-    return decryptedToken;
+    return decrypt(tokenData.accessToken);
   }
 
   /**
-   * Refresh all expired tokens (run periodically)
+   * Refresh all soon-expiring tokens (called by background worker)
    */
   static async refreshExpiredTokens(): Promise<void> {
     try {
-      // Get tokens expiring in next 10 mins
       const expiredAccounts = await storage.getSoonExpiringOAuthAccounts('google', 10);
-
       if (!expiredAccounts || expiredAccounts.length === 0) return;
 
       for (const account of expiredAccounts) {
@@ -255,31 +214,26 @@ export class GmailOAuth {
   }
 
   /**
-   * Revoke OAuth tokens
+   * Revoke OAuth tokens and remove from database
    */
   async revokeToken(userId: string, emailAddress?: string): Promise<void> {
     const token = await this.getValidToken(userId, emailAddress);
 
     if (token) {
-      // Revoke token with Google
       try {
         await this.oauth2Client.revokeToken(token);
-      } catch (error) {
+      } catch {
         // Silently fail if token already revoked or invalid
       }
     }
 
-    // Remove from database
     await storage.deleteOAuthAccount(userId, 'google', emailAddress);
-
-    // Note: We no longer update the single-account 'gmail_connected' flags 
-    // because we support multiple accounts.
   }
 
   /**
    * Send email using Gmail API
    */
-  async sendEmail(userId: string, to: string, subject: string, body: string, isHtml: boolean = false, fromEmail?: string): Promise<void> {
+  async sendEmail(userId: string, to: string, subject: string, body: string, isHtml = false, fromEmail?: string): Promise<void> {
     const token = await this.getValidToken(userId, fromEmail);
     if (!token) {
       throw new Error(`Gmail not connected for ${fromEmail || 'user'} or token expired`);
@@ -288,11 +242,9 @@ export class GmailOAuth {
     this.oauth2Client.setCredentials({ access_token: token });
     const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
 
-    // Get sender email
     const profile = await this.getGmailProfile(token);
     const from = profile.emailAddress;
 
-    // Create email
     const utf8Subject = `=?utf-8?B?${Buffer.from(subject).toString('base64')}?=`;
     const messageParts = [
       `From: ${from}`,
@@ -304,8 +256,6 @@ export class GmailOAuth {
       body
     ];
     const message = messageParts.join('\r\n');
-
-    // Encode in base64
     const encodedMessage = Buffer.from(message)
       .toString('base64')
       .replace(/\+/g, '-')
@@ -315,9 +265,7 @@ export class GmailOAuth {
     try {
       await gmail.users.messages.send({
         userId: 'me',
-        requestBody: {
-          raw: encodedMessage
-        }
+        requestBody: { raw: encodedMessage }
       });
     } catch (error: any) {
       throw new Error(`Failed to send email: ${error.message}`);
@@ -327,21 +275,15 @@ export class GmailOAuth {
   /**
    * List recent messages from Gmail
    */
-  async listMessages(userId: string, limit: number = 20): Promise<any[]> {
+  async listMessages(userId: string, limit = 20): Promise<any[]> {
     const token = await this.getValidToken(userId);
-    if (!token) {
-      throw new Error('Gmail not connected or token expired');
-    }
+    if (!token) throw new Error('Gmail not connected or token expired');
 
     this.oauth2Client.setCredentials({ access_token: token });
     const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
 
     try {
-      const response = await gmail.users.messages.list({
-        userId: 'me',
-        maxResults: limit
-      });
-
+      const response = await gmail.users.messages.list({ userId: 'me', maxResults: limit });
       return response.data.messages || [];
     } catch (error: any) {
       throw new Error(`Failed to list messages: ${error.message}`);
@@ -353,22 +295,19 @@ export class GmailOAuth {
    */
   async getMessageDetails(userId: string, messageId: string): Promise<any> {
     const token = await this.getValidToken(userId);
-    if (!token) {
-      throw new Error('Gmail not connected or token expired');
-    }
+    if (!token) throw new Error('Gmail not connected or token expired');
 
     this.oauth2Client.setCredentials({ access_token: token });
     const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
 
     try {
-      const response = await gmail.users.messages.get({
-        userId: 'me',
-        id: messageId
-      });
-
+      const response = await gmail.users.messages.get({ userId: 'me', id: messageId });
       return response.data;
     } catch (error: any) {
       throw new Error(`Failed to get message details: ${error.message}`);
     }
   }
 }
+
+// Singleton instance — imported by google-redirect.ts and oauth.ts
+export const gmailOAuth = new GmailOAuth();

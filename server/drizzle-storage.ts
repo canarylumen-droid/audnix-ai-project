@@ -1421,27 +1421,21 @@ export class DrizzleStorage implements IStorage {
   }
 
   // ========== OAuth Accounts ==========
-  async getOAuthAccount(userId: string, provider: string): Promise<OAuthAccount | undefined> {
+  async getOAuthAccount(userId: string, provider: string, providerAccountId?: string): Promise<OAuthAccount | undefined> {
     checkDatabase();
+    const conditions = [
+      eq(oauthAccounts.userId, userId),
+      eq(oauthAccounts.provider, provider as any)
+    ];
+
+    if (providerAccountId) {
+      conditions.push(eq(oauthAccounts.providerAccountId, providerAccountId));
+    }
+
     const result = await db
       .select()
       .from(oauthAccounts)
-      .where(and(eq(oauthAccounts.userId, userId), eq(oauthAccounts.provider, provider as any)))
-      .limit(1);
-
-    return result[0];
-  }
-
-  async getOAuthAccountByAccountId(userId: string, provider: string, accountId: string): Promise<OAuthAccount | undefined> {
-    checkDatabase();
-    const result = await db
-      .select()
-      .from(oauthAccounts)
-      .where(and(
-        eq(oauthAccounts.userId, userId), 
-        eq(oauthAccounts.provider, provider as any),
-        eq(oauthAccounts.providerAccountId, accountId)
-      ))
+      .where(and(...conditions))
       .limit(1);
 
     return result[0];
@@ -1463,7 +1457,7 @@ export class DrizzleStorage implements IStorage {
 
   async saveOAuthAccount(data: InsertOAuthAccount): Promise<OAuthAccount> {
     checkDatabase();
-    const existing = await this.getOAuthAccountByAccountId(data.userId, data.provider, data.providerAccountId);
+    const existing = await this.getOAuthAccount(data.userId, data.provider, data.providerAccountId);
 
     if (existing) {
       const [updated] = await db

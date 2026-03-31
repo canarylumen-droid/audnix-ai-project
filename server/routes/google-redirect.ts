@@ -37,13 +37,16 @@ router.get('/gmail/callback', async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    // 2. Perform "Background Work" - Exchange code for tokens
+    // 2. Re-attach userId to session (critical: OAuth redirect creates a fresh browser session)
+    (req as any).session.userId = stateData.userId;
+
+    // 3. Perform "Background Work" - Exchange code for tokens
     console.log(`[Google Redirect] Exchanging code for tokens for user: ${stateData.userId}`);
     const tokens = await gmailOAuth.exchangeCodeForToken(code as string);
     const userProfile = await gmailOAuth.getUserProfile(tokens.access_token);
     const gmailProfile = await gmailOAuth.getGmailProfile(tokens.access_token);
 
-    // 3. Check subscription limits
+    // 4. Check subscription limits
     const limitCheck = await storage.checkMailboxLimit(stateData.userId);
     if (!limitCheck.allowed) {
       console.warn(`[Google Redirect] Limit reached: ${limitCheck.current}/${limitCheck.limit}`);
@@ -51,7 +54,7 @@ router.get('/gmail/callback', async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    // 4. Persist the connected account
+    // 5. Persist the connected account
     await gmailOAuth.saveToken(stateData.userId, tokens, {
       ...userProfile,
       ...gmailProfile
@@ -70,16 +73,14 @@ router.get('/gmail/callback', async (req: Request, res: Response): Promise<void>
       lastSync: new Date()
     });
 
-    // 5. Notify the frontend to refresh state
+    // 6. Notify the frontend to refresh state
     wsSync.notifySettingsUpdated(stateData.userId);
 
-    // 6. Intelligent Lead Distribution (Async background task)
+    // 7. Intelligent Lead Distribution (Async background task)
     const { distributeLeadsFromPool } = await import('../lib/sales-engine/outreach-engine.js');
-    
-    // Find the integration ID we just created to assign leads
     const integrations = await storage.getIntegrations(stateData.userId);
     const gmailInt = integrations.find(i => i.provider === 'gmail' && i.accountType === gmailProfile.emailAddress);
-    
+
     if (gmailInt) {
       console.log(`[Google Redirect] Launching lead distribution for mailbox: ${gmailInt.id}`);
       distributeLeadsFromPool(stateData.userId, gmailInt.id).catch(err =>
@@ -87,10 +88,10 @@ router.get('/gmail/callback', async (req: Request, res: Response): Promise<void>
       );
     }
 
-    // 7. Final Redirect back to the app's dashboard
+    // 8. Final Redirect back to the app's dashboard
     console.log('[Google Redirect] Success. Redirecting back to dashboard.');
     res.redirect('/dashboard/integrations?success=gmail_connected');
-    
+
   } catch (error) {
     console.error('[Google Redirect] Fatal callback error:', error);
     res.redirect('/dashboard/integrations?error=gmail_oauth_failed');
@@ -125,6 +126,10 @@ router.get('/google-calendar/callback', async (req: Request, res: Response): Pro
     }
 
     const userId = stateData.userId;
+
+    // Re-attach userId to session (critical: OAuth redirect creates a fresh browser session)
+    (req as any).session.userId = userId;
+
     const tokenData = await googleCalendarOAuth.exchangeCodeForTokens(code as string);
 
     const encryptedTokens = encrypt(JSON.stringify({

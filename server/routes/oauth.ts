@@ -1,11 +1,12 @@
 import { Request, Response, Router } from 'express';
 import { InstagramOAuth } from '../lib/oauth/instagram.js';
-import { GmailOAuth } from '../lib/oauth/gmail.js';
+import { gmailOAuth } from '../lib/oauth/gmail.js';
 import { GoogleCalendarOAuth } from '../lib/oauth/google-calendar.js';
 import { CalendlyOAuth, registerCalendlyWebhook } from '../lib/oauth/calendly.js';
 import { storage } from '../storage.js';
+import { encrypt, encryptState, decryptState } from '../lib/crypto/encryption.js';
 import { wsSync } from '../lib/websocket-sync.js';
-import { encryptState, decryptState } from '../lib/crypto/encryption.js';
+import { distributeLeadsFromPool } from '../lib/sales-engine/outreach-engine.js';
 import googleRedirectRouter from './google-redirect.js';
 import calendlyRedirectRouter from './calendly-redirect.js';
 import instagramRedirectRouter from './instagram-redirect.js';
@@ -15,6 +16,7 @@ interface AuthenticatedRequest extends Request {
     userId?: string;
   };
 }
+
 
 interface CalendarEventBody {
   user_id?: string;
@@ -66,7 +68,6 @@ function getUserId(req: AuthenticatedRequest, fromBody = false): string | undefi
 
 const router = Router();
 const instagramOAuth = new InstagramOAuth();
-const gmailOAuth = new GmailOAuth();
 const googleCalendarOAuth = new GoogleCalendarOAuth();
 const calendlyOAuth = new CalendlyOAuth();
 

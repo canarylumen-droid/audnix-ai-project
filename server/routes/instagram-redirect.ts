@@ -51,6 +51,9 @@ router.get('/instagram/callback', async (req: Request, res: Response): Promise<v
       return;
     }
 
+    // Re-attach userId to session (critical: OAuth redirect creates a fresh browser session)
+    (req as any).session.userId = stateData.userId;
+
     // 2. "Background Work" - Exchange code for tokens
     console.log(`[Instagram Redirect] Exchanging code for tokens for user: ${stateData.userId}`);
     const tokenData = await instagramOAuth.exchangeCodeForToken(code as string);

@@ -143,10 +143,10 @@ export interface IStorage {
   recordLearningPattern(userId: string, key: string, success: boolean): Promise<void>;
 
   // OAuth Accounts
-  getOAuthAccount(userId: string, provider: string): Promise<OAuthAccount | undefined>;
+  getOAuthAccount(userId: string, provider: string, providerAccountId?: string): Promise<OAuthAccount | undefined>;
   getSoonExpiringOAuthAccounts(provider: string, thresholdMinutes: number): Promise<OAuthAccount[]>;
   saveOAuthAccount(data: InsertOAuthAccount): Promise<OAuthAccount>;
-  deleteOAuthAccount(userId: string, provider: string): Promise<void>;
+  deleteOAuthAccount(userId: string, provider: string, providerAccountId?: string): Promise<void>;
 
   // Reputation & Delivery
   getRecentBounces(userId: string, hours?: number): Promise<any[]>;
@@ -845,9 +845,11 @@ export class MemStorage implements IStorage {
 
   // ========== OAuth Accounts ==========
 
-  async getOAuthAccount(userId: string, provider: string): Promise<OAuthAccount | undefined> {
-    return Array.from(this.oauthAccounts.values()).find(
-      (account) => account.userId === userId && account.provider === provider
+  async getOAuthAccount(userId: string, provider: string, providerAccountId?: string): Promise<OAuthAccount | undefined> {
+    return Array.from(this.oauthAccounts.values()).find(a => 
+      a.userId === userId && 
+      a.provider === provider && 
+      (!providerAccountId || a.providerAccountId === providerAccountId)
     );
   }
 

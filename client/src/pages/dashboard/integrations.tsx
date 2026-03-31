@@ -56,9 +56,11 @@ import {
 import { getPlanCapabilities } from "@shared/plan-utils";
 
 interface Integration {
+  id?: string;
   provider: string;
   connected: boolean;
   lastSync?: string;
+  accountType?: string;
   accountInfo?: {
     email?: string;
     username?: string;
