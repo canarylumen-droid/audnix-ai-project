@@ -36,10 +36,16 @@ async function runMigration() {
     console.log('Connecting to database...');
     const dbUrl = new URL(DATABASE_URL);
     
-    // Neon-specific optimizations and SSL enforcement
     if (DATABASE_URL.includes('neon.tech')) {
-        dbUrl.searchParams.set('sslmode', 'require');
         dbUrl.searchParams.set('uselibpqcompat', 'true');
+        if (!dbUrl.searchParams.has('sslmode')) {
+            dbUrl.searchParams.set('sslmode', 'require');
+        }
+    } else if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
+        // Standard PostgreSQL: use explicit verify-full to silence pg v9 deprecation warning
+        if (!dbUrl.searchParams.has('sslmode')) {
+            dbUrl.searchParams.set('sslmode', 'verify-full');
+        }
     }
     
     const connectionString = dbUrl.toString();
