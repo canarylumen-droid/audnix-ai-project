@@ -231,29 +231,36 @@ const PgSession = connectPgSimple(session);
 let sessionStore: session.Store | undefined;
 
 if (process.env.DATABASE_URL) {
-  // Normalize connection string for SSL compatibility (Neon requirement)
+  // Normalize connection string for SSL compatibility
   let connectionString: string;
   try {
     const dbUrl = new URL(process.env.DATABASE_URL);
-    if (process.env.DATABASE_URL.includes('neon.tech')) {
-      dbUrl.searchParams.set("uselibpqcompat", "true");
-      if (!dbUrl.searchParams.has("sslmode")) {
-        dbUrl.searchParams.set("sslmode", "require");
+    const isNeon = process.env.DATABASE_URL.includes('neon.tech');
+
+    if (isNeon) {
+      // Neon requires uselibpqcompat + require for libpq-standard behavior
+      dbUrl.searchParams.set('uselibpqcompat', 'true');
+      if (!dbUrl.searchParams.has('sslmode')) {
+        dbUrl.searchParams.set('sslmode', 'require');
+      }
+    } else if (process.env.NODE_ENV === 'production') {
+      // Standard PostgreSQL: use explicit verify-full to silence pg v9 deprecation warning
+      if (!dbUrl.searchParams.has('sslmode')) {
+        dbUrl.searchParams.set('sslmode', 'verify-full');
       }
     }
+
     connectionString = dbUrl.toString();
   } catch (urlError) {
-    console.error("❌ Invalid DATABASE_URL format:", process.env.DATABASE_URL);
-    connectionString = process.env.DATABASE_URL; // Fallback to raw string if URL parsing fails
+    console.error('❌ Invalid DATABASE_URL format:', process.env.DATABASE_URL);
+    connectionString = process.env.DATABASE_URL;
   }
 
+  const isProduction = process.env.DATABASE_URL.includes('neon.tech') || process.env.NODE_ENV === 'production';
   const pool = new pg.Pool({
     connectionString,
-    ssl:
-      process.env.DATABASE_URL.includes('neon.tech') || process.env.NODE_ENV === "production"
-        ? { rejectUnauthorized: false }
-        : false,
-    max: 20, // Increased for performance
+    ssl: isProduction ? { rejectUnauthorized: false } : false,
+    max: 20,
     idleTimeoutMillis: 10000,
     connectionTimeoutMillis: 5000,
   });
