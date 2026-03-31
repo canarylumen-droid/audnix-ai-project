@@ -851,6 +851,12 @@ export class MemStorage implements IStorage {
     );
   }
 
+  async getOAuthAccountByAccountId(userId: string, provider: string, accountId: string): Promise<OAuthAccount | undefined> {
+    return Array.from(this.oauthAccounts.values()).find(
+      (account) => account.userId === userId && account.provider === provider && account.providerAccountId === accountId
+    );
+  }
+
   async getSoonExpiringOAuthAccounts(provider: string, thresholdMinutes: number): Promise<OAuthAccount[]> {
     const now = Date.now();
     const threshold = now + thresholdMinutes * 60 * 1000;
@@ -862,7 +868,7 @@ export class MemStorage implements IStorage {
   }
 
   async saveOAuthAccount(data: InsertOAuthAccount): Promise<OAuthAccount> {
-    const existing = await this.getOAuthAccount(data.userId, data.provider);
+    const existing = await this.getOAuthAccountByAccountId(data.userId, data.provider, data.providerAccountId);
     const id = existing ? existing.id : randomUUID();
     const now = new Date();
 
@@ -886,10 +892,12 @@ export class MemStorage implements IStorage {
     return account;
   }
 
-  async deleteOAuthAccount(userId: string, provider: string): Promise<void> {
-    const existing = await this.getOAuthAccount(userId, provider);
-    if (existing) {
-      this.oauthAccounts.delete(existing.id);
+  async deleteOAuthAccount(userId: string, provider: string, providerAccountId?: string): Promise<void> {
+    const accounts = Array.from(this.oauthAccounts.values()).filter(
+      (account) => account.userId === userId && account.provider === provider && (!providerAccountId || account.providerAccountId === providerAccountId)
+    );
+    for (const account of accounts) {
+      this.oauthAccounts.delete(account.id);
     }
   }
 

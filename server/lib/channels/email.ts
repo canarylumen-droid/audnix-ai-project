@@ -672,8 +672,8 @@ export async function sendEmail(
 
   if (integration.provider === 'gmail') {
     const gmailOAuth = new GmailOAuth();
-    accessToken = await gmailOAuth.getValidToken(userId);
     fromEmail = integration.accountType || undefined;
+    accessToken = await gmailOAuth.getValidToken(userId, fromEmail);
   } else if (integration.provider === 'outlook') {
     const outlookOAuth = new OutlookOAuth();
     accessToken = await outlookOAuth.getValidToken(userId);

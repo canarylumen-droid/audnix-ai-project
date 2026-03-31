@@ -42,8 +42,7 @@ export class InstagramOAuth {
   /**
    * Generate OAuth authorization URL (Facebook Graph Login for Instagram Professional)
    */
-  getAuthorizationUrl(userId: string): string {
-    const state = this.generateState(userId);
+  getAuthorizationUrl(state: string): string {
     const params = new URLSearchParams({
       client_id: this.config.clientId,
       redirect_uri: this.config.redirectUri,
@@ -266,35 +265,6 @@ export class InstagramOAuth {
         instagram_username: null
       }
     });
-  }
-
-  /**
-   * Generate secure state parameter
-   */
-  private generateState(userId: string): string {
-    const data = `${userId}:${Date.now()}`;
-    return encrypt(data);
-  }
-
-  /**
-   * Verify state parameter
-   */
-  verifyState(state: string): { userId: string; timestamp: number } | null {
-    try {
-      const decrypted = decrypt(state);
-      const [userId, timestamp] = decrypted.split(':');
-
-      // Check if state is less than 10 minutes old
-      const age = Date.now() - parseInt(timestamp);
-      if (age > 10 * 60 * 1000) {
-        return null;
-      }
-
-      return { userId, timestamp: parseInt(timestamp) };
-    } catch (error) {
-      console.error('Failed to verify state:', error);
-      return null;
-    }
   }
 
   /**

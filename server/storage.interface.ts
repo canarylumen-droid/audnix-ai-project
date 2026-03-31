@@ -143,9 +143,10 @@ export interface IStorage {
 
   // OAuth Accounts
   getOAuthAccount(userId: string, provider: string): Promise<OAuthAccount | undefined>;
+  getOAuthAccountByAccountId(userId: string, provider: string, accountId: string): Promise<OAuthAccount | undefined>;
   getSoonExpiringOAuthAccounts(provider: string, thresholdMinutes: number): Promise<OAuthAccount[]>;
   saveOAuthAccount(data: InsertOAuthAccount): Promise<OAuthAccount>;
-  deleteOAuthAccount(userId: string, provider: string): Promise<void>;
+  deleteOAuthAccount(userId: string, provider: string, providerAccountId?: string): Promise<void>;
 
   // Reputation & Delivery
   getRecentBounces(userId: string, hours?: number): Promise<any[]>;

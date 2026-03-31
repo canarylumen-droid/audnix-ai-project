@@ -1,5 +1,5 @@
 import { db } from '../../db.js';
-import { migrate } from 'drizzle-orm/neon-serverless/migrator';
+import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { sql } from 'drizzle-orm';
 import path from 'path';
 import { fileURLToPath } from 'url';

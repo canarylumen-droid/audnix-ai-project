@@ -1,11 +1,8 @@
-import { drizzle } from "drizzle-orm/neon-serverless";
-import { Pool, neonConfig } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/node-postgres";
+import pgPkg from "pg";
+const { Pool } = pgPkg;
 import * as schema from "../shared/schema.js";
-import ws from "ws";
 import { quotaService } from "./lib/monitoring/quota-service.js";
-
-// Configure neon to use ws for pooling in Node environments
-neonConfig.webSocketConstructor = ws;
 
 let _db: any = null;
 let _pool: any = null;

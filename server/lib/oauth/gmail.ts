@@ -47,8 +47,7 @@ export class GmailOAuth {
   /**
    * Generate OAuth authorization URL
    */
-  getAuthorizationUrl(userId: string): string {
-    const state = this.generateState(userId);
+  getAuthorizationUrl(state: string): string {
 
     const scopes = [
       'https://www.googleapis.com/auth/gmail.readonly',
@@ -157,20 +156,29 @@ export class GmailOAuth {
       tokenType: tokens.token_type
     });
 
-    // Update user record
+    // Note: We no longer update a single 'gmail_connected' flag in user metadata 
+    // because we support multiple connected accounts. The source of truth 
+    // is the integrations and oauth_accounts tables.
+    /*
     await storage.updateUser(userId, {
       metadata: {
         gmail_email: profile.emailAddress || profile.email,
         gmail_connected: true
       }
-    }); // Schema needs to support this metadata structure or columns
+    });
+    */
   }
 
   /**
    * Get valid access token (refresh if needed)
    */
-  async getValidToken(userId: string): Promise<string | null> {
-    const tokenData = await storage.getOAuthAccount(userId, 'google');
+  async getValidToken(userId: string, emailAddress?: string): Promise<string | null> {
+    let tokenData;
+    if (emailAddress) {
+      tokenData = await storage.getOAuthAccountByAccountId(userId, 'google', emailAddress);
+    } else {
+      tokenData = await storage.getOAuthAccount(userId, 'google');
+    }
 
     if (!tokenData) {
       return null;
@@ -249,37 +257,32 @@ export class GmailOAuth {
   /**
    * Revoke OAuth tokens
    */
-  async revokeToken(userId: string): Promise<void> {
-    const token = await this.getValidToken(userId);
+  async revokeToken(userId: string, emailAddress?: string): Promise<void> {
+    const token = await this.getValidToken(userId, emailAddress);
 
     if (token) {
       // Revoke token with Google
       try {
         await this.oauth2Client.revokeToken(token);
       } catch (error) {
-        console.error('Error revoking Gmail token:', error);
+        // Silently fail if token already revoked or invalid
       }
     }
 
     // Remove from database
-    await storage.deleteOAuthAccount(userId, 'google');
+    await storage.deleteOAuthAccount(userId, 'google', emailAddress);
 
-    // Update user record
-    await storage.updateUser(userId, {
-      metadata: {
-        gmail_email: null,
-        gmail_connected: false
-      }
-    });
+    // Note: We no longer update the single-account 'gmail_connected' flags 
+    // because we support multiple accounts.
   }
 
   /**
    * Send email using Gmail API
    */
-  async sendEmail(userId: string, to: string, subject: string, body: string, isHtml: boolean = false): Promise<void> {
-    const token = await this.getValidToken(userId);
+  async sendEmail(userId: string, to: string, subject: string, body: string, isHtml: boolean = false, fromEmail?: string): Promise<void> {
+    const token = await this.getValidToken(userId, fromEmail);
     if (!token) {
-      throw new Error('Gmail not connected or token expired');
+      throw new Error(`Gmail not connected for ${fromEmail || 'user'} or token expired`);
     }
 
     this.oauth2Client.setCredentials({ access_token: token });
@@ -318,59 +321,6 @@ export class GmailOAuth {
       });
     } catch (error: any) {
       throw new Error(`Failed to send email: ${error.message}`);
-    }
-  }
-
-  /**
-   * Generate secure state parameter
-   */
-  private generateState(userId: string): string {
-    const timestamp = Date.now();
-    const random = crypto.randomBytes(16).toString('hex');
-    const data = JSON.stringify({ userId, timestamp, random });
-
-    // Create signature
-    const signature = crypto
-      .createHmac('sha256', this.config.clientSecret)
-      .update(data)
-      .digest('hex');
-
-    // Encode state
-    const state = Buffer.from(JSON.stringify({ data, signature })).toString('base64url');
-    return state;
-  }
-
-  /**
-   * Verify state parameter
-   */
-  verifyState(state: string): { userId: string } | null {
-    try {
-      const decoded = JSON.parse(Buffer.from(state, 'base64url').toString());
-      const { data, signature } = decoded;
-
-      // Verify signature
-      const expectedSignature = crypto
-        .createHmac('sha256', this.config.clientSecret)
-        .update(data)
-        .digest('hex');
-
-      if (signature !== expectedSignature) {
-        return null;
-      }
-
-      const parsedData = JSON.parse(data);
-
-      // Check timestamp (valid for 10 minutes)
-      const timestamp = parsedData.timestamp;
-      const now = Date.now();
-      if (now - timestamp > 10 * 60 * 1000) {
-        return null;
-      }
-
-      return { userId: parsedData.userId };
-    } catch (error) {
-      console.error('Error verifying state:', error);
-      return null;
     }
   }
 

@@ -1423,11 +1423,28 @@ export class DrizzleStorage implements IStorage {
   // ========== OAuth Accounts ==========
   async getOAuthAccount(userId: string, provider: string): Promise<OAuthAccount | undefined> {
     checkDatabase();
-    const [account] = await db
+    const result = await db
       .select()
       .from(oauthAccounts)
-      .where(and(eq(oauthAccounts.userId, userId), eq(oauthAccounts.provider, provider as any)));
-    return account;
+      .where(and(eq(oauthAccounts.userId, userId), eq(oauthAccounts.provider, provider as any)))
+      .limit(1);
+
+    return result[0];
+  }
+
+  async getOAuthAccountByAccountId(userId: string, provider: string, accountId: string): Promise<OAuthAccount | undefined> {
+    checkDatabase();
+    const result = await db
+      .select()
+      .from(oauthAccounts)
+      .where(and(
+        eq(oauthAccounts.userId, userId), 
+        eq(oauthAccounts.provider, provider as any),
+        eq(oauthAccounts.providerAccountId, accountId)
+      ))
+      .limit(1);
+
+    return result[0];
   }
 
   async getSoonExpiringOAuthAccounts(provider: string, thresholdMinutes: number): Promise<OAuthAccount[]> {
@@ -1446,7 +1463,7 @@ export class DrizzleStorage implements IStorage {
 
   async saveOAuthAccount(data: InsertOAuthAccount): Promise<OAuthAccount> {
     checkDatabase();
-    const existing = await this.getOAuthAccount(data.userId, data.provider);
+    const existing = await this.getOAuthAccountByAccountId(data.userId, data.provider, data.providerAccountId);
 
     if (existing) {
       const [updated] = await db
@@ -1464,10 +1481,17 @@ export class DrizzleStorage implements IStorage {
     }
   }
 
-  async deleteOAuthAccount(userId: string, provider: string): Promise<void> {
+  async deleteOAuthAccount(userId: string, provider: string, providerAccountId?: string): Promise<void> {
     checkDatabase();
+    const conditions = [
+      eq(oauthAccounts.userId, userId),
+      eq(oauthAccounts.provider, provider as any)
+    ];
+    if (providerAccountId) {
+      conditions.push(eq(oauthAccounts.providerAccountId, providerAccountId));
+    }
     await db.delete(oauthAccounts)
-      .where(and(eq(oauthAccounts.userId, userId), eq(oauthAccounts.provider, provider as any)));
+      .where(and(...conditions));
   }
 
   async getAnalyticsSummary(userId: string, startDate: Date, integrationId?: string): Promise<{

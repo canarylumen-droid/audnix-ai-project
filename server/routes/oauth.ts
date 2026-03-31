@@ -4,9 +4,11 @@ import { GmailOAuth } from '../lib/oauth/gmail.js';
 import { GoogleCalendarOAuth } from '../lib/oauth/google-calendar.js';
 import { CalendlyOAuth, registerCalendlyWebhook } from '../lib/oauth/calendly.js';
 import { storage } from '../storage.js';
-import { encrypt } from '../lib/crypto/encryption.js';
 import { wsSync } from '../lib/websocket-sync.js';
-import { distributeLeadsFromPool } from '../lib/sales-engine/outreach-engine.js';
+import { encryptState, decryptState } from '../lib/crypto/encryption.js';
+import googleRedirectRouter from './google-redirect.js';
+import calendlyRedirectRouter from './calendly-redirect.js';
+import instagramRedirectRouter from './instagram-redirect.js';
 
 interface AuthenticatedRequest extends Request {
   session: Request['session'] & {
@@ -68,6 +70,11 @@ const gmailOAuth = new GmailOAuth();
 const googleCalendarOAuth = new GoogleCalendarOAuth();
 const calendlyOAuth = new CalendlyOAuth();
 
+// Mount dedicated redirect handlers
+router.use(googleRedirectRouter);
+router.use(calendlyRedirectRouter);
+router.use(instagramRedirectRouter);
+
 // ==================== INSTAGRAM OAUTH ====================
 
 
@@ -85,7 +92,8 @@ router.get('/connect/instagram', async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    const authUrl = instagramOAuth.getAuthorizationUrl(userId);
+    const state = encryptState(`${userId}:${Date.now()}`);
+    const authUrl = instagramOAuth.getAuthorizationUrl(state);
     console.log('[Instagram Connect] Generated JSON URL for user:', userId);
     res.json({ authUrl });
   } catch (error) {
@@ -111,7 +119,8 @@ router.get('/instagram', authLimiter, async (req: Request, res: Response): Promi
       return;
     }
 
-    const authUrl = instagramOAuth.getAuthorizationUrl(userId);
+    const state = encryptState(`${userId}:${Date.now()}`);
+    const authUrl = instagramOAuth.getAuthorizationUrl(state);
     console.log("[Instagram OAuth] Redirecting to:", authUrl);
     res.redirect(authUrl);
   } catch (error) {
@@ -120,142 +129,7 @@ router.get('/instagram', authLimiter, async (req: Request, res: Response): Promi
   }
 });
 
-// GET /api/oauth/instagram/callback - Handle Instagram OAuth callback (matches Meta's registered URL)
-router.get('/instagram/callback', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { code, state, error_reason, error, error_description } = req.query;
-
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('[Instagram OAuth Callback] Received:', {
-      hasCode: !!code,
-      hasState: !!state,
-      error_reason,
-      error,
-      error_description,
-      url: req.originalUrl
-    });
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-
-    if (error_reason === 'user_denied' || error === 'access_denied') {
-      res.redirect('/dashboard/integrations?error=denied');
-      return;
-    }
-
-    if (error) {
-      console.error('[Instagram OAuth] Error from Meta:', { error, error_description });
-      res.redirect(`/dashboard/integrations?error=${encodeURIComponent(String(error))}`);
-      return;
-    }
-
-    if (!code || !state) {
-      console.error('[Instagram OAuth] Missing code or state');
-      res.redirect('/dashboard/integrations?error=invalid_request');
-      return;
-    }
-
-    const stateData = instagramOAuth.verifyState(state as string);
-    if (!stateData || !stateData.userId) {
-      console.error('[Instagram OAuth] Invalid state:', { state, stateData });
-      res.redirect('/dashboard/integrations?error=invalid_state');
-      return;
-    }
-
-    console.log('[Instagram OAuth] Exchanging code for token...');
-    const tokenData = await instagramOAuth.exchangeCodeForToken(code as string);
-    if (!tokenData || !tokenData.access_token) {
-      console.error('[Instagram OAuth] Token exchange failed:', tokenData);
-      res.redirect('/dashboard/integrations?error=token_exchange_failed');
-      return;
-    }
-
-    // Check mailbox limit before proceeding
-    const limitCheck = await storage.checkMailboxLimit(stateData.userId);
-    if (!limitCheck.allowed) {
-      console.warn(`[Instagram OAuth] Limit reached for ${stateData.userId}: ${limitCheck.current}/${limitCheck.limit}`);
-      res.redirect(`/dashboard/integrations?error=limit_reached&limit=${limitCheck.limit}&plan=${encodeURIComponent(limitCheck.plan)}`);
-      return;
-    }
-
-    console.log('[Instagram OAuth] Getting long-lived token...');
-    const longLivedToken = await instagramOAuth.exchangeForLongLivedToken(tokenData.access_token);
-    if (!longLivedToken || !longLivedToken.access_token) {
-      console.error('[Instagram OAuth] Long-lived token failed');
-      res.redirect('/dashboard/integrations?error=token_exchange_failed');
-      return;
-    }
-
-    console.log('[Instagram OAuth] Fetching Instagram Business Account...');
-    const igAccount = await instagramOAuth.getInstagramBusinessAccount(longLivedToken.access_token);
-
-    if (!igAccount) {
-      console.error('[Instagram OAuth] No linked Instagram Business account found');
-      res.redirect('/dashboard/integrations?error=no_business_account');
-      return;
-    }
-
-    console.log('[Instagram OAuth] Saving token for user:', stateData.userId);
-
-
-
-    const encryptedMeta = encrypt(JSON.stringify({
-      accessToken: igAccount.pageToken, // Save Page Token for messaging
-      instagramBusinessAccountId: igAccount.instagramId,
-      username: igAccount.username,
-      fbUserToken: longLivedToken.access_token, // Keep User Token for other things
-      expiresAt: new Date(Date.now() + (longLivedToken.expires_in * 1000)).toISOString()
-    }));
-
-    await storage.createIntegration({
-      userId: stateData.userId,
-      provider: 'instagram',
-      connected: true,
-      encryptedMeta: encryptedMeta,
-      accountType: igAccount.username,
-      lastSync: new Date()
-    });
-
-    // Notify frontend to update UI immediately
-    wsSync.notifySettingsUpdated(stateData.userId);
-
-    // Distribute leads from the global Lead Inventory pool to this new mailbox
-    const { distributeLeadsFromPool } = await import('../lib/sales-engine/outreach-engine.js');
-    distributeLeadsFromPool(stateData.userId, igAccount.instagramId).catch(err =>
-      console.error('[Instagram OAuth] Lead distribution failed:', err)
-    );
-
-    console.log('[Instagram OAuth] Success! Redirecting...');
-    res.redirect('/dashboard/integrations?success=instagram_connected');
-  } catch (error: unknown) {
-    const err = error as Error & { code?: string; statusCode?: number };
-    console.error('[Instagram OAuth] Callback error:', {
-      message: err?.message,
-      stack: err?.stack,
-      code: err?.code
-    });
-    res.redirect('/dashboard/integrations?error=oauth_failed');
-  }
-});
-
-// POST /api/oauth/instagram/callback - Some clients POST to this endpoint
-router.post('/instagram/callback', async (req: Request, res: Response): Promise<void> => {
-  // Redirect POST requests to the GET handler by extracting params from body or query
-  const code = req.body?.code || req.query.code;
-  const state = req.body?.state || req.query.state;
-  const error = req.body?.error || req.query.error;
-
-  if (!code && !error) {
-    res.status(400).json({ error: 'Missing code or error parameter' });
-    return;
-  }
-
-  // Build query string and redirect internally to the GET handler logic
-  const qs = new URLSearchParams();
-  if (code) qs.set('code', String(code));
-  if (state) qs.set('state', String(state));
-  if (error) qs.set('error', String(error));
-
-  res.redirect(307, `/api/oauth/instagram/callback?${qs.toString()}`);
-});
+// Instagram callback logic moved to dedicated instagram-redirect.ts file
 
 router.post('/instagram/disconnect', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -317,7 +191,8 @@ router.get('/connect/gmail', async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    const authUrl = gmailOAuth.getAuthorizationUrl(userId);
+    const state = encryptState(`${userId}:${Date.now()}`);
+    const authUrl = gmailOAuth.getAuthorizationUrl(state); // Update getAuthorizationUrl to accept state directly
     res.json({ authUrl });
   } catch (error) {
     console.error('Error initiating Gmail OAuth:', error);
@@ -325,76 +200,7 @@ router.get('/connect/gmail', async (req: Request, res: Response): Promise<void> 
   }
 });
 
-router.get('/gmail/callback', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { code, state, error } = req.query;
-
-    if (error) {
-      res.redirect('/dashboard/integrations?error=gmail_denied');
-      return;
-    }
-
-    if (!code || !state) {
-      res.redirect('/dashboard/integrations?error=invalid_request');
-      return;
-    }
-
-    const stateData = gmailOAuth.verifyState(state as string);
-    if (!stateData) {
-      res.redirect('/dashboard/integrations?error=invalid_state');
-      return;
-    }
-
-    const tokens = await gmailOAuth.exchangeCodeForToken(code as string);
-    const userProfile = await gmailOAuth.getUserProfile(tokens.access_token);
-    const gmailProfile = await gmailOAuth.getGmailProfile(tokens.access_token);
-
-    // Check mailbox limit before saving
-    const limitCheck = await storage.checkMailboxLimit(stateData.userId);
-    if (!limitCheck.allowed) {
-      console.warn(`[Gmail OAuth] Limit reached for ${stateData.userId}: ${limitCheck.current}/${limitCheck.limit}`);
-      res.redirect(`/dashboard/integrations?error=limit_reached&limit=${limitCheck.limit}&plan=${encodeURIComponent(limitCheck.plan)}`);
-      return;
-    }
-
-    await gmailOAuth.saveToken(stateData.userId, tokens, {
-      ...userProfile,
-      ...gmailProfile
-    });
-
-    await storage.createIntegration({
-      userId: stateData.userId,
-      provider: 'gmail',
-      accountType: gmailProfile.emailAddress,
-      encryptedMeta: encrypt(JSON.stringify({
-        email: gmailProfile.emailAddress,
-        name: userProfile.name,
-        tokens
-      })),
-      connected: true,
-      lastSync: new Date()
-    });
-
-    // Notify frontend
-    wsSync.notifySettingsUpdated(stateData.userId);
-
-    // Distribute leads from the global Lead Inventory pool to this new mailbox
-    const { distributeLeadsFromPool } = await import('../lib/sales-engine/outreach-engine.js');
-    // We need to find the integration ID we just created
-    const integrations = await storage.getIntegrations(stateData.userId);
-    const gmailInt = integrations.find(i => i.provider === 'gmail' && i.accountType === gmailProfile.emailAddress);
-    if (gmailInt) {
-      distributeLeadsFromPool(stateData.userId, gmailInt.id).catch(err =>
-        console.error('[Gmail OAuth] Lead distribution failed:', err)
-      );
-    }
-
-    res.redirect('/dashboard/integrations?success=gmail_connected');
-  } catch (error) {
-    console.error('Gmail OAuth callback error:', error);
-    res.redirect('/dashboard/integrations?error=gmail_oauth_failed');
-  }
-});
+// Gmail callback logic moved to dedicated google-redirect.ts file
 
 router.post('/gmail/disconnect', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -456,7 +262,8 @@ router.get('/connect/google-calendar', async (req: Request, res: Response): Prom
       return;
     }
 
-    const authUrl = googleCalendarOAuth.getAuthUrl(userId);
+    const state = encryptState(`${userId}:${Date.now()}`);
+    const authUrl = googleCalendarOAuth.getAuthUrl(state);
     res.json({ authUrl });
   } catch (error) {
     console.error('Error initiating Google Calendar OAuth:', error);
@@ -464,53 +271,7 @@ router.get('/connect/google-calendar', async (req: Request, res: Response): Prom
   }
 });
 
-router.get('/google-calendar/callback', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { code, state, error } = req.query;
-
-    if (error === 'access_denied') {
-      res.redirect('/dashboard/integrations?error=denied');
-      return;
-    }
-
-    if (!code || !state) {
-      res.redirect('/dashboard/integrations?error=invalid_request');
-      return;
-    }
-
-    const userId = state as string;
-    const tokenData = await googleCalendarOAuth.exchangeCodeForTokens(code as string);
-
-    const encryptedTokens = encrypt(JSON.stringify({
-      accessToken: tokenData.accessToken,
-      refreshToken: tokenData.refreshToken,
-      expiresAt: tokenData.expiresAt.toISOString(),
-      email: tokenData.email,
-    }));
-
-    try {
-
-      await storage.createIntegration({
-        userId,
-        provider: 'google_calendar',
-        encryptedMeta: encryptedTokens,
-        connected: true,
-        lastSync: new Date(),
-      });
-
-      // Notify frontend
-      wsSync.notifySettingsUpdated(userId);
-
-      res.redirect('/dashboard/integrations?success=google_calendar_connected');
-    } catch (saveError) {
-      console.error('Failed to save Google Calendar integration:', saveError);
-      res.redirect('/dashboard/integrations?error=save_failed');
-    }
-  } catch (error) {
-    console.error('Google Calendar OAuth callback error:', error);
-    res.redirect('/dashboard/integrations?error=oauth_failed');
-  }
-});
+// Google Calendar callback logic moved to dedicated google-redirect.ts file
 
 router.post('/google-calendar/disconnect', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -662,7 +423,7 @@ router.get('/connect/calendly', async (req: Request, res: Response): Promise<voi
       return;
     }
 
-    const state = Buffer.from(JSON.stringify({ userId, type: 'calendly' })).toString('base64');
+    const state = encryptState(`${userId}:${Date.now()}`);
     const authUrl = calendlyOAuth.getAuthUrl(state);
     res.json({ authUrl });
   } catch (error) {
@@ -671,72 +432,6 @@ router.get('/connect/calendly', async (req: Request, res: Response): Promise<voi
   }
 });
 
-router.get('/calendly/callback', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { code, state, error } = req.query;
-
-    if (error) {
-      res.redirect('/dashboard/integrations?error=calendly_denied');
-      return;
-    }
-
-    if (!code || !state) {
-      res.redirect('/dashboard/integrations?error=invalid_request');
-      return;
-    }
-
-    let stateData: CalendlyStateData;
-    try {
-      stateData = JSON.parse(Buffer.from(state as string, 'base64').toString());
-    } catch {
-      res.redirect('/dashboard/integrations?error=invalid_state');
-      return;
-    }
-
-    const userId = stateData.userId;
-    if (!userId) {
-      res.redirect('/dashboard/integrations?error=invalid_state');
-      return;
-    }
-
-    const tokenData = await calendlyOAuth.exchangeCodeForToken(code as string);
-
-    const encryptedMeta = await encrypt(JSON.stringify({
-      access_token: tokenData.accessToken,
-      refresh_token: tokenData.refreshToken,
-      expiresAt: tokenData.expiresAt.toISOString()
-    }));
-
-    await storage.createIntegration({
-      userId: userId,
-      provider: 'calendly',
-      encryptedMeta: encryptedMeta,
-      connected: true,
-      lastSync: new Date()
-    });
-
-    // [NEW] Sync tokens to user profile for AI Booking Specialist access
-    await storage.updateUser(userId, {
-      calendlyAccessToken: tokenData.accessToken,
-      calendlyRefreshToken: tokenData.refreshToken,
-      calendlyExpiresAt: tokenData.expiresAt,
-      calendlyUserUri: tokenData.user?.email || 'authenticated' // Prefer Email for identification if URI is complex
-    });
-
-    // Notify frontend
-    wsSync.notifySettingsUpdated(userId);
-
-    try {
-      await registerCalendlyWebhook(userId, tokenData.accessToken);
-    } catch (err) {
-      console.warn('⚠️ Webhook registration failed but OAuth connection successful:', err);
-    }
-
-    res.redirect('/dashboard/integrations?success=calendly_connected');
-  } catch (error) {
-    console.error('Calendly OAuth callback error:', error);
-    res.redirect('/dashboard/integrations?error=oauth_failed');
-  }
-});
+// Calendly callback logic moved to dedicated calendly-redirect.ts file
 
 export default router;

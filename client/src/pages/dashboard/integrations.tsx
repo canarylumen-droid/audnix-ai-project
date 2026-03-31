@@ -213,6 +213,7 @@ export default function IntegrationsPage() {
   const [isEditingCustomEmail, setIsEditingCustomEmail] = useState(false);
   const [isDisconnectDialogOpen, setIsDisconnectDialogOpen] = useState(false);
   const [disconnectProvider, setDisconnectProvider] = useState<string | null>(null);
+  const [disconnectIntegrationId, setDisconnectIntegrationId] = useState<string | null>(null);
 
   const [isUploadingVoice, setIsUploadingVoice] = useState(false);
   const [appPasswordGuide, setAppPasswordGuide] = useState<any>(null);
@@ -285,8 +286,12 @@ export default function IntegrationsPage() {
   });
 
   const disconnectProviderMutation = useMutation({
-    mutationFn: async (provider: string) => {
-      const response = await apiRequest("POST", `/api/integrations/${provider}/disconnect`);
+    mutationFn: async ({ provider, integrationId }: { provider: string, integrationId?: string }) => {
+      let url = `/api/integrations/${provider}/disconnect`;
+      if (integrationId) {
+        url += `?integrationId=${integrationId}`;
+      }
+      const response = await apiRequest("POST", url);
       return response.json();
     },
     onSuccess: () => {
@@ -428,6 +433,7 @@ export default function IntegrationsPage() {
 
   const confirmDisconnect = (provider: string, integrationId?: string) => {
     setDisconnectProvider(provider === 'custom_email' ? (integrationId || 'custom_email') : provider);
+    setDisconnectIntegrationId(integrationId || null);
     setIsDisconnectDialogOpen(true);
   };
 
@@ -463,11 +469,11 @@ export default function IntegrationsPage() {
         onOpenChange={setIsDisconnectDialogOpen}
         onConfirm={() => {
           if (disconnectProvider === 'instagram') {
-            disconnectProviderMutation.mutate('instagram');
+            disconnectProviderMutation.mutate({ provider: 'instagram', integrationId: disconnectIntegrationId || undefined });
           } else if (disconnectProvider === 'gmail') {
-            disconnectProviderMutation.mutate('gmail');
+            disconnectProviderMutation.mutate({ provider: 'gmail', integrationId: disconnectIntegrationId || undefined });
           } else if (disconnectProvider === 'outlook') {
-            disconnectProviderMutation.mutate('outlook');
+            disconnectProviderMutation.mutate({ provider: 'outlook', integrationId: disconnectIntegrationId || undefined });
           } else if (disconnectProvider) {
             // It's a custom email integration ID
             disconnectCustomEmailMutation.mutate(disconnectProvider);
@@ -1057,12 +1063,12 @@ export default function IntegrationsPage() {
                 ))
               ) : (
                 integrationCards.map((card) => {
-                  const integration = Array.isArray(integrations) ? integrations.find(i => i.provider === card.id) : undefined;
-                  const isConnected = !!integration;
+                  const connectedIntegrations = Array.isArray(integrations) ? integrations.filter(i => i.provider === card.id) : [];
+                  const isConnected = connectedIntegrations.length > 0;
 
                   return (
-                    <Card key={card.id} className={`group transition-all rounded-2xl border bg-muted/10 hover:bg-muted/20 ${isConnected ? 'border-primary/40 bg-primary/5' : 'border-border/50'}`}>
-                      <CardHeader className="p-6">
+                    <Card key={card.id} className={`group transition-all rounded-2xl border bg-muted/10 hover:bg-muted/20 ${isConnected ? 'border-primary/40 bg-primary/5' : 'border-border/50'} flex flex-col`}>
+                      <CardHeader className="p-6 flex-grow">
                         <div className="flex justify-between items-start mb-6">
                           <div className={`p-4 rounded-xl bg-background border border-border/50 ${card.color}`}>
                             <card.icon className="h-6 w-6" />
@@ -1070,7 +1076,7 @@ export default function IntegrationsPage() {
                           {card.badge ? (
                             <Badge variant="secondary" className="bg-muted text-muted-foreground border-0 font-semibold text-[9px] uppercase tracking-wider py-1">{card.badge}</Badge>
                           ) : isConnected ? (
-                            <Badge className="bg-emerald-500/10 text-emerald-600 border-0 font-bold text-[9px] uppercase tracking-wider py-1">Active</Badge>
+                            <Badge className="bg-emerald-500/10 text-emerald-600 border-0 font-bold text-[9px] uppercase tracking-wider py-1">{connectedIntegrations.length} Active</Badge>
                           ) : (
                             <div className="h-2 w-2 rounded-full bg-muted-foreground/20" />
                           )}
@@ -1078,27 +1084,30 @@ export default function IntegrationsPage() {
                         <CardTitle className="text-lg font-semibold">{card.name}</CardTitle>
                         <CardDescription className="text-xs text-muted-foreground font-medium mt-1 leading-relaxed">{card.description}</CardDescription>
                       </CardHeader>
-                      <CardFooter className="p-6 pt-0">
-                        {isConnected ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full rounded-lg text-xs font-semibold text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => confirmDisconnect(card.id)}
-                          >
-                            Disconnect
-                          </Button>
-                        ) : (
-                          <Button
-                            variant={card.badge ? "secondary" : "default"}
-                            size="sm"
-                            className="w-full rounded-lg text-xs font-semibold"
-                            disabled={!!card.badge}
-                            onClick={() => handleConnect(card.id)}
-                          >
-                            {card.badge ? "Locked" : "Connect Account"}
-                          </Button>
-                        )}
+                      <CardFooter className="p-6 pt-0 flex flex-col gap-3">
+                        {isConnected && connectedIntegrations.map(integration => (
+                          <div key={integration.id || Math.random()} className="flex items-center justify-between w-full p-2 rounded bg-background/50 border border-border/30">
+                            <span className="text-[10px] font-medium truncate max-w-[120px]" title={integration.accountType?.toString() || ""}>{integration.accountType || "Connected"}</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2 text-[10px] text-destructive hover:bg-destructive/10"
+                              onClick={() => confirmDisconnect(card.id, (integration as any).id)} // Need to pass ID if it exists? The API revokes by provider, but custom_email takes ID. For others, backend might need updates to revoke by ID. For now just passing provider string.
+                            >
+                              Disconnect
+                            </Button>
+                          </div>
+                        ))}
+                        
+                        <Button
+                          variant={card.badge ? "secondary" : (isConnected ? "outline" : "default")}
+                          size="sm"
+                          className="w-full rounded-lg text-xs font-semibold"
+                          disabled={!!card.badge}
+                          onClick={() => handleConnect(card.id)}
+                        >
+                          {card.badge ? "Locked" : (isConnected ? "Connect Another" : "Connect Account")}
+                        </Button>
                       </CardFooter>
                     </Card>
                   );

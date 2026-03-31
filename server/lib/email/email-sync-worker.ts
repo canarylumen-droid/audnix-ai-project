@@ -163,12 +163,18 @@ class EmailSyncWorker {
   private async syncGmailMessages(userId: string, integration: Integration, limit: number): Promise<Partial<SyncResult>> {
     const res = { imported: 0, skipped: 0, errors: 0 };
     try {
-      const credentialsStr = await decrypt(integration.encryptedMeta);
-      const credentials = JSON.parse(credentialsStr);
+      const { GmailOAuth } = await import('../oauth/gmail.js');
+      const gmailOAuth = new GmailOAuth();
+      const emailAddress = integration.accountType || undefined;
+      const accessToken = await gmailOAuth.getValidToken(userId, emailAddress);
+
+      if (!accessToken) {
+        throw new Error("Failed to get valid access token for Gmail sync");
+      }
 
       const fetchMessages = async (q: string) => {
         const response = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50&q=${encodeURIComponent(q)}`, {
-          headers: { 'Authorization': `Bearer ${credentials.access_token}` }
+          headers: { 'Authorization': `Bearer ${accessToken}` }
         });
         if (!response.ok) {
           if (response.status === 401 || response.status === 403) {
@@ -181,19 +187,27 @@ class EmailSyncWorker {
       };
 
       const [inboxList, sentList] = await Promise.all([
-        fetchMessages('label:INBOX'),
+        fetchMessages('label:INBOX is:unread'),
         fetchMessages('label:SENT')
       ]);
 
       const processMsgList = async (list: any[], direction: 'inbound' | 'outbound') => {
         const fullMessages = await Promise.all(list.map(async (m: any) => {
           const detailRes = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${m.id}`, {
-            headers: { 'Authorization': `Bearer ${credentials.access_token}` }
+            headers: { 'Authorization': `Bearer ${accessToken}` }
           });
           if (!detailRes.ok) return null;
           const detail = await detailRes.json() as any;
 
           const getHeader = (name: string) => detail.payload.headers.find((h: any) => h.name.toLowerCase() === name.toLowerCase())?.value;
+
+          let htmlContent = '';
+          const htmlPart = detail.payload.parts?.find((p: any) => p.mimeType === 'text/html');
+          if (htmlPart && htmlPart.body && htmlPart.body.data) {
+            htmlContent = Buffer.from(htmlPart.body.data, 'base64url').toString('utf8');
+          } else if (detail.payload.body?.data) {
+            htmlContent = Buffer.from(detail.payload.body.data, 'base64url').toString('utf8');
+          }
 
           return {
             from: getHeader('from'),
@@ -201,9 +215,7 @@ class EmailSyncWorker {
             subject: getHeader('subject'),
             text: detail.snippet,
             date: new Date(parseInt(detail.internalDate)),
-            html: detail.payload.parts?.find((p: any) => p.mimeType === 'text/html')?.body?.data
-              ? Buffer.from(detail.payload.parts.find((p: any) => p.mimeType === 'text/html').body.data, 'base64').toString()
-              : ''
+            html: htmlContent
           };
         }));
 

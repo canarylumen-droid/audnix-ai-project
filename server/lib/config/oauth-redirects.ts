@@ -2,10 +2,8 @@ export function getOAuthRedirectUrl(provider: 'gmail' | 'google-calendar' | 'out
   const isProduction = process.env.NODE_ENV === 'production';
   const domain = process.env.DOMAIN || 'audnixai.com';
 
-  // Instagram uses /auth/instagram/callback to match Meta's settings
-  const basePath = provider === 'instagram'
-    ? `/api/instagram/callback`
-    : `/api/oauth/${provider}/callback`;
+  // All providers now use /api/oauth/${provider}/callback for consistency
+  const basePath = `/api/oauth/${provider}/callback`;
 
   if (isProduction && domain) {
     return `https://${domain}${basePath}`;
