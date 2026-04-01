@@ -552,23 +552,34 @@ router.post('/disconnect', requireAuth, async (req: Request, res: Response): Pro
 /**
  * Get custom email status
  */
+/**
+ * GET /api/custom-email/status
+ * Returns ALL connected email mailboxes: SMTP, Gmail, and Outlook.
+ * This is the single endpoint the frontend uses to build the unified mailbox list.
+ */
 router.get('/status', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    const integrations = await storage.getIntegrations(userId);
-    const customInts = integrations.filter(i => i.provider === 'custom_email');
+    const allIntegrations = await storage.getIntegrations(userId);
 
-    res.json({
-      success: true,
-      integrations: customInts.map(i => ({
+    // Include ALL email-capable providers in the unified mailbox view
+    const emailProviders = ['custom_email', 'gmail', 'outlook'];
+    const mailboxes = allIntegrations
+      .filter(i => emailProviders.includes(i.provider) && i.connected)
+      .map(i => ({
         id: i.id,
         email: i.accountType,
         connected: i.connected,
-        provider: 'custom_smtp'
-      })),
-      // Legacy support for single-mailbox UI if needed
-      connected: customInts.some(i => i.connected),
-      email: customInts[0]?.accountType || null
+        provider: i.provider, // 'custom_email' | 'gmail' | 'outlook'
+        lastSync: i.lastSync,
+      }));
+
+    res.json({
+      success: true,
+      integrations: mailboxes,
+      // Legacy single-mailbox fields for any existing UI that reads them
+      connected: mailboxes.length > 0,
+      email: mailboxes[0]?.email || null
     });
   } catch (error: unknown) {
     console.error('Error getting email status:', error);
@@ -576,23 +587,22 @@ router.get('/status', requireAuth, async (req: Request, res: Response): Promise<
   }
 });
 
+
 /**
  * Send a test email through connected SMTP
+ */
+/**
+ * POST /api/custom-email/send-test
+ * Send a test email through any connected mailbox.
+ * Accepts optional `integrationId` to test a specific mailbox.
  */
 router.post('/send-test', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    const { recipientEmail, subject, content } = req.body;
+    const { recipientEmail, subject, content, integrationId } = req.body;
 
     if (!recipientEmail) {
       res.status(400).json({ error: 'Recipient email is required' });
-      return;
-    }
-
-    const integration = await storage.getIntegration(userId, 'custom_email');
-
-    if (!integration?.connected) {
-      res.status(400).json({ error: 'Email not connected. Please connect your email first.' });
       return;
     }
 
@@ -603,7 +613,7 @@ router.post('/send-test', requireAuth, async (req: Request, res: Response): Prom
       recipientEmail,
       content || 'This is a test email from Audnix AI to verify your email connection.',
       subject || 'Audnix AI - Test Email',
-      { isHtml: false }
+      { isHtml: false, isRaw: true, integrationId: integrationId || undefined }
     );
 
     res.json({

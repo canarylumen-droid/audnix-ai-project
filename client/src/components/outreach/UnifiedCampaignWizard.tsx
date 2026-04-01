@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { CsvIcon, PdfIcon } from "@/components/ui/CustomIcons";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { motion, AnimatePresence } from "framer-motion";
+import { useUser } from "@/hooks/use-user";
 
 interface UnifiedCampaignWizardProps {
   isOpen: boolean;
@@ -42,6 +43,8 @@ const PERSONALIZATION_TAGS = [
 
 export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, initialLeads = [] }: UnifiedCampaignWizardProps) {
   const { toast } = useToast();
+  const { data: user } = useUser();
+  const userId = user?.id;
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
@@ -202,7 +205,6 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
         excludeWeekends,
         aiAutonomousMode,
         config: {
-          ...mailboxConfig,
           dailyLimit: totalDailyVolume,
           mailboxLimits,
           mailboxMaxMultipliers,

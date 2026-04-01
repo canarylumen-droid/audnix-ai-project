@@ -539,6 +539,7 @@ export async function sendEmail(
       .from(messages)
       .where(and(
         eq(messages.userId, userId),
+        eq(messages.integrationId, integration.id),
         eq(messages.direction, 'outbound'),
         sql`${messages.createdAt} >= ${today.toISOString()}`
       ));
@@ -712,7 +713,7 @@ export async function sendEmail(
         provider: 'gmail',
         sentAt: new Date(),
         targetUrl: firstUrl,
-        metadata: { trackingId: trackingId }
+        metadata: { trackingId, integrationId: integration.id }
       });
     }
     return result;
@@ -739,7 +740,7 @@ export async function sendEmail(
         provider: 'outlook',
         sentAt: new Date(),
         targetUrl: firstUrl,
-        metadata: { trackingId: trackingId }
+        metadata: { trackingId, integrationId: integration.id }
       });
     }
     return result;

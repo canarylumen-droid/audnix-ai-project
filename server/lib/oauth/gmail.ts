@@ -130,17 +130,19 @@ export class GmailOAuth {
    * Save OAuth tokens to database
    */
   async saveToken(userId: string, tokens: GmailTokenResponse, profile: any): Promise<void> {
-    const encryptedAccessToken = await encrypt(tokens.access_token);
-    const encryptedRefreshToken = tokens.refresh_token ? await encrypt(tokens.refresh_token) : null;
+    const encryptedAccessToken = encrypt(tokens.access_token);
+    const encryptedRefreshToken = tokens.refresh_token ? encrypt(tokens.refresh_token) : null;
 
     const expiresAt = tokens.expiry_date
       ? new Date(tokens.expiry_date)
       : new Date(Date.now() + 60 * 60 * 1000); // 1 hour default
 
+    const email = profile.emailAddress || profile.email;
+
     await storage.saveOAuthAccount({
       userId,
       provider: 'google',
-      providerAccountId: profile.emailAddress || profile.email,
+      providerAccountId: email,
       accessToken: encryptedAccessToken,
       refreshToken: encryptedRefreshToken,
       expiresAt,
@@ -168,16 +170,22 @@ export class GmailOAuth {
         const decryptedRefreshToken = decrypt(tokenData.refreshToken);
         const newTokens = await this.refreshAccessToken(decryptedRefreshToken);
         const encryptedNewAccessToken = encrypt(newTokens.access_token);
+        
+        // Use new refresh token if provided by Google, otherwise keep the old one
+        const encryptedNewRefreshToken = newTokens.refresh_token 
+          ? encrypt(newTokens.refresh_token) 
+          : tokenData.refreshToken;
+
         const newExpiresAt = newTokens.expiry_date
           ? new Date(newTokens.expiry_date)
-          : new Date(Date.now() + 60 * 60 * 1000);
+          : new Date(Date.now() + (newTokens as any).expires_in * 1000 || Date.now() + 3600 * 1000);
 
         await storage.saveOAuthAccount({
           userId,
           provider: 'google',
           providerAccountId: tokenData.providerAccountId,
           accessToken: encryptedNewAccessToken,
-          refreshToken: tokenData.refreshToken,
+          refreshToken: encryptedNewRefreshToken,
           expiresAt: newExpiresAt,
           scope: newTokens.scope,
           tokenType: newTokens.token_type

@@ -81,7 +81,16 @@ interface UserData {
   };
 }
 
-const integrationCards = [
+const integrationCards: Array<{
+  do: "social" | "calendar";
+  id: string;
+  name: string;
+  description: string;
+  icon: any;
+  color: string;
+  bg: string;
+  badge?: string;
+}> = [
   {
     do: "social",
     id: "instagram",
@@ -90,35 +99,6 @@ const integrationCards = [
     icon: Instagram,
     color: "text-pink-500",
     bg: "bg-pink-500/10",
-  },
-  {
-    do: "email",
-    id: "gmail",
-    name: "Google Workspace",
-    description: "Connect your business email for automated outreach and follow-ups.",
-    icon: SiGoogle,
-    color: "text-red-500",
-    bg: "bg-red-500/10",
-  },
-  {
-    do: "store",
-    id: "shopify",
-    name: "Shopify",
-    description: "Sync your store data for AI-powered product recommendations.",
-    icon: SiShopify,
-    color: "text-green-500",
-    bg: "bg-green-500/10",
-    badge: "Coming Soon"
-  },
-  {
-    do: "crm",
-    id: "hubspot",
-    name: "HubSpot",
-    description: "Automatically sync leads and deals with your HubSpot CRM.",
-    icon: SiHubspot,
-    color: "text-orange-500",
-    bg: "bg-orange-500/10",
-    badge: "Coming Soon"
   },
   {
     do: "calendar",
@@ -273,7 +253,8 @@ export default function IntegrationsPage() {
   }, [customEmailStatus?.connected, customEmailStatus?.email, stats?.domainHealth, selectedMailboxId]);
 
   const integrations = integrationsData?.integrations ?? [];
-  const isCustomEmailConnected = (customEmailStatus?.integrations?.length || 0) > 0;
+  const allMailboxes = customEmailStatus?.integrations || [];
+  const hasMailboxesConnected = allMailboxes.length > 0;
 
   const verifyDomainMutation = useMutation({
     mutationFn: async (domain: string) => {
@@ -577,7 +558,7 @@ export default function IntegrationsPage() {
 
             <Card className={cn(
               "rounded-3xl border-border/50 overflow-hidden transition-all duration-500",
-              isCustomEmailConnected || isEditingCustomEmail ? "bg-card shadow-2xl shadow-primary/5 border-primary/20" : "bg-muted/20"
+              hasMailboxesConnected || isEditingCustomEmail ? "bg-card shadow-2xl shadow-primary/5 border-primary/20" : "bg-muted/20"
             )}>
               {isEditingCustomEmail ? (
                 <div className="p-8 space-y-6">
@@ -600,62 +581,52 @@ export default function IntegrationsPage() {
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                     <div className="space-y-1">
                       <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">
-                        Add New Mailbox
+                        Connect New Mailbox
                       </h3>
-                      <p className="text-xs text-muted-foreground">Professional outreach requires a custom SMTP & IMAP connection.</p>
+                      <p className="text-xs text-muted-foreground">Select your provider to connect your business email for automated outreach.</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                       <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8 rounded-full text-[10px] font-bold gap-1.5 border-primary/20 bg-primary/5 text-primary hover:bg-primary/10"
-                              onClick={() => setCustomEmailConfig({
-                                ...customEmailConfig,
-                                smtpHost: 'smtp.gmail.com',
-                                smtpPort: '465',
-                                imapHost: 'imap.gmail.com',
-                                imapPort: '993'
-                              })}
-                            >
-                              <SiGoogle className="h-3 w-3" /> Gmail Personal
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="text-xs">Pre-fill for personal @gmail.com (Use App Password)</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
 
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8 rounded-full text-[10px] font-bold gap-1.5 border-blue-500/20 bg-blue-500/5 text-blue-500 hover:bg-blue-500/10"
-                              onClick={() => setCustomEmailConfig({
-                                ...customEmailConfig,
-                                smtpHost: 'smtp.office365.com',
-                                smtpPort: '587',
-                                imapHost: 'imap-mail.outlook.com',
-                                imapPort: '993'
-                              })}
-                            >
-                              <Mail className="h-3 w-3" /> Outlook Personal
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="text-xs">Quick-fill settings for personal @outlook.com accounts</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <Button
+                        variant="outline"
+                        className="rounded-xl px-4 py-6 border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-all flex flex-col items-center gap-2 flex-1 min-w-[140px]"
+                        onClick={() => handleConnect('gmail')}
+                      >
+                        <SiGoogle className="h-5 w-5" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Connect Google</span>
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        className="rounded-xl px-4 py-6 border-blue-500/20 bg-blue-500/5 text-blue-500 hover:bg-blue-500/10 transition-all flex flex-col items-center gap-2 flex-1 min-w-[140px]"
+                        onClick={() => handleConnect('outlook')}
+                      >
+                        <Mail className="h-5 w-5" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Connect Outlook</span>
+                      </Button>
+
+                      <div className="w-full md:w-auto flex flex-col items-center justify-center px-4">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase">Or</span>
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        className="rounded-xl px-4 py-6 border-border/50 bg-muted/20 text-foreground hover:bg-muted/30 transition-all flex flex-col items-center gap-2 flex-1 min-w-[140px]"
+                        onClick={() => {
+                          setCustomEmailConfig({ smtpHost: '', smtpPort: '587', imapHost: '', imapPort: '993', email: '', password: '', fromName: '' });
+                          // Actually we are already in the edit view if we see this, but let's reset form
+                        }}
+                      >
+                        <Plus className="h-5 w-5" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Custom SMTP</span>
+                      </Button>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-border/40">
+                    <div className="md:col-span-2">
+                      <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-4">Manual SMTP Configuration</h4>
+                    </div>
                     <div className="space-y-1.5 md:col-span-2">
                       <Label className="text-xs font-semibold text-muted-foreground ml-1">Account Email</Label>
                       <div className="flex gap-2">
@@ -817,12 +788,12 @@ export default function IntegrationsPage() {
                     <Button variant="outline" className="rounded-xl px-8 font-semibold h-11" onClick={() => setIsEditingCustomEmail(false)}>Cancel</Button>
                   </div>
                 </div>
-              ) : isCustomEmailConnected ? (
+              ) : hasMailboxesConnected ? (
                 <div className="p-8 space-y-8">
                   <div className="flex items-center justify-between pb-4 border-b border-border/50">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <h3 className="text-lg font-bold text-foreground">Connected Mailboxes</h3>
+                        <h3 className="text-lg font-bold text-foreground">Active Business Mailboxes</h3>
                         <Badge variant="outline" className="rounded-full text-[10px]">
                           {connectedMailboxesCount} / {getMailboxLimit()} Limit
                         </Badge>
@@ -830,7 +801,7 @@ export default function IntegrationsPage() {
                       <p className="text-xs text-muted-foreground">
                         {connectedMailboxesCount >= getMailboxLimit() && userData?.user?.subscriptionTier !== 'enterprise'
                           ? "Limit reached. Upgrade or disconnect a mailbox to add more."
-                          : "Manage your outreach accounts and their health."}
+                          : "Manage your connected Google, Outlook, and custom SMTP accounts."}
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -860,20 +831,31 @@ export default function IntegrationsPage() {
                   </div>
 
                   <div className="space-y-4">
-                    {customEmailStatus?.integrations?.map((mailbox) => (
+                    {allMailboxes.map((mailbox) => (
                       <div key={mailbox.id} className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 rounded-2xl bg-muted/20 border border-border/40 hover:border-primary/30 transition-all group">
                         <div className="flex items-center gap-4">
-                          <div className="h-12 w-12 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
-                            <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+                          <div className={cn(
+                            "h-12 w-12 rounded-xl flex items-center justify-center border",
+                            mailbox.provider === 'gmail' ? "bg-red-500/10 border-red-500/20 text-red-500" :
+                            mailbox.provider === 'outlook' ? "bg-blue-500/10 border-blue-500/20 text-blue-500" :
+                            "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+                          )}>
+                            {mailbox.provider === 'gmail' ? <SiGoogle className="h-6 w-6" /> :
+                             mailbox.provider === 'outlook' ? <Mail className="h-6 w-6" /> :
+                             <CheckCircle2 className="h-6 w-6" />}
                           </div>
                           <div className="space-y-0.5">
                             <div className="flex items-center gap-2">
                               <h4 className="text-sm font-bold text-foreground">
-                                {mailbox.email || mailbox.provider}
+                                {mailbox.email}
                               </h4>
                               <Badge className="bg-emerald-500/10 text-emerald-500 border-0 text-[8px] font-black uppercase tracking-widest px-1.5 py-0">Active</Badge>
                             </div>
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Custom SMTP Account</p>
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                              {mailbox.provider === 'gmail' ? "Google Workspace" :
+                               mailbox.provider === 'outlook' ? "Outlook / Office 365" :
+                               "Custom SMTP Account"}
+                            </p>
                           </div>
                         </div>
 
@@ -881,7 +863,7 @@ export default function IntegrationsPage() {
                           <Button variant="outline" size="sm" className="h-8 rounded-lg text-[10px] px-3 w-full sm:w-auto" onClick={() => setIsTestEmailOpen(true)}>
                             <Mail className="h-3 w-3 mr-1.5" /> Test Connection
                           </Button>
-                          <Button variant="ghost" size="sm" className="h-8 rounded-lg text-[10px] px-3 font-bold text-destructive hover:bg-destructive/10 w-full sm:w-auto" onClick={() => confirmDisconnect('custom_email', mailbox.id)}>
+                          <Button variant="ghost" size="sm" className="h-8 rounded-lg text-[10px] px-3 font-bold text-destructive hover:bg-destructive/10 w-full sm:w-auto" onClick={() => confirmDisconnect(mailbox.provider, mailbox.id)}>
                             <Unplug className="h-3 w-3 mr-1.5" /> Disconnect
                           </Button>
                         </div>
@@ -923,9 +905,9 @@ export default function IntegrationsPage() {
                             size="icon"
                             className="h-6 w-6 rounded-full hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
                             onClick={() => {
-                              const targetEmail = selectedMailboxId && customEmailStatus?.integrations?.find(i => i.id === selectedMailboxId)?.email
-                                ? customEmailStatus.integrations.find(i => i.id === selectedMailboxId)!.email
-                                : customEmailStatus?.email;
+                              const targetEmail = selectedMailboxId && allMailboxes.find(i => i.id === selectedMailboxId)?.email
+                                ? allMailboxes.find(i => i.id === selectedMailboxId)!.email
+                                : allMailboxes[0]?.email;
                               const domain = getDomainFromEmail(targetEmail || null);
                               if (domain) verifyDomainMutation.mutate(domain);
                             }}

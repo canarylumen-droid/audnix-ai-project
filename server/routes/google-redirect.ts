@@ -8,92 +8,151 @@ import { wsSync } from '../lib/websocket-sync.js';
 const router = Router();
 
 /**
- * GET /api/oauth/google-redirect/gmail/callback
- * This is the main Google OAuth redirect handler (the "Redirect File").
- * It performs the background work and redirects back to the app.
+ * GET /api/oauth/gmail/callback
+ * Main Google OAuth redirect handler for Gmail.
+ * Exchanges the code for tokens, saves credentials to BOTH
+ * the `oauth_accounts` table (for token refresh) AND the `integrations`
+ * table (for the unified mailbox UI/outreach engine).
  */
 router.get('/gmail/callback', async (req: Request, res: Response): Promise<void> => {
   try {
     const { code, state, error } = req.query;
 
-    console.log(`[Google Redirect] Callback received. State: ${state}`);
+    console.log(`[Google Redirect] Gmail callback received. State: ${state ? 'present' : 'missing'}`);
 
     if (error) {
-      console.error(`[Google Redirect] OAuth error: ${error}`);
+      console.error(`[Google Redirect] OAuth error from Google: ${error}`);
       res.redirect('/dashboard/integrations?error=gmail_denied');
       return;
     }
 
     if (!code || !state) {
+      console.error('[Google Redirect] Missing code or state in callback');
       res.redirect('/dashboard/integrations?error=invalid_request');
       return;
     }
 
-    // 1. Verify state and retrieve user context (Production-grade AES-256-GCM)
+    // 1. Verify state and retrieve user context (AES-256-GCM encrypted)
     const stateData = decryptState(state as string);
     if (!stateData) {
-      console.error('[Google Redirect] Invalid or expired state signature');
+      console.error('[Google Redirect] Invalid or expired state signature — possible CSRF attempt');
       res.redirect('/dashboard/integrations?error=invalid_state');
       return;
     }
 
-    // 2. Re-attach userId to session (critical: OAuth redirect creates a fresh browser session)
-    (req as any).session.userId = stateData.userId;
+    const userId = stateData.userId;
+    console.log(`[Google Redirect] Authenticated user: ${userId}`);
 
-    // 3. Perform "Background Work" - Exchange code for tokens
-    console.log(`[Google Redirect] Exchanging code for tokens for user: ${stateData.userId}`);
+    // 2. Re-attach userId to session (OAuth redirect creates a new browser context)
+    (req as any).session.userId = userId;
+
+    // 3. Exchange authorization code for tokens
+    console.log(`[Google Redirect] Exchanging code for tokens...`);
     const tokens = await gmailOAuth.exchangeCodeForToken(code as string);
-    const userProfile = await gmailOAuth.getUserProfile(tokens.access_token);
-    const gmailProfile = await gmailOAuth.getGmailProfile(tokens.access_token);
 
-    // 4. Check subscription limits
-    const limitCheck = await storage.checkMailboxLimit(stateData.userId);
-    if (!limitCheck.allowed) {
-      console.warn(`[Google Redirect] Limit reached: ${limitCheck.current}/${limitCheck.limit}`);
-      res.redirect(`/dashboard/integrations?error=limit_reached&limit=${limitCheck.limit}&plan=${encodeURIComponent(limitCheck.plan)}`);
+    if (!tokens.access_token) {
+      console.error('[Google Redirect] Token exchange succeeded but access_token is missing');
+      res.redirect('/dashboard/integrations?error=gmail_oauth_failed');
       return;
     }
 
-    // 5. Persist the connected account
-    await gmailOAuth.saveToken(stateData.userId, tokens, {
-      ...userProfile,
-      ...gmailProfile
-    });
+    // 4. Fetch Gmail & Google profile
+    const [userProfile, gmailProfile] = await Promise.all([
+      gmailOAuth.getUserProfile(tokens.access_token),
+      gmailOAuth.getGmailProfile(tokens.access_token),
+    ]);
 
-    await storage.createIntegration({
-      userId: stateData.userId,
-      provider: 'gmail',
-      accountType: gmailProfile.emailAddress,
-      encryptedMeta: encrypt(JSON.stringify({
-        email: gmailProfile.emailAddress,
-        name: userProfile.name,
-        tokens
-      })),
-      connected: true,
-      lastSync: new Date()
-    });
-
-    // 6. Notify the frontend to refresh state
-    wsSync.notifySettingsUpdated(stateData.userId);
-
-    // 7. Intelligent Lead Distribution (Async background task)
-    const { distributeLeadsFromPool } = await import('../lib/sales-engine/outreach-engine.js');
-    const integrations = await storage.getIntegrations(stateData.userId);
-    const gmailInt = integrations.find(i => i.provider === 'gmail' && i.accountType === gmailProfile.emailAddress);
-
-    if (gmailInt) {
-      console.log(`[Google Redirect] Launching lead distribution for mailbox: ${gmailInt.id}`);
-      distributeLeadsFromPool(stateData.userId, gmailInt.id).catch(err =>
-        console.error('[Google Redirect] Lead distribution failed:', err)
-      );
+    const emailAddress = gmailProfile.emailAddress || userProfile.email;
+    if (!emailAddress) {
+      console.error('[Google Redirect] Could not determine email address from Google profile');
+      res.redirect('/dashboard/integrations?error=gmail_oauth_failed');
+      return;
     }
 
-    // 8. Final Redirect back to the app's dashboard
-    console.log('[Google Redirect] Success. Redirecting back to dashboard.');
+    console.log(`[Google Redirect] Gmail account identified: ${emailAddress}`);
+
+    // 5. Check mailbox limits before persisting
+    const limitCheck = await storage.checkMailboxLimit(userId);
+    if (!limitCheck.allowed) {
+      // Check if an existing integration for this exact email already exists (reconnect scenario)
+      const existing = await storage.getIntegrations(userId);
+      const hasExisting = existing.some(i => i.provider === 'gmail' && i.accountType === emailAddress);
+      if (!hasExisting) {
+        console.warn(`[Google Redirect] Mailbox limit reached: ${limitCheck.current}/${limitCheck.limit}`);
+        res.redirect(`/dashboard/integrations?error=limit_reached&limit=${limitCheck.limit}&plan=${encodeURIComponent(limitCheck.plan)}`);
+        return;
+      }
+    }
+
+    // 6. Save tokens to oauth_accounts table (for token refresh via getValidToken)
+    await gmailOAuth.saveToken(userId, tokens, { ...userProfile, ...gmailProfile, emailAddress });
+
+    // 7. Build the encrypted meta payload for the integrations table
+    //    This is what sendEmail() and the outreach engine decrypt to get the from-address.
+    const integrationMeta = encrypt(JSON.stringify({
+      email: emailAddress,
+      name: userProfile.name || '',
+      picture: userProfile.picture || '',
+      // Embed tokens directly so the integration is self-contained
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token || null,
+      expiry_date: tokens.expiry_date || null,
+      scope: tokens.scope,
+    }));
+
+    // 8. Upsert the integration row (create or update by email + userId)
+    const allIntegrations = await storage.getIntegrations(userId);
+    const existingGmail = allIntegrations.find(
+      i => i.provider === 'gmail' && i.accountType === emailAddress
+    );
+
+    if (existingGmail) {
+      console.log(`[Google Redirect] Updating existing Gmail integration (${existingGmail.id}) for: ${emailAddress}`);
+      await storage.updateIntegration(userId, existingGmail.id, {
+        encryptedMeta: integrationMeta,
+        connected: true,
+        lastSync: new Date(),
+        healthStatus: 'connected' as const,
+      });
+    } else {
+      console.log(`[Google Redirect] Creating new Gmail integration for: ${emailAddress}`);
+      await storage.createIntegration({
+        userId,
+        provider: 'gmail' as const,
+        accountType: emailAddress,
+        encryptedMeta: integrationMeta,
+        connected: true,
+        lastSync: new Date(),
+        healthStatus: 'connected' as const,
+      });
+    }
+
+    // 9. Notify frontend to refresh integration state via WebSocket
+    wsSync.notifySettingsUpdated(userId);
+
+    // 10. Background: distribute leads from inventory pool to this new mailbox
+    try {
+      const { distributeLeadsFromPool } = await import('../lib/sales-engine/outreach-engine.js');
+      const updatedIntegrations = await storage.getIntegrations(userId);
+      const gmailInt = updatedIntegrations.find(
+        i => i.provider === 'gmail' && i.accountType === emailAddress
+      );
+      if (gmailInt) {
+        console.log(`[Google Redirect] Launching lead distribution for mailbox: ${gmailInt.id}`);
+        distributeLeadsFromPool(userId, gmailInt.id).catch(err =>
+          console.error('[Google Redirect] Lead distribution failed (non-fatal):', err)
+        );
+      }
+    } catch (distErr) {
+      console.warn('[Google Redirect] Could not trigger lead distribution:', distErr);
+    }
+
+    // 11. Redirect back to dashboard with success confirmation
+    console.log(`[Google Redirect] ✅ Gmail connected successfully for ${emailAddress}. Redirecting...`);
     res.redirect('/dashboard/integrations?success=gmail_connected');
 
-  } catch (error) {
-    console.error('[Google Redirect] Fatal callback error:', error);
+  } catch (error: any) {
+    console.error('[Google Redirect] Fatal callback error:', error?.message || error);
     res.redirect('/dashboard/integrations?error=gmail_oauth_failed');
   }
 });
@@ -105,8 +164,6 @@ router.get('/gmail/callback', async (req: Request, res: Response): Promise<void>
 router.get('/google-calendar/callback', async (req: Request, res: Response): Promise<void> => {
   try {
     const { code, state, error } = req.query;
-
-    console.log(`[Google Redirect] Calendar callback received. State: ${state}`);
 
     if (error === 'access_denied') {
       res.redirect('/dashboard/integrations?error=denied');
@@ -126,8 +183,6 @@ router.get('/google-calendar/callback', async (req: Request, res: Response): Pro
     }
 
     const userId = stateData.userId;
-
-    // Re-attach userId to session (critical: OAuth redirect creates a fresh browser session)
     (req as any).session.userId = userId;
 
     const tokenData = await googleCalendarOAuth.exchangeCodeForTokens(code as string);
@@ -139,7 +194,14 @@ router.get('/google-calendar/callback', async (req: Request, res: Response): Pro
       email: tokenData.email,
     }));
 
-    try {
+    const existingCalendar = await storage.getIntegration(userId, 'google_calendar');
+    if (existingCalendar) {
+      await storage.updateIntegration(userId, existingCalendar.id, {
+        encryptedMeta: encryptedTokens,
+        connected: true,
+        lastSync: new Date(),
+      });
+    } else {
       await storage.createIntegration({
         userId,
         provider: 'google_calendar',
@@ -147,16 +209,12 @@ router.get('/google-calendar/callback', async (req: Request, res: Response): Pro
         connected: true,
         lastSync: new Date(),
       });
-
-      // Notify frontend
-      wsSync.notifySettingsUpdated(userId);
-
-      console.log(`[Google Redirect] Calendar connection successful for user: ${userId}`);
-      res.redirect('/dashboard/integrations?success=google_calendar_connected');
-    } catch (saveError) {
-      console.error('[Google Redirect] Failed to save Google Calendar integration:', saveError);
-      res.redirect('/dashboard/integrations?error=save_failed');
     }
+
+    wsSync.notifySettingsUpdated(userId);
+
+    console.log(`[Google Redirect] Calendar connection successful for user: ${userId}`);
+    res.redirect('/dashboard/integrations?success=google_calendar_connected');
   } catch (error) {
     console.error('[Google Redirect] Google Calendar OAuth callback error:', error);
     res.redirect('/dashboard/integrations?error=oauth_failed');
