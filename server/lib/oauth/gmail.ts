@@ -86,17 +86,6 @@ export class GmailOAuth {
    * Exchange authorization code for tokens
    */
   async exchangeCodeForToken(code: string): Promise<GmailTokenResponse> {
-    if (process.env.MOCK_OAUTH === 'true') {
-      console.log('🧪 [MOCK_OAUTH] Mocking Gmail token exchange...');
-      return {
-        access_token: 'mock-google-access-token',
-        refresh_token: 'mock-google-refresh-token',
-        scope: 'mock-scope',
-        token_type: 'Bearer',
-        expiry_date: Date.now() + 3600000
-      } as GmailTokenResponse;
-    }
-
     try {
       const { tokens } = await this.oauth2Client.getToken(code);
       return tokens as GmailTokenResponse;
@@ -129,15 +118,6 @@ export class GmailOAuth {
    * Get user's Google profile
    */
   async getUserProfile(accessToken: string): Promise<any> {
-    if (process.env.MOCK_OAUTH === 'true') {
-      console.log('🧪 [MOCK_OAUTH] Mocking Google user profile...');
-      return {
-        email: 'mock-user@gmail.com',
-        name: 'Mock User',
-        id: '123456789'
-      };
-    }
-
     const client = this.createClient({ access_token: accessToken });
     const oauth2 = google.oauth2({ version: 'v2', auth: client });
 
@@ -153,17 +133,6 @@ export class GmailOAuth {
    * Refresh access token using refresh token
    */
   async refreshAccessToken(refreshToken: string): Promise<GmailTokenResponse> {
-    if (process.env.MOCK_OAUTH === 'true') {
-      console.log('🧪 [MOCK_OAUTH] Mocking Gmail token refresh...');
-      return {
-        access_token: 'mock-google-refreshed-access-token',
-        refresh_token: refreshToken,
-        scope: 'mock-scope',
-        token_type: 'Bearer',
-        expiry_date: Date.now() + 3600000
-      } as GmailTokenResponse;
-    }
-
     const client = this.createClient({ refresh_token: refreshToken });
 
     try {

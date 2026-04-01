@@ -77,17 +77,6 @@ export class OutlookOAuth {
    * Exchange authorization code for tokens
    */
   async exchangeCodeForToken(code: string): Promise<OutlookTokenResponse> {
-    if (process.env.MOCK_OAUTH === 'true') {
-      console.log('🧪 [MOCK_OAUTH] Mocking Outlook token exchange...');
-      return {
-        access_token: 'mock-outlook-access-token',
-        refresh_token: 'mock-outlook-refresh-token',
-        token_type: 'Bearer',
-        expires_in: 3600,
-        scope: 'offline_access User.Read Mail.ReadWrite'
-      };
-    }
-
     const params = new URLSearchParams({
       client_id: this.config.clientId,
       client_secret: this.config.clientSecret,
@@ -120,17 +109,6 @@ export class OutlookOAuth {
    * Refresh access token using refresh token
    */
   async refreshAccessToken(refreshToken: string): Promise<OutlookTokenResponse> {
-    if (process.env.MOCK_OAUTH === 'true') {
-      console.log('🧪 [MOCK_OAUTH] Mocking Outlook token refresh...');
-      return {
-        access_token: 'mock-outlook-refreshed-access-token',
-        refresh_token: refreshToken,
-        token_type: 'Bearer',
-        expires_in: 3600,
-        scope: 'offline_access User.Read Mail.ReadWrite'
-      };
-    }
-
     const params = new URLSearchParams({
       client_id: this.config.clientId,
       client_secret: this.config.clientSecret,
@@ -163,16 +141,6 @@ export class OutlookOAuth {
    * Get user profile from Microsoft Graph
    */
   async getUserProfile(accessToken: string): Promise<OutlookProfile> {
-    if (process.env.MOCK_OAUTH === 'true') {
-      console.log('🧪 [MOCK_OAUTH] Mocking Outlook user profile...');
-      return {
-        id: 'mock-outlook-id',
-        displayName: 'Mock Outlook User',
-        mail: 'mock-user@outlook.com',
-        userPrincipalName: 'mock-user@outlook.com'
-      };
-    }
-
     const response = await fetch('https://graph.microsoft.com/v1.0/me', {
       headers: {
         'Authorization': `Bearer ${accessToken}`
