@@ -154,11 +154,14 @@ router.post('/:provider/disconnect', requireAuth, async (req: Request, res: Resp
     }
 
     // --- Step 3: Delete the integration record from the database ---
-    if (integrationId) {
+    if (integration && integrationId) {
       console.log(`[Integrations] Deleting integration by ID: ${integrationId}`);
       await storage.deleteIntegrationById(integrationId);
+    } else if (integration) {
+      console.log(`[Integrations] Disconnecting ${provider} integration (no ID provided) for user: ${userId}`);
+      await storage.deleteIntegrationById(integration.id);
     } else {
-      console.log(`[Integrations] Disconnecting all ${provider} integrations for user: ${userId}`);
+      console.log(`[Integrations] No specific integration found. Performing bulk disconnect for ${provider} for user: ${userId}`);
       await storage.disconnectIntegration(userId, provider);
     }
 

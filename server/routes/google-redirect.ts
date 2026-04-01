@@ -108,7 +108,7 @@ router.get('/gmail/callback', async (req: Request, res: Response): Promise<void>
 
     if (existingGmail) {
       console.log(`[Google Redirect] Updating existing Gmail integration (${existingGmail.id}) for: ${emailAddress}`);
-      await storage.updateIntegration(userId, existingGmail.id, {
+      await storage.updateIntegrationById(existingGmail.id, {
         encryptedMeta: integrationMeta,
         connected: true,
         lastSync: new Date(),

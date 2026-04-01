@@ -15,6 +15,8 @@ export type AuditActionType =
   | "campaign_started"
   | "campaign_completed"
   | "campaign_pause_toggled"
+  | "campaign_deleted"
+  | "campaign_aborted"
   | "intent_detected";
 
 export interface AuditAction {
@@ -161,7 +163,7 @@ export class AuditTrailService {
   static async logCampaignAction(
     userId: string,
     campaignId: string,
-    action: "campaign_started" | "campaign_completed" | "campaign_pause_toggled",
+    action: "campaign_started" | "campaign_completed" | "campaign_pause_toggled" | "campaign_deleted" | "campaign_aborted",
     details: Record<string, unknown> = {}
   ): Promise<void> {
     try {

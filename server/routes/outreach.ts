@@ -444,10 +444,23 @@ router.post('/campaigns/:id/abort', requireAuth, async (req, res) => {
 
     if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
 
-    // Stop all pending follow-ups instantly
-    await db.update(campaignLeads)
-      .set({ status: 'aborted', updatedAt: new Date() })
+    // Stop all pending follow-ups instantly and clear their integration assignments
+    const pendingLeads = await db.select({ leadId: campaignLeads.leadId })
+      .from(campaignLeads)
       .where(and(eq(campaignLeads.campaignId, id), eq(campaignLeads.status, 'pending')));
+
+    if (pendingLeads.length > 0) {
+      const leadIds = pendingLeads.map(l => l.leadId).filter(Boolean) as string[];
+      // Reset integrationId in the main leads table so they can be picked up by new campaigns/mailboxes
+      await db.update(leadsTable)
+        .set({ integrationId: null })
+        .where(inArray(leadsTable.id, leadIds));
+
+      // Mark as aborted in campaign_leads
+      await db.update(campaignLeads)
+        .set({ status: 'aborted', updatedAt: new Date() })
+        .where(inArray(campaignLeads.leadId, leadIds));
+    }
 
     // Remove ALL BullMQ jobs (repeatable + delayed follow-ups)
     try {
@@ -457,8 +470,69 @@ router.post('/campaigns/:id/abort', requireAuth, async (req, res) => {
       console.warn('[Outreach] BullMQ campaign abort failed:', queueErr);
     }
 
+    // Log the audit action
+    await AuditTrailService.logCampaignAction(userId, id, 'campaign_aborted', {
+      name: campaign.name
+    });
+
     wsSync.notifyCampaignsUpdated(userId);
     res.json({ success: true, campaign });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * DELETE /api/outreach/campaigns/:id
+ * Delete a campaign and all its data
+ */
+router.delete('/campaigns/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    // Verify ownership and existence
+    const [campaign] = await db.select().from(outreachCampaigns)
+      .where(and(eq(outreachCampaigns.id, id), eq(outreachCampaigns.userId, userId)));
+
+    if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+
+    // Stop and clear queues if running
+    try {
+      const { campaignQueueManager } = await import('../lib/queues/campaign-queue.js');
+      await campaignQueueManager.abortCampaign(id);
+    } catch (queueErr) {
+      console.warn('[Outreach] BullMQ campaign cleanup during delete failed:', queueErr);
+    }
+
+    // Release leads before deleting the campaign
+    const camLeads = await db.select({ leadId: campaignLeads.leadId })
+      .from(campaignLeads)
+      .where(eq(campaignLeads.campaignId, id));
+    
+    if (camLeads.length > 0) {
+      const leadIds = camLeads.map(l => l.leadId).filter(Boolean) as string[];
+      await db.update(leadsTable)
+        .set({ integrationId: null })
+        .where(and(
+          inArray(leadsTable.id, leadIds),
+          eq(leadsTable.integrationId, campaign.config.mailboxId) // Only clear if still assigned to this campaign's context
+          // Note: campaign.config.mailboxIds might be multiple, but we clear generally for these leads
+        ));
+    }
+
+    // Delete the campaign - Cascade will take care of campaignLeads and campaignEmails
+    await db.delete(outreachCampaigns)
+      .where(and(eq(outreachCampaigns.id, id), eq(outreachCampaigns.userId, userId)));
+
+    // Log the audit action (using AuditTrailService)
+    await AuditTrailService.logCampaignAction(userId, id, 'campaign_deleted', {
+      name: campaign.name
+    });
+
+    wsSync.notifyCampaignsUpdated(userId);
+    res.json({ success: true, message: 'Campaign deleted successfully' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

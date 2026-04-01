@@ -393,7 +393,7 @@ export const outreachCampaigns = pgTable("outreach_campaigns", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
-  status: text("status", { enum: ["draft", "active", "paused", "completed"] }).notNull().default("draft"),
+  status: text("status", { enum: ["draft", "active", "paused", "completed", "aborted"] }).notNull().default("draft"),
   excludeWeekends: boolean("exclude_weekends").notNull().default(false),
   stats: jsonb("stats").$type<{
     total: number;

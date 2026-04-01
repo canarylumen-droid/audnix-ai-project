@@ -311,6 +311,7 @@ export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
     socketInstance.on('settings_updated', () => {
       queryClient.invalidateQueries({ queryKey: ['/api/user'] });
       queryClient.invalidateQueries({ queryKey: ['/api/integrations'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/custom-email/status'] });
       queryClient.invalidateQueries({ queryKey: ['/api/channels/all'] });
     });
 

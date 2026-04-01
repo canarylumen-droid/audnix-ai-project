@@ -408,7 +408,16 @@ export class DrizzleStorage implements IStorage {
           exists(
             db.select({ id: campaignLeads.id })
               .from(campaignLeads)
-              .where(sql`${campaignLeads.leadId} = ${leads.id}`)
+              .innerJoin(outreachCampaigns, eq(campaignLeads.campaignId, outreachCampaigns.id))
+              .where(
+                and(
+                  eq(campaignLeads.leadId, leads.id),
+                  or(
+                    eq(outreachCampaigns.status, 'active'),
+                    eq(outreachCampaigns.status, 'paused')
+                  )
+                )
+              )
           )
         ) as any
       );
@@ -942,9 +951,9 @@ export class DrizzleStorage implements IStorage {
     updates: Partial<Integration>
   ): Promise<Integration | undefined> {
     checkDatabase();
-    // For legacy support, update all integrations of this provider for this user
-    // However, we should encourage using updateIntegrationById for multi-mailbox
-    const result = await db
+    // LEGACY: This updates the FIRST matching integration for this provider.
+    // For multi-mailbox support, always use updateIntegrationById instead.
+    const [result] = await db
       .update(integrations)
       .set({
         ...updates,
@@ -953,7 +962,7 @@ export class DrizzleStorage implements IStorage {
       .where(and(eq(integrations.userId, userId), eq(integrations.provider, provider as any)))
       .returning();
 
-    return result[0];
+    return result;
   }
 
   async updateIntegrationById(
@@ -1004,6 +1013,8 @@ export class DrizzleStorage implements IStorage {
 
   async disconnectIntegration(userId: string, provider: string): Promise<void> {
     checkDatabase();
+    // LEGACY: Deletes ALL integrations for this provider/user.
+    // Use deleteIntegrationById for targeted cleanup.
     await db
       .delete(integrations)
       .where(and(eq(integrations.userId, userId), eq(integrations.provider, provider as any)));

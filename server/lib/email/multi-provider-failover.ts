@@ -160,11 +160,23 @@ class MultiProviderEmailFailover {
     let smtpConfig: SmtpConfig | undefined = config;
 
     if (!smtpConfig && userId) {
-      const integration = await storage.getIntegration(userId, 'custom_email');
-      if (integration?.encryptedMeta) {
-        const { decrypt } = await import('../crypto/encryption.js');
-        const decrypted = await decrypt(integration.encryptedMeta);
-        smtpConfig = JSON.parse(decrypted) as SmtpConfig;
+      const integrations = await storage.getIntegrations(userId);
+      const emailIntegrations = integrations.filter(i => i.provider === 'custom_email' && i.connected);
+      
+      // If we have a 'from' address, find the exact matching integration
+      // Otherwise, fall back to the first available custom_email integration
+      const targetInt = email.from 
+        ? emailIntegrations.find(i => i.accountType === email.from)
+        : emailIntegrations[0];
+
+      if (targetInt?.encryptedMeta) {
+        try {
+          const { decryptToJSON } = await import('../crypto/encryption.js');
+          smtpConfig = decryptToJSON<SmtpConfig>(targetInt.encryptedMeta);
+        } catch (decErr: any) {
+          console.error(`[Outreach Engine] Failed to decrypt SMTP config for ${targetInt.accountType}:`, decErr.message);
+          // Fall through to throw if no config remains
+        }
       }
     }
 
@@ -221,18 +233,25 @@ class MultiProviderEmailFailover {
 
   private async sendViaGmail(email: EmailPayload, userId: string): Promise<void> {
     const integrations = await storage.getIntegrations(userId);
-    const gmailIntegration = integrations.find(i => i.provider === 'gmail' && i.connected);
+    
+    // Find the specific Gmail account if 'from' is provided, otherwise fall back to first connected
+    const gmailIntegration = email.from 
+      ? integrations.find(i => i.provider === 'gmail' && i.connected && i.accountType === email.from)
+      : integrations.find(i => i.provider === 'gmail' && i.connected);
 
-    if (!gmailIntegration?.encryptedMeta) {
-      throw new Error('Gmail not configured');
+    if (!gmailIntegration) {
+      throw new Error(`Gmail not configured for ${email.from || 'user'}`);
     }
 
-    const { decrypt } = await import('../crypto/encryption.js');
-    const decrypted = await decrypt(gmailIntegration.encryptedMeta);
-    const credentials = JSON.parse(decrypted) as OAuthCredentials;
+    const { gmailOAuth } = await import('../oauth/gmail.js');
+    const token = await gmailOAuth.getValidToken(userId, gmailIntegration.accountType || undefined);
+    
+    if (!token) {
+      throw new Error(`Could not get valid Gmail token for ${gmailIntegration.accountType}`);
+    }
 
     const message = this.createMimeMessage(
-      credentials.email || '',
+      gmailIntegration.accountType || '',
       email.to,
       email.subject,
       email.html
@@ -243,7 +262,7 @@ class MultiProviderEmailFailover {
     const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${credentials.access_token}`,
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ raw: encodedMessage })

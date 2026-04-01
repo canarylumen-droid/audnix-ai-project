@@ -36,11 +36,28 @@ export class GmailOAuth {
       redirectUri: getOAuthRedirectUrl('gmail')
     };
 
+    // Shared global client instance for stateless operations (auth url, code exchange)
     this.oauth2Client = new google.auth.OAuth2(
       this.config.clientId,
       this.config.clientSecret,
       this.config.redirectUri
     );
+  }
+
+  /**
+   * Helper to create a dedicated OAuth2 client for a single user request.
+   * This is critical to prevent credentials from leaking between concurrent users.
+   */
+  private createClient(credentials?: any): any {
+    const client = new google.auth.OAuth2(
+      this.config.clientId,
+      this.config.clientSecret,
+      this.config.redirectUri
+    );
+    if (credentials) {
+      client.setCredentials(credentials);
+    }
+    return client;
   }
 
   /**
@@ -69,6 +86,17 @@ export class GmailOAuth {
    * Exchange authorization code for tokens
    */
   async exchangeCodeForToken(code: string): Promise<GmailTokenResponse> {
+    if (process.env.MOCK_OAUTH === 'true') {
+      console.log('🧪 [MOCK_OAUTH] Mocking Gmail token exchange...');
+      return {
+        access_token: 'mock-google-access-token',
+        refresh_token: 'mock-google-refresh-token',
+        scope: 'mock-scope',
+        token_type: 'Bearer',
+        expiry_date: Date.now() + 3600000
+      } as GmailTokenResponse;
+    }
+
     try {
       const { tokens } = await this.oauth2Client.getToken(code);
       return tokens as GmailTokenResponse;
@@ -81,8 +109,8 @@ export class GmailOAuth {
    * Get Gmail profile information
    */
   async getGmailProfile(accessToken: string): Promise<GmailProfile> {
-    this.oauth2Client.setCredentials({ access_token: accessToken });
-    const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
+    const client = this.createClient({ access_token: accessToken });
+    const gmail = google.gmail({ version: 'v1', auth: client });
 
     try {
       const response = await gmail.users.getProfile({ userId: 'me' });
@@ -101,8 +129,17 @@ export class GmailOAuth {
    * Get user's Google profile
    */
   async getUserProfile(accessToken: string): Promise<any> {
-    this.oauth2Client.setCredentials({ access_token: accessToken });
-    const oauth2 = google.oauth2({ version: 'v2', auth: this.oauth2Client });
+    if (process.env.MOCK_OAUTH === 'true') {
+      console.log('🧪 [MOCK_OAUTH] Mocking Google user profile...');
+      return {
+        email: 'mock-user@gmail.com',
+        name: 'Mock User',
+        id: '123456789'
+      };
+    }
+
+    const client = this.createClient({ access_token: accessToken });
+    const oauth2 = google.oauth2({ version: 'v2', auth: client });
 
     try {
       const response = await oauth2.userinfo.get();
@@ -116,10 +153,21 @@ export class GmailOAuth {
    * Refresh access token using refresh token
    */
   async refreshAccessToken(refreshToken: string): Promise<GmailTokenResponse> {
-    this.oauth2Client.setCredentials({ refresh_token: refreshToken });
+    if (process.env.MOCK_OAUTH === 'true') {
+      console.log('🧪 [MOCK_OAUTH] Mocking Gmail token refresh...');
+      return {
+        access_token: 'mock-google-refreshed-access-token',
+        refresh_token: refreshToken,
+        scope: 'mock-scope',
+        token_type: 'Bearer',
+        expiry_date: Date.now() + 3600000
+      } as GmailTokenResponse;
+    }
+
+    const client = this.createClient({ refresh_token: refreshToken });
 
     try {
-      const { credentials } = await this.oauth2Client.refreshAccessToken();
+      const { credentials } = await client.refreshAccessToken();
       return credentials as GmailTokenResponse;
     } catch (error: any) {
       throw new Error(`Failed to refresh access token: ${error.message}`);
@@ -247,15 +295,15 @@ export class GmailOAuth {
       throw new Error(`Gmail not connected for ${fromEmail || 'user'} or token expired`);
     }
 
-    this.oauth2Client.setCredentials({ access_token: token });
-    const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
+    const client = this.createClient({ access_token: token });
+    const gmail = google.gmail({ version: 'v1', auth: client });
 
     const profile = await this.getGmailProfile(token);
-    const from = profile.emailAddress;
+    const fromAddress = profile.emailAddress;
 
     const utf8Subject = `=?utf-8?B?${Buffer.from(subject).toString('base64')}?=`;
     const messageParts = [
-      `From: ${from}`,
+      `From: ${fromAddress}`,
       `To: ${to}`,
       `Subject: ${utf8Subject}`,
       'MIME-Version: 1.0',
@@ -263,8 +311,8 @@ export class GmailOAuth {
       '',
       body
     ];
-    const message = messageParts.join('\r\n');
-    const encodedMessage = Buffer.from(message)
+    const messageContent = messageParts.join('\r\n');
+    const encodedMessage = Buffer.from(messageContent)
       .toString('base64')
       .replace(/\+/g, '-')
       .replace(/\//g, '_')
@@ -276,7 +324,7 @@ export class GmailOAuth {
         requestBody: { raw: encodedMessage }
       });
     } catch (error: any) {
-      throw new Error(`Failed to send email: ${error.message}`);
+      throw new Error(`Failed to send email via Gmail API: ${error.message}`);
     }
   }
 
@@ -287,8 +335,8 @@ export class GmailOAuth {
     const token = await this.getValidToken(userId);
     if (!token) throw new Error('Gmail not connected or token expired');
 
-    this.oauth2Client.setCredentials({ access_token: token });
-    const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
+    const client = this.createClient({ access_token: token });
+    const gmail = google.gmail({ version: 'v1', auth: client });
 
     try {
       const response = await gmail.users.messages.list({ userId: 'me', maxResults: limit });
@@ -305,8 +353,8 @@ export class GmailOAuth {
     const token = await this.getValidToken(userId);
     if (!token) throw new Error('Gmail not connected or token expired');
 
-    this.oauth2Client.setCredentials({ access_token: token });
-    const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
+    const client = this.createClient({ access_token: token });
+    const gmail = google.gmail({ version: 'v1', auth: client });
 
     try {
       const response = await gmail.users.messages.get({ userId: 'me', id: messageId });

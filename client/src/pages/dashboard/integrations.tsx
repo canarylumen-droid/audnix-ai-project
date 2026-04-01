@@ -236,7 +236,19 @@ export default function IntegrationsPage() {
   };
 
   useEffect(() => {
-    // Autonomous check: if email connected but no domain health, trigger it
+    // 1. Handle success redirect from OAuth (Gmail/Outlook)
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get('success') === 'gmail_connected') {
+      toast({ title: "Gmail Connected", description: "Your account is ready for use." });
+      queryClient.invalidateQueries({ queryKey: ["/api/custom-email/status"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
+      
+      // Clean up URL
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
+
+    // 2. Autonomous check: if email connected but no domain health, trigger it
     if (customEmailStatus?.connected && customEmailStatus?.email && stats?.domainHealth === undefined) {
       if (!verifyDomainMutation.isPending) {
         // If there's a selected mailbox, verify *that* domain, otherwise fallback
@@ -250,7 +262,7 @@ export default function IntegrationsPage() {
         }
       }
     }
-  }, [customEmailStatus?.connected, customEmailStatus?.email, stats?.domainHealth, selectedMailboxId]);
+  }, [customEmailStatus?.connected, customEmailStatus?.email, stats?.domainHealth, selectedMailboxId, queryClient]);
 
   const integrations = integrationsData?.integrations ?? [];
   const allMailboxes = customEmailStatus?.integrations || [];
