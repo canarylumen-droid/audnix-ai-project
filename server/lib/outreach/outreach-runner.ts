@@ -352,10 +352,9 @@ export async function runOutreachCampaign(
       });
     }
 
-    // Delay between emails to avoid rate limiting
-    if (delayBetweenEmailsMs > 0) {
-      await new Promise(resolve => setTimeout(resolve, delayBetweenEmailsMs));
-    }
+    // 9. DELAY: Spread sends to avoid burst patterns (min 2000ms)
+    const effectiveDelay = Math.max(delayBetweenEmailsMs, 2000);
+    await new Promise(resolve => setTimeout(resolve, effectiveDelay));
   }
 
   const summary = {

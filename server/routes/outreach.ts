@@ -225,18 +225,17 @@ router.post('/campaigns', requireAuth, async (req, res) => {
         selectedMailboxIds.includes(i.id) && i.connected
       );
 
+      if (activeMailboxes.length === 0 && finalLeadIds.length > 0) {
+        throw new Error("No connected mailboxes selected. Please connect an inbox to start the campaign.");
+      }
+
       const getLimit = (mb: any) => {
-        // First check for campaign-specific overrides
+        // Priority 1: Campaign-specific limits (set by user in wizard)
         if (campaignConfig.mailboxLimits && campaignConfig.mailboxLimits[mb.id]) {
-          return Number(campaignConfig.mailboxLimits[mb.id]);
+          return Math.min(Number(campaignConfig.mailboxLimits[mb.id]), 1000); // 1k hard cap
         }
-        // Fallback to integration metadata
-        try {
-          const meta = mb.metadata;
-          if (meta?.dailyLimit) return Number(meta.dailyLimit);
-        } catch (e) { }
-        // Default fallbacks
-        if (mb.provider === 'gmail' || mb.provider === 'outlook') return 50;
+        // Priority 2: Provider defaults (100 for Gmail, 500 for SMTP)
+        if (mb.provider === 'gmail' || mb.provider === 'outlook') return 100;
         return 500;
       };
 

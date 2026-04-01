@@ -56,6 +56,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
   const [importing, setImporting] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [isLoadingLeads, setIsLoadingLeads] = useState(false);
+  const [syncLimit, setSyncLimit] = useState<number | 'all'>(1000);
 
   const [mailboxLimits, setMailboxLimits] = useState<Record<string, number>>({});
   const [mailboxMaxMultipliers, setMailboxMaxMultipliers] = useState<Record<string, number>>({});
@@ -169,7 +170,8 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
   const handleFetchLeads = async () => {
     setIsLoadingLeads(true);
     try {
-      const res = await apiRequest("GET", "/api/leads?limit=1000&excludeActiveCampaignLeads=true");
+      const limitParam = syncLimit === 'all' ? 50000 : syncLimit;
+      const res = await apiRequest("GET", `/api/leads?limit=${limitParam}&excludeActiveCampaignLeads=true`);
       const data = await res.json();
       if (data.leads) {
         setLeads(data.leads);
@@ -183,15 +185,24 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
   };
 
   const handleLaunch = async () => {
+    if (!campaignName) {
+      toast({ title: "Name Required", description: "Please name your campaign before launching.", variant: "destructive" });
+      return;
+    }
+    if (selectedMailboxes.length === 0) {
+      toast({ title: "Mailbox Required", description: "Please select at least one connected mailbox.", variant: "destructive" });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const res = await apiRequest("POST", "/api/outreach/campaigns", {
-        name: campaignName || `Campaign ${new Date().toLocaleDateString()}`,
+        name: campaignName,
         leads: leads.map((l: any) => l.id || l),
         excludeWeekends,
-        singleCampaign: true,
         aiAutonomousMode,
         config: {
+          ...mailboxConfig,
           dailyLimit: totalDailyVolume,
           mailboxLimits,
           mailboxMaxMultipliers,
@@ -207,13 +218,30 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
           ]
         }
       });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to create campaign");
+      }
+
       const campaign = await res.json();
-      await apiRequest("POST", `/api/outreach/campaigns/${campaign.id}/start`, {});
-      toast({ title: "Campaign Launched!", description: "Dynamic outreach started." });
+      
+      // Start the campaign immediately
+      const startRes = await apiRequest("POST", `/api/outreach/campaigns/${campaign.id}/start`, {});
+      if (!startRes.ok) {
+        throw new Error("Campaign created but failed to start. Please check your inbox status.");
+      }
+
+      toast({ title: "Campaign Launched!", description: `${campaignName} has started successfully.` });
+      localStorage.removeItem(`campaign_draft_${userId}`);
       onSuccess?.();
       onClose();
     } catch (err: any) {
-      toast({ title: "Launch failed", description: err.message, variant: "destructive" });
+      toast({ 
+        title: "Launch failed", 
+        description: err.message || "An unexpected error occurred.", 
+        variant: "destructive" 
+      });
     } finally {
       setIsLoading(false);
     }
@@ -364,7 +392,13 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                                         <span className="opacity-40">Daily Sends</span>
                                         <span className="text-primary">{mailboxLimits[mb.id]}/day</span>
                                       </div>
-                                      <Slider value={[mailboxLimits[mb.id] || 30]} onValueChange={v => setMailboxLimits(prev => ({ ...prev, [mb.id]: v[0] }))} min={10} max={mb.provider === 'smtp' ? 200 : 50} step={5} />
+                                      <Slider 
+                                        value={[mailboxLimits[mb.id] || 30]} 
+                                        onValueChange={v => setMailboxLimits(prev => ({ ...prev, [mb.id]: v[0] }))} 
+                                        min={10} 
+                                        max={mb.provider === 'smtp' ? 500 : 100} 
+                                        step={5} 
+                                      />
                                       <div className="p-3 bg-amber-500/5 rounded-xl border border-amber-500/10">
                                         <div className="flex justify-between text-[9px] font-black uppercase text-amber-600">
                                           <span>Safety Ceiling</span>
@@ -398,23 +432,73 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                               <Sparkles className="h-6 w-6 text-primary animate-pulse" />
                               <div className="font-black uppercase text-[10px] tracking-widest italic">Drop CSV or PDF here</div>
                             </label>
-                          ) : <Button onClick={handleFetchLeads} className="w-full h-14 rounded-2xl bg-muted/20 border-border/40 text-xs font-black uppercase tracking-widest hover:bg-muted/40">Sync Database Pool</Button>}
+                          ) : (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                              <div className="flex items-center gap-3">
+                                <div className="flex-1 relative">
+                                  <Input 
+                                    type={syncLimit === 'all' ? 'text' : 'number'}
+                                    value={syncLimit === 'all' ? 'MAX (50k)' : syncLimit}
+                                    onChange={e => {
+                                      const val = e.target.value;
+                                      if (val === '') {
+                                        setSyncLimit(0);
+                                      } else {
+                                        const parsed = parseInt(val);
+                                        if (!isNaN(parsed)) setSyncLimit(Math.max(0, Math.min(50000, parsed)));
+                                      }
+                                    }}
+                                    disabled={syncLimit === 'all'}
+                                    className="h-14 bg-muted/20 border-border/40 rounded-2xl pl-10 font-black"
+                                  />
+                                  <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 opacity-40" />
+                                </div>
+                                <Button 
+                                  variant={syncLimit === 'all' ? 'default' : 'outline'}
+                                  onClick={() => setSyncLimit(syncLimit === 'all' ? 1000 : 'all')}
+                                  className="h-14 px-6 rounded-2xl font-black text-[10px] uppercase tracking-widest shrink-0"
+                                >
+                                  {syncLimit === 'all' ? 'Custom' : 'All Leads'}
+                                </Button>
+                              </div>
+                              <Button 
+                                onClick={handleFetchLeads} 
+                                disabled={isLoadingLeads || (syncLimit !== 'all' && syncLimit <= 0)}
+                                className="w-full h-14 rounded-2xl bg-primary/10 border-primary/20 text-primary text-xs font-black uppercase tracking-widest hover:bg-primary/20 flex gap-3 transition-all"
+                              >
+                                {isLoadingLeads ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+                                {syncLimit === 'all' ? 'Fetch Entire Workforce Pool' : `Sync ${syncLimit} Available Leads`}
+                              </Button>
+                            </div>
+                          )}
                         </div>
                         <div className="p-6 bg-primary/5 rounded-[2rem] border border-primary/10 space-y-6">
                            <div className="flex items-center gap-2 text-primary">
                              <Sparkles className="w-4 h-4" />
                              <span className="text-[10px] font-black uppercase tracking-widest">Growth Engine Plan</span>
                            </div>
-                           <div className="grid grid-cols-2 gap-6">
-                             <div>
-                               <p className="text-[9px] uppercase font-black opacity-40 mb-1">Daily Blast</p>
-                               <p className="text-3xl font-black italic">~{totalDailyVolume}</p>
+                            <div className="grid grid-cols-2 gap-6">
+                              <div>
+                                <p className="text-[9px] uppercase font-black opacity-40 mb-1">Daily Blast</p>
+                                <p className={cn("text-3xl font-black italic transition-all", totalDailyVolume === 0 ? "text-muted-foreground/30" : "text-foreground")}>
+                                  ~{totalDailyVolume}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-[9px] uppercase font-black opacity-40 text-amber-600 mb-1 flex items-center gap-1">
+                                  Retry Buffer <Badge variant="outline" className="text-[7px] h-3 px-1 border-amber-600/20 text-amber-600 font-black">AI BOOST</Badge>
+                                </p>
+                                <p className={cn("text-3xl font-black italic transition-all", totalDailyVolume === 0 ? "text-amber-600/30" : "text-amber-600")}>
+                                  +{maxTotalVolume - totalDailyVolume}
+                                </p>
+                              </div>
+                            </div>
+
+                           {totalDailyVolume === 0 && (
+                             <div className="p-4 bg-muted/20 border border-border/40 rounded-2xl text-[10px] font-bold italic opacity-60">
+                               ⚠️ No mailboxes selected. Please check at least one "Connected Inbox" above to calculate your growth plan.
                              </div>
-                             <div>
-                               <p className="text-[9px] uppercase font-black opacity-40 text-amber-600 mb-1">Retry Buffer</p>
-                               <p className="text-3xl font-black italic text-amber-600">+{maxTotalVolume - totalDailyVolume}</p>
-                             </div>
-                           </div>
+                           )}
                           <div className="space-y-4">
                             <Label className="text-[10px] font-black uppercase tracking-widest opacity-40">Campaign Duration Goal: {targetDays} Days</Label>
                             <Slider value={[targetDays]} onValueChange={v => setTargetDays(v[0])} min={1} max={30} step={1} className="py-2" />
@@ -517,9 +601,30 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
             <div className="p-6 md:p-10 border-t border-border/20 bg-card/95 backdrop-blur-2xl flex items-center justify-between shrink-0 sticky bottom-0 z-30 pb-16 md:pb-10">
               <Button variant="ghost" onClick={() => step > 1 ? setStep(step - 1) : onClose()} className="h-14 px-10 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-muted/50 transition-all font-sans">{step === 1 ? 'Discard' : 'Back'}</Button>
               {step < 2 ? (
-                <Button disabled={leads.length === 0 || !campaignName} onClick={() => setStep(2)} className="h-16 px-16 rounded-2xl font-black uppercase tracking-[0.2em] shadow-2xl shadow-primary/20 bg-primary hover:bg-primary/90 text-primary-foreground text-sm gap-4 transition-all group font-sans">Sequence Design <ChevronRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" /></Button>
+                <Button 
+                  disabled={leads.length === 0 || !campaignName || selectedMailboxes.length === 0 || isLoadingLeads} 
+                  onClick={() => setStep(2)} 
+                  className={cn(
+                    "h-16 px-16 rounded-2xl font-black uppercase tracking-[0.2em] transition-all group font-sans flex flex-col items-center justify-center gap-0 relative overflow-hidden",
+                    (leads.length === 0 || selectedMailboxes.length === 0 || isLoadingLeads) ? "bg-muted text-muted-foreground" : "shadow-2xl shadow-primary/20 bg-primary hover:bg-primary/90 text-primary-foreground"
+                  )}
+                >
+                  {isLoadingLeads && (
+                    <div className="absolute inset-0 bg-primary/20 flex items-center justify-center backdrop-blur-sm">
+                      <div className="h-5 w-5 border-2 border-white border-t-transparent animate-spin rounded-full" />
+                    </div>
+                  )}
+                  <div className="flex items-center gap-4 text-sm">
+                    Design Outreach Sequence <ChevronRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                  <span className="text-[8px] font-black opacity-50 tracking-widest mt-0.5">
+                    {isLoadingLeads ? "SYNCING DATABASE..." : (leads.length === 0 ? "ADD LEADS TO CONTINUE" : (selectedMailboxes.length === 0 ? "SELECT AN INBOX TO CONTINUE" : "NEXT: CRAFT YOUR 3-STEP AI ENGINE"))}
+                  </span>
+                </Button>
               ) : (
-                <Button onClick={handleLaunch} disabled={isLoading || !subject || !body} className="h-16 px-20 rounded-2xl font-black uppercase tracking-[0.3em] shadow-2xl shadow-emerald-500/20 bg-emerald-500 hover:bg-emerald-600 text-white text-sm gap-4 transition-all animate-pulse hover:animate-none font-sans">LAUNCH CAMPAIGN <Plus className="h-5 w-5" /></Button>
+                <Button onClick={handleLaunch} disabled={isLoading || !subject || !body} className="h-16 px-20 rounded-2xl font-black uppercase tracking-[0.3em] shadow-2xl shadow-emerald-500/20 bg-emerald-500 hover:bg-emerald-600 text-white text-sm gap-4 transition-all animate-pulse hover:animate-none font-sans relative">
+                  {isLoading ? "LAUNCHING..." : "LAUNCH CAMPAIGN"} <Plus className="h-5 w-5" />
+                </Button>
               )}
             </div>
           </div>

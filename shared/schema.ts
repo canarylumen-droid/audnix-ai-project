@@ -897,6 +897,8 @@ export const campaignLeads = pgTable("campaign_leads", {
 }, (table: any) => {
   return {
     campaignLeadIdx: uniqueIndex("campaign_lead_idx").on(table.campaignId, table.leadId),
+    campaignLeadsNextActionIdx: index("campaign_leads_next_action_idx").on(table.campaignId, table.status, table.nextActionAt),
+    campaignLeadsIntegrationIdx: index("campaign_leads_integration_idx").on(table.integrationId, table.status),
   };
 });
 

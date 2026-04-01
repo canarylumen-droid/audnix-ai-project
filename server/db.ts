@@ -16,11 +16,36 @@ function initializeDb() {
     return { db: null, pool: null };
   }
 
-  const connectionString = url;
+  // Normalize connection string for SSL compatibility
+  let connectionString: string;
+  try {
+    const dbUrl = new URL(url);
+    const isNeon = url.includes('neon.tech');
 
+    if (isNeon) {
+      // Neon requires uselibpqcompat + require for libpq-standard behavior
+      dbUrl.searchParams.set('uselibpqcompat', 'true');
+      if (!dbUrl.searchParams.has('sslmode')) {
+        dbUrl.searchParams.set('sslmode', 'require');
+      }
+    } else if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
+      // Standard PostgreSQL: use explicit verify-full to silence pg v9 deprecation warning
+      if (!dbUrl.searchParams.has('sslmode')) {
+        dbUrl.searchParams.set('sslmode', 'verify-full');
+      }
+    }
+
+    connectionString = dbUrl.toString();
+  } catch (urlError) {
+    console.error('❌ Invalid DATABASE_URL format:', url);
+    connectionString = url;
+  }
+
+  const isProduction = url.includes('neon.tech') || process.env.NODE_ENV === "production";
   try {
     _pool = new Pool({
       connectionString,
+      ssl: isProduction ? { rejectUnauthorized: false } : false,
       max: 20,
       idleTimeoutMillis: 10000,
       connectionTimeoutMillis: 5000,

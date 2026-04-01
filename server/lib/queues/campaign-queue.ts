@@ -128,7 +128,7 @@ export class CampaignQueueManager {
         integrationId: mbId,
         dailyLimit,
       }, {
-        repeat: { every: 1000 * 60 * 5 }, // Every 5 minutes
+        repeat: { every: jitteredRepeatMs }, // Dynamically calculated for performance
         jobId: jobKey,
         priority: 2 // Initial outreach is P2
       });
@@ -142,7 +142,7 @@ export class CampaignQueueManager {
       campaignId: campaign.id,
       userId: campaign.userId,
     }, {
-      repeat: { every: 30_000 },
+      repeat: { every: 60_000 }, // Reduced from 30s to 60s for DB sanity
       jobId: `stats:${campaign.id}`,
     });
 

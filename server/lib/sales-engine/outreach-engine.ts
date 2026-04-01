@@ -205,14 +205,15 @@ export function formatCampaignMetrics(campaign: OutreachCampaign): string {
  * Safety guardrails - prevent oversending and reputation damage
  */
 export const SAFETY_GUARDRAILS = {
-  maxSendsPerHour: 200,
-  maxSendsPerDay: 2500,
-  minIntervalBetweenSends: 0.5, // 30 seconds minimum for jitter
+  maxSendsPerHour: 40, // More humanized (1 per 1.5 mins)
+  maxSendsPerDay: 500, // Safe default for SMTP
+  gmailMaxPerDay: 100, // Safe ceiling for Gmail/Outlook
+  minIntervalBetweenSends: 30, // 30 seconds minimum for jitter
   maxFollowupsPerLead: 5,
   bounceRateThreshold: 0.08, // 8% bounce = pause
   spamComplaintThreshold: 0.02, // 2% complaints = review
   autoStopOnHighBounceRate: true,
-  requireApprovalAbove: 10000,
+  requireApprovalAbove: 20000, 
 };
 
 /**
@@ -326,11 +327,19 @@ export async function distributeLeadsFromPool(userId: string, targetIntegrationI
     console.log(`[LeadPool] Found ${activeCampaigns.length} active campaigns. User is in ${isAutonomous ? 'AUTONOMOUS' : 'CAMPAIGN-ONLY'} mode.`);
 
     const getDailyLimit = (integration: any) => {
-      // Priority: metadata override > provider default (Gmail: 500, Custom: 2500)
-      if (integration.metadata?.dailyLimit) return Number(integration.metadata.dailyLimit);
-      if (integration.provider === 'gmail' || integration.provider === 'outlook') return 500;
-      return 2500; 
+      // Priority: metadata override > provider default (Gmail: 100, SMTP: 500)
+      if (integration.metadata?.dailyLimit) {
+        const customLimit = Number(integration.metadata.dailyLimit);
+        // Ensure even overrides don't exceed extreme caps unless explicitly specified
+        return Math.min(customLimit, transitionToSafeLimit(integration.provider));
+      }
+      return transitionToSafeLimit(integration.provider);
     };
+
+    function transitionToSafeLimit(provider?: string) {
+      if (provider === 'gmail' || provider === 'outlook') return 100;
+      return 500;
+    }
 
     // 2. Calculate capacity for each mailbox
     const mailboxCapacities = await Promise.all(activeMailboxes.map(async (mb) => {

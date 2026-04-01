@@ -165,9 +165,9 @@ export class GmailOAuth {
       if (!tokenData.refreshToken) return null;
 
       try {
-        const decryptedRefreshToken = await decrypt(tokenData.refreshToken);
+        const decryptedRefreshToken = decrypt(tokenData.refreshToken);
         const newTokens = await this.refreshAccessToken(decryptedRefreshToken);
-        const encryptedNewAccessToken = await encrypt(newTokens.access_token);
+        const encryptedNewAccessToken = encrypt(newTokens.access_token);
         const newExpiresAt = newTokens.expiry_date
           ? new Date(newTokens.expiry_date)
           : new Date(Date.now() + 60 * 60 * 1000);

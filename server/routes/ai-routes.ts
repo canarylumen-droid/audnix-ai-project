@@ -55,7 +55,7 @@ router.get("/", requireAuth, async (req: Request, res: Response): Promise<void> 
     const userId = getCurrentUserId(req)!;
     const { channel, status, limit = "50", offset = "0", search, includeArchived, integrationId, excludeActiveCampaignLeads } = req.query;
 
-    const limitNum = Math.min(parseInt(limit as string) || 50, 500);
+    const limitNum = Math.min(parseInt(limit as string) || 20000, 20000);
     const offsetNum = parseInt(offset as string) || 0;
 
     // Get paginated leads directly from storage
@@ -493,7 +493,8 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
             leadsImported: leadsToSave.length,
             duplicatesSkipped: duplicateCount,
             invalidFiltered: filteredCount,
-            processId: processLog.id
+            processId: processLog.id,
+            leads: leadsToSave.slice(0, 1000) // Return leads for immediate Wizard usage
           });
 
           // Create single aggregate notification for import (only one sound plays)

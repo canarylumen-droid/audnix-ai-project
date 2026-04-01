@@ -142,7 +142,7 @@ export interface IStorage {
   recordLearningPattern(userId: string, key: string, success: boolean): Promise<void>;
 
   // OAuth Accounts
-  getOAuthAccount(userId: string, provider: string): Promise<OAuthAccount | undefined>;
+  getOAuthAccount(userId: string, provider: string, providerAccountId?: string): Promise<OAuthAccount | undefined>;
   getOAuthAccountByAccountId(userId: string, provider: string, accountId: string): Promise<OAuthAccount | undefined>;
   getSoonExpiringOAuthAccounts(provider: string, thresholdMinutes: number): Promise<OAuthAccount[]>;
   saveOAuthAccount(data: InsertOAuthAccount): Promise<OAuthAccount>;

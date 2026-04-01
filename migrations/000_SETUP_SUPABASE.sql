@@ -441,102 +441,86 @@ ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE brand_embeddings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE semantic_memory ENABLE ROW LEVEL SECURITY;
 
--- Users policies (simplified for standard PostgreSQL)
-DO $$ BEGIN
-  CREATE POLICY "Users can view own profile" ON users
-    FOR SELECT USING (id = current_setting('app.current_user_id', true)::uuid);
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+-- RLS Policies
+DROP POLICY IF EXISTS "Users can view own profile" ON users;
+CREATE POLICY "Users can view own profile" ON users
+  FOR SELECT USING (id = current_setting('app.current_user_id', true)::uuid);
 
-DO $$ BEGIN
-  CREATE POLICY "Users can update own profile" ON users
-    FOR UPDATE USING (id = current_setting('app.current_user_id', true)::uuid);
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DROP POLICY IF EXISTS "Users can update own profile" ON users;
+CREATE POLICY "Users can update own profile" ON users
+  FOR UPDATE USING (id = current_setting('app.current_user_id', true)::uuid);
 
 -- Leads policies
-DO $$ BEGIN
-  CREATE POLICY "Users can view own leads" ON leads
-    FOR SELECT USING (user_id = current_setting('app.current_user_id', true)::uuid);
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DROP POLICY IF EXISTS "Users can manage own leads" ON leads;
+CREATE POLICY "Users can manage own leads" ON leads
+  FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
-DO $$ BEGIN
-  CREATE POLICY "Users can insert own leads" ON leads
-    FOR INSERT WITH CHECK (user_id = current_setting('app.current_user_id', true)::uuid);
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-DO $$ BEGIN
-  CREATE POLICY "Users can update own leads" ON leads
-    FOR UPDATE USING (user_id = current_setting('app.current_user_id', true)::uuid);
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DROP POLICY IF EXISTS "Users can insert own leads" ON leads;
+CREATE POLICY "Users can insert own leads" ON leads
+  FOR INSERT WITH CHECK (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- Messages policies
-DO $$ BEGIN
-  CREATE POLICY "Users can view own messages" ON messages
-    FOR SELECT USING (user_id = current_setting('app.current_user_id', true)::uuid);
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DROP POLICY IF EXISTS "Users can view own messages" ON messages;
+CREATE POLICY "Users can view own messages" ON messages
+  FOR SELECT USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
-DO $$ BEGIN
-  CREATE POLICY "Users can insert own messages" ON messages
-    FOR INSERT WITH CHECK (user_id = current_setting('app.current_user_id', true)::uuid);
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DROP POLICY IF EXISTS "Users can insert own messages" ON messages;
+CREATE POLICY "Users can insert own messages" ON messages
+  FOR INSERT WITH CHECK (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- Integrations policies
-DO $$ BEGIN
-  CREATE POLICY "Users can manage own integrations" ON integrations
-    FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DROP POLICY IF EXISTS "Users can manage own integrations" ON integrations;
+CREATE POLICY "Users can manage own integrations" ON integrations
+  FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- OAuth tokens policies
-DO $$ BEGIN
-  CREATE POLICY "Users can view own OAuth tokens" ON oauth_tokens
-    FOR SELECT USING (user_id = current_setting('app.current_user_id', true)::uuid);
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DROP POLICY IF EXISTS "Users can view own OAuth tokens" ON oauth_tokens;
+CREATE POLICY "Users can view own OAuth tokens" ON oauth_tokens
+  FOR SELECT USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
-DO $$ BEGIN
-  CREATE POLICY "Users can update own OAuth tokens" ON oauth_tokens
-    FOR UPDATE USING (user_id = current_setting('app.current_user_id', true)::uuid);
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DROP POLICY IF EXISTS "Users can update own OAuth tokens" ON oauth_tokens;
+CREATE POLICY "Users can update own OAuth tokens" ON oauth_tokens
+  FOR UPDATE USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- Deals policies
-DO $$ BEGIN
-  CREATE POLICY "Users can manage own deals" ON deals
-    FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DROP POLICY IF EXISTS "Users can manage own deals" ON deals;
+CREATE POLICY "Users can manage own deals" ON deals
+  FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- Voice settings policies
-DO $$ BEGIN
-  CREATE POLICY "Users can manage own voice settings" ON voice_settings
-    FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DROP POLICY IF EXISTS "Users can manage own voice settings" ON voice_settings;
+CREATE POLICY "Users can manage own voice settings" ON voice_settings
+  FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- Automations policies
-DO $$ BEGIN
-  CREATE POLICY "Users can manage own automations" ON automations
-    FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DROP POLICY IF EXISTS "Users can manage own automations" ON automations;
+CREATE POLICY "Users can manage own automations" ON automations
+  FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- Follow-up queue policies
-DO $$ BEGIN
-  CREATE POLICY "Users can view own queue items" ON follow_up_queue
-    FOR SELECT USING (user_id = current_setting('app.current_user_id', true)::uuid);
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DROP POLICY IF EXISTS "Users can view own queue items" ON follow_up_queue;
+CREATE POLICY "Users can view own queue items" ON follow_up_queue
+  FOR SELECT USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- Calendar events policies
-DO $$ BEGIN
-  CREATE POLICY "Users can manage own calendar events" ON calendar_events
-    FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DROP POLICY IF EXISTS "Users can manage own calendar events" ON calendar_events;
+CREATE POLICY "Users can manage own calendar events" ON calendar_events
+  FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
+
+-- Outreach campaigns policies
+DROP POLICY IF EXISTS "Users can manage own outreach campaigns" ON outreach_campaigns;
+CREATE POLICY "Users can manage own outreach campaigns" ON outreach_campaigns
+  FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- Notifications policies
-DO $$ BEGIN
-  CREATE POLICY "Users can manage own notifications" ON notifications
-    FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DROP POLICY IF EXISTS "Users can manage own notifications" ON notifications;
+CREATE POLICY "Users can manage own notifications" ON notifications
+  FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- Team members policies
-DO $$ BEGIN
-  CREATE POLICY "Users can view own team" ON team_members
-    FOR SELECT USING (user_id = current_setting('app.current_user_id', true)::uuid);
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DROP POLICY IF EXISTS "Users can view own team" ON team_members;
+CREATE POLICY "Users can view own team" ON team_members
+  FOR SELECT USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- Webhooks policies
 DO $$ BEGIN
@@ -545,33 +529,28 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- Insights policies
-DO $$ BEGIN
-  CREATE POLICY "Users can view own insights" ON insights
-    FOR SELECT USING (user_id = current_setting('app.current_user_id', true)::uuid);
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DROP POLICY IF EXISTS "Users can view own insights" ON insights;
+CREATE POLICY "Users can view own insights" ON insights
+  FOR SELECT USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- API keys policies
-DO $$ BEGIN
-  CREATE POLICY "Users can manage own API keys" ON api_keys
-    FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DROP POLICY IF EXISTS "Users can manage own API keys" ON api_keys;
+CREATE POLICY "Users can manage own API keys" ON api_keys
+  FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- Payments policies
-DO $$ BEGIN
-  CREATE POLICY "Users can view own payments" ON payments
-    FOR SELECT USING (user_id = current_setting('app.current_user_id', true)::uuid);
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DROP POLICY IF EXISTS "Users can view own payments" ON payments;
+CREATE POLICY "Users can view own payments" ON payments
+  FOR SELECT USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- Embeddings policies
-DO $$ BEGIN
-  CREATE POLICY "Users can manage own brand embeddings" ON brand_embeddings
-    FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DROP POLICY IF EXISTS "Users can manage own brand embeddings" ON brand_embeddings;
+CREATE POLICY "Users can manage own brand embeddings" ON brand_embeddings
+  FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
-DO $$ BEGIN
-  CREATE POLICY "Users can manage own semantic memory" ON semantic_memory
-    FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DROP POLICY IF EXISTS "Users can manage own semantic memory" ON semantic_memory;
+CREATE POLICY "Users can manage own semantic memory" ON semantic_memory
+  FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- ============================================================================
 -- HELPER FUNCTIONS

@@ -27,22 +27,8 @@ import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import pg from "pg";
 import { registerRoutes } from "./routes/index.js";
-import { followUpWorker } from "./lib/ai/follow-up-worker.js";
-import { startVideoCommentMonitoring } from "./lib/ai/video-comment-monitor.js";
 import { workerHealthMonitor } from "./lib/monitoring/worker-health.js";
-import { emailWarmupWorker } from "./lib/email/email-warmup-worker.js";
-import { emailSyncWorker } from "./lib/email/email-sync-worker.js";
-import { paymentAutoApprovalWorker } from "./lib/billing/payment-auto-approval-worker.js";
-import { outreachEngine } from "./lib/workers/outreach-engine.js";
-import { outreachWorker } from "./lib/queues/outreach-queue.js";
-import { campaignWorker } from "./lib/queues/campaign-queue.js";
-import { emailSyncWorkerModule } from "./lib/queues/email-sync-queue.js";
-import { mailboxHealthService } from "./lib/email/mailbox-health-service.js";
-import { redistributionWorker } from "./lib/email/redistribution-worker.js";
 import { quotaService } from "./lib/monitoring/quota-service.js";
-import { leadExpiryWorker } from "./lib/workers/lead-expiry-worker.js";
-import { reputationWorker } from "./lib/workers/reputation-worker.js";
-import { meetingReminderWorker } from "./lib/workers/meeting-reminder-worker.js";
 import { apiLimiter, authLimiter } from "./middleware/rate-limit.js";
 import { sentinel } from "./middleware/sentinel.js";
 import { fileURLToPath } from "url";
@@ -367,6 +353,10 @@ app.use((req, res, next) => {
     "/api/oauth/instagram/callback",
     "/api/oauth/instagram/webhook",
     "/api/oauth/facebook/webhook",
+    "/api/oauth/gmail/callback",
+    "/api/oauth/google-redirect/gmail/callback",
+    "/api/oauth/google-calendar/callback",
+    "/api/oauth/google/callback",
     "/api/messages",
     "/api/notifications",
     "/api/dns/verify",
@@ -533,7 +523,7 @@ async function runMigrations() {
           // Delay worker startup slightly to ensure web server is fully responsive
           const WORKER_STARTUP_DELAY = 3000;
           setTimeout(async () => {
-            log("⚙️ Starting background workers...");
+            log("⚙️ Starting background workers (Lazy Loaded)...");
             
             // Worker error wrapper for graceful degradation
             const startWorker = (name: string, startFn: () => void) => {
@@ -545,35 +535,74 @@ async function runMigrations() {
               }
             };
 
-            // START WORKERS: Follow-up and Outreach engines
-            startWorker("Follow-up", () => followUpWorker.start());
-            startWorker("Outreach", () => outreachEngine.start());
-            startWorker("Video comment", () => startVideoCommentMonitoring());
-            startWorker("Email sync", () => emailSyncWorker.start());
-            startWorker("Payment approval", () => paymentAutoApprovalWorker.start());
-            startWorker("Email warmup", () => emailWarmupWorker.start());
-            startWorker("Reputation", () => reputationWorker.start());
-            startWorker("Meeting Reminders", () => meetingReminderWorker.start());
-
-            // Real-time IMAP IDLE Manager
             try {
-              const { imapIdleManager } = await import("./lib/email/imap-idle-manager.js");
-              startWorker("IMAP IDLE", () => imapIdleManager.start());
-            } catch (e) {
-              log("⚠️ IMAP IDLE Manager could not be imported", "error");
-            }
+              // Lazy load workers to speed up initial server boot and binding
+              const [
+                { followUpWorker },
+                { startVideoCommentMonitoring },
+                { outreachEngine },
+                { emailSyncWorker },
+                { paymentAutoApprovalWorker },
+                { emailWarmupWorker },
+                { reputationWorker },
+                { meetingReminderWorker },
+                { mailboxHealthService },
+                { redistributionWorker },
+                { leadExpiryWorker }
+              ] = await Promise.all([
+                import("./lib/ai/follow-up-worker.js"),
+                import("./lib/ai/video-comment-monitor.js"),
+                import("./lib/workers/outreach-engine.js"),
+                import("./lib/email/email-sync-worker.js"),
+                import("./lib/billing/payment-auto-approval-worker.js"),
+                import("./lib/email/email-warmup-worker.js"),
+                import("./lib/workers/reputation-worker.js"),
+                import("./lib/workers/meeting-reminder-worker.js"),
+                import("./lib/email/mailbox-health-service.js"),
+                import("./lib/email/redistribution-worker.js"),
+                import("./lib/workers/lead-expiry-worker.js")
+              ]);
 
-            // Mailbox Health Monitoring & Lead Redistribution
-            startWorker("Mailbox Health", () => mailboxHealthService.start());
-            startWorker("Lead Redistribution", () => redistributionWorker.start());
+              // Background workers for side-effect initializations (BullMQ, etc.)
+              await Promise.all([
+                import("./lib/queues/outreach-queue.js"),
+                import("./lib/queues/campaign-queue.js"),
+                import("./lib/queues/email-sync-queue.js")
+              ]);
 
-            // AI Provider Smoke Test
-            try {
-              const { getAIStatus } = await import("./lib/ai/ai-service.js");
-              const aiStatus = getAIStatus();
-              console.log(`🤖 AI Engine initialized. Active Provider: ${aiStatus.activeProvider}`);
-            } catch (e) {
-              log("⚠️ AI Service could not be initialized", "error");
+              // START WORKERS: Follow-up and Outreach engines
+              startWorker("Follow-up", () => followUpWorker.start());
+              startWorker("Outreach", () => outreachEngine.start());
+              startWorker("Video comment", () => startVideoCommentMonitoring());
+              startWorker("Email sync", () => emailSyncWorker.start());
+              startWorker("Payment approval", () => paymentAutoApprovalWorker.start());
+              startWorker("Email warmup", () => emailWarmupWorker.start());
+              startWorker("Reputation", () => (reputationWorker as any).start());
+              startWorker("Meeting Reminders", () => meetingReminderWorker.start());
+              startWorker("Lead Expiry", () => leadExpiryWorker.start());
+
+              // Real-time IMAP IDLE Manager
+              try {
+                const { imapIdleManager } = await import("./lib/email/imap-idle-manager.js");
+                startWorker("IMAP IDLE", () => imapIdleManager.start());
+              } catch (e) {
+                log("⚠️ IMAP IDLE Manager could not be imported", "error");
+              }
+
+              // Mailbox Health Monitoring & Lead Redistribution
+              startWorker("Mailbox Health", () => mailboxHealthService.start());
+              startWorker("Lead Redistribution", () => redistributionWorker.start());
+
+              // AI Provider Smoke Test
+              try {
+                const { getAIStatus } = await import("./lib/ai/ai-service.js");
+                const aiStatus = getAIStatus();
+                console.log(`🤖 AI Engine initialized. Active Provider: ${aiStatus.activeProvider}`);
+              } catch (e) {
+                log("⚠️ AI Service could not be initialized", "error");
+              }
+            } catch (err) {
+              console.error("❌ Critical error during background worker initialization:", err);
             }
           }, WORKER_STARTUP_DELAY);
         }

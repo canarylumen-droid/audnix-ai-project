@@ -406,9 +406,9 @@ export class DrizzleStorage implements IStorage {
       conditions.push(
         not(
           exists(
-            db.select()
+            db.select({ id: campaignLeads.id })
               .from(campaignLeads)
-              .where(eq(campaignLeads.leadId, leads.id))
+              .where(sql`${campaignLeads.leadId} = ${leads.id}`)
           )
         ) as any
       );
@@ -1439,6 +1439,22 @@ export class DrizzleStorage implements IStorage {
       .limit(1);
 
     return result[0];
+  }
+
+  async getOAuthAccountByAccountId(userId: string, provider: string, providerAccountId: string): Promise<OAuthAccount | undefined> {
+    checkDatabase();
+    const [result] = await db
+      .select()
+      .from(oauthAccounts)
+      .where(
+        and(
+          eq(oauthAccounts.userId, userId),
+          eq(oauthAccounts.provider, provider as any),
+          eq(oauthAccounts.providerAccountId, providerAccountId)
+        )
+      )
+      .limit(1);
+    return result;
   }
 
   async getSoonExpiringOAuthAccounts(provider: string, thresholdMinutes: number): Promise<OAuthAccount[]> {
