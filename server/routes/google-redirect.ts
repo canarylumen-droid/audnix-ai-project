@@ -154,8 +154,18 @@ router.get('/gmail/callback', async (req: Request, res: Response): Promise<void>
     });
 
   } catch (error: any) {
-    console.error('[Google Redirect] Fatal callback error:', error?.message || error);
-    res.redirect('/dashboard/integrations?error=gmail_oauth_failed');
+    // Advanced error logging for Google exchange failures
+    const errorMsg = error?.message || String(error);
+    console.error(`[Google Redirect] ❌ Gmail exchange failed: ${errorMsg}`);
+    
+    // Check if it's a specific Google error that we should report back
+    if (errorMsg.includes('invalid_grant')) {
+      res.redirect('/dashboard/integrations?error=gmail_oauth_failed&reason=invalid_grant');
+    } else if (errorMsg.includes('invalid_client')) {
+      res.redirect('/dashboard/integrations?error=gmail_oauth_failed&reason=invalid_client');
+    } else {
+      res.redirect(`/dashboard/integrations?error=gmail_oauth_failed&details=${encodeURIComponent(errorMsg.substring(0, 100))}`);
+    }
   }
 });
 

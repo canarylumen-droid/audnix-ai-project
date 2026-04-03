@@ -357,6 +357,8 @@ app.use((req, res, next) => {
     "/api/oauth/google-redirect/gmail/callback",
     "/api/oauth/google-calendar/callback",
     "/api/oauth/google/callback",
+    "/api/oauth/calendly/callback",
+    "/api/oauth/outlook/callback",
     "/api/messages",
     "/api/notifications",
     "/api/dns/verify",

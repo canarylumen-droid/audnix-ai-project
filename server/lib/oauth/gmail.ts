@@ -31,10 +31,14 @@ export class GmailOAuth {
 
   constructor() {
     this.config = {
-      clientId: process.env.GMAIL_CLIENT_ID || '',
-      clientSecret: process.env.GMAIL_CLIENT_SECRET || '',
+      clientId: process.env.GMAIL_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || '',
+      clientSecret: process.env.GMAIL_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET || '',
       redirectUri: getOAuthRedirectUrl('gmail')
     };
+
+    if (!this.config.clientId || !this.config.clientSecret) {
+      console.warn('⚠️ Gmail OAuth: Missing Client ID or Secret. OAuth will fail.');
+    }
 
     // Shared global client instance for stateless operations (auth url, code exchange)
     this.oauth2Client = new google.auth.OAuth2(
@@ -82,17 +86,18 @@ export class GmailOAuth {
     });
   }
 
-  /**
-   * Exchange authorization code for tokens
-   */
   async exchangeCodeForToken(code: string): Promise<GmailTokenResponse> {
     try {
       console.log(`[Gmail OAuth] Exchanging code for token. Redirect URI: ${this.config.redirectUri}`);
       const { tokens } = await this.oauth2Client.getToken(code);
       return tokens as GmailTokenResponse;
     } catch (error: any) {
+      const errorData = error.response?.data || error;
       console.error(`[Gmail OAuth] Exchange failed. Redirect URI was: ${this.config.redirectUri}`);
-      throw new Error(`Failed to exchange code for token: ${error.message}`);
+      console.error(`[Gmail OAuth] Error details:`, JSON.stringify(errorData, null, 2));
+      
+      const errorMessage = errorData.error_description || errorData.error || error.message || 'Unknown exchange error';
+      throw new Error(`Failed to exchange code for token: ${errorMessage}`);
     }
   }
 
