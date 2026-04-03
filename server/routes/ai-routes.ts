@@ -321,7 +321,7 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
           // 4. Enforce Limits
           const user = await storage.getUserById(userId);
           const existingLeadsCount = await storage.getLeadsCount(userId);
-          const limit = user?.email === 'team.replyflow@gmail.com' ? 20000 : (user?.plan === 'pro' || user?.plan === 'enterprise' ? 10000 : 500);
+          const limit = user?.email === 'team.replyflow@gmail.com' ? 250000 : (user?.plan === 'enterprise' ? 250000 : (user?.plan === 'pro' ? 50000 : 5000));
 
           if (existingLeadsCount >= limit) {
             res.status(400).json({ error: `Lead limit reached (${limit} leads). Please upgrade your plan.` });

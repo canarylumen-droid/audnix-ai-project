@@ -73,8 +73,10 @@ router.get('/calendly/callback', async (req: Request, res: Response): Promise<vo
     // 4. Notify frontend
     wsSync.notifySettingsUpdated(userId);
 
-    console.log('[Calendly Redirect] Success. Redirecting back to dashboard.');
-    res.redirect('/dashboard/integrations?success=calendly_connected');
+    console.log('[Calendly Redirect] Success. Saving session and redirecting back to dashboard.');
+    req.session.save(() => {
+      res.redirect('/dashboard/integrations?success=calendly_connected');
+    });
   } catch (error) {
     console.error('[Calendly Redirect] Fatal callback error:', error);
     res.redirect('/dashboard/integrations?error=calendly_oauth_failed');

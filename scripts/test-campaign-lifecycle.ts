@@ -57,7 +57,7 @@ async function testCampaignLifecycle() {
 
   // 5. Verify Excluded from Fetch
   console.log('👀 Verifying lead is excluded from available pool...');
-  const availableLeadsBefore = await storage.getLeads(userId, { excludeActiveCampaignLeads: true });
+  const availableLeadsBefore = await storage.getLeads({ userId, excludeActiveCampaignLeads: true });
   const isExcluded = !availableLeadsBefore.some(l => l.id === testLead.id);
   if (isExcluded) {
     console.log('✅ Successfully excluded from fetch.');
@@ -76,7 +76,7 @@ async function testCampaignLifecycle() {
     .where(and(eq(campaignLeads.campaignId, campaign.id), eq(campaignLeads.status, 'pending')));
 
   if (pendingLeads.length > 0) {
-    const leadIds = pendingLeads.map(l => l.leadId);
+    const leadIds = pendingLeads.map((l: { leadId: string | null }) => l.leadId);
     await db.update(leads).set({ integrationId: null }).where(eq(leads.id, testLead.id));
     await db.update(campaignLeads).set({ status: 'aborted' }).where(eq(campaignLeads.campaignId, campaign.id));
   }
@@ -84,7 +84,7 @@ async function testCampaignLifecycle() {
 
   // 7. Verify Re-available
   console.log('🔄 Verifying lead is re-available after abort...');
-  const availableLeadsAfter = await storage.getLeads(userId, { excludeActiveCampaignLeads: true });
+  const availableLeadsAfter = await storage.getLeads({ userId, excludeActiveCampaignLeads: true });
   const isReavailable = availableLeadsAfter.some(l => l.id === testLead.id);
   if (isReavailable) {
     console.log('✅ Successfully re-available in fetch!');

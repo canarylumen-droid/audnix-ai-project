@@ -87,9 +87,11 @@ export class GmailOAuth {
    */
   async exchangeCodeForToken(code: string): Promise<GmailTokenResponse> {
     try {
+      console.log(`[Gmail OAuth] Exchanging code for token. Redirect URI: ${this.config.redirectUri}`);
       const { tokens } = await this.oauth2Client.getToken(code);
       return tokens as GmailTokenResponse;
     } catch (error: any) {
+      console.error(`[Gmail OAuth] Exchange failed. Redirect URI was: ${this.config.redirectUri}`);
       throw new Error(`Failed to exchange code for token: ${error.message}`);
     }
   }

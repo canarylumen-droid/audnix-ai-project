@@ -48,7 +48,7 @@ export async function importInstagramLeads(userId: string): Promise<{
   try {
     const user = await storage.getUserById(userId);
     const currentLeadCount = await storage.getLeadsCount(userId);
-    const limit = user?.email === 'team.replyflow@gmail.com' ? 50000 : (user?.plan === 'pro' || user?.plan === 'enterprise' ? 50000 : 5000);
+    const limit = user?.email === 'team.replyflow@gmail.com' ? 250000 : (user?.plan === 'enterprise' ? 250000 : (user?.plan === 'pro' ? 50000 : 5000));
 
     if (currentLeadCount >= limit) {
       results.errors.push(`Lead limit reached (${limit} leads).`);
@@ -130,7 +130,7 @@ export async function importManychatLeads(userId: string): Promise<{
   try {
     const user = await storage.getUserById(userId);
     const existingLeadsCount = await storage.getLeadsCount(userId);
-    const limit = user?.email === 'team.replyflow@gmail.com' ? 50000 : (user?.plan === 'pro' || user?.plan === 'enterprise' ? 50000 : 5000);
+    const limit = user?.email === 'team.replyflow@gmail.com' ? 250000 : (user?.plan === 'enterprise' ? 250000 : (user?.plan === 'pro' ? 50000 : 5000));
 
     const integrations = await storage.getIntegrations(userId);
     const mcIntegration = integrations.find(i => i.provider === 'manychat' && i.connected);
@@ -209,7 +209,7 @@ export async function importGmailLeads(userId: string): Promise<{
   try {
     const user = await storage.getUserById(userId);
     const existingLeadsCount = await storage.getLeadsCount(userId);
-    const limit = user?.email === 'team.replyflow@gmail.com' ? 50000 : (user?.plan === 'pro' || user?.plan === 'enterprise' ? 50000 : 5000);
+    const limit = user?.email === 'team.replyflow@gmail.com' ? 250000 : (user?.plan === 'enterprise' ? 250000 : (user?.plan === 'pro' ? 50000 : 5000));
 
     const { GmailOAuth } = await import('../oauth/gmail.js');
     const gmailOAuth = new GmailOAuth();

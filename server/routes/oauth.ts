@@ -435,4 +435,14 @@ router.get('/connect/calendly', async (req: Request, res: Response): Promise<voi
 
 // Calendly callback logic moved to dedicated calendly-redirect.ts file
 
+import { getAllOAuthRedirectUrls } from '../lib/config/oauth-redirects.js';
+
+router.get('/debug/redirect-urls', (req: Request, res: Response) => {
+  res.json({
+    environment: process.env.NODE_ENV,
+    domain: process.env.DOMAIN,
+    redirects: getAllOAuthRedirectUrls()
+  });
+});
+
 export default router;

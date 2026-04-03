@@ -450,7 +450,7 @@ router.post('/campaigns/:id/abort', requireAuth, async (req, res) => {
       .where(and(eq(campaignLeads.campaignId, id), eq(campaignLeads.status, 'pending')));
 
     if (pendingLeads.length > 0) {
-      const leadIds = pendingLeads.map(l => l.leadId).filter(Boolean) as string[];
+      const leadIds = pendingLeads.map((l: { leadId: string | null }) => l.leadId).filter(Boolean) as string[];
       // Reset integrationId in the main leads table so they can be picked up by new campaigns/mailboxes
       await db.update(leadsTable)
         .set({ integrationId: null })
@@ -512,7 +512,7 @@ router.delete('/campaigns/:id', requireAuth, async (req, res) => {
       .where(eq(campaignLeads.campaignId, id));
     
     if (camLeads.length > 0) {
-      const leadIds = camLeads.map(l => l.leadId).filter(Boolean) as string[];
+      const leadIds = camLeads.map((l: { leadId: string | null }) => l.leadId).filter(Boolean) as string[];
       await db.update(leadsTable)
         .set({ integrationId: null })
         .where(and(

@@ -117,8 +117,10 @@ router.get('/instagram/callback', async (req: Request, res: Response): Promise<v
     );
 
     // 9. Final Redirect
-    console.log('[Instagram Redirect] Success. Redirecting back to dashboard.');
-    res.redirect('/dashboard/integrations?success=instagram_connected');
+    console.log('[Instagram Redirect] Success. Saving session and redirecting back to dashboard.');
+    req.session.save(() => {
+      res.redirect('/dashboard/integrations?success=instagram_connected');
+    });
     
   } catch (error) {
     console.error('[Instagram Redirect] Fatal callback error:', error);

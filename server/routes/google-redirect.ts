@@ -148,8 +148,10 @@ router.get('/gmail/callback', async (req: Request, res: Response): Promise<void>
     }
 
     // 11. Redirect back to dashboard with success confirmation
-    console.log(`[Google Redirect] ✅ Gmail connected successfully for ${emailAddress}. Redirecting...`);
-    res.redirect('/dashboard/integrations?success=gmail_connected');
+    console.log(`[Google Redirect] ✅ Gmail connected successfully for ${emailAddress}. Saving session and redirecting...`);
+    req.session.save(() => {
+      res.redirect('/dashboard/integrations?success=gmail_connected');
+    });
 
   } catch (error: any) {
     console.error('[Google Redirect] Fatal callback error:', error?.message || error);
@@ -213,8 +215,10 @@ router.get('/google-calendar/callback', async (req: Request, res: Response): Pro
 
     wsSync.notifySettingsUpdated(userId);
 
-    console.log(`[Google Redirect] Calendar connection successful for user: ${userId}`);
-    res.redirect('/dashboard/integrations?success=google_calendar_connected');
+    console.log(`[Google Redirect] Calendar connection successful for user: ${userId}. Saving session and redirecting...`);
+    req.session.save(() => {
+      res.redirect('/dashboard/integrations?success=google_calendar_connected');
+    });
   } catch (error) {
     console.error('[Google Redirect] Google Calendar OAuth callback error:', error);
     res.redirect('/dashboard/integrations?error=oauth_failed');
