@@ -134,8 +134,20 @@ class EmailSyncWorker {
 
       if (result.imported > 0) {
         const { wsSync } = await import('../websocket-sync.js');
-        wsSync.notifyMessagesUpdated(userId, { event: 'INSERT', count: result.imported });
-        wsSync.notifyActivityUpdated(userId, { type: 'email_sync', count: result.imported });
+        // Notify of the general update with provider context
+        wsSync.notifyMessagesUpdated(userId, { 
+          event: 'INSERT', 
+          count: result.imported,
+          provider: integration.provider,
+          integrationId: integration.id,
+          timestamp: new Date().toISOString()
+        });
+        wsSync.notifyActivityUpdated(userId, { 
+          type: 'email_sync', 
+          count: result.imported,
+          integrationId: integration.id,
+          provider: integration.provider
+        });
       }
 
       result.ghostedDetected = await this.detectGhostedLeads(userId);
@@ -242,12 +254,17 @@ class EmailSyncWorker {
   private async syncOutlookMessages(userId: string, integration: Integration, limit: number): Promise<Partial<SyncResult>> {
     const res = { imported: 0, skipped: 0, errors: 0 };
     try {
-      const credentialsStr = await decrypt(integration.encryptedMeta);
-      const credentials = JSON.parse(credentialsStr);
+      const { OutlookOAuth } = await import('../oauth/outlook.js');
+      const outlookOAuth = new OutlookOAuth();
+      const accessToken = await outlookOAuth.getValidToken(userId);
+
+      if (!accessToken) {
+        throw new Error("Failed to get valid access token for Outlook sync");
+      }
 
       const fetchFolder = async (folder: string, direction: 'inbound' | 'outbound') => {
         const response = await fetch(`https://graph.microsoft.com/v1.0/me/mailFolders/${folder}/messages?$top=50&$select=subject,from,toRecipients,bodyPreview,body,receivedDateTime`, {
-          headers: { 'Authorization': `Bearer ${credentials.access_token}` }
+          headers: { 'Authorization': `Bearer ${accessToken}` }
         });
         if (!response.ok) {
           if (response.status === 401 || response.status === 403) {

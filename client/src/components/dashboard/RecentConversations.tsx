@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -15,8 +15,14 @@ import {
   MessageCircle,
   ArrowLeft,
   Clock,
+  Sparkles,
 } from "lucide-react";
-type Channel = "instagram" | "email";
+import { SiGoogle } from "react-icons/si";
+import { useRealtime } from "@/hooks/use-realtime";
+import { useMailbox } from "@/hooks/use-mailbox";
+import { useQueryClient } from "@tanstack/react-query";
+
+type Channel = "instagram" | "email" | "gmail" | "outlook";
 
 interface Message {
   id: string;
@@ -29,13 +35,16 @@ interface Message {
 interface Lead {
   id: string;
   name: string;
-  channel: Channel;
+  channel: string;
   status: string;
   lastMessageAt: string;
-  engagementScore: number;
+  score: number;
+  metadata?: {
+    provider?: string;
+  };
 }
 
-const channelConfig = {
+const channelConfig: Record<string, any> = {
   instagram: {
     icon: Instagram,
     label: "Instagram",
@@ -50,23 +59,76 @@ const channelConfig = {
     bgColor: "bg-primary/10",
     textColor: "text-primary",
   },
+  gmail: {
+    icon: SiGoogle,
+    label: "Gmail",
+    color: "from-red-500 to-orange-500",
+    bgColor: "bg-red-500/10",
+    textColor: "text-red-500",
+  },
+  outlook: {
+    icon: Mail,
+    label: "Outlook",
+    color: "from-blue-500 to-indigo-600",
+    bgColor: "bg-blue-500/10",
+    textColor: "text-blue-500",
+  },
 };
 
 export function RecentConversations() {
-  const [selectedChannel, setSelectedChannel] = useState<Channel>("instagram");
+  const queryClient = useQueryClient();
+  const { socket } = useRealtime();
+  const { selectedMailboxId } = useMailbox();
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [selectedChannel, setSelectedChannel] = useState<Channel>("email");
+
+  const { data: integrations } = useQuery<any[]>({
+    queryKey: ["/api/integrations"],
+  });
+
+  const isAnyChannelConnected = integrations?.some(i => i.connected) ?? false;
+
+  // Real-time synchronization
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleLeadsUpdated = (payload: any) => {
+      // If the update targets our currently selected mailbox, or if we're in "all" view
+      if (!selectedMailboxId || payload.integrationId === selectedMailboxId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      }
+    };
+
+    const handleMessagesUpdated = (payload: any) => {
+      if (!selectedMailboxId || payload.integrationId === selectedMailboxId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+        if (selectedLead && payload.leadId === selectedLead.id) {
+          queryClient.invalidateQueries({ queryKey: ["/api/leads", selectedLead.id, "messages"] });
+        }
+      }
+    };
+
+    socket.on('leads_updated', handleLeadsUpdated);
+    socket.on('messages_updated', handleMessagesUpdated);
+
+    return () => {
+      socket.off('leads_updated', handleLeadsUpdated);
+      socket.off('messages_updated', handleMessagesUpdated);
+    };
+  }, [socket, selectedMailboxId, selectedLead, queryClient]);
 
   const { data: leadsData, isLoading: leadsLoading } = useQuery({
-    queryKey: ["/api/leads", { channel: selectedChannel, limit: 5 }],
+    queryKey: ["/api/leads", { integrationId: selectedMailboxId, channel: selectedChannel, limit: 10 }],
+    queryFn: async () => {
+      const url = new URL("/api/leads", window.location.origin);
+      if (selectedMailboxId) url.searchParams.set("integrationId", selectedMailboxId);
+      url.searchParams.set("channel", selectedChannel);
+      url.searchParams.set("limit", "10");
+      const res = await fetch(url.toString());
+      if (!res.ok) throw new Error("Failed to fetch leads");
+      return res.json();
+    }
   });
-
-  const { data: channelStatus } = useQuery<any>({
-    queryKey: ["/api/channels/all"],
-  });
-
-  const isAnyChannelConnected = 
-    channelStatus?.channels?.email?.connected || 
-    channelStatus?.channels?.instagram?.connected;
 
   const { data: messagesData, isLoading: messagesLoading } = useQuery({
     queryKey: ["/api/leads", selectedLead?.id, "messages"],
@@ -123,10 +185,16 @@ export function RecentConversations() {
             <h3 className="text-lg font-black tracking-tight text-white uppercase">{selectedLead.name}</h3>
             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">
               {(() => {
-                const ChannelIcon = channelConfig[selectedLead.channel].icon;
+                const provider = selectedLead.metadata?.provider || selectedLead.channel;
+                const config = channelConfig[provider] || channelConfig.email;
+                const ChannelIcon = config.icon;
                 return <ChannelIcon className="h-3 w-3" />;
               })()}
-              <span>{channelConfig[selectedLead.channel].label} CORE</span>
+              <span>{(() => {
+                const provider = selectedLead.metadata?.provider || selectedLead.channel;
+                const config = channelConfig[provider] || channelConfig.email;
+                return config.label;
+              })()} CORE</span>
             </div>
           </div>
           <Badge
@@ -166,7 +234,7 @@ export function RecentConversations() {
                 >
                   <div
                     className={`max-w-[80%] rounded-lg p-3 ${message.direction === "outbound"
-                      ? `bg-gradient-to-r ${channelConfig[selectedLead.channel].color} text-white`
+                      ? `bg-gradient-to-r ${channelConfig[selectedLead.metadata?.provider || selectedLead.channel]?.color || channelConfig.email.color} text-white`
                       : "bg-muted"
                       }`}
                   >
@@ -184,7 +252,9 @@ export function RecentConversations() {
                         : "text-muted-foreground"
                         }`}
                     >
-                      <Clock className="h-3 w-3" />
+                      {selectedLead.channel === "outlook" && (
+                        <Mail className="h-4 w-4 text-blue-600" />
+                      )}
                       <span>{formatFullTime(message.createdAt)}</span>
                     </div>
                   </div>
@@ -259,10 +329,11 @@ export function RecentConversations() {
               )}
             </div>
           ) : (
-            <div className="space-y-2">
+              <div className="space-y-2">
               <AnimatePresence mode="popLayout">
                 {leads.map((lead: Lead, index: number) => {
-                  const config = channelConfig[lead.channel];
+                  const provider = lead.metadata?.provider || lead.channel;
+                  const config = channelConfig[provider] || channelConfig.email;
                   const ChannelIcon = config.icon;
 
                   return (
@@ -302,7 +373,7 @@ export function RecentConversations() {
                               </div>
                               <div className="flex items-center gap-2">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-white/20">Score:</span>
-                                <span className={`text-[10px] font-black ${lead.engagementScore > 80 ? 'text-orange-500' : 'text-primary'}`}>{lead.engagementScore}</span>
+                                <span className={`text-[10px] font-black ${lead.score > 80 ? 'text-orange-500' : 'text-primary'}`}>{lead.score}</span>
                               </div>
                               <Badge
                                 variant="outline"

@@ -438,17 +438,15 @@ export default function IntegrationsPage() {
   };
 
   const getMailboxLimit = () => {
-    const tier = (userData?.user?.subscriptionTier || userData?.user?.plan || 'starter').toLowerCase();
-    if (tier === 'enterprise') return 10;
-    if (tier === 'pro') return 5;
-    if (tier === 'starter') return 3;
-    return 1;
+    const planId = (userData?.user?.subscriptionTier || userData?.user?.plan || 'starter').toLowerCase();
+    const capabilities = getPlanCapabilities(planId);
+    return capabilities.mailboxLimit === -1 ? Infinity : capabilities.mailboxLimit;
   };
 
   const connectedMailboxesCount = (customEmailStatus?.integrations?.length || 0) +
     (integrations.filter(i => i.provider === 'gmail' || i.provider === 'outlook').length || 0);
 
-  const isAtMailboxLimit = connectedMailboxesCount >= getMailboxLimit();
+  const isAtMailboxLimit = connectedMailboxesCount >= (getMailboxLimit() ?? 0);
 
   const getNextPlan = () => {
     const tier = (userData?.user?.subscriptionTier || userData?.user?.plan || 'starter').toLowerCase();
@@ -807,11 +805,11 @@ export default function IntegrationsPage() {
                       <div className="flex items-center gap-2">
                         <h3 className="text-lg font-bold text-foreground">Active Business Mailboxes</h3>
                         <Badge variant="outline" className="rounded-full text-[10px]">
-                          {connectedMailboxesCount} / {getMailboxLimit()} Limit
+                          {connectedMailboxesCount} / {getMailboxLimit() === Infinity ? 'Unlimited' : `${getMailboxLimit()} Limit`}
                         </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        {connectedMailboxesCount >= getMailboxLimit() && userData?.user?.subscriptionTier !== 'enterprise'
+                        {connectedMailboxesCount >= (getMailboxLimit() ?? 0) && userData?.user?.subscriptionTier !== 'enterprise'
                           ? "Limit reached. Upgrade or disconnect a mailbox to add more."
                           : "Manage your connected Google, Outlook, and custom SMTP accounts."}
                       </p>
@@ -834,7 +832,7 @@ export default function IntegrationsPage() {
                         <Plus className="h-4 w-4" /> Add Mailbox
                       </Button>
 
-                      {userData?.user?.subscriptionTier === 'enterprise' && connectedMailboxesCount >= getMailboxLimit() && (
+                      {userData?.user?.subscriptionTier === 'enterprise' && connectedMailboxesCount >= (getMailboxLimit() ?? 0) && (
                         <Badge variant="outline" className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-500 border-emerald-500/20 bg-emerald-500/5">
                           Full Capacity
                         </Badge>

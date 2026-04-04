@@ -375,6 +375,27 @@ export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
     });
 
+    // ENGINE ALERTS (SAFETY INTERLOCK)
+    socketInstance.on('engine_alert', (payload: any) => {
+      console.warn('Engine Alert:', payload);
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/integrations'] });
+
+      toast({
+        title: payload.title || 'Engine Alert',
+        description: payload.message,
+        variant: payload.severity === 'critical' ? 'destructive' : 'default',
+        duration: 10000, // Show for longer as it's critical safety info
+      });
+
+      showPushNotification(payload.title || 'Engine Alert', {
+        body: payload.message,
+        tag: 'engine-alert',
+        requireInteraction: true,
+        data: { url: '/dashboard/integrations' }
+      });
+    });
+
     // DESKTOP/PUSH NOTIFICATIONS (Manual)
     socketInstance.on('desktop_notification', (payload: any) => {
       console.log('Desktop notification:', payload);

@@ -10,6 +10,8 @@ import { distributeLeadsFromPool } from '../lib/sales-engine/outreach-engine.js'
 import googleRedirectRouter from './google-redirect.js';
 import calendlyRedirectRouter from './calendly-redirect.js';
 import instagramRedirectRouter from './instagram-redirect.js';
+import outlookRedirectRouter from './outlook-redirect.js';
+import { OutlookOAuth } from '../lib/oauth/outlook.js';
 
 interface AuthenticatedRequest extends Request {
   session: Request['session'] & {
@@ -70,11 +72,13 @@ const router = Router();
 const instagramOAuth = new InstagramOAuth();
 const googleCalendarOAuth = new GoogleCalendarOAuth();
 const calendlyOAuth = new CalendlyOAuth();
+const outlookOAuth = new OutlookOAuth();
 
 // Mount dedicated redirect handlers
 router.use(googleRedirectRouter);
 router.use(calendlyRedirectRouter);
 router.use(instagramRedirectRouter);
+router.use(outlookRedirectRouter);
 
 // ==================== INSTAGRAM OAUTH ====================
 
@@ -248,6 +252,75 @@ router.get('/gmail/status', async (req: Request, res: Response): Promise<void> =
     }
   } catch (error) {
     console.error('Error checking Gmail status:', error);
+    res.status(500).json({ error: 'Failed to check status' });
+  }
+});
+
+// ==================== OUTLOOK OAUTH ====================
+
+router.get('/connect/outlook', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getUserId(req as AuthenticatedRequest);
+
+    if (!userId) {
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
+    }
+
+    const state = encryptState(`${userId}:${Date.now()}`);
+    const authUrl = outlookOAuth.getAuthorizationUrl(state);
+    res.json({ authUrl });
+  } catch (error) {
+    console.error('Error initiating Outlook OAuth:', error);
+    res.status(500).json({ error: 'Failed to initiate OAuth flow' });
+  }
+});
+
+router.post('/outlook/disconnect', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getUserId(req as AuthenticatedRequest, true);
+
+    if (!userId) {
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
+    }
+
+    await outlookOAuth.revokeToken(userId);
+    await storage.disconnectIntegration(userId, 'outlook');
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error disconnecting Outlook:', error);
+    res.status(500).json({ error: 'Failed to disconnect' });
+  }
+});
+
+router.get('/outlook/status', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getUserId(req as AuthenticatedRequest);
+
+    if (!userId) {
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
+    }
+
+    const token = await outlookOAuth.getValidToken(userId);
+
+    if (token) {
+      try {
+        const profile = await outlookOAuth.getUserProfile(token);
+        res.json({
+          connected: true,
+          email: profile.mail || profile.userPrincipalName
+        });
+      } catch {
+        res.json({ connected: false, error: 'Token expired or invalid' });
+      }
+    } else {
+      res.json({ connected: false });
+    }
+  } catch (error) {
+    console.error('Error checking Outlook status:', error);
     res.status(500).json({ error: 'Failed to check status' });
   }
 });

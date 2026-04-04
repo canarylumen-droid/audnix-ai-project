@@ -10,6 +10,7 @@ import {
   users,
   type Integration
 } from '../../../shared/schema.js';
+import { getPlanCapabilities } from '../../../shared/plan-utils.js';
 import { eq, and, or, sql, lte, desc, ne, isNull, lt } from 'drizzle-orm';
 import { storage } from '../../storage.js';
 import { sendEmail } from '../channels/email.js';
@@ -22,6 +23,7 @@ import { decryptToJSON } from '../crypto/encryption.js';
 import { hasRedis } from '../queues/redis-config.js';
 import { mailboxHealthService } from '../email/mailbox-health-service.js';
 import { quotaService } from '../monitoring/quota-service.js';
+import { ReputationGuard } from '../email/reputation-guard.js';
 
 export class OutreachEngine {
   private isRunning: boolean = false;
@@ -30,6 +32,9 @@ export class OutreachEngine {
   private activeUserProcessing: Set<string> = new Set();
   private readonly MAX_CONCURRENT_USERS = 5000;
   private userMailboxIndex: Map<string, number> = new Map(); // Tracks rotating mailbox index per user
+  private consecutiveFailures: number = 0;
+  private panicUntil: number = 0;
+  private readonly MAX_BACKOFF_MS = 3600000; // 1 hour max backoff
 
   /**
    * Start the outreach engine
@@ -66,6 +71,12 @@ export class OutreachEngine {
     if (quotaService.isRestricted()) {
       const remaining = Math.round(quotaService.getRemainingCooldownMs() / 60000);
       console.log(`[OutreachEngine] Skipping tick: Database quota restricted. Recovering in ~${remaining}m`);
+      return results;
+    }
+
+    if (Date.now() < this.panicUntil) {
+      const remaining = Math.round((this.panicUntil - Date.now()) / 60000);
+      console.log(`[OutreachEngine] Skipping tick: PANIC MODE active. Backing off for another ~${remaining}m`);
       return results;
     }
 
@@ -111,8 +122,21 @@ export class OutreachEngine {
       }
 
       workerHealthMonitor.recordSuccess('outreach-engine');
+      this.consecutiveFailures = 0;
+      this.panicUntil = 0;
     } catch (error: any) {
       console.error('[OutreachEngine] Global tick error:', error);
+      
+      // Implement Exponential Backoff
+      this.consecutiveFailures++;
+      const backoffMs = Math.min(
+        this.TICK_INTERVAL_MS * Math.pow(2, this.consecutiveFailures - 1),
+        this.MAX_BACKOFF_MS
+      );
+      this.panicUntil = Date.now() + backoffMs;
+      
+      console.warn(`[OutreachEngine] 🚨 Panic Mode: ${this.consecutiveFailures} consecutive failures. Backing off for ${Math.round(backoffMs / 60000)}m`);
+
       quotaService.reportDbError(error);
       workerHealthMonitor.recordError('outreach-engine', error?.message || 'Unknown tick error');
       results.errors++;
@@ -234,6 +258,7 @@ export class OutreachEngine {
           )
         )
       )
+      .for('update', { skipLocked: true }) // CRITICAL: Multi-pod safety
       .orderBy(
         // Priority 1: Auto-Replies (highest)
         sql`CASE WHEN ${campaignLeads.metadata}->>'pendingAutoReply' = 'true' THEN 0 ELSE 1 END`,
@@ -360,12 +385,10 @@ export class OutreachEngine {
     );
 
     const user = await storage.getUser(userId);
-    const plan = (user as any)?.subscriptionPlan?.toLowerCase() || 'starter';
+    const planId = (user as any)?.subscriptionTier || (user as any)?.subscriptionPlan || 'starter';
+    const capabilities = getPlanCapabilities(planId.toLowerCase());
 
-    let limit = 3;
-    if (plan === 'enterprise') limit = 10;
-    else if (plan === 'pro') limit = 5;
-    else if (plan === 'starter') limit = 3;
+    const limit = capabilities.mailboxLimit === -1 ? Infinity : capabilities.mailboxLimit;
 
     return mailboxes.slice(0, limit).sort((a, b) => a.id.localeCompare(b.id));
   }
@@ -453,6 +476,20 @@ export class OutreachEngine {
     let effectiveLimit = baseEffectiveLimit;
     if (integration.provider !== 'instagram') {
       try {
+        // [PHASE 18] REAL-TIME SAFETY INTERLOCK
+        // Pre-flight check domain safety against blacklists/DNS records
+        const emailStr = meta.user || meta.email || (integration as any).email || '';
+        const domain = emailStr.includes('@') ? emailStr.split('@')[1] : '';
+        
+        if (domain) {
+          const safety = await ReputationGuard.checkSafety(userId, integration.id, domain);
+          if (!safety.isSafe) {
+            // Log and notify why the mailbox was blocked in real-time
+            console.warn(`[OutreachEngine] 🛡️ SAFETY INTERLOCK: Skipping mailbox ${integration.id} - ${safety.reason}`);
+            return false; // Skip this mailbox from sending
+          }
+        }
+        
         // Fetch real-time health for this specific integration/mailbox
         const domainVerifications = await storage.getDomainVerifications(userId, 10);
         let activeVerifications = domainVerifications;

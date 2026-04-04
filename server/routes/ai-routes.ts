@@ -55,7 +55,10 @@ router.get("/", requireAuth, async (req: Request, res: Response): Promise<void> 
     const userId = getCurrentUserId(req)!;
     const { channel, status, limit = "50", offset = "0", search, includeArchived, integrationId, excludeActiveCampaignLeads } = req.query;
 
-    const limitNum = Math.min(parseInt(limit as string) || 20000, 20000);
+    const user = await storage.getUser(userId);
+    const isEnterprise = user?.plan === 'enterprise' || user?.plan === 'pro';
+    const MAX_ALLOWED_LIMIT = isEnterprise ? 500000 : 20000;
+    const limitNum = Math.min(parseInt(limit as string) || 200, MAX_ALLOWED_LIMIT);
     const offsetNum = parseInt(offset as string) || 0;
 
     // Get paginated leads directly from storage
@@ -318,10 +321,17 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
             return;
           }
 
-          // 4. Enforce Limits
+          // 4. Enforce Limits (Scaled for Autonomous High-Volume Growth)
           const user = await storage.getUserById(userId);
           const existingLeadsCount = await storage.getLeadsCount(userId);
-          const limit = user?.email === 'team.replyflow@gmail.com' ? 250000 : (user?.plan === 'enterprise' ? 250000 : (user?.plan === 'pro' ? 50000 : 5000));
+          
+          // Scaled Plan Limits:
+          // Enterprise/Team: 500,000 leads
+          // Pro: 100,000 leads
+          // Trial/Starter: 10,000 leads
+          const limit = (user?.subscriptionTier === 'enterprise' || user?.plan === 'enterprise' || user?.email === 'team.replyflow@gmail.com') 
+            ? 500000 
+            : (user?.subscriptionTier === 'pro' || user?.plan === 'pro' ? 100000 : 10000);
 
           if (existingLeadsCount >= limit) {
             res.status(400).json({ error: `Lead limit reached (${limit} leads). Please upgrade your plan.` });
@@ -1378,13 +1388,13 @@ router.post("/import-pdf", requireAuth, upload.single("pdf"), async (req: Reques
     const currentLeadCount = existingLeads.length;
 
     const planLimits: Record<string, number> = {
-      'free': 500,
-      'trial': 500,
-      'starter': 2500,
-      'pro': 7000,
-      'enterprise': 20000
+      'free': 10000,
+      'trial': 10000,
+      'starter': 25000,
+      'pro': 100000,
+      'enterprise': 500000
     };
-    const maxLeads = planLimits[user?.subscriptionTier || user?.plan || 'trial'] || 500;
+    const maxLeads = planLimits[user?.subscriptionTier || user?.plan || 'trial'] || 10000;
 
     if (currentLeadCount >= maxLeads) {
       res.status(400).json({

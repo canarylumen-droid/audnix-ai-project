@@ -1,6 +1,8 @@
 import { db } from '../../db.js';
-import { integrations, bounceTracker } from '../../../shared/schema.js';
-import { eq, and, sql, gte } from 'drizzle-orm';
+import { integrations, bounceTracker, domainVerifications } from '../../../shared/schema.js';
+import { eq, and, sql, gte, desc } from 'drizzle-orm';
+import { decrypt } from '../crypto/encryption.js';
+import { wsSync } from '../websocket-sync.js';
 
 /**
  * Calculates a 0-100 reputation score mapping bounces to penalty weights
@@ -42,6 +44,46 @@ export async function calculateReputationScore(integrationId: string): Promise<n
   score -= (hardBounces * 7); // -7 per hard bounce
   score -= (softBounces * 3); // -3 per soft bounce
   score -= (spamComplaints * 25); // -25 per spam placement (CRITICAL)
+
+  // 1.5 DNS Health Check Penalty (Unified Source of Truth)
+  let domain = '';
+  try {
+    const meta = JSON.parse(decrypt(mailbox.encryptedMeta));
+    // For OAuth it is meta.user, for SMTP it is meta.user or meta.email
+    const emailStr = meta.user || meta.email || (mailbox as any).email || '';
+    if (emailStr && emailStr.includes('@')) {
+      domain = emailStr.split('@')[1];
+    }
+  } catch (e) {
+    console.warn(`[Reputation Monitor] Could not decrypt meta for mailbox ${mailbox.id}`);
+  }
+
+  if (domain) {
+    const [latestDns] = await db.select()
+      .from(domainVerifications)
+      .where(eq(domainVerifications.domain, domain))
+      .orderBy(desc(domainVerifications.createdAt))
+      .limit(1);
+
+    if (latestDns) {
+      const result = latestDns.verificationResult as any;
+      if (result) {
+        // If SPF/DKIM/DMARC are missing or failing, apply a significant penalty
+        if (result.spf && !result.spf.found) {
+          score -= 15;
+          console.log(`⚠️ [Reputation Monitor] Mailbox ${mailbox.id} penalty: Missing SPF (-15)`);
+        }
+        if (result.dkim && !result.dkim.found) {
+          score -= 15;
+          console.log(`⚠️ [Reputation Monitor] Mailbox ${mailbox.id} penalty: Missing DKIM (-15)`);
+        }
+        if (result.dmarc && !result.dmarc.found) {
+          score -= 15;
+          console.log(`⚠️ [Reputation Monitor] Mailbox ${mailbox.id} penalty: Missing DMARC (-15)`);
+        }
+      }
+    }
+  }
 
   // Recovery bonus: +1 point per 6 hours of clean sending (max +30)
   const recoveryBonus = Math.min(30, Math.floor(hoursSinceLastBounce / 6));
@@ -87,6 +129,13 @@ export async function calculateReputationScore(integrationId: string): Promise<n
     dailyLimit: newDailyLimit,
     updatedAt: new Date()
   }).where(eq(integrations.id, integrationId));
+
+  // Notify UI
+  wsSync.broadcastToUser(mailbox.userId, { 
+    type: 'reputation_updated', 
+    payload: { integrationId, score, status: newWarmupStatus } 
+  });
+  wsSync.notifyStatsUpdated(mailbox.userId);
 
   return score;
 }

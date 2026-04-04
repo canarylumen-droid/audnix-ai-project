@@ -42,71 +42,75 @@ router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Pr
       leads: [] as any[]
     };
 
+    const BATCH_SIZE = 500;
     const { mapCsvToLeadMetadata } = await import('../lib/imports/lead-importer.js');
+    const { wsSync } = await import('../lib/websocket-sync.js');
 
-    const batchIdentifiers = new Set<string>();
+    for (let i = 0; i < leadsData.length; i += BATCH_SIZE) {
+      const chunk = leadsData.slice(i, i + BATCH_SIZE);
+      const batchToInsert: any[] = [];
+      const batchIdentifiers = new Set<string>();
 
-    for (let i = 0; i < leadsData.length; i++) {
-      const leadData = leadsData[i];
-      try {
-        const metadata = mapCsvToLeadMetadata(leadData);
+      for (let j = 0; j < chunk.length; j++) {
+        const leadData = chunk[j];
+        try {
+          const metadata = mapCsvToLeadMetadata(leadData);
+          const rawEmail = metadata.email || leadData.email;
+          const rawName = metadata.name || leadData.name;
+          const email = rawEmail?.toLowerCase().trim();
+          const name = rawName?.trim();
+          const nameKey = name?.toLowerCase();
 
-        // Combine extracted metadata with raw data
-        const rawEmail = metadata.email || leadData.email;
-        const rawName = metadata.name || leadData.name;
-
-        // Normalize (from Remote logic)
-        const email = rawEmail?.toLowerCase().trim();
-        const name = rawName?.trim();
-        const nameKey = name?.toLowerCase();
-
-        if (!email && !name) {
-          results.errors.push(`Row ${i + 1}: Missing name and email`);
-          results.leadsFiltered++;
-          continue;
-        }
-
-        // Batch deduplication (from Remote logic)
-        const batchKey = email || `name:${nameKey}`;
-        if (batchIdentifiers.has(batchKey)) {
-          results.leadsFiltered++;
-          continue;
-        }
-        batchIdentifiers.add(batchKey);
-
-        // Database deduplication
-        if (email && emailMap.has(email)) {
-          results.leadsFiltered++;
-          continue;
-        }
-
-        // Create lead with suppressed notifications
-        const newLead = await storage.createLead({
-          userId,
-          name: name || 'Unknown',
-          email: email || null,
-          phone: metadata.phone || leadData.phone || null,
-          company: metadata.company || leadData.company || null,
-          channel: channel as any,
-          integrationId: integrationId || null,
-          status: 'new',
-          aiPaused: aiPaused,
-          metadata: {
-            ...leadData,
-            ...metadata,
-            imported_via: 'bulk_json',
-            import_date: new Date().toISOString()
+          if (!email && !name) {
+            results.errors.push(`Row ${i + j + 1}: Missing name and email`);
+            results.leadsFiltered++;
+            continue;
           }
-        }, { suppressNotification: true });
 
-        results.leads.push(newLead);
-        results.leadsImported++;
+          const batchKey = email || `name:${nameKey}`;
+          if (batchIdentifiers.has(batchKey) || (email && emailMap.has(email))) {
+            results.leadsFiltered++;
+            continue;
+          }
+          batchIdentifiers.add(batchKey);
 
-        // Update local maps for subsequent rows in the same batch
-        if (newLead.email) emailMap.set(newLead.email.toLowerCase(), newLead);
-        if (newLead.name) nameMap.set(newLead.name.toLowerCase(), newLead);
-      } catch (err: any) {
-        results.errors.push(`Row ${i + 1}: ${err.message}`);
+          batchToInsert.push({
+            userId,
+            name: name || 'Unknown',
+            email: email || null,
+            phone: metadata.phone || leadData.phone || null,
+            company: metadata.company || leadData.company || null,
+            channel: channel as any,
+            integrationId: integrationId || null,
+            status: 'new',
+            aiPaused: aiPaused,
+            metadata: {
+              ...leadData,
+              ...metadata,
+              imported_via: 'bulk_json',
+              import_date: new Date().toISOString()
+            }
+          });
+
+          if (email) emailMap.set(email, true);
+        } catch (err: any) {
+          results.errors.push(`Row ${i + j + 1}: ${err.message}`);
+        }
+      }
+
+      if (batchToInsert.length > 0) {
+        const inserted = await storage.createLeadsBatch(batchToInsert, { suppressNotification: true });
+        results.leads.push(...inserted);
+        results.leadsImported += inserted.length;
+        
+        // Notify progress for large imports
+        if (leadsData.length > BATCH_SIZE) {
+          wsSync.notifyLeadsUpdated(userId, { 
+            type: 'bulk_import_progress', 
+            current: results.leadsImported, 
+            total: leadsData.length 
+          });
+        }
       }
     }
 
@@ -121,15 +125,12 @@ router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Pr
           metadata: { count: results.leadsImported, filtered: results.leadsFiltered, source: 'bulk_json' }
         });
 
-        const { wsSync } = await import('../lib/websocket-sync.js');
-        // Single notification event — triggers one sound on frontend
         wsSync.notifyNotification(userId, {
           type: 'lead_import',
           title: '📥 Bulk Leads Imported',
           message: `${results.leadsImported} leads added to your pipeline.`,
           playSound: true
         });
-        // Refresh data without triggering per-lead sounds
         wsSync.notifyLeadsUpdated(userId, { type: 'bulk_import', count: results.leadsImported });
         wsSync.notifyStatsUpdated(userId);
       } catch (notifErr) {
@@ -143,9 +144,8 @@ router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Pr
       leadsUpdated: results.leadsUpdated,
       leadsFiltered: results.leadsFiltered,
       errors: results.errors,
-      totalCount: (await storage.getLeads({ userId, limit: 1 })).length, // Just a hint for frontend
       message: `Imported ${results.leadsImported} leads.`,
-      leads: results.leads
+      leads: results.leads.slice(0, 100) // Don't send back 10k leads in JSON
     });
   } catch (error: any) {
     console.error('Bulk import error:', error);

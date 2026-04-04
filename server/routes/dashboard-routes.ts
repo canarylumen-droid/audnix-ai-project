@@ -62,6 +62,24 @@ router.post('/dns/verify', requireAuth, async (req: Request, res: Response) => {
       status: result.overallStatus,
       message: 'Domain reputation and DNS records verification completed.'
     });
+
+    // Real-time synchronization: Recalculate reputation for all mailboxes on this domain
+    try {
+      const { calculateReputationScore } = await import('../lib/email/reputation-monitor.js');
+      const allInts = await storage.getIntegrations(userId);
+      for (const integration of allInts) {
+        try {
+          const meta = JSON.parse(decrypt(integration.encryptedMeta));
+          const email = meta.user || meta.email || (integration as any).email || '';
+          if (email.endsWith(`@${domain}`)) {
+            console.log(`[DNS Sync] Recalculating reputation for ${integration.id} (${email})`);
+            await calculateReputationScore(integration.id);
+          }
+        } catch (e) { /* ignore individual decryption errors */ }
+      }
+    } catch (e) {
+      console.warn('[DNS Sync] Failed to trigger reputation recalculation:', e);
+    }
   } catch (error) {
     console.error('DNS Verification Error:', error);
     res.status(500).json({ error: 'Failed to verify DNS' });
@@ -119,19 +137,12 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
     const isAutonomousMode = (user?.config as any)?.autonomousMode !== false;
     const engineStatus = isAutonomousMode ? "Autonomous" : "Paused";
 
-    // Enhanced Domain Health Calculation (0-100)
+    // Reputation is now 100% managed by ReputationMonitor via the database.
+    // Each integration stores its own live reputation_score.
     const hardBounces = recentBounces.filter(b => b.bounceType === 'hard').length;
     const softBounces = recentBounces.filter(b => b.bounceType === 'soft').length;
     const spamBounces = recentBounces.filter(b => b.bounceType === 'spam').length;
-
-    // Dynamic Reputation Score Logic (Phase 5 Unified)
     let reputationScore = 100;
-    let fallbackReputation = 100;
-
-    if (stats.totalLeads > 0) {
-      const bouncePenalty = (hardBounces * 7) + (softBounces * 3) + (spamBounces * 25);
-      fallbackReputation = Math.max(0, 100 - bouncePenalty);
-    }
 
     // 7-Day Reputation Trend Calculation
     const trendData = [];
@@ -154,14 +165,12 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
 
     if (integrationId) {
       const activeInt = integrations.find(i => i.id === integrationId);
-      reputationScore = activeInt?.reputationScore ?? fallbackReputation;
+      reputationScore = activeInt?.reputationScore ?? 100;
     } else {
       // Average reputation score across all connected email mailboxes
-      const emailInts = integrations.filter(i => ['gmail', 'outlook', 'custom_email'].includes(i.provider));
+      const emailInts = integrations.filter(i => ['gmail', 'outlook', 'custom_email'].includes(i.provider) && i.connected);
       if (emailInts.length > 0) {
-        reputationScore = emailInts.reduce((sum, i) => sum + (i.reputationScore ?? fallbackReputation), 0) / emailInts.length;
-      } else {
-        reputationScore = fallbackReputation;
+        reputationScore = emailInts.reduce((sum, i) => sum + (i.reputationScore ?? 100), 0) / emailInts.length;
       }
     }
 
@@ -216,8 +225,8 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
       ? Number(((Number(globalMsgStats?.opened || 0) / Number(globalMsgStats?.totalSent || 0)) * 100).toFixed(2))
       : 25.00; // Fallback benchmark
 
-    const healthPenalty = (unverifiedDomains * 15) + (disconnectedIntegrations * 20);
-    const domainHealth = Number(Math.max(0, reputationScore - healthPenalty).toFixed(2));
+    // Domain Health is now the actual reputation score (which already includes DNS penalties)
+    const domainHealth = Number(reputationScore.toFixed(2));
 
     // Map verification results nicely
     const mappedVerifications = activeVerifications.map(v => {

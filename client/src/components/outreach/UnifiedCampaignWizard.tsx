@@ -173,7 +173,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
   const handleFetchLeads = async () => {
     setIsLoadingLeads(true);
     try {
-      const limitParam = syncLimit === 'all' ? 50000 : syncLimit;
+      const limitParam = syncLimit === 'all' ? 500000 : syncLimit;
       const res = await apiRequest("GET", `/api/leads?limit=${limitParam}&excludeActiveCampaignLeads=true`);
       const data = await res.json();
       if (data.leads) {
@@ -398,13 +398,13 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                                         value={[mailboxLimits[mb.id] || 30]} 
                                         onValueChange={v => setMailboxLimits(prev => ({ ...prev, [mb.id]: v[0] }))} 
                                         min={10} 
-                                        max={mb.provider === 'smtp' ? 500 : 100} 
-                                        step={5} 
+                                        max={mb.provider === 'smtp' ? 10000 : 2000} 
+                                        step={10} 
                                       />
                                       <div className="p-3 bg-amber-500/5 rounded-xl border border-amber-500/10">
                                         <div className="flex justify-between text-[9px] font-black uppercase text-amber-600">
                                           <span>Safety Ceiling</span>
-                                          <span>{mb.provider === 'smtp' ? 500 : 100}/day</span>
+                                          <span>{mb.provider === 'smtp' ? 10000 : 2000}/day</span>
                                         </div>
                                       </div>
                                     </div>
@@ -440,14 +440,14 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                                 <div className="flex-1 relative">
                                   <Input 
                                     type={syncLimit === 'all' ? 'text' : 'number'}
-                                    value={syncLimit === 'all' ? 'MAX (50k)' : syncLimit}
+                                    value={syncLimit === 'all' ? 'MAX (500k)' : syncLimit}
                                     onChange={e => {
                                       const val = e.target.value;
                                       if (val === '') {
                                         setSyncLimit(0);
                                       } else {
                                         const parsed = parseInt(val);
-                                        if (!isNaN(parsed)) setSyncLimit(Math.max(0, Math.min(50000, parsed)));
+                                        if (!isNaN(parsed)) setSyncLimit(Math.max(0, Math.min(500000, parsed)));
                                       }
                                     }}
                                     disabled={syncLimit === 'all'}

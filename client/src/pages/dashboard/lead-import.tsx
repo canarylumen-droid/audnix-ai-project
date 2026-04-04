@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useMailbox } from "@/hooks/use-mailbox";
 import { Upload, Loader2, CheckCircle2, Sparkles, Send } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRealtime } from "@/hooks/use-realtime";
 import { PdfIcon, CsvIcon } from "@/components/ui/CustomIcons";
 import { EmailPreview } from "@/components/dashboard/EmailPreview";
 import { LeadsDisplayModal } from "@/components/dashboard/LeadsDisplayModal";
@@ -24,6 +25,7 @@ export default function LeadImportPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const { selectedMailboxId } = useMailbox();
+  const { socket } = useRealtime();
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [mPreviewOpen, setMPreviewOpen] = useState(false);
@@ -140,6 +142,24 @@ export default function LeadImportPage() {
     setFile(selectedFile);
     setImportResults(null);
   };
+
+  // Listen for socket progress
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleProgress = (payload: any) => {
+      if (payload.type === 'bulk_import_progress') {
+        const { current, total } = payload;
+        const calcProgress = Math.round((current / total) * 100);
+        setProgress(calcProgress);
+      }
+    };
+
+    socket.on('leads_updated', handleProgress);
+    return () => {
+      socket.off('leads_updated', handleProgress);
+    };
+  }, [socket]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -298,6 +318,7 @@ export default function LeadImportPage() {
       }
 
       const result = await response.json();
+      setProgress(100);
 
       // Refetch actual DB leads to get their IDs
       const leadsRes = await apiRequest("GET", `/api/leads?limit=10000&offset=0`);

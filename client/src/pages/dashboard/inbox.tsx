@@ -60,6 +60,7 @@ import {
   Facebook,
   MapPin,
 } from "lucide-react";
+import { SiGoogle } from "react-icons/si";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -87,6 +88,8 @@ import {
 const channelIcons = {
   instagram: Instagram,
   email: Mail,
+  gmail: SiGoogle,
+  outlook: Mail
 };
 
 const statusStyles = {
@@ -181,9 +184,18 @@ export default function InboxPage() {
     if (!socket) return;
 
     const handleMessagesUpdated = (payload: any) => {
-      // payload could be { message }, { leadId }, or { event, count }
+      // payload could be { message }, { leadId }, or { event, count, integrationId, provider }
       const msgData = payload?.message || payload || {};
       const targetLeadId = msgData.leadId || payload?.leadId;
+      const targetIntegrationId = payload?.integrationId;
+
+      // Real-time synchronization check: if this sync event is for our CURRENT selected mailbox, refresh!
+      if (targetIntegrationId === selectedMailboxId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+        if (leadId) {
+          queryClient.invalidateQueries({ queryKey: ["/api/messages", leadId] });
+        }
+      }
 
       if (!targetLeadId) {
         queryClient.invalidateQueries({ queryKey: ["/api/leads"] });

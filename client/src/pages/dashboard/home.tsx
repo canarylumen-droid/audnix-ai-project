@@ -39,6 +39,7 @@ import { MailboxSwitcher } from "@/components/outreach/MailboxSwitcher";
 import { AutonomousActionFeed } from "@/components/outreach/AutonomousActionFeed";
 import { ReputationCard } from "@/components/outreach/ReputationCard";
 import { ReputationTrendChart } from "@/components/outreach/ReputationTrendChart";
+import { RecentConversations } from "@/components/dashboard/RecentConversations";
 
 interface UserProfile {
   id: string;
@@ -598,87 +599,9 @@ export default function DashboardHome() {
               </motion.div>
             )}
 
-            <Card className="rounded-2xl border-border/50 h-full">
-              <CardHeader className="border-b border-border/40">
-                <CardTitle className="text-lg font-semibold flex items-center gap-3">
-                  <Activity className="h-5 w-5 text-primary" />
-                  Live Activity
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0 flex flex-col h-[600px]">
-                <div className="flex-1 overflow-y-auto no-scrollbar scroll-smooth">
-                {activityLoading ? (
-                  <div className="p-12 flex justify-center"><PremiumLoader text="Loading stream..." /></div>
-                ) : activities.length > 0 ? (
-                  <div className="divide-y divide-border/30">
-                    {activities.map((activity: any, i: number) => {
-                      const isCampaign = activity.type.startsWith('campaign_');
-                      return (
-                        <div key={activity.id} className="p-6 flex gap-6 hover:bg-muted/20 transition-colors">
-                          <div className={cn(
-                            "h-10 w-10 rounded-full flex items-center justify-center shrink-0 mt-1",
-                            isCampaign ? "bg-emerald-500/10 text-emerald-500" : "bg-primary/10 text-primary"
-                          )}>
-                            {activity.type === 'message' || activity.type === 'ai_message_sent' ? <MessageSquare className="h-5 w-5" /> :
-                              isCampaign ? <Send className="h-5 w-5" /> : <Zap className="h-5 w-5" />}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex justify-between items-start mb-1">
-                              <p className={cn(
-                                "text-sm text-foreground/90 truncate",
-                                "font-normal"
-                              )}>{activity.title || "Activity Event"}</p>
-                              <span className="text-[10px] text-muted-foreground shrink-0 ml-4 font-medium uppercase opacity-50">{formatTimeAgo(activity.time || activity.timestamp || new Date())}</span>
-                            </div>
-                            <p className="text-xs md:text-sm text-muted-foreground leading-relaxed line-clamp-2">
-                              {activity.type === 'campaign_started' ? `AI outreach campaign "${activity.metadata?.name || 'Inbound Strategy'}" launched with ${activity.metadata?.configuredLeads || 0} prospects.` :
-                                activity.type === 'campaign_completed' ? `Outreach campaign completed successfully. All scheduled messages delivered.` :
-                                  activity.message}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {activityData?.activities?.length === limit && (
-                      <div className="p-8 flex justify-center border-t border-border/10" ref={(el) => {
-                        if (el && !activityFetching) {
-                          const observer = new IntersectionObserver((entries) => {
-                            if (entries[0].isIntersecting) {
-                              handleLoadMore();
-                              observer.disconnect();
-                            }
-                          }, { threshold: 0.1 });
-                          observer.observe(el);
-                        }
-                      }}>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={activityFetching}
-                          className="rounded-xl text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-all pr-8 pl-8 border-border/40"
-                          onClick={handleLoadMore}
-                        >
-                          {activityFetching ? (
-                            <RefreshCw className="h-3 w-3 mr-2 animate-spin" />
-                          ) : (
-                            <Activity className="h-3 w-3 mr-2 opacity-50" />
-                          )}
-                          {activityFetching ? "SYCHRONIZING..." : "VIEW MORE HISTORY"}
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-24 text-center text-muted-foreground/40 group relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-                    <Activity className="h-12 w-12 mb-6 opacity-20 animate-pulse" />
-                    <p className="text-xs font-black tracking-[0.3em] uppercase mb-2">No active records</p>
-                    <p className="text-[10px] font-bold tracking-widest uppercase opacity-40">Records will appear as AI agents engage leads</p>
-                  </div>
-                )}
-                </div>
-              </CardContent>
-            </Card>
+            <div className="h-[600px]">
+              <RecentConversations />
+            </div>
 
             <div className="mt-6">
               <AutonomousActionFeed logs={statsData?.aiActionLogs || []} />

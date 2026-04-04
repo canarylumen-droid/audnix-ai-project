@@ -767,6 +767,7 @@ router.get('/track/:trackingId', async (req, res) => {
       wsSync.notifyMessagesUpdated(message.userId, {
         type: 'UPDATE',
         messageId: message.id,
+        integrationId: message.integrationId,
         event: 'opened'
       });
       wsSync.notifyActivityUpdated(message.userId, {

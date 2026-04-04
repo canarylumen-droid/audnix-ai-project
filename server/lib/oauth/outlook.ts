@@ -48,9 +48,7 @@ export class OutlookOAuth {
   /**
    * Generate OAuth authorization URL
    */
-  getAuthorizationUrl(userId: string): string {
-    const state = this.generateState(userId);
-
+  getAuthorizationUrl(state: string): string {
     const scopes = [
       'offline_access', // Required for refresh token
       'User.Read',
@@ -62,6 +60,7 @@ export class OutlookOAuth {
 
     const params = new URLSearchParams({
       client_id: this.config.clientId,
+      base_uri: 'https://login.microsoftonline.com', // Optional hint
       response_type: 'code',
       redirect_uri: this.config.redirectUri,
       response_mode: 'query',

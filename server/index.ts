@@ -39,6 +39,7 @@ import hpp from "hpp";
 import csrf from "csurf";
 import { sql } from "drizzle-orm";
 import { users } from "../shared/schema.js";
+import { db } from "./db.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -119,6 +120,14 @@ function log(message: string, source = "express") {
 const nodeEnv = process.env.NODE_ENV || "development";
 app.set("env", nodeEnv);
 app.set("trust proxy", 1);
+
+if (process.env.NODE_ENV === "production") {
+  if (!process.env.SESSION_SECRET || !process.env.ENCRYPTION_KEY) {
+    console.error("❌ CRITICAL ERROR: SESSION_SECRET or ENCRYPTION_KEY missing in production.");
+    console.error("The application cannot start without these security tokens.");
+    process.exit(1);
+  }
+}
 
 if (!process.env.SESSION_SECRET) {
   // Stabilize secret fallback for Vercel cold starts using a derived value if possible
@@ -342,8 +351,6 @@ app.use((req, res, next) => {
     "/api/user/avatar",
     "/api/user/profile",
     "/api/video",
-    "/api/leads",
-    "/api/bulk", // Added to allow bulk actions
     "/api/expert-chat",
     "/auth/instagram",
     "/api/health",
@@ -483,7 +490,18 @@ async function runMigrations() {
 }
 
 (async () => {
-  app.get("/health", (_req, res) => res.status(200).json({ status: "ok" }));
+  app.get("/health", async (_req, res) => {
+    try {
+      if (process.env.DATABASE_URL) {
+        // Perform a lightweight database ping
+        await db.execute(sql`SELECT 1`);
+      }
+      res.status(200).json({ status: "ok", database: "connected" });
+    } catch (error) {
+      console.error("🚨 Health Check Failed:", error);
+      res.status(503).json({ status: "error", message: "Database unreachable" });
+    }
+  });
   const server = await registerRoutes(app);
   
   const isProduction = process.env.NODE_ENV === "production" || !!process.env.RAILWAY_ENVIRONMENT || !!process.env.RAILWAY_PROJECT_ID;

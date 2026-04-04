@@ -42,36 +42,9 @@ interface VideoAutomationGridProps {
     onContextMenu?: (e: React.MouseEvent, video: VideoMetadata) => void;
 }
 
-const DEMO_VIDEOS: VideoMetadata[] = [
-    {
-        id: '1',
-        thumbnail: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=800&q=80',
-        title: 'Instagram Reels Mastery 2024',
-        channel: 'Creator Academy',
-        views: '1.2M views',
-        postedAt: '2 days ago'
-    },
-    {
-        id: '2',
-        thumbnail: 'https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=800&q=80',
-        title: 'Viral Hook Strategy Breakdown',
-        channel: 'Growth Hacks',
-        views: '450K views',
-        postedAt: '1 week ago'
-    },
-    {
-        id: '3',
-        thumbnail: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&q=80',
-        title: 'Automated Sales Funnel Setup',
-        channel: 'Tech Talk',
-        views: '89K views',
-        postedAt: '3 weeks ago'
-    }
-];
-
 export function VideoAutomationGrid({
     loading = false,
-    videos = DEMO_VIDEOS,
+    videos = [],
     onSelect,
     onContextMenu
 }: VideoAutomationGridProps) {

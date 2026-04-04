@@ -423,7 +423,12 @@ export class DrizzleStorage implements IStorage {
       );
     }
 
-    let query = db.select().from(leads)
+    let query = db.select({
+        lead: leads,
+        provider: integrations.provider
+      })
+      .from(leads)
+      .leftJoin(integrations, eq(leads.integrationId, integrations.id))
       .where(and(...conditions))
       .orderBy(sql`COALESCE(${leads.lastMessageAt}, ${leads.createdAt}) DESC`);
 
@@ -435,7 +440,14 @@ export class DrizzleStorage implements IStorage {
       query = query.offset(options.offset);
     }
 
-    return await query;
+    const rows = await query;
+    return rows.map((r: { lead: Lead; provider: string | null }) => ({
+      ...r.lead,
+      metadata: {
+        ...(r.lead.metadata as any || {}),
+        provider: r.provider || r.lead.channel
+      }
+    }));
   }
 
   async getLead(id: string): Promise<Lead | undefined> {
@@ -861,6 +873,42 @@ export class DrizzleStorage implements IStorage {
     }
 
     return result;
+  }
+
+  async createLeadsBatch(insertLeads: Array<any>, options?: { suppressNotification?: boolean }): Promise<Lead[]> {
+    checkDatabase();
+    if (!insertLeads || insertLeads.length === 0) return [];
+
+    const results = await db
+      .insert(leads)
+      .values(insertLeads.map(l => ({
+        userId: l.userId,
+        organizationId: l.organizationId || null,
+        externalId: l.externalId || null,
+        name: l.name,
+        company: l.company || null,
+        role: l.role || null,
+        bio: l.bio || null,
+        channel: l.channel as any,
+        email: l.email || null,
+        replyEmail: l.replyEmail || l.email || null,
+        phone: l.phone || null,
+        status: l.status || "new",
+        score: l.score || 0,
+        warm: l.warm || false,
+        lastMessageAt: l.lastMessageAt || null,
+        aiPaused: l.aiPaused || false,
+        verified: l.verified || false,
+        verifiedAt: l.verifiedAt || null,
+        metadata: l.metadata || {},
+        updatedAt: new Date()
+      })))
+      .returning();
+
+    if (results.length > 0 && !options?.suppressNotification) {
+      wsSync.notifyLeadsUpdated(results[0].userId, { event: 'BATCH_CREATE', count: results.length });
+    }
+    return results;
   }
 
   async updateMessage(id: string, updates: Partial<Message>): Promise<Message | undefined> {
@@ -1487,9 +1535,16 @@ export class DrizzleStorage implements IStorage {
     const existing = await this.getOAuthAccount(data.userId, data.provider, data.providerAccountId);
 
     if (existing) {
+      // PERSISTENCE: If the new data doesn't have a refresh token, but we already have one, keep the old one.
+      // This is critical for OAuth reconnects where Gmail/Outlook might not return a new refresh token.
+      const updateData = { ...data };
+      if (!updateData.refreshToken && existing.refreshToken) {
+        updateData.refreshToken = existing.refreshToken;
+      }
+
       const [updated] = await db
         .update(oauthAccounts)
-        .set({ ...data, updatedAt: new Date() })
+        .set({ ...updateData, updatedAt: new Date() })
         .where(eq(oauthAccounts.id, existing.id))
         .returning();
       return updated;

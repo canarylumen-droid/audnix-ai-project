@@ -36,9 +36,6 @@ export function IntegrationStateButton({
         try {
             if (onClick) {
                 await onClick();
-            } else {
-                // Mock delay for demo
-                await new Promise(resolve => setTimeout(resolve, 2000));
             }
 
             setStatus('success');

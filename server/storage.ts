@@ -54,6 +54,7 @@ export interface IStorage {
   getLeadsCount(userId: string): Promise<number>;
   getLeadBySocialId(socialId: string, channel: string): Promise<Lead | undefined>;
   createLead(lead: Partial<InsertLead> & { userId: string; name: string; channel: string }, options?: { suppressNotification?: boolean }): Promise<Lead>;
+  createLeadsBatch(leads: Array<Partial<InsertLead> & { userId: string; name: string; channel: string }>, options?: { suppressNotification?: boolean }): Promise<Lead[]>;
   updateLead(id: string, updates: Partial<Lead>): Promise<Lead | undefined>;
   reserveLeadForAction(leadId: string, workerName: string, durationMs?: number): Promise<boolean>;
   archiveLead(id: string, userId: string, archived: boolean): Promise<Lead | undefined>;
@@ -462,43 +463,50 @@ export class MemStorage implements IStorage {
   async getLeadBySocialId(socialId: string, channel: string): Promise<Lead | undefined> {
     return Array.from(this.leads.values()).find(l => l.externalId === socialId && l.channel === channel);
   }
-  async createLead(lead: Partial<InsertLead> & { userId: string; name: string; channel: string }, options?: { suppressNotification?: boolean }): Promise<Lead> {
+  async createLead(insertLead: Partial<InsertLead> & { userId: string; name: string; channel: any }): Promise<Lead> {
     const id = randomUUID();
-    const now = new Date();
-    const newLead: Lead = {
+    const lead: Lead = {
       id,
-      userId: lead.userId,
-      organizationId: lead.organizationId || null,
-      externalId: lead.externalId || null,
-      name: lead.name,
-      company: lead.company || null,
-      role: lead.role || null,
-      bio: lead.bio || null,
-      snippet: null,
-      channel: lead.channel as any,
-      email: lead.email || null,
-      replyEmail: lead.replyEmail || lead.email || null,
-      phone: lead.phone || null,
-      status: (lead.status as any) || "new",
-      score: lead.score || 0,
-      warm: lead.warm || false,
-      integrationId: lead.integrationId || null,
-      lastMessageAt: null,
-      aiPaused: lead.aiPaused || false,
-      verified: lead.verified || false,
-      verifiedAt: null,
-      pdfConfidence: null,
-      archived: lead.archived || false,
-      tags: lead.tags || [],
-      metadata: lead.metadata || {},
-      timezone: lead.timezone || "UTC",
-      calendlyLink: null,
-      fathomMeetingId: null,
-      createdAt: now,
-      updatedAt: now,
+      userId: insertLead.userId,
+      organizationId: insertLead.organizationId || null,
+      externalId: insertLead.externalId || null,
+      name: insertLead.name,
+      company: insertLead.company || null,
+      role: insertLead.role || null,
+      bio: insertLead.bio || null,
+      snippet: insertLead.snippet || null,
+      channel: insertLead.channel,
+      email: insertLead.email || null,
+      replyEmail: insertLead.replyEmail || insertLead.email || null,
+      phone: insertLead.phone || null,
+      status: (insertLead.status as any) || "new",
+      score: insertLead.score || 0,
+      warm: insertLead.warm || false,
+      lastMessageAt: insertLead.lastMessageAt || null,
+      aiPaused: insertLead.aiPaused ?? true,
+      verified: insertLead.verified || false,
+      verifiedAt: insertLead.verifiedAt || null,
+      pdfConfidence: insertLead.pdfConfidence || null,
+      tags: insertLead.tags || [],
+      metadata: insertLead.metadata || {},
+      integrationId: insertLead.integrationId || null,
+      archived: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      timezone: insertLead.timezone || "America/New_York",
+      calendlyLink: insertLead.calendlyLink || null,
+      fathomMeetingId: insertLead.fathomMeetingId || null,
     };
-    this.leads.set(id, newLead);
-    return newLead;
+    this.leads.set(id, lead);
+    return lead;
+  }
+
+  async createLeadsBatch(insertLeads: Array<Partial<Lead> & { userId: string; name: string; channel: string }>): Promise<Lead[]> {
+    const created: Lead[] = [];
+    for (const leadData of insertLeads) {
+      created.push(await this.createLead(leadData as any));
+    }
+    return created;
   }
   async updateLead(id: string, updates: Partial<Lead>): Promise<Lead | undefined> {
     const lead = this.leads.get(id);
@@ -1189,4 +1197,4 @@ export class MemStorage implements IStorage {
 export const storage: IStorage = drizzleStorage;
 
 
-console.log("✓ Using DrizzleStorage with PostgreSQL (persistent storage enabled)");
+console.log("✓ Using DrizzleStorage with PostgreSQL (persistent storage enabled)");

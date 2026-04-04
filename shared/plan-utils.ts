@@ -17,6 +17,7 @@ export function getPlanCapabilities(planId: string) {
   if (!tier) {
     return {
       leadsLimit: 0,
+      mailboxLimit: 0,
       voiceMinutes: 0,
       hasVoiceNotes: false,
       hasAnalytics: false,
@@ -90,13 +91,14 @@ export function getSortedPricingTiers(): PricingTier[] {
 }
 
 export function isLimitReached(current: number, limit: number): boolean {
+  if (limit === -1 || limit === Infinity) return false;
   return current >= limit;
 }
 
 export function shouldShowUpgradePrompt(planId: string, leadCount: number, voiceMinutesUsed: number): boolean {
   const capabilities = getPlanCapabilities(planId);
-  const leadsNearLimit = capabilities.leadsLimit > 0 && leadCount >= capabilities.leadsLimit * 0.9;
-  const voiceNearLimit = capabilities.voiceMinutes > 0 && voiceMinutesUsed >= capabilities.voiceMinutes * 0.9;
+  const leadsNearLimit = capabilities.leadsLimit !== -1 && capabilities.leadsLimit > 0 && leadCount >= capabilities.leadsLimit * 0.9;
+  const voiceNearLimit = capabilities.voiceMinutes !== -1 && capabilities.voiceMinutes > 0 && voiceMinutesUsed >= capabilities.voiceMinutes * 0.9;
 
   return leadsNearLimit || voiceNearLimit || (!isPaidPlan(planId) && planId !== 'free');
 }

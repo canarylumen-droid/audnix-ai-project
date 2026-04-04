@@ -47,8 +47,12 @@ export interface DnsVerificationResult {
     found: boolean;
     records: Array<{ priority: number; exchange: string }>;
   };
+  blacklist: {
+    isBlacklisted: boolean;
+    listedOn: string[];
+  };
   overallScore: number;
-  overallStatus: 'excellent' | 'good' | 'fair' | 'poor';
+  overallStatus: 'excellent' | 'good' | 'fair' | 'poor' | 'blacklisted';
   recommendations: string[];
 }
 
@@ -226,6 +230,38 @@ async function checkMx(domain: string): Promise<DnsVerificationResult['mx']> {
   }
 }
 
+async function checkBlacklist(domain: string): Promise<DnsVerificationResult['blacklist']> {
+  const providers = [
+    'zen.spamhaus.org',
+    'b.barracudacentral.org',
+    'bl.spamcop.net',
+    'dnsbl.sorbs.net',
+    'dbl.spamhaus.org' // Domain based lookup
+  ];
+  
+  const listedOn: string[] = [];
+  
+  // To avoid blocking the main thread too much, we do this in parallel but with a timeout per check
+  await Promise.all(providers.map(async (provider) => {
+    try {
+      // For domain based lookups (like dbl.spamhaus.org), we append domain directly
+      const query = (provider.startsWith('dbl')) ? `${domain}.${provider}` : `${domain}.${provider}`;
+      // Most DNSBLs return an A record if found
+      const result = await promisify(dns.resolve4)(query);
+      if (result && result.length > 0) {
+        listedOn.push(provider);
+      }
+    } catch (e) {
+      // Not listed or lookup timeout
+    }
+  }));
+
+  return {
+    isBlacklisted: listedOn.length > 0,
+    listedOn
+  };
+}
+
 export async function verifyDomainDns(domain: string, dkimSelector?: string, force = false): Promise<DnsVerificationResult> {
   let cleanDomain = domain.toLowerCase().trim();
   try {
@@ -240,11 +276,12 @@ export async function verifyDomainDns(domain: string, dkimSelector?: string, for
   const cached = getCachedResult<DnsVerificationResult>(cacheKey);
   if (cached && !force) return cached;
 
-  const [spf, dkim, dmarc, mx] = await Promise.all([
+  const [spf, dkim, dmarc, mx, blacklist] = await Promise.all([
     checkSpf(cleanDomain),
     checkDkim(cleanDomain, dkimSelector),
     checkDmarc(cleanDomain),
     checkMx(cleanDomain),
+    checkBlacklist(cleanDomain),
   ]);
 
   const result: DnsVerificationResult = {
@@ -253,6 +290,7 @@ export async function verifyDomainDns(domain: string, dkimSelector?: string, for
     dkim,
     dmarc,
     mx,
+    blacklist,
     overallScore: 0,
     overallStatus: 'fair',
     recommendations: []
@@ -283,20 +321,30 @@ export async function verifyDomainDns(domain: string, dkimSelector?: string, for
     recommendations.push('No MX records found - email delivery may fail');
   }
 
+  if (blacklist.isBlacklisted) {
+    score = Math.min(20, score);
+    recommendations.push(`CRITICAL: Domain is listed on ${blacklist.listedOn.length} blacklists: ${blacklist.listedOn.join(', ')}`);
+  }
+
   let overallStatus: DnsVerificationResult['overallStatus'];
-  if (score >= 90) overallStatus = 'excellent';
+  if (blacklist.isBlacklisted) overallStatus = 'blacklisted';
+  else if (score >= 90) overallStatus = 'excellent';
   else if (score >= 70) overallStatus = 'good';
   else if (score >= 50) overallStatus = 'fair';
   else overallStatus = 'poor';
 
-  return {
+  const finalResult: DnsVerificationResult = {
     domain: cleanDomain,
     spf,
     dkim,
     dmarc,
     mx,
+    blacklist,
     overallScore: score,
     overallStatus,
     recommendations,
   };
+
+  setCachedResult(cacheKey, finalResult);
+  return finalResult;
 }
