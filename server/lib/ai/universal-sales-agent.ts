@@ -346,6 +346,7 @@ Make it compelling and specific to their business.`,
 // ============ ENGINE 5: REAL-TIME LEARNING & ADAPTATION ============
 export interface SalesLearnData {
   leadId: string;
+  userId: string;
   messageType: "cold_outreach" | "follow_up" | "objection_response" | "closing";
   leadResponse: "interested" | "objection" | "not_interested" | "converted" | "no_response";
   sentiment: "positive" | "neutral" | "negative";
@@ -365,7 +366,7 @@ export class UniversalSalesAI {
 
     // Persist to database
     try {
-      await storage.recordLearningPattern(data.leadId, key, isSuccess);
+      await storage.recordLearningPattern(data.userId, key, isSuccess);
     } catch (error) {
       console.warn('⚠️ Pattern persistence failed, using memory fallback');
     }
@@ -388,7 +389,8 @@ export class UniversalSalesAI {
   }
 
   async adaptMessageBasedOnLearning(baseMessage: string, leadProfile: SalesLeadProfile): Promise<string> {
-    const userId = (leadProfile as any).userId || "system";
+    const SYSTEM_USER_ID = "00000000-0000-0000-0000-000000000000";
+    const userId = (leadProfile as any).userId || SYSTEM_USER_ID;
     const topStrategy = await this.getTopPerformingStrategy(userId);
 
     if (topStrategy.includes("positive")) {

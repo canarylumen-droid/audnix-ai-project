@@ -246,6 +246,7 @@ export async function generateContextAwareMessage(
   // Learn from this generation
   await universalSalesAI.learnFromInteraction({
     leadId: lead.id,
+    userId: lead.userId,
     messageType: messageTypeMap[stage],
     leadResponse: "no_response",
     sentiment: "neutral",
@@ -381,6 +382,7 @@ export async function handleLeadResponseWithLearning(
   // Learn from this interaction
   await universalSalesAI.learnFromInteraction({
     leadId: lead.id,
+    userId: lead.userId,
     messageType: intent.intentLevel === "high" ? "follow_up" : "objection_response",
     leadResponse: intent.intentLevel === "high" ? "interested" : "objection",
     sentiment: theirMessage.includes("!") || theirMessage.includes("?") ? "positive" : "neutral",

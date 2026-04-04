@@ -21,7 +21,7 @@ interface ResendOTPBody {
 const otpLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 3,
-  message: 'Too many OTP requests. Please try again later.',
+  message: { error: 'Too many OTP requests. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
 });

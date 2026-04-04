@@ -263,6 +263,38 @@ export class GmailOAuth {
   }
 
   /**
+   * Internal helper to gracefully refresh forcing
+   */
+  private async forceRefresh(userId: string, emailAddress?: string): Promise<string | null> {
+    const tokenData = await storage.getOAuthAccount(userId, 'google', emailAddress);
+    if (!tokenData || !tokenData.refreshToken) return null;
+    
+    try {
+      const decryptedRefreshToken = decrypt(tokenData.refreshToken);
+      const newTokens = await this.refreshAccessToken(decryptedRefreshToken);
+      
+      const encryptedNewAccessToken = encrypt(newTokens.access_token);
+      const encryptedNewRefreshToken = newTokens.refresh_token 
+          ? encrypt(newTokens.refresh_token) 
+          : tokenData.refreshToken;
+
+      await storage.saveOAuthAccount({
+          userId,
+          provider: 'google',
+          providerAccountId: tokenData.providerAccountId,
+          accessToken: encryptedNewAccessToken,
+          refreshToken: encryptedNewRefreshToken,
+          expiresAt: new Date(newTokens.expiry_date || Date.now() + 3600 * 1000),
+          scope: newTokens.scope,
+          tokenType: newTokens.token_type
+      });
+      return newTokens.access_token;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Send email using Gmail API
    */
   async sendEmail(userId: string, to: string, subject: string, body: string, isHtml = false, fromEmail?: string): Promise<void> {
@@ -300,6 +332,16 @@ export class GmailOAuth {
         requestBody: { raw: encodedMessage }
       });
     } catch (error: any) {
+      if (error.response?.status === 401) {
+        console.warn(`[Gmail] 401 Unauthorized for sendEmail. Attempting forced refresh...`);
+        const newToken = await this.forceRefresh(userId, fromEmail);
+        if (newToken) {
+          const newClient = this.createClient({ access_token: newToken });
+          const newGmail = google.gmail({ version: 'v1', auth: newClient });
+          await newGmail.users.messages.send({ userId: 'me', requestBody: { raw: encodedMessage }});
+          return;
+        }
+      }
       throw new Error(`Failed to send email via Gmail API: ${error.message}`);
     }
   }
@@ -318,6 +360,16 @@ export class GmailOAuth {
       const response = await gmail.users.messages.list({ userId: 'me', maxResults: limit });
       return response.data.messages || [];
     } catch (error: any) {
+      if (error.response?.status === 401) {
+         console.warn(`[Gmail] 401 Unauthorized for listMessages. Attempting forced refresh...`);
+         const newToken = await this.forceRefresh(userId);
+         if (newToken) {
+           const newClient = this.createClient({ access_token: newToken });
+           const newGmail = google.gmail({ version: 'v1', auth: newClient });
+           const retryResponse = await newGmail.users.messages.list({ userId: 'me', maxResults: limit });
+           return retryResponse.data.messages || [];
+         }
+      }
       throw new Error(`Failed to list messages: ${error.message}`);
     }
   }
@@ -336,6 +388,16 @@ export class GmailOAuth {
       const response = await gmail.users.messages.get({ userId: 'me', id: messageId });
       return response.data;
     } catch (error: any) {
+      if (error.response?.status === 401) {
+         console.warn(`[Gmail] 401 Unauthorized for getMessageDetails. Attempting forced refresh...`);
+         const newToken = await this.forceRefresh(userId);
+         if (newToken) {
+           const newClient = this.createClient({ access_token: newToken });
+           const newGmail = google.gmail({ version: 'v1', auth: newClient });
+           const retryResponse = await newGmail.users.messages.get({ userId: 'me', id: messageId });
+           return retryResponse.data;
+         }
+      }
       throw new Error(`Failed to get message details: ${error.message}`);
     }
   }

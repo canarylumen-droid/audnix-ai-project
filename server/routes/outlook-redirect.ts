@@ -43,7 +43,9 @@ router.get('/outlook/callback', async (req: Request, res: Response): Promise<voi
     console.log(`[Outlook Redirect] Authenticated user: ${userId}`);
 
     // 2. Re-attach userId to session
-    (req as any).session.userId = userId;
+    if ((req as any).session) {
+      (req as any).session.userId = userId;
+    }
 
     // 3. Exchange authorization code for tokens
     console.log(`[Outlook Redirect] Exchanging code for tokens...`);

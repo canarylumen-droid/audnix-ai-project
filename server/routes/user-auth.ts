@@ -35,7 +35,7 @@ const avatarUpload = multer({
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
-  message: 'Too many auth attempts',
+  message: { error: 'Too many auth attempts' },
 });
 
 router.get('/otp-configured', async (_req: Request, res: Response): Promise<void> => {

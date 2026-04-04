@@ -3,7 +3,7 @@ import { leads as leadsTable, emailReplyStore, campaignEmails, outreachCampaigns
 import { storage } from '../../storage.js';
 import pLimit from 'p-limit';
 import { analyzeInboundMessage } from '../ai/inbound-message-analyzer.js';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, or, sql, desc } from 'drizzle-orm';
 
 /**
  * Paged email importer - prevents timeout and memory issues
@@ -330,7 +330,7 @@ async function processEmailForLead(
                 linkedCampaignId ? eq(campaignLeads.campaignId, linkedCampaignId) : or(eq(campaignLeads.status, 'sent'), eq(campaignLeads.status, 'pending'), eq(campaignLeads.status, 'replied'))
               )
             )
-            .orderBy(sql`created_at DESC`)
+            .orderBy(desc(campaignLeads.createdAt))
             .limit(1);
 
           if (campaignLeadEntries.length > 0) {

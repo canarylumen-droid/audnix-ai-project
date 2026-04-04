@@ -100,7 +100,7 @@ export const apiLimiter = rateLimit(
     {
       windowMs: 15 * 60 * 1000,
       max: 100,
-      message: 'Too many requests from this IP, please try again later',
+      message: { error: 'Too many requests from this IP, please try again later' },
       standardHeaders: true,
       legacyHeaders: false
     },
@@ -113,7 +113,7 @@ export const authLimiter = rateLimit(
     {
       windowMs: 15 * 60 * 1000,
       max: 20, // Increased from 5 to 20 to prevent lockouts
-      message: 'Too many authentication attempts, please try again later',
+      message: { error: 'Too many authentication attempts, please try again later' },
       standardHeaders: true,
       legacyHeaders: false,
       skipSuccessfulRequests: true
@@ -127,7 +127,7 @@ export const webhookLimiter = rateLimit(
     {
       windowMs: 60 * 1000,
       max: 1000,
-      message: 'Webhook rate limit exceeded',
+      message: { error: 'Webhook rate limit exceeded' },
       standardHeaders: true,
       legacyHeaders: false
     },
@@ -140,7 +140,7 @@ export const aiLimiter = rateLimit(
     {
       windowMs: 60 * 1000,
       max: 20,
-      message: 'AI generation rate limit exceeded',
+      message: { error: 'AI generation rate limit exceeded' },
       keyGenerator: createUserKeyGenerator('user'),
       standardHeaders: true,
       legacyHeaders: false,
@@ -156,7 +156,7 @@ export const viteLimiter = rateLimit(
     {
       windowMs: 60 * 1000,
       max: process.env.NODE_ENV === 'development' ? 5000 : 500,
-      message: 'Too many requests to development server',
+      message: { error: 'Too many requests to development server' },
       standardHeaders: true,
       legacyHeaders: false,
       validate: false
@@ -170,7 +170,7 @@ export const smtpRateLimiter = rateLimit(
     {
       windowMs: 60 * 60 * 1000,
       max: 300,
-      message: 'Email sending rate limit exceeded. Please wait before sending more emails.',
+      message: { error: 'Email sending rate limit exceeded. Please wait before sending more emails.' },
       keyGenerator: createUserKeyGenerator('smtp'),
       standardHeaders: true,
       legacyHeaders: false,
@@ -185,7 +185,7 @@ export const emailImportLimiter = rateLimit(
     {
       windowMs: 24 * 60 * 60 * 1000,
       max: 1000,
-      message: 'Daily email import limit exceeded',
+      message: { error: 'Daily email import limit exceeded' },
       keyGenerator: (req: Request): string => {
         const userId = getSessionUserId(req);
         if (userId) return `import:${userId}`;

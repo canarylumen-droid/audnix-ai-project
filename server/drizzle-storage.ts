@@ -1052,7 +1052,7 @@ export class DrizzleStorage implements IStorage {
     const current = Number(existingIntegrations[0]?.count || 0);
     
     return {
-      allowed: current < limit,
+      allowed: limit === -1 ? true : current < limit,
       current,
       limit,
       plan
@@ -1075,6 +1075,15 @@ export class DrizzleStorage implements IStorage {
   async deleteIntegrationById(id: string): Promise<void> {
     checkDatabase();
     if (!isValidUUID(id)) return;
+    
+    // Safely unlink constraints from connected entities to allow deletion
+    try {
+      await db.update(leads).set({ integrationId: null as any }).where(eq(leads.integrationId, id));
+    } catch (e) {}
+    try {
+      await db.update(messages).set({ integrationId: null as any }).where(eq(messages.integrationId, id));
+    } catch (e) {}
+    
     await db
       .delete(integrations)
       .where(eq(integrations.id, id));
@@ -1189,12 +1198,20 @@ export class DrizzleStorage implements IStorage {
 
   async createDeal(data: any): Promise<any> {
     checkDatabase();
-    const result = await db.execute(sql`
-      INSERT INTO deals (user_id, lead_id, title, amount, currency, status, source, metadata)
-      VALUES (${data.userId}, ${data.leadId || null}, ${data.title}, ${data.amount}, ${data.currency || 'USD'}, ${data.status || 'open'}, ${data.source || 'manual'}, ${JSON.stringify(data.metadata || {})})
-      RETURNING *
-    `);
-    return result.rows[0];
+    const [newDeal] = await db.insert(deals).values({
+      userId: data.userId,
+      leadId: data.leadId,
+      organizationId: data.organizationId,
+      brand: data.brand || data.title || 'Unknown',
+      channel: data.channel || 'manual',
+      value: data.value || data.amount || 0,
+      status: data.status || 'open',
+      source: data.source || 'manual',
+      aiAnalysis: data.aiAnalysis || data.metadata || {},
+      notes: data.notes,
+      dealValue: data.dealValue || 0,
+    }).returning();
+    return newDeal;
   }
 
   async updateDeal(id: string, userId: string, updates: any): Promise<any> {
@@ -1705,11 +1722,12 @@ export class DrizzleStorage implements IStorage {
   async createAuditLog(data: InsertAuditTrail): Promise<AuditTrail> {
     checkDatabase();
     
-    // Defensive normalization: PostgreSQL UUID fields cannot be empty strings
+    // Proactive normalization: PostgreSQL UUID fields cannot be malformed strings or "system" placeholders
     const sanitizedData = {
       ...data,
-      leadId: (data.leadId && data.leadId.length > 0) ? data.leadId : null,
-      integrationId: (data.integrationId && data.integrationId.length > 0) ? data.integrationId : null,
+      leadId: (data.leadId && data.leadId.length > 0 && isValidUUID(data.leadId)) ? data.leadId : null,
+      integrationId: (data.integrationId && data.integrationId.length > 0 && isValidUUID(data.integrationId)) ? data.integrationId : null,
+      messageId: (data.messageId && data.messageId.length > 0 && isValidUUID(data.messageId)) ? data.messageId : null,
     };
 
     const [result] = await db.insert(auditTrail).values(sanitizedData).returning();

@@ -5,7 +5,7 @@
 
 import { db } from "../db.js";
 import { auditTrail, pdfAnalytics } from "../../shared/schema.js";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, gte } from "drizzle-orm";
 
 export type AuditActionType =
   | "ai_message_sent"
@@ -296,17 +296,20 @@ export class AuditTrailService {
       // Check for identical intent log for this lead in the last 24 hours
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
+      const conditions = [
+        eq(auditTrail.action, "intent_detected"),
+        sql`(${auditTrail.details}->>'intent') = ${intent}`,
+        gte(auditTrail.createdAt, yesterday)
+      ];
+
+      if (leadId) {
+        conditions.push(eq(auditTrail.leadId, leadId));
+      }
+
       const existing = await db
         .select()
         .from(auditTrail)
-        .where(
-          and(
-            leadId ? eq(auditTrail.leadId, leadId) : sql`TRUE`,
-            eq(auditTrail.action, "intent_detected"),
-            sql`(${auditTrail.details}->>'intent') = ${intent}`,
-            sql`(${auditTrail.createdAt}) > ${yesterday}`
-          )
-        )
+        .where(and(...conditions))
         .limit(1);
 
       if (existing.length > 0) return;

@@ -15,7 +15,7 @@ const OTP_ENABLED = false;
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
-  message: 'Too many auth attempts',
+  message: { error: 'Too many auth attempts' },
 });
 
 router.post('/signup/request-otp', authLimiter, async (req: Request, res: Response): Promise<void> => {

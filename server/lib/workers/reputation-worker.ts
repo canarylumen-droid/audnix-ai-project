@@ -55,7 +55,7 @@ export class ReputationWorker {
                         try {
                             await storage.createAuditLog({
                                 userId: user.id,
-                                leadId: "system", // Required field
+                                leadId: undefined, // No longer using invalid "system" string
                                 integrationId: integration.id,
                                 action: 'domain_reputation_check',
                                 details: { domain, result, autonomous: true },

@@ -894,6 +894,8 @@ export const campaignLeads = pgTable("campaign_leads", {
   retryCount: integer("retry_count").notNull().default(0),
   integrationId: uuid("integration_id").references(() => integrations.id, { onDelete: "set null" }),
   metadata: jsonb("metadata").$type<Record<string, any>>().default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table: any) => {
   return {
     campaignLeadIdx: uniqueIndex("campaign_lead_idx").on(table.campaignId, table.leadId),

@@ -376,10 +376,16 @@ export default function IntegrationsPage() {
   const handleConnect = async (provider: string) => {
     try {
       const response = await fetch(`/api/oauth/connect/${provider}`);
-      const { authUrl } = await response.json();
-      if (authUrl) window.location.href = authUrl;
-    } catch (e) {
-      toast({ title: "Error", description: "Could not start connection setup.", variant: "destructive" });
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(errText.substring(0, 50));
+      }
+      const data = await response.json();
+      if (data.authUrl) window.location.href = data.authUrl;
+      else throw new Error(data.error || "No auth URL returned");
+    } catch (e: any) {
+      console.error(e);
+      toast({ title: "Error", description: `Could not start connection setup: ${e.message}`, variant: "destructive" });
     }
   };
 

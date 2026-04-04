@@ -42,8 +42,10 @@ router.get('/calendly/callback', async (req: Request, res: Response): Promise<vo
 
     const userId = stateData.userId;
 
-    // Re-attach userId to session (critical: OAuth redirect creates a fresh browser session)
-    (req as any).session.userId = userId;
+    // Re-attach userId to session conditionally to prevent crashes if session is undefined
+    if ((req as any).session) {
+      (req as any).session.userId = userId;
+    }
 
     // Exchange code for tokens
     console.log(`[Calendly Redirect] Exchanging code for tokens for user: ${userId}`);

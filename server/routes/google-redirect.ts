@@ -44,7 +44,9 @@ router.get('/gmail/callback', async (req: Request, res: Response): Promise<void>
     console.log(`[Google Redirect] Authenticated user: ${userId}`);
 
     // 2. Re-attach userId to session (OAuth redirect creates a new browser context)
-    (req as any).session.userId = userId;
+    if ((req as any).session) {
+      (req as any).session.userId = userId;
+    }
 
     // 3. Exchange authorization code for tokens
     console.log(`[Google Redirect] Exchanging code for tokens...`);
@@ -195,7 +197,9 @@ router.get('/google-calendar/callback', async (req: Request, res: Response): Pro
     }
 
     const userId = stateData.userId;
-    (req as any).session.userId = userId;
+    if ((req as any).session) {
+      (req as any).session.userId = userId;
+    }
 
     const tokenData = await googleCalendarOAuth.exchangeCodeForTokens(code as string);
 
