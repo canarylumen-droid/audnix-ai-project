@@ -374,6 +374,15 @@ export default function IntegrationsPage() {
   });
 
   const handleConnect = async (provider: string) => {
+    if (isAtMailboxLimit && userData?.user?.subscriptionTier !== 'enterprise') {
+      toast({ 
+        title: "Limit Reached", 
+        description: "You've reached the mailbox limit for your plan. Please upgrade to add more.",
+        variant: "destructive" 
+      });
+      return;
+    }
+
     try {
       const response = await fetch(`/api/oauth/connect/${provider}`);
       if (!response.ok) {
@@ -446,13 +455,14 @@ export default function IntegrationsPage() {
   const getMailboxLimit = () => {
     const planId = (userData?.user?.subscriptionTier || userData?.user?.plan || 'starter').toLowerCase();
     const capabilities = getPlanCapabilities(planId);
-    return capabilities.mailboxLimit === -1 ? Infinity : capabilities.mailboxLimit;
+    return capabilities.mailboxLimit;
   };
 
   const connectedMailboxesCount = (customEmailStatus?.integrations?.length || 0) +
     (integrations.filter(i => i.provider === 'gmail' || i.provider === 'outlook').length || 0);
 
-  const isAtMailboxLimit = connectedMailboxesCount >= (getMailboxLimit() ?? 0);
+  const limit = getMailboxLimit();
+  const isAtMailboxLimit = limit !== -1 && connectedMailboxesCount >= limit;
 
   const getNextPlan = () => {
     const tier = (userData?.user?.subscriptionTier || userData?.user?.plan || 'starter').toLowerCase();
@@ -567,9 +577,17 @@ export default function IntegrationsPage() {
                 </div>
                 <h2 className="text-xl font-bold tracking-tight text-foreground">Custom Email Domain</h2>
               </div>
-              <Badge variant="outline" className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest border-primary/20 bg-primary/5 text-primary">
-                Advanced
-              </Badge>
+              <div className="flex items-center gap-3">
+                <Badge variant="outline" className={cn(
+                  "rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest border-border/50 bg-muted/20",
+                  userData?.user?.subscriptionTier === 'enterprise' ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/5" : "text-muted-foreground"
+                )}>
+                  {connectedMailboxesCount} / {limit === -1 ? 'Unlimited' : limit} Integrations
+                </Badge>
+                <Badge variant="outline" className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest border-primary/20 bg-primary/5 text-primary">
+                  Advanced
+                </Badge>
+              </div>
             </div>
 
             <Card className={cn(
@@ -605,8 +623,14 @@ export default function IntegrationsPage() {
                     <div className="flex flex-wrap items-center gap-3">
                       <Button
                         variant="outline"
-                        className="rounded-xl px-4 py-6 border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-all flex flex-col items-center gap-2 flex-1 min-w-[140px]"
+                        className={cn(
+                          "rounded-xl px-4 py-6 transition-all flex flex-col items-center gap-2 flex-1 min-w-[140px]",
+                          isAtMailboxLimit && userData?.user?.subscriptionTier !== 'enterprise' 
+                            ? "opacity-50 cursor-not-allowed border-muted bg-muted/20" 
+                            : "border-primary/20 bg-primary/5 text-primary hover:bg-primary/10"
+                        )}
                         onClick={() => handleConnect('gmail')}
+                        disabled={isAtMailboxLimit && userData?.user?.subscriptionTier !== 'enterprise'}
                       >
                         <SiGoogle className="h-5 w-5" />
                         <span className="text-[10px] font-bold uppercase tracking-widest">Connect Google</span>
@@ -614,8 +638,14 @@ export default function IntegrationsPage() {
 
                       <Button
                         variant="outline"
-                        className="rounded-xl px-4 py-6 border-blue-500/20 bg-blue-500/5 text-blue-500 hover:bg-blue-500/10 transition-all flex flex-col items-center gap-2 flex-1 min-w-[140px]"
+                        className={cn(
+                          "rounded-xl px-4 py-6 transition-all flex flex-col items-center gap-2 flex-1 min-w-[140px]",
+                          isAtMailboxLimit && userData?.user?.subscriptionTier !== 'enterprise'
+                            ? "opacity-50 cursor-not-allowed border-muted bg-muted/20"
+                            : "border-blue-500/20 bg-blue-500/5 text-blue-500 hover:bg-blue-500/10"
+                        )}
                         onClick={() => handleConnect('outlook')}
+                        disabled={isAtMailboxLimit && userData?.user?.subscriptionTier !== 'enterprise'}
                       >
                         <Mail className="h-5 w-5" />
                         <span className="text-[10px] font-bold uppercase tracking-widest">Connect Outlook</span>
@@ -795,11 +825,11 @@ export default function IntegrationsPage() {
                   <div className="flex gap-4 pt-4">
                     <Button
                       className="rounded-xl px-8 font-semibold h-11 flex-1"
-                      disabled={connectCustomEmailMutation.isPending}
+                      disabled={connectCustomEmailMutation.isPending || (isAtMailboxLimit && userData?.user?.subscriptionTier !== 'enterprise')}
                       onClick={() => connectCustomEmailMutation.mutate(customEmailConfig)}
                     >
                       {connectCustomEmailMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Add Mailbox
+                      {isAtMailboxLimit && userData?.user?.subscriptionTier !== 'enterprise' ? 'Limit Reached' : 'Add Mailbox'}
                     </Button>
                     <Button variant="outline" className="rounded-xl px-8 font-semibold h-11" onClick={() => setIsEditingCustomEmail(false)}>Cancel</Button>
                   </div>
@@ -807,17 +837,57 @@ export default function IntegrationsPage() {
               ) : hasMailboxesConnected ? (
                 <div className="p-8 space-y-8">
                   <div className="flex items-center justify-between pb-4 border-b border-border/50">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-lg font-bold text-foreground">Active Business Mailboxes</h3>
-                        <Badge variant="outline" className="rounded-full text-[10px]">
-                          {connectedMailboxesCount} / {getMailboxLimit() === Infinity ? 'Unlimited' : `${getMailboxLimit()} Limit`}
-                        </Badge>
+                    <div className="space-y-3 flex-1">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-lg font-bold text-foreground">Active Business Mailboxes</h3>
+                          <Badge variant="outline" className={cn(
+                            "rounded-full text-[10px] font-black tracking-widest px-2",
+                            userData?.user?.subscriptionTier === 'enterprise' 
+                              ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/5" 
+                              : isAtMailboxLimit 
+                                ? "text-amber-500 border-amber-500/20 bg-amber-500/5"
+                                : "text-primary border-primary/20 bg-primary/5"
+                          )}>
+                            {connectedMailboxesCount} / {limit === -1 ? 'Unlimited' : limit}
+                          </Badge>
+                        </div>
+                        {limit !== -1 && (
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                            {Math.round((connectedMailboxesCount / limit) * 100)}% Capacity
+                          </span>
+                        )}
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {connectedMailboxesCount >= (getMailboxLimit() ?? 0) && userData?.user?.subscriptionTier !== 'enterprise'
-                          ? "Limit reached. Upgrade or disconnect a mailbox to add more."
-                          : "Manage your connected Google, Outlook, and custom SMTP accounts."}
+                      
+                      {limit !== -1 ? (
+                        <div className="h-1.5 w-full bg-muted/30 rounded-full overflow-hidden border border-border/5">
+                           <motion.div 
+                             initial={{ width: 0 }}
+                             animate={{ width: `${Math.min((connectedMailboxesCount / limit) * 100, 100)}%` }}
+                             transition={{ duration: 1, ease: "easeOut" }}
+                             className={cn(
+                               "h-full rounded-full",
+                               isAtMailboxLimit ? "bg-amber-500" : "bg-primary"
+                             )}
+                           />
+                        </div>
+                      ) : (
+                        <div className="h-1.5 w-full bg-emerald-500/10 rounded-full overflow-hidden border border-emerald-500/5">
+                           <motion.div 
+                             initial={{ width: 0 }}
+                             animate={{ width: "100%" }}
+                             transition={{ duration: 1.5, ease: "easeOut" }}
+                             className="h-full bg-gradient-to-r from-emerald-500/40 via-emerald-500 to-emerald-500/40 bg-[length:200%_100%] animate-shimmer"
+                           />
+                        </div>
+                      )}
+
+                      <p className="text-xs text-muted-foreground italic">
+                        {userData?.user?.subscriptionTier === 'enterprise'
+                          ? "Enterprise Tier: Scalable mailbox architecture enabled with no connection limits."
+                          : isAtMailboxLimit
+                            ? "Limit reached. Upgrade or disconnect a mailbox to add more."
+                            : `You have ${limit - connectedMailboxesCount} mailbox slots remaining on your ${userData?.user?.subscriptionTier || 'Starter'} plan.`}
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -838,9 +908,9 @@ export default function IntegrationsPage() {
                         <Plus className="h-4 w-4" /> Add Mailbox
                       </Button>
 
-                      {userData?.user?.subscriptionTier === 'enterprise' && connectedMailboxesCount >= (getMailboxLimit() ?? 0) && (
-                        <Badge variant="outline" className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-500 border-emerald-500/20 bg-emerald-500/5">
-                          Full Capacity
+                      {userData?.user?.subscriptionTier === 'enterprise' && (
+                        <Badge variant="outline" className="rounded-full px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 border-emerald-500/30 bg-emerald-500/10 shadow-lg shadow-emerald-500/10">
+                          Enterprise Elite
                         </Badge>
                       )}
                     </div>
