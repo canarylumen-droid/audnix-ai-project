@@ -419,11 +419,23 @@ export default function DashboardHome() {
     },
   ];
 
-  if (statsLoading) {
-    return <div className="h-[60vh] flex items-center justify-center"><PremiumLoader text="Updating Dashboard..." /></div>;
-  }
+  // NOTE: Do NOT early-return here — it unmounts the component and resets the onboarding ref guard.
 
   const hasAnyActivity = stats && (stats.leads > 0 || stats.messages > 0 || stats.aiReplies > 0);
+
+  // Show loader INSIDE the return so the component stays mounted (keeps hasInitialized ref stable)
+  if (statsLoading) {
+    return (
+      <>
+        {showOnboarding && (
+          <OnboardingWizard isOpen={showOnboarding} onComplete={handleOnboardingComplete} />
+        )}
+        <div className="h-[60vh] flex items-center justify-center">
+          <PremiumLoader text="Loading Dashboard..." />
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
