@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -66,7 +66,7 @@ interface OnboardingWizardProps {
   onComplete: () => void;
 }
 
-export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) {
+export const OnboardingWizard = React.memo(function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) {
   const [step, setStep] = useState(0);
   const [userRole, setUserRole] = useState<string>('');
   const [source, setSource] = useState<string>('');
@@ -227,18 +227,18 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
         {/* Scrollable step content */}
         <div className="overflow-y-auto flex-1 px-4 pb-5 pt-1">
           <AnimatePresence mode="wait" custom={1}>
-
-            {/* ── Step 0: Welcome ──────────────────────────── */}
-            {step === 0 && (
-              <motion.div
-                key="step0"
-                custom={1}
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                className="flex flex-col items-center text-center gap-4 py-4"
-              >
+            <motion.div
+              key={`step-${step}`}
+              custom={1}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              className={step === 0 ? "flex flex-col items-center text-center gap-4 py-4" : "space-y-4 py-2"}
+            >
+              {/* ── Step 0: Welcome ──────────────────────────── */}
+              {step === 0 && (
+                <>
                 <div className="relative w-14 h-14">
                   <motion.div
                     className="absolute inset-0 rounded-full bg-primary/20 blur-lg"
@@ -275,21 +275,12 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                   Begin Setup
                   <ChevronRight className="ml-1.5 w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                 </Button>
-              </motion.div>
-            )}
+                </>
+              )}
 
-            {/* ── Step 1: Role ─────────────────────────────── */}
-            {step === 1 && (
-              <motion.div
-                key="step1"
-                custom={1}
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: prefersReducedMotion ? 0 : 0.25 }}
-                className="space-y-2.5 py-1"
-              >
+              {/* ── Step 1: Role ─────────────────────────────── */}
+              {step === 1 && (
+                <>
                 <div className="text-center mb-3">
                   <h2 className="text-lg font-black text-white">What's your role?</h2>
                   <p className="text-white/50 text-xs mt-0.5">Pick the one that fits best</p>
@@ -297,7 +288,7 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
 
                 <div className="grid grid-cols-1 gap-1.5">
                   {USER_ROLES.map((role) => (
-                    <motion.button
+                    <button
                       key={role.value}
                       onClick={() => handleRoleSelect(role.value)}
                       className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
@@ -305,7 +296,6 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                           ? 'border-primary bg-primary/10'
                           : 'border-border/60 hover:border-primary/50 hover:bg-muted/30'
                       }`}
-                      whileTap={prefersReducedMotion ? {} : { scale: 0.98 }}
                     >
                       <div className={`p-1.5 rounded-lg shrink-0 ${userRole === role.value ? 'bg-primary/20' : 'bg-muted/50'}`}>
                         <role.icon className={`w-4 h-4 ${userRole === role.value ? 'text-primary' : 'text-muted-foreground'}`} />
@@ -315,24 +305,15 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                         <p className="text-xs text-muted-foreground truncate">{role.description}</p>
                       </div>
                       {userRole === role.value && <Check className="w-4 h-4 text-primary shrink-0" />}
-                    </motion.button>
+                    </button>
                   ))}
                 </div>
-              </motion.div>
-            )}
+                </>
+              )}
 
-            {/* ── Step 2: Source ───────────────────────────── */}
-            {step === 2 && (
-              <motion.div
-                key="step2"
-                custom={1}
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: prefersReducedMotion ? 0 : 0.25 }}
-                className="space-y-3 py-1"
-              >
+              {/* ── Step 2: Source ───────────────────────────── */}
+              {step === 2 && (
+                <>
                 <div className="text-center mb-3">
                   <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-cyan-500/10 mb-2">
                     <Search className="w-5 h-5 text-cyan-500" />
@@ -343,7 +324,7 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
 
                 <div className="grid grid-cols-3 gap-1.5">
                   {SOURCES.map((src) => (
-                    <motion.button
+                    <button
                       key={src}
                       onClick={() => handleSourceSelect(src)}
                       className={`py-2 px-1.5 rounded-lg border text-center text-xs font-medium transition-all leading-tight ${
@@ -351,19 +332,14 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                           ? 'border-primary bg-primary/10 text-primary'
                           : 'border-border/60 hover:border-primary/50 text-muted-foreground hover:text-foreground'
                       }`}
-                      whileTap={prefersReducedMotion ? {} : { scale: 0.95 }}
                     >
                       {src}
-                    </motion.button>
+                    </button>
                   ))}
                 </div>
 
                 {source === 'Other' && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="space-y-2 pt-1"
-                  >
+                  <div className="space-y-2 pt-1">
                     <Input
                       id="customSource"
                       placeholder="Where did you find us?"
@@ -379,23 +355,14 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                     >
                       Continue →
                     </Button>
-                  </motion.div>
+                  </div>
                 )}
-              </motion.div>
-            )}
+                </>
+              )}
 
-            {/* ── Step 3: Use Case ─────────────────────────── */}
-            {step === 3 && (
-              <motion.div
-                key="step3"
-                custom={1}
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: prefersReducedMotion ? 0 : 0.25 }}
-                className="space-y-3 py-1"
-              >
+              {/* ── Step 3: Use Case ─────────────────────────── */}
+              {step === 3 && (
+                <>
                 <div className="text-center mb-3">
                   <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 mb-2">
                     <Sparkles className="w-5 h-5 text-primary" />
@@ -406,7 +373,7 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
 
                 <div className="grid grid-cols-2 gap-1.5">
                   {USE_CASES.map((tag) => (
-                    <motion.button
+                    <button
                       key={tag}
                       onClick={() => handleTagToggle(tag)}
                       className={`p-2.5 rounded-lg border text-left text-xs font-medium transition-all leading-tight ${
@@ -414,13 +381,12 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                           ? 'border-primary bg-primary/10 text-primary'
                           : 'border-border/60 hover:border-primary/50 text-muted-foreground hover:text-foreground'
                       }`}
-                      whileTap={prefersReducedMotion ? {} : { scale: 0.97 }}
                     >
                       <div className="flex items-start justify-between gap-1">
                         <span>{tag}</span>
                         {selectedTags.includes(tag) && <Check className="w-3 h-3 shrink-0 mt-0.5" />}
                       </div>
-                    </motion.button>
+                    </button>
                   ))}
                 </div>
 
@@ -435,21 +401,12 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                 <Button onClick={handleUseCaseNext} className="w-full h-10">
                   Continue →
                 </Button>
-              </motion.div>
-            )}
+                </>
+              )}
 
-            {/* ── Step 4: Business Size ────────────────────── */}
-            {step === 4 && (
-              <motion.div
-                key="step4"
-                custom={1}
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: prefersReducedMotion ? 0 : 0.25 }}
-                className="space-y-2.5 py-1"
-              >
+              {/* ── Step 4: Business Size ────────────────────── */}
+              {step === 4 && (
+                <>
                 <div className="text-center mb-3">
                   <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 mb-2">
                     <Building className="w-5 h-5 text-primary" />
@@ -460,7 +417,7 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
 
                 <div className="grid grid-cols-1 gap-1.5">
                   {BUSINESS_SIZES.map((size) => (
-                    <motion.button
+                    <button
                       key={size.value}
                       onClick={() => handleBusinessSizeSelect(size.value)}
                       disabled={loading}
@@ -469,31 +426,21 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                           ? 'border-primary bg-primary/10'
                           : 'border-border/60 hover:border-primary/50 hover:bg-muted/20'
                       }`}
-                      whileTap={prefersReducedMotion ? {} : { scale: 0.98 }}
                     >
                       <div>
                         <p className="font-semibold text-sm">{size.label}</p>
                         <p className="text-xs text-muted-foreground">{size.description}</p>
                       </div>
                       {businessSize === size.value && <Check className="w-4 h-4 text-primary shrink-0" />}
-                    </motion.button>
+                    </button>
                   ))}
                 </div>
-              </motion.div>
-            )}
+                </>
+              )}
 
-            {/* ── Step 5: Company Name ─────────────────────── */}
-            {step === 5 && (
-              <motion.div
-                key="step5"
-                custom={1}
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: prefersReducedMotion ? 0 : 0.25 }}
-                className="space-y-4 py-1"
-              >
+              {/* ── Step 5: Company Name ─────────────────────── */}
+              {step === 5 && (
+                <>
                 <div className="text-center mb-3">
                   <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-cyan-500/10 mb-2">
                     <Zap className="w-5 h-5 text-cyan-500" />
@@ -527,9 +474,9 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                 >
                   {loading ? "Setting up…" : "Complete Setup 🎉"}
                 </Button>
-              </motion.div>
-            )}
-
+                </>
+              )}
+            </motion.div>
           </AnimatePresence>
         </div>
       </DialogContent>

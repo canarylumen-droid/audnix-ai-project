@@ -33,7 +33,7 @@ import { useRealtime } from "@/hooks/use-realtime";
 import { SiGmail } from "react-icons/si"; // If needed, but let's check what was there.
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { WelcomeCelebration } from "@/components/WelcomeCelebration";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { PremiumLoader } from "@/components/ui/premium-loader";
 import { MailboxSwitcher } from "@/components/outreach/MailboxSwitcher";
 import { AutonomousActionFeed } from "@/components/outreach/AutonomousActionFeed";
@@ -243,7 +243,7 @@ export default function DashboardHome() {
     // If onboardingCompleted && (hasCelebrated || localCelebration) → show nothing
   }, [user]);
 
-  const handleOnboardingComplete = () => {
+  const handleOnboardingComplete = useCallback(() => {
     setShowOnboarding(false);
     if (user?.id) {
       localStorage.setItem(`onboarding_${user.id}`, 'true');
@@ -254,7 +254,7 @@ export default function DashboardHome() {
     }
     setShowWelcomeCelebration(true);
     queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
-  };
+  }, [user?.id, queryClient]);
 
   const handleCelebrationComplete = async () => {
     // Immediately hide the modal and set all local guards — do NOT wait for the backend
@@ -423,36 +423,27 @@ export default function DashboardHome() {
 
   const hasAnyActivity = stats && (stats.leads > 0 || stats.messages > 0 || stats.aiReplies > 0);
 
-  // Show loader INSIDE the return so the component stays mounted (keeps hasInitialized ref stable)
-  if (statsLoading) {
-    return (
-      <>
-        {showOnboarding && (
-          <OnboardingWizard isOpen={showOnboarding} onComplete={handleOnboardingComplete} />
-        )}
+  return (
+    <>
+      <OnboardingWizard isOpen={showOnboarding} onComplete={handleOnboardingComplete} />
+
+      {showWelcomeCelebration && user?.username && (
+        <WelcomeCelebration
+          username={user.username}
+          onComplete={handleCelebrationComplete}
+        />
+      )}
+
+      {/* Background refetch is now silent — no full-screen overlay to avoid disrupting the user */}
+      
+      {statsLoading ? (
         <div className="h-[60vh] flex items-center justify-center">
           <PremiumLoader text="Loading Dashboard..." />
         </div>
-      </>
-    );
-  }
-
-  return (
-    <>
-        {showWelcomeCelebration && user?.username && (
-          <WelcomeCelebration
-            username={user.username}
-            onComplete={handleCelebrationComplete}
-          />
-        )}
-
-      {/* Background refetch is now silent — no full-screen overlay to avoid disrupting the user */}
-
-      <OnboardingWizard isOpen={showOnboarding} onComplete={handleOnboardingComplete} />
-
-      <div className="space-y-8 animate-in fade-in duration-700">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-8 border-b border-border/20">
+      ) : (
+        <div className="space-y-8 animate-in fade-in duration-700">
+          {/* Header */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-8 border-b border-border/20">
           <div className="space-y-1">
             <h1 className="text-2xl md:text-5xl font-black tracking-tighter text-foreground break-words sm:break-normal">
               Welcome, {user?.name?.split(' ')[0] || user?.username || 'User'}
