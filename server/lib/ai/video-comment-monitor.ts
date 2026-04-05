@@ -497,6 +497,10 @@ export function startVideoCommentMonitoring(): void {
   console.log('⏰ Reply timing: 2-4 minutes (human-like, based on lead status)');
 
   setInterval(async () => {
+    if (quotaService.isRestricted()) {
+      console.log('[VideoCommentMonitor] 🚨 System is currently under database quota restriction. Skipping check.');
+      return;
+    }
     try {
       const users: User[] = await storage.getAllUsers();
 

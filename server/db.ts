@@ -52,15 +52,25 @@ function initializeDb() {
     });
 
     _pool.on('error', (err: any) => {
-      console.error('🚨 [DB POOL ERROR]', err.message || err);
-      quotaService.reportDbError(err);
+      const errorMessage = (err?.message || String(err)).toLowerCase();
+      console.error('🚨 [DB POOL ERROR]', errorMessage);
+      
+      // Proactively trigger the global emergency pause if the pool itself hits a limit
+      if (errorMessage.includes('quota') || errorMessage.includes('maintenance') || errorMessage.includes('capacity limit')) {
+        quotaService.reportDbError(err);
+      }
     });
 
     _db = drizzle(_pool, { schema });
     console.log('✅ PostgreSQL database initialized (Neon Serverless)');
     return { db: _db, pool: _pool };
   } catch (error: any) {
-    console.error('❌ Database initialization failed:', error.message || error);
+    const errorMsg = error.message || error;
+    console.error('❌ Database initialization failed:', errorMsg);
+    
+    // Even if init fails (e.g. initial connection hit quota), report it
+    quotaService.reportDbError(error);
+    
     return { db: null, pool: null };
   }
 }

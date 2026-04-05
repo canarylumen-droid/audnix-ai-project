@@ -76,7 +76,10 @@ if (!process.env.VERCEL) {
 }
 
 const app = express();
-app.use(sentinel);
+
+// 1. [EMERGENCY] Move Quota Sentinel to the absolute top to protect all requests (including session store)
+app.use(quotaService.getSentinelMiddleware());
+
 app.use(hpp());
 
 // Unified CORS middleware for Railway deployment
@@ -207,15 +210,15 @@ app.use((req, res, next) => {
   next();
 });
 
-// Proactive Quota Check Middleware (MANDATORY TOP-LEVEL)
-// This must run BEFORE session store or ANY database queries.
+// The Quota Sentinel is already at the top, so this is redundant but kept for safety
 app.use((req, res, next) => {
   if (quotaService.isRestricted()) {
+    const remaining = Math.round(quotaService.getRemainingCooldownMs() / 1000);
     return res.status(503).json({
       error: "Service Temporarily Unavailable",
       message: "The database is currently undergoing maintenance or has reached its temporary capacity limits. Please try again in a few minutes.",
       code: "QUOTA_EXCEEDED",
-      retryAfter: 900 // 15 minutes
+      retryAfter: remaining
     });
   }
   next();
@@ -485,8 +488,18 @@ app.use((req, res, next) => {
 });
 
 async function runMigrations() {
-  const { runDatabaseMigrations } = await import("./lib/db/migrator.js");
-  await runDatabaseMigrations();
+  try {
+    const { runDatabaseMigrations } = await import("./lib/db/migrator.js");
+    await runDatabaseMigrations();
+  } catch (e: any) {
+    const errorMessage = e?.message || String(e);
+    if (errorMessage.toLowerCase().includes('quota') || errorMessage.toLowerCase().includes('maintenance')) {
+      console.error("⚠️ [Boot] Database quota exceeded - skipping migration for now. Server will start in READ-ONLY mode if possible.");
+      quotaService.reportDbError(e);
+    } else {
+       throw e; // Rethrow actual structural errors
+    }
+  }
 }
 
 (async () => {
@@ -538,11 +551,18 @@ async function runMigrations() {
             log("✅ Database ready");
           } catch (e) {
             log(`❌ Migration failed: ${e instanceof Error ? e.message : String(e)}`, "error");
+            quotaService.reportDbError(e);
           }
 
           // Delay worker startup slightly to ensure web server is fully responsive
-          const WORKER_STARTUP_DELAY = 3000;
-          setTimeout(async () => {
+          const WORKER_STARTUP_DELAY = 10000; // Increased to 10s for stability
+          const startBackgroundProcesses = async () => {
+            if (quotaService.isRestricted()) {
+              log("⚠️ [Boot] Quota restriction active - Postponing background worker startup for 15m...");
+              setTimeout(startBackgroundProcesses, 15 * 60 * 1000);
+              return;
+            }
+
             log("⚙️ Starting background workers (Lazy Loaded)...");
             
             // Worker error wrapper for graceful degradation
@@ -552,6 +572,7 @@ async function runMigrations() {
                 console.log(`   - ${name} worker: ✅ Online`);
               } catch (error) {
                 console.error(`   - ${name} worker: ❌ Failed:`, error);
+                quotaService.reportDbError(error);
               }
             };
 
@@ -585,9 +606,9 @@ async function runMigrations() {
 
               // Background workers for side-effect initializations (BullMQ, etc.)
               await Promise.all([
-                import("./lib/queues/outreach-queue.js"),
-                import("./lib/queues/campaign-queue.js"),
-                import("./lib/queues/email-sync-queue.js")
+                import("./lib/queues/outreach-queue.js").catch(() => {}),
+                import("./lib/queues/campaign-queue.js").catch(() => {}),
+                import("./lib/queues/email-sync-queue.js").catch(() => {})
               ]);
 
               // START WORKERS: Follow-up and Outreach engines
@@ -623,8 +644,11 @@ async function runMigrations() {
               }
             } catch (err) {
               console.error("❌ Critical error during background worker initialization:", err);
+              quotaService.reportDbError(err);
             }
-          }, WORKER_STARTUP_DELAY);
+          };
+
+          setTimeout(startBackgroundProcesses, WORKER_STARTUP_DELAY);
         }
       })();
     });

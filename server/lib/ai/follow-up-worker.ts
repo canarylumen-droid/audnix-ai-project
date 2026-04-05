@@ -142,13 +142,14 @@ export class FollowUpWorker {
       console.log('[FollowUpWorker] Skipping queue: Database quota restricted');
       return;
     }
-    try {
-      // Execute comment automation follow-ups first
-      await executeCommentFollowUps();
 
+    try {
       if (!db) {
         return;
       }
+
+      // Execute comment automation follow-ups first
+      await executeCommentFollowUps();
 
       // Get pending jobs from Neon database
       const jobs = await db
