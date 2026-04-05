@@ -130,7 +130,6 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
     setLoading(true);
 
     try {
-      // Call the backend to save onboarding profile and mark as complete
       await apiClient('/api/auth/complete-onboarding', {
         method: 'POST',
         body: JSON.stringify({
@@ -153,21 +152,22 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
       }, 1000);
     } catch (error: any) {
       console.error('Onboarding error:', error);
+      const status = error?.response?.status || error?.status;
       const errorMessage = error?.response?.data?.error || error?.message || "Unknown error";
-      const isAuthError = errorMessage.includes("Session") || errorMessage.includes("log in") || error?.response?.status === 401;
+      const isAuthError = status === 401 || errorMessage.toLowerCase().includes("session") || errorMessage.toLowerCase().includes("log in");
 
-      toast({
-        title: isAuthError ? "Session expired" : "Onboarding saved",
-        description: isAuthError
-          ? "Please refresh the page and log in again."
-          : "Your preferences have been noted. Continuing to dashboard...",
-        variant: isAuthError ? "destructive" : "default",
-      });
-
-      if (!isAuthError) {
-        setTimeout(() => {
-          onComplete();
-        }, 1000);
+      if (isAuthError) {
+        toast({
+          title: "Session expired",
+          description: "Please refresh the page and log in again.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Something went wrong",
+          description: "We couldn't save your profile. Please try again.",
+          variant: "destructive",
+        });
       }
     } finally {
       setLoading(false);
@@ -176,7 +176,7 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
 
   const slideVariants = {
     enter: (direction: number) => ({
-      x: direction > 0 ? 300 : -300,
+      x: direction > 0 ? 200 : -200,
       opacity: 0,
     }),
     center: {
@@ -186,330 +186,351 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
     },
     exit: (direction: number) => ({
       zIndex: 0,
-      x: direction < 0 ? 300 : -300,
+      x: direction < 0 ? 200 : -200,
       opacity: 0,
     }),
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={() => { }}>
-      <style>{`[class*="onboarding-modal"] button.absolute { display: none !important; }`}</style>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto p-0 onboarding-modal">
-        <div className="relative">
-          {/* Progress bar */}
-          <div className="h-1 bg-muted">
-            <motion.div
-              className="h-full bg-primary"
-              initial={{ width: '0%' }}
-              animate={{ width: `${(step / 4) * 100}%` }}
-              transition={{ duration: 0.3 }}
-            />
+      <style>{`
+        .onboarding-modal [data-radix-dialog-close] { display: none !important; }
+        .onboarding-modal > button.absolute { display: none !important; }
+      `}</style>
+      <DialogContent className="w-[calc(100vw-24px)] max-w-md max-h-[85vh] overflow-hidden flex flex-col p-0 onboarding-modal rounded-2xl">
+
+        {/* Thin progress bar at the very top */}
+        <div className="h-0.5 bg-muted shrink-0">
+          <motion.div
+            className="h-full bg-primary"
+            initial={{ width: '0%' }}
+            animate={{ width: `${(step / 5) * 100}%` }}
+            transition={{ duration: 0.3 }}
+          />
+        </div>
+
+        {/* Step counter header */}
+        <div className="flex items-center justify-between px-4 pt-3 pb-1 shrink-0">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
+            {step === 0 ? 'Welcome' : `Step ${step} of 5`}
+          </span>
+          <div className="flex gap-1">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div
+                key={i}
+                className={`h-1 w-4 rounded-full transition-colors duration-300 ${i <= step ? 'bg-primary' : 'bg-muted'}`}
+              />
+            ))}
           </div>
+        </div>
 
-          <div className="p-8">
-            <AnimatePresence mode="wait" custom={1}>
-              {/* Step 0: System Handshake */}
-              {step === 0 && (
-                <motion.div
-                  key="step0"
-                  custom={1}
-                  variants={slideVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  className="space-y-8 text-center py-10"
+        {/* Scrollable step content */}
+        <div className="overflow-y-auto flex-1 px-4 pb-5 pt-1">
+          <AnimatePresence mode="wait" custom={1}>
+
+            {/* ── Step 0: Welcome ──────────────────────────── */}
+            {step === 0 && (
+              <motion.div
+                key="step0"
+                custom={1}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                className="flex flex-col items-center text-center gap-4 py-4"
+              >
+                <div className="relative w-14 h-14">
+                  <motion.div
+                    className="absolute inset-0 rounded-full bg-primary/20 blur-lg"
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  />
+                  <div className="relative w-14 h-14 rounded-full border-2 border-primary/50 flex items-center justify-center bg-background/80">
+                    <Zap className="w-7 h-7 text-primary animate-pulse" />
+                  </div>
+                </div>
+
+                <div>
+                  <h2 className="text-xl font-black tracking-tight text-white">You're in. Let's set up.</h2>
+                  <p className="text-white/50 text-sm mt-1 max-w-xs mx-auto leading-snug">
+                    Takes 60 seconds. Helps us personalize your AI engine.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 w-full max-w-xs">
+                  <div className="p-2.5 rounded-xl bg-muted/30 border border-white/5 text-center">
+                    <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Status</p>
+                    <p className="text-cyan-500 font-bold text-sm">ACTIVE</p>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-muted/30 border border-white/5 text-center">
+                    <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Latency</p>
+                    <p className="text-primary font-bold text-sm">14ms</p>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={() => setStep(1)}
+                  className="w-full max-w-xs h-11 rounded-xl font-black bg-cyan-500 text-black hover:bg-cyan-400 group"
                 >
-                  <div className="relative w-24 h-24 mx-auto">
-                    <motion.div
-                      className="absolute inset-0 rounded-full bg-primary/20 blur-xl"
-                      animate={{ scale: [1, 1.2, 1] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    />
-                    <div className="relative w-24 h-24 rounded-full border-2 border-primary/50 flex items-center justify-center bg-background/80 backdrop-blur-md">
-                      <Zap className="w-12 h-12 text-primary animate-pulse" />
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <h2 className="text-4xl font-black tracking-tighter text-white">System Synchronized</h2>
-                    <p className="text-white/60 text-lg max-w-md mx-auto leading-tight">
-                      Calibrating your autonomous sales infrastructure and establishing initial data parameters.
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 max-w-xs mx-auto pt-6">
-                    <div className="p-3 rounded-2xl bg-muted/30 border border-white/5">
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Status</p>
-                      <p className="text-cyan-500 font-bold">ACTIVE</p>
-                    </div>
-                    <div className="p-3 rounded-2xl bg-muted/30 border border-white/5">
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Latency</p>
-                      <p className="text-primary font-bold">14ms</p>
-                    </div>
-                  </div>
-                  <Button
-                    onClick={() => setStep(1)}
-                    className="w-full max-w-sm h-14 rounded-2xl text-lg font-black shadow-xl shadow-cyan-500/20 group bg-cyan-500 text-black hover:bg-cyan-400"
-                  >
-                    Begin Configuration
-                    <ChevronRight className="ml-2 group-hover:translate-x-1 transition-transform" />
-                  </Button>
-                </motion.div>
-              )}
+                  Begin Setup
+                  <ChevronRight className="ml-1.5 w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                </Button>
+              </motion.div>
+            )}
 
-              {/* Step 1: Role Selection */}
-              {step === 1 && (
-                <motion.div
-                  key="step1"
-                  custom={1}
-                  variants={slideVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
-                  className="space-y-6"
-                >
-                  <div className="text-center space-y-2">
-                    <h2 className="text-3xl font-black tracking-tight text-white">Professional Vertical</h2>
-                    <p className="text-white/60">Select your primary operational focus for specialized AI fine-tuning.</p>
-                  </div>
+            {/* ── Step 1: Role ─────────────────────────────── */}
+            {step === 1 && (
+              <motion.div
+                key="step1"
+                custom={1}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: prefersReducedMotion ? 0 : 0.25 }}
+                className="space-y-2.5 py-1"
+              >
+                <div className="text-center mb-3">
+                  <h2 className="text-lg font-black text-white">What's your role?</h2>
+                  <p className="text-white/50 text-xs mt-0.5">Pick the one that fits best</p>
+                </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
-                    {USER_ROLES.map((role) => (
-                      <motion.button
-                        key={role.value}
-                        onClick={() => handleRoleSelect(role.value)}
-                        className={`relative p-6 rounded-xl border-2 text-left transition-all group hover:border-primary hover:shadow-lg ${userRole === role.value ? 'border-primary bg-primary/5' : 'border-border'
-                          }`}
-                        whileHover={prefersReducedMotion ? {} : { scale: 1.02 }}
-                        whileTap={prefersReducedMotion ? {} : { scale: 0.98 }}
-                      >
-                        <div className="flex items-start gap-4">
-                          <div className="p-3 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                            <role.icon className="w-6 h-6 text-primary" />
-                          </div>
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-lg mb-1">{role.label}</h3>
-                            <p className="text-sm text-muted-foreground">{role.description}</p>
-                          </div>
-                          <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                        </div>
-                      </motion.button>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Step 2: Source */}
-              {step === 2 && (
-                <motion.div
-                  key="step2"
-                  custom={1}
-                  variants={slideVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
-                  className="space-y-6"
-                >
-                  <div className="text-center space-y-2">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-cyan-500/10 mb-4 shadow-inner shadow-cyan-500/20">
-                      <Search className="w-8 h-8 text-cyan-500" />
-                    </div>
-                    <h2 className="text-3xl font-black tracking-tight text-white">Traffic Attribution</h2>
-                    <p className="text-white/60">Specify the primary channel through which you discovered Audnix.</p>
-                  </div>
-
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-8">
-                    {SOURCES.map((src) => (
-                      <motion.button
-                        key={src}
-                        onClick={() => handleSourceSelect(src)}
-                        className={`p-4 rounded-lg border-2 text-center transition-all hover:border-primary hover:shadow-md ${source === src ? 'border-primary bg-primary/5' : 'border-border'
-                          }`}
-                        whileHover={prefersReducedMotion ? {} : { scale: 1.05 }}
-                        whileTap={prefersReducedMotion ? {} : { scale: 0.95 }}
-                      >
-                        <span className="font-medium">{src}</span>
-                      </motion.button>
-                    ))}
-                  </div>
-
-                  {source === 'Other' && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="space-y-2"
+                <div className="grid grid-cols-1 gap-1.5">
+                  {USER_ROLES.map((role) => (
+                    <motion.button
+                      key={role.value}
+                      onClick={() => handleRoleSelect(role.value)}
+                      className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
+                        userRole === role.value
+                          ? 'border-primary bg-primary/10'
+                          : 'border-border/60 hover:border-primary/50 hover:bg-muted/30'
+                      }`}
+                      whileTap={prefersReducedMotion ? {} : { scale: 0.98 }}
                     >
-                      <Label htmlFor="customSource">Where did you hear about us?</Label>
-                      <Input
-                        id="customSource"
-                        placeholder="Tell us where you found Audnix..."
-                        value={customSource}
-                        onChange={(e) => setCustomSource(e.target.value)}
-                        autoFocus
-                      />
-                      <Button
-                        onClick={() => setStep(3)}
-                        className="w-full mt-4"
-                        disabled={!customSource.trim()}
-                      >
-                        Continue →
-                      </Button>
-                    </motion.div>
-                  )}
-                </motion.div>
-              )}
+                      <div className={`p-1.5 rounded-lg shrink-0 ${userRole === role.value ? 'bg-primary/20' : 'bg-muted/50'}`}>
+                        <role.icon className={`w-4 h-4 ${userRole === role.value ? 'text-primary' : 'text-muted-foreground'}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm leading-tight">{role.label}</p>
+                        <p className="text-xs text-muted-foreground truncate">{role.description}</p>
+                      </div>
+                      {userRole === role.value && <Check className="w-4 h-4 text-primary shrink-0" />}
+                    </motion.button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
 
-              {/* Step 3: Use Case */}
-              {step === 3 && (
-                <motion.div
-                  key="step3"
-                  custom={1}
-                  variants={slideVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
-                  className="space-y-6"
-                >
-                  <div className="text-center space-y-2">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4 shadow-inner shadow-primary/20">
-                      <Sparkles className="w-8 h-8 text-primary" />
-                    </div>
-                    <h2 className="text-3xl font-extrabold tracking-tight">Deployment Objectives</h2>
-                    <p className="text-muted-foreground">Select the mission-critical sectors for AI automation</p>
+            {/* ── Step 2: Source ───────────────────────────── */}
+            {step === 2 && (
+              <motion.div
+                key="step2"
+                custom={1}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: prefersReducedMotion ? 0 : 0.25 }}
+                className="space-y-3 py-1"
+              >
+                <div className="text-center mb-3">
+                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-cyan-500/10 mb-2">
+                    <Search className="w-5 h-5 text-cyan-500" />
                   </div>
+                  <h2 className="text-lg font-black text-white">How'd you find us?</h2>
+                  <p className="text-white/50 text-xs mt-0.5">Tap one to continue</p>
+                </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-8">
-                    {USE_CASES.map((tag) => (
-                      <motion.button
-                        key={tag}
-                        onClick={() => handleTagToggle(tag)}
-                        className={`p-4 rounded-lg border-2 text-left transition-all hover:border-primary hover:shadow-md ${selectedTags.includes(tag) ? 'border-primary bg-primary/5' : 'border-border'
-                          }`}
-                        whileHover={prefersReducedMotion ? {} : { scale: 1.02 }}
-                        whileTap={prefersReducedMotion ? {} : { scale: 0.98 }}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium">{tag}</span>
-                          {selectedTags.includes(tag) && (
-                            <Check className="w-5 h-5 text-primary" />
-                          )}
-                        </div>
-                      </motion.button>
-                    ))}
-                  </div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {SOURCES.map((src) => (
+                    <motion.button
+                      key={src}
+                      onClick={() => handleSourceSelect(src)}
+                      className={`py-2 px-1.5 rounded-lg border text-center text-xs font-medium transition-all leading-tight ${
+                        source === src
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border/60 hover:border-primary/50 text-muted-foreground hover:text-foreground'
+                      }`}
+                      whileTap={prefersReducedMotion ? {} : { scale: 0.95 }}
+                    >
+                      {src}
+                    </motion.button>
+                  ))}
+                </div>
 
-                  <div className="space-y-2 mt-6">
-                    <Label htmlFor="customUseCase">Or tell us in your own words (optional)</Label>
+                {source === 'Other' && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="space-y-2 pt-1"
+                  >
                     <Input
-                      id="customUseCase"
-                      placeholder="What problem are you trying to solve?"
-                      value={useCase}
-                      onChange={(e) => setUseCase(e.target.value)}
+                      id="customSource"
+                      placeholder="Where did you find us?"
+                      value={customSource}
+                      onChange={(e) => setCustomSource(e.target.value)}
+                      autoFocus
+                      className="h-10 text-sm"
                     />
+                    <Button
+                      onClick={() => setStep(3)}
+                      className="w-full h-10"
+                      disabled={!customSource.trim()}
+                    >
+                      Continue →
+                    </Button>
+                  </motion.div>
+                )}
+              </motion.div>
+            )}
+
+            {/* ── Step 3: Use Case ─────────────────────────── */}
+            {step === 3 && (
+              <motion.div
+                key="step3"
+                custom={1}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: prefersReducedMotion ? 0 : 0.25 }}
+                className="space-y-3 py-1"
+              >
+                <div className="text-center mb-3">
+                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 mb-2">
+                    <Sparkles className="w-5 h-5 text-primary" />
                   </div>
+                  <h2 className="text-lg font-black">What's your goal?</h2>
+                  <p className="text-muted-foreground text-xs mt-0.5">Select all that apply</p>
+                </div>
 
-                  <Button
-                    onClick={handleUseCaseNext}
-                    className="w-full mt-6"
-                    size="lg"
-                  >
-                    Continue →
-                  </Button>
-                </motion.div>
-              )}
+                <div className="grid grid-cols-2 gap-1.5">
+                  {USE_CASES.map((tag) => (
+                    <motion.button
+                      key={tag}
+                      onClick={() => handleTagToggle(tag)}
+                      className={`p-2.5 rounded-lg border text-left text-xs font-medium transition-all leading-tight ${
+                        selectedTags.includes(tag)
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border/60 hover:border-primary/50 text-muted-foreground hover:text-foreground'
+                      }`}
+                      whileTap={prefersReducedMotion ? {} : { scale: 0.97 }}
+                    >
+                      <div className="flex items-start justify-between gap-1">
+                        <span>{tag}</span>
+                        {selectedTags.includes(tag) && <Check className="w-3 h-3 shrink-0 mt-0.5" />}
+                      </div>
+                    </motion.button>
+                  ))}
+                </div>
 
-              {/* Step 4: Business Size */}
-              {step === 4 && (
-                <motion.div
-                  key="step4"
-                  custom={1}
-                  variants={slideVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
-                  className="space-y-6"
+                <Input
+                  id="customUseCase"
+                  placeholder="Or describe in your own words (optional)"
+                  value={useCase}
+                  onChange={(e) => setUseCase(e.target.value)}
+                  className="h-10 text-sm"
+                />
+
+                <Button onClick={handleUseCaseNext} className="w-full h-10">
+                  Continue →
+                </Button>
+              </motion.div>
+            )}
+
+            {/* ── Step 4: Business Size ────────────────────── */}
+            {step === 4 && (
+              <motion.div
+                key="step4"
+                custom={1}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: prefersReducedMotion ? 0 : 0.25 }}
+                className="space-y-2.5 py-1"
+              >
+                <div className="text-center mb-3">
+                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 mb-2">
+                    <Building className="w-5 h-5 text-primary" />
+                  </div>
+                  <h2 className="text-lg font-black">Team size?</h2>
+                  <p className="text-muted-foreground text-xs mt-0.5">Tap one to continue</p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-1.5">
+                  {BUSINESS_SIZES.map((size) => (
+                    <motion.button
+                      key={size.value}
+                      onClick={() => handleBusinessSizeSelect(size.value)}
+                      disabled={loading}
+                      className={`flex items-center justify-between p-3 rounded-xl border text-left transition-all ${
+                        businessSize === size.value
+                          ? 'border-primary bg-primary/10'
+                          : 'border-border/60 hover:border-primary/50 hover:bg-muted/20'
+                      }`}
+                      whileTap={prefersReducedMotion ? {} : { scale: 0.98 }}
+                    >
+                      <div>
+                        <p className="font-semibold text-sm">{size.label}</p>
+                        <p className="text-xs text-muted-foreground">{size.description}</p>
+                      </div>
+                      {businessSize === size.value && <Check className="w-4 h-4 text-primary shrink-0" />}
+                    </motion.button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── Step 5: Company Name ─────────────────────── */}
+            {step === 5 && (
+              <motion.div
+                key="step5"
+                custom={1}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: prefersReducedMotion ? 0 : 0.25 }}
+                className="space-y-4 py-1"
+              >
+                <div className="text-center mb-3">
+                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-cyan-500/10 mb-2">
+                    <Zap className="w-5 h-5 text-cyan-500" />
+                  </div>
+                  <h2 className="text-lg font-black text-white">Last thing — your company</h2>
+                  <p className="text-white/50 text-xs mt-0.5">What should we call your business?</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="companyName" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Company Name
+                  </Label>
+                  <Input
+                    id="companyName"
+                    placeholder="e.g. Acme Corp"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    autoFocus
+                    disabled={loading}
+                    className="h-11 text-sm"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleCompanyNameSubmit();
+                    }}
+                  />
+                </div>
+
+                <Button
+                  onClick={handleCompanyNameSubmit}
+                  className="w-full h-11 font-bold"
+                  disabled={loading || !companyName.trim()}
                 >
-                  <div className="text-center space-y-2">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4 shadow-inner shadow-primary/20">
-                      <Building className="w-8 h-8 text-primary" />
-                    </div>
-                    <h2 className="text-3xl font-extrabold tracking-tight">Organization Scale</h2>
-                    <p className="text-muted-foreground">Calibrating infrastructure for your operational volume</p>
-                  </div>
+                  {loading ? "Setting up…" : "Complete Setup 🎉"}
+                </Button>
+              </motion.div>
+            )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
-                    {BUSINESS_SIZES.map((size) => (
-                      <motion.button
-                        key={size.value}
-                        onClick={() => handleBusinessSizeSelect(size.value)}
-                        className={`p-6 rounded-xl border-2 text-left transition-all group hover:border-primary hover:shadow-lg ${businessSize === size.value ? 'border-primary bg-primary/5' : 'border-border'
-                          }`}
-                        whileHover={prefersReducedMotion ? {} : { scale: 1.02 }}
-                        whileTap={prefersReducedMotion ? {} : { scale: 0.98 }}
-                        disabled={loading}
-                      >
-                        <div>
-                          <h3 className="font-semibold text-lg mb-1">{size.label}</h3>
-                          <p className="text-sm text-muted-foreground">{size.description}</p>
-                        </div>
-                      </motion.button>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Step 5: Company Name */}
-              {step === 5 && (
-                <motion.div
-                  key="step5"
-                  custom={1}
-                  variants={slideVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
-                  className="space-y-6"
-                >
-                  <div className="text-center space-y-2">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-cyan-500/10 mb-4 shadow-inner shadow-cyan-500/20">
-                      <Zap className="w-8 h-8 text-cyan-500" />
-                    </div>
-                    <h2 className="text-3xl font-black tracking-tight text-white">Brand Identity</h2>
-                    <p className="text-white/60">Finalize your profile by establishing your organizational presence.</p>
-                  </div>
-
-                    <div className="space-y-4">
-                      <Label htmlFor="companyName" className="text-xs font-black uppercase tracking-widest text-primary/60">Company Intelligence Name</Label>
-                      <Input
-                        id="companyName"
-                        placeholder="e.g. Audnix Operations"
-                        value={companyName}
-                        onChange={(e) => setCompanyName(e.target.value)}
-                        autoFocus
-                        disabled={loading}
-                        className="h-14 bg-white/5 border-white/10 rounded-2xl text-lg font-bold placeholder:text-white/20 focus:ring-primary/20"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            handleCompanyNameSubmit();
-                          }
-                        }}
-                      />
-                    </div>
-
-                  <Button
-                    onClick={handleCompanyNameSubmit}
-                    className="w-full mt-6"
-                    size="lg"
-                    disabled={loading || !companyName.trim()}
-                  >
-                    {loading ? "Setting up..." : "Complete Setup 🎉"}
-                  </Button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+          </AnimatePresence>
         </div>
       </DialogContent>
     </Dialog>

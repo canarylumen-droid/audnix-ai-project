@@ -1,6 +1,6 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -220,19 +220,27 @@ export default function DashboardHome() {
 
     // Per-device persistent guards (localStorage)
     const localOnboarding = localStorage.getItem(`onboarding_${userId}`);
-    const localCelebration = localStorage.getItem(`celebration_${userId}`);
+    // Treat hasCelebrated flag from backend as the ground truth; 
+    // localStorage is a secondary persistent guard.
+    const localCelebration = localStorage.getItem(`celebration_done_${userId}`);
 
     if (!hasCompletedOnboarding && !localOnboarding && !sessionOnboarding) {
       // New user who hasn't completed onboarding yet
       setShowOnboarding(true);
       sessionStorage.setItem(`onboarding_shown_${userId}`, 'true');
-    } else if (hasCompletedOnboarding && !hasCelebrated && !localCelebration && !sessionCelebration) {
-      // Completed onboarding but celebration not yet marked on backend/device
-      // (Handles the edge-case of old accounts before the flag was introduced)
+    } else if (
+      hasCompletedOnboarding &&
+      !hasCelebrated &&          // backend hasn't marked it yet
+      !localCelebration &&       // device hasn't seen it either
+      !sessionCelebration        // not already shown this session
+    ) {
+      // Completed onboarding but celebration not yet marked — show once only
       setShowWelcomeCelebration(true);
+      // Set BOTH guards immediately so it can NEVER show again in this session
       sessionStorage.setItem(`celebration_shown_${userId}`, 'true');
+      localStorage.setItem(`celebration_done_${userId}`, 'true');
     }
-    // If onboardingCompleted && hasCelebrated → show nothing (normal returning user)
+    // If onboardingCompleted && (hasCelebrated || localCelebration) → show nothing
   }, [user]);
 
   const handleOnboardingComplete = () => {
@@ -240,7 +248,8 @@ export default function DashboardHome() {
     if (user?.id) {
       localStorage.setItem(`onboarding_${user.id}`, 'true');
       sessionStorage.setItem(`onboarding_shown_${user.id}`, 'true');
-      // Show celebration immediately for brand-new users; guard so it can't double-fire
+      // Pre-set BOTH celebration guards so it can NEVER show again on future page loads
+      localStorage.setItem(`celebration_done_${user.id}`, 'true');
       sessionStorage.setItem(`celebration_shown_${user.id}`, 'true');
     }
     setShowWelcomeCelebration(true);
@@ -248,13 +257,19 @@ export default function DashboardHome() {
   };
 
   const handleCelebrationComplete = async () => {
+    // Immediately hide the modal and set all local guards — do NOT wait for the backend
     setShowWelcomeCelebration(false);
-    if (user?.id) localStorage.setItem(`celebration_${user.id}`, 'true');
+    if (user?.id) {
+      localStorage.setItem(`celebration_done_${user.id}`, 'true');
+      sessionStorage.setItem(`celebration_shown_${user.id}`, 'true');
+    }
+    // Fire-and-forget: tell the backend so the flag persists across devices
     try {
       await apiRequest("POST", "/api/auth/mark-celebration-complete");
       queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
     } catch (err) {
       console.error("Failed to mark celebration complete:", err);
+      // Not critical — localStorage guards will prevent re-showing
     }
   };
 
@@ -419,18 +434,7 @@ export default function DashboardHome() {
           />
         )}
 
-      <AnimatePresence>
-        {statsFetching && !statsLoading && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-md flex items-center justify-center"
-          >
-            <PremiumLoader text="Preparing Workspace..." />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Background refetch is now silent — no full-screen overlay to avoid disrupting the user */}
 
       <OnboardingWizard isOpen={showOnboarding} onComplete={handleOnboardingComplete} />
 

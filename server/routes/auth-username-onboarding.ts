@@ -115,7 +115,7 @@ router.post('/complete-onboarding', requireAuth, async (req: Request<object, obj
         businessSize,
         tags,
         onboardingCompleted: true,
-        onboardingCelebrated: true, // Mark celebrated immediately — prevents re-showing on every login
+        onboardingCelebrated: true, // Mark celebrated immediately — prevents the modal ever re-showing
         onboardedAt: new Date().toISOString(),
       },
     });
@@ -211,15 +211,19 @@ router.post('/mark-celebration-complete', requireAuth, async (req: Request, res:
       return;
     }
 
+    // Deep merge so we never wipe other metadata fields
     await storage.updateUser(userId, {
       metadata: {
         ...(user.metadata as any || {}),
-        onboardingCelebrated: true
+        onboardingCelebrated: true,
+        onboardingCompleted: true, // ensure this is also set
+        celebrationMarkedAt: new Date().toISOString(),
       }
     });
 
     res.json({ success: true });
   } catch (error) {
+    console.error('mark-celebration-complete error:', error);
     res.status(500).json({ error: 'Failed to mark celebration as complete' });
   }
 });
