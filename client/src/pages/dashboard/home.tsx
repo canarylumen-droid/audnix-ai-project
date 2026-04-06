@@ -690,7 +690,7 @@ export default function DashboardHome() {
             </Card>
           </div>
         </div>
-      </div>
+      )}
     </>
   );
 }
