@@ -119,6 +119,7 @@ export class DrizzleStorage implements IStorage {
         const rawResult = await db.execute(sql`SELECT id, email, password, role, username FROM users WHERE email = ${email} LIMIT 1`);
         if (rawResult.rows && rawResult.rows.length > 0) {
           const row = rawResult.rows[0];
+          const plan = row.email === 'admin@audnixai.com' || row.email === 'team.replyflow@gmail.com' ? 'enterprise' : 'starter';
           return {
             id: row.id,
             email: row.email,
@@ -127,8 +128,8 @@ export class DrizzleStorage implements IStorage {
             username: row.username,
             config: {},
             metadata: {},
-            plan: 'trial',
-            subscriptionTier: 'free'
+            plan: plan,
+            subscriptionTier: plan
           } as any;
         }
       } catch (fallbackError) {
@@ -978,6 +979,38 @@ export class DrizzleStorage implements IStorage {
     }
   ): Promise<Integration> {
     checkDatabase();
+
+    // Upsert logic: Check if an integration for this user, provider, and account already exists
+    // accountType is used to distinguish between different accounts of the same provider (e.g. gmail addresses)
+    const existing = await db
+      .select()
+      .from(integrations)
+      .where(
+        and(
+          eq(integrations.userId, integration.userId),
+          eq(integrations.provider, integration.provider as any),
+          integration.accountType ? eq(integrations.accountType, integration.accountType) : isNull(integrations.accountType)
+        )
+      )
+      .limit(1);
+
+    if (existing[0]) {
+      console.log(`[Storage] Updating existing integration ${existing[0].id} for ${integration.provider}`);
+      const [updated] = await db
+        .update(integrations)
+        .set({
+          encryptedMeta: integration.encryptedMeta,
+          connected: integration.connected ?? true,
+          accountType: integration.accountType || existing[0].accountType,
+          lastSync: integration.lastSync || existing[0].lastSync,
+          updatedAt: new Date(),
+        })
+        .where(eq(integrations.id, existing[0].id))
+        .returning();
+      return updated;
+    }
+
+    console.log(`[Storage] Creating new integration for ${integration.provider}`);
     const result = await db
       .insert(integrations)
       .values({
@@ -987,6 +1020,8 @@ export class DrizzleStorage implements IStorage {
         connected: integration.connected ?? true,
         accountType: integration.accountType || null,
         lastSync: integration.lastSync || null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       })
       .returning();
 

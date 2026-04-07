@@ -249,13 +249,21 @@ export class GmailOAuth {
    * Revoke OAuth tokens and remove from database
    */
   async revokeToken(userId: string, emailAddress?: string): Promise<void> {
-    const token = await this.getValidToken(userId, emailAddress);
-
-    if (token) {
+    const tokenData = await storage.getOAuthAccount(userId, 'google', emailAddress);
+    
+    if (tokenData && tokenData.refreshToken) {
       try {
-        await this.oauth2Client.revokeToken(token);
-      } catch {
-        // Silently fail if token already revoked or invalid
+        const decryptedRefreshToken = decrypt(tokenData.refreshToken);
+        await this.oauth2Client.revokeToken(decryptedRefreshToken);
+        console.log(`[Gmail OAuth] 🛡️ Fully revoked refresh token for ${emailAddress || userId}`);
+      } catch (err: any) {
+        console.warn(`[Gmail OAuth] Refresh token revocation failed: ${err.message}. Trying access token...`);
+        // Fallback to access token if refresh token revocation fails
+        if (tokenData.accessToken) {
+          try {
+            await this.oauth2Client.revokeToken(decrypt(tokenData.accessToken));
+          } catch { /* ignore */ }
+        }
       }
     }
 
