@@ -305,6 +305,46 @@ export class GoogleCalendarOAuth {
 
     return messages[platform as keyof typeof messages] || messages.email;
   }
+
+  /**
+   * Revoke Google Calendar access token
+   */
+  async revokeToken(userId: string): Promise<void> {
+    const { storage } = await import('../../storage.js');
+    const { decrypt } = await import('../crypto/encryption.js');
+
+    const tokenData = await storage.getOAuthAccount(userId, 'google-calendar');
+    if (!tokenData || !tokenData.accessToken) return;
+
+    try {
+      const decryptedToken = await decrypt(tokenData.accessToken);
+      
+      // Google ID token/access token revocation endpoint
+      await this.oauth2Client.revokeToken(decryptedToken);
+      console.log(`[Google Calendar OAuth] Successfully revoked token for user: ${userId}`);
+    } catch (error) {
+      console.error('[Google Calendar OAuth] Error during token revocation:', error);
+      // Fallback: try refresh token if available
+      try {
+        if (tokenData.refreshToken) {
+          const decryptedRefToken = await decrypt(tokenData.refreshToken);
+          await this.oauth2Client.revokeToken(decryptedRefToken);
+        }
+      } catch (e) {}
+    }
+
+    // Storage cleanup
+    await storage.deleteOAuthAccount(userId, 'google-calendar');
+    
+    // Clear user metadata
+    const user = await storage.getUser(userId);
+    if (user?.metadata) {
+      const metadata = { ...(user.metadata as any) };
+      delete metadata.google_calendar_connected;
+      delete metadata.google_calendar_email;
+      await storage.updateUser(userId, { metadata });
+    }
+  }
 }
 
 // Export singleton instance

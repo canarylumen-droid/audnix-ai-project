@@ -244,14 +244,33 @@ export class InstagramOAuth {
   }
 
   /**
-   * Revoke access token
+   * Revoke access token (Provider-level disconnect)
    */
   async revokeToken(userId: string): Promise<void> {
-    const token = await this.getValidToken(userId);
-    if (!token) return;
+    const tokenData = await storage.getOAuthAccount(userId, 'instagram');
+    if (!tokenData || !tokenData.accessToken) return;
 
-    // Call Instagram API to revoke token
-    // Note: Instagram doesn't have a revoke endpoint, so we just delete from DB
+    try {
+      const decryptedToken = await decrypt(tokenData.accessToken);
+      const providerAccountId = tokenData.providerAccountId;
+
+      console.log(`[Instagram OAuth] Revoking token for user ${userId} (Provider ID: ${providerAccountId})`);
+
+      // Meta/Facebook Graph API: Revoke app permissions
+      // DELETE /{user-id}/permissions removes the app's access to the user's data
+      const response = await fetch(`https://graph.facebook.com/v18.0/${providerAccountId}/permissions?access_token=${decryptedToken}`, {
+        method: 'DELETE'
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        console.log(`[Instagram OAuth] Successfully revoked Meta permissions for user ${userId}`);
+      } else {
+        console.warn(`[Instagram OAuth] Meta permission revocation returned non-success:`, result);
+      }
+    } catch (error) {
+      console.error('[Instagram OAuth] Error during remote token revocation:', error);
+    }
 
     // Delete from oauth_accounts table
     await storage.deleteOAuthAccount(userId, 'instagram');

@@ -145,6 +145,48 @@ export class CalendlyOAuth {
       return null;
     }
   }
+
+  /**
+   * Revoke Calendly access token
+   */
+  async revokeToken(userId: string): Promise<void> {
+    const { storage } = await import('../../storage.js');
+    const { decrypt } = await import('../crypto/encryption.js');
+
+    const integration = await storage.getIntegration(userId, 'calendly');
+    if (!integration || !integration.encryptedMeta) return;
+
+    try {
+      const meta = JSON.parse(await decrypt(integration.encryptedMeta));
+      const token = meta.access_token || meta.token;
+
+      if (token) {
+        console.log(`[Calendly OAuth] Revoking token for user: ${userId}`);
+        const response = await fetch('https://auth.calendly.com/oauth/revoke', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            client_id: this.config.clientId,
+            client_secret: this.config.clientSecret,
+            token: token
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.text();
+          console.warn(`[Calendly OAuth] Remote revocation failed: ${error}`);
+        } else {
+          console.log(`[Calendly OAuth] Successfully revoked token for user: ${userId}`);
+        }
+      }
+    } catch (error) {
+      console.error('[Calendly OAuth] Error during token revocation:', error);
+    }
+
+    // Storage cleanup will be handled by the disconnect route calling deleteIntegration
+  }
 }
 
 export const calendlyOAuth = new CalendlyOAuth();

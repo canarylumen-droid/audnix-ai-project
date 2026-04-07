@@ -151,6 +151,22 @@ router.post('/:provider/disconnect', requireAuth, async (req: Request, res: Resp
       } catch (e: any) {
         console.warn(`[Integrations] Instagram token revocation failed (non-fatal): ${e.message}`);
       }
+    } else if (provider === 'calendly' && integration) {
+      try {
+        const { calendlyOAuth } = await import('../lib/oauth/calendly.js');
+        console.log(`[Integrations] Revoking Calendly OAuth token`);
+        await calendlyOAuth.revokeToken(userId);
+      } catch (e: any) {
+        console.warn(`[Integrations] Calendly token revocation failed (non-fatal): ${e.message}`);
+      }
+    } else if (provider === 'google_calendar' && integration) {
+      try {
+        const { googleCalendarOAuth } = await import('../lib/oauth/google-calendar.js');
+        console.log(`[Integrations] Revoking Google Calendar OAuth token`);
+        await googleCalendarOAuth.revokeToken(userId);
+      } catch (e: any) {
+        console.warn(`[Integrations] Google Calendar token revocation failed (non-fatal): ${e.message}`);
+      }
     }
 
     // --- Step 3: Delete the integration record from the database ---
