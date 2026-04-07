@@ -482,4 +482,4 @@ export const OnboardingWizard = React.memo(function OnboardingWizard({ isOpen, o
       </DialogContent>
     </Dialog>
   );
-}
+});

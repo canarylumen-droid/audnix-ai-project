@@ -30,7 +30,7 @@ import {
 import { Link, useLocation } from "wouter";
 import { useReducedMotion } from "@/lib/animation-utils";
 import { useRealtime } from "@/hooks/use-realtime";
-import { SiGmail } from "react-icons/si"; // If needed, but let's check what was there.
+import { SiGmail } from "react-icons/si";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { WelcomeCelebration } from "@/components/WelcomeCelebration";
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -421,7 +421,16 @@ export default function DashboardHome() {
 
   // NOTE: Do NOT early-return here — it unmounts the component and resets the onboarding ref guard.
 
+  if (statsLoading) {
+    return (
+      <div className="h-[60vh] flex items-center justify-center">
+        <PremiumLoader text="Loading Dashboard..." />
+      </div>
+    );
+  }
+
   const hasAnyActivity = stats && (stats.leads > 0 || stats.messages > 0 || stats.aiReplies > 0);
+  const cleanInsightSummary = insightsData?.summary ? insightsData.summary.split('**').join('') : "";
 
   return (
     <>
@@ -434,16 +443,9 @@ export default function DashboardHome() {
         />
       )}
 
-      {/* Background refetch is now silent — no full-screen overlay to avoid disrupting the user */}
-      
-      {statsLoading ? (
-        <div className="h-[60vh] flex items-center justify-center">
-          <PremiumLoader text="Loading Dashboard..." />
-        </div>
-      ) : (
-        <div className="space-y-8 animate-in fade-in duration-700">
-          {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-8 border-b border-border/20">
+      <div className="space-y-8 animate-in fade-in duration-700">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-8 border-b border-border/20">
           <div className="space-y-1">
             <h1 className="text-2xl md:text-5xl font-black tracking-tighter text-foreground break-words sm:break-normal">
               Welcome, {user?.name?.split(' ')[0] || user?.username || 'User'}
@@ -521,7 +523,6 @@ export default function DashboardHome() {
           </motion.div>
         )}
 
-
         {/* KPI Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {kpis.map((kpi, index) => {
@@ -574,7 +575,6 @@ export default function DashboardHome() {
                       </div>
                     </div>
 
-                    {/* Sophisticated Backdrop Glow */}
                     <div className={cn(
                       "absolute -bottom-16 -right-16 w-32 h-32 blur-[80px] opacity-10 group-hover:opacity-20 transition-opacity rounded-full",
                       kpi.color.replace('text-', 'bg-')
@@ -586,12 +586,9 @@ export default function DashboardHome() {
           })}
         </div>
 
-
         {/* Main Content Split */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Activity Feed */}
           <div className="lg:col-span-2 space-y-6">
-            {/* AI Insights Summary inside Activity stream */}
             {activities.length > 0 && insightsData?.summary && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
@@ -602,20 +599,17 @@ export default function DashboardHome() {
                 <h4 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary mb-2">
                   <Brain className="h-4 w-4" /> Deep Insights
                 </h4>
-                  {insightsData?.summary ? `"${insightsData.summary.replace(/\*\*/g, '')}"` : ""}
+                {cleanInsightSummary ? `"${cleanInsightSummary}"` : ""}
               </motion.div>
             )}
-
             <div className="h-[600px]">
               <RecentConversations />
             </div>
-
             <div className="mt-6">
               <AutonomousActionFeed logs={statsData?.aiActionLogs || []} />
             </div>
           </div>
 
-          {/* Quick Actions / Getting Started */}
           <div className="space-y-6">
             <Card className="border-border/50 rounded-2xl bg-muted/20">
               <CardHeader>
@@ -650,10 +644,7 @@ export default function DashboardHome() {
               isLoading={statsLoading}
             />
 
-            <ReputationTrendChart 
-              data={stats?.reputationTrend || []} 
-            />
-
+            <ReputationTrendChart data={stats?.reputationTrend || []} />
 
             <Card className="border-border/50 rounded-2xl">
               <CardHeader className="pb-3 border-b border-border/40">
@@ -690,7 +681,8 @@ export default function DashboardHome() {
             </Card>
           </div>
         </div>
-      )}
+      </div>
     </>
   );
 }
+
