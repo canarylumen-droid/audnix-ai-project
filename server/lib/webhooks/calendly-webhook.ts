@@ -3,7 +3,7 @@ import { wsSync } from "../websocket-sync.js";
 import { users, integrations, calendarBookings, notifications, leads } from "../../../shared/schema.js";
 import { socketService } from "../realtime/socket-service.js";
 import { db } from "../../db.js";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { Request, Response } from "express";
 import crypto from "crypto";
 import { availabilityService } from "../calendar/availability-service.js";
