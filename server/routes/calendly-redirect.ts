@@ -3,6 +3,9 @@ import { calendlyOAuth, registerCalendlyWebhook } from '../lib/oauth/calendly.js
 import { storage } from '../storage.js';
 import { encrypt, decryptState } from '../lib/crypto/encryption.js';
 import { wsSync } from '../lib/websocket-sync.js';
+import { db } from '../db.js';
+import { users, calendarSettings } from '../../shared/schema.js';
+import { eq } from 'drizzle-orm';
 
 const router = Router();
 
@@ -66,6 +69,35 @@ router.get('/calendly/callback', async (req: Request, res: Response): Promise<vo
       connected: true,
       lastSync: new Date(),
     });
+
+    // 2.5 Save Calendly User Info and Timezone
+    if (tokenData.user) {
+      console.log(`[Calendly Redirect] Saving timezone (${tokenData.user.timezone}) and URI for user: ${userId}`);
+      
+      // Update User table
+      await db.update(users).set({
+        timezone: tokenData.user.timezone || "America/New_York",
+        calendlyUserUri: tokenData.user.uri,
+      }).where(eq(users.id, userId));
+
+      // Upsert Calendar Settings
+      const existingSettings = await db.query.calendarSettings.findFirst({
+        where: eq(calendarSettings.userId, userId)
+      });
+      
+      if (existingSettings) {
+        await db.update(calendarSettings).set({
+          timezone: tokenData.user.timezone || "America/New_York",
+          calendlyEnabled: true
+        }).where(eq(calendarSettings.userId, userId));
+      } else {
+        await db.insert(calendarSettings).values({
+          userId: userId,
+          timezone: tokenData.user.timezone || "America/New_York",
+          calendlyEnabled: true
+        });
+      }
+    }
 
     // 3. Register Webhook for real-time meetings (Async background task)
     registerCalendlyWebhook(userId, tokenData.accessToken).catch(err => 

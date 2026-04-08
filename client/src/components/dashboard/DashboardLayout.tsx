@@ -166,7 +166,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
 
   const { data: aiActions } = useQuery<any[]>({
     queryKey: ["/api/dashboard/ai-actions"],
-    refetchInterval: 10000, // Refetch every 10 seconds for "live" feel
+    // refetchInterval: 10000 removed, relying on websocket for updates
   });
 
   const toggleAutonomousMode = useMutation({

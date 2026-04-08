@@ -516,6 +516,14 @@ async function runMigrations() {
     }
   });
   const server = await registerRoutes(app);
+
+  // Phase 8: Initialize real-time event broadcaster
+  try {
+    const { socketService } = await import('./lib/realtime/socket-service.js');
+    socketService.init(server);
+  } catch (e) {
+    log(`[System] Socket.io broadcaster could not be started: ${(e as any)?.message}`, 'error');
+  }
   
   const isProduction = process.env.NODE_ENV === "production" || !!process.env.RAILWAY_ENVIRONMENT || !!process.env.RAILWAY_PROJECT_ID;
   

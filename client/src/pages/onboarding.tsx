@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 
 interface UserProfile {
   id: string;
@@ -12,6 +13,8 @@ interface UserProfile {
 
 export function OnboardingPage() {
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
+  const [wizardOpen, setWizardOpen] = useState(true);
 
   const { data: user, isLoading, error } = useQuery<UserProfile>({
     queryKey: ["/api/user/profile"],
@@ -24,12 +27,23 @@ export function OnboardingPage() {
         setLocation("/auth");
         return;
       }
-      setLocation("/dashboard");
+      
+      if (user.metadata?.onboardingCompleted) {
+        setLocation("/dashboard");
+      }
     }
   }, [user, isLoading, error, setLocation]);
 
+  const handleComplete = () => {
+    setWizardOpen(false);
+    queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
+    setLocation("/dashboard");
+  };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
+      <OnboardingWizard isOpen={wizardOpen} onComplete={handleComplete} />
+      
       <div className="text-center space-y-6">
         <div className="relative w-16 h-16 mx-auto">
           <div className="absolute inset-0 rounded-full border-t-2 border-primary animate-spin"></div>

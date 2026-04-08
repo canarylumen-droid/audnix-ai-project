@@ -1,5 +1,5 @@
 import { db } from '../../db.js';
-import { calendarBookings, users, leads, aiActionLogs } from '../../../shared/schema.js';
+import { calendarBookings, users, leads, aiActionLogs, leadTimezoneProfiles } from '../../../shared/schema.js';
 import { eq, and, or, gt, lt, isNull } from 'drizzle-orm';
 import { storage } from '../../storage.js';
 import { sendEmail } from '../channels/email.js';
@@ -71,12 +71,19 @@ export class MeetingReminderWorker {
 
       for (const booking of upcomingBookings) {
         const metadata = booking.metadata as any || {};
+        const reminder24h = metadata.reminder24h_sent;
         const reminder45m = metadata.reminder45m_sent;
         const reminder5m = metadata.reminder5m_sent;
         const noShowHandled = metadata.no_show_handled;
 
         const minutesUntil = Math.round((new Date(booking.startTime).getTime() - now.getTime()) / 60000);
         const minutesSince = Math.round((now.getTime() - new Date(booking.startTime).getTime()) / 60000);
+
+        // 24-Hour Reminder (1380-1500 mins before = 23h-25h)
+        if (minutesUntil <= 1500 && minutesUntil >= 1380 && !reminder24h && booking.status === 'scheduled') {
+          await this.sendReminder(booking, '24-hour');
+          await this.markReminderSent(booking.id, 'reminder24h_sent');
+        }
 
         // 45 Minute Reminder (40-55 mins before)
         if (minutesUntil <= 55 && minutesUntil >= 40 && !reminder45m && booking.status === 'scheduled') {
@@ -121,50 +128,77 @@ export class MeetingReminderWorker {
 
     if (!recipientEmail) return;
 
-    console.log(`[MeetingReminder] Sending ${type} reminder to ${recipientEmail} for "${booking.title}"`);
+    // Get lead's inferred timezone for accurate time display
+    let leadTz = 'Africa/Lagos';
+    if (lead?.id) {
+      const [tzProfile] = await db
+        .select({ detectedTimezone: leadTimezoneProfiles.detectedTimezone })
+        .from(leadTimezoneProfiles)
+        .where(eq(leadTimezoneProfiles.leadId, lead.id))
+        .limit(1);
+      if (tzProfile?.detectedTimezone) leadTz = tzProfile.detectedTimezone;
+    }
+
+    // Format the meeting time in the lead's local timezone
+    const localTime = new Intl.DateTimeFormat('en-US', {
+      timeZone: leadTz,
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }).format(new Date(booking.startTime));
+
+    console.log(`[MeetingReminder] Sending ${type} reminder to ${recipientEmail} — call at ${localTime}`);
 
     const history = lead?.id ? await storage.getMessagesByLeadId(lead.id) : [];
     const historyStr = history.slice(-3).map(m => `${m.direction === 'inbound' ? 'Lead' : 'AI'}: ${m.body}`).join('\n');
 
-    const systemPrompt = `
-You are a high-performing AI sales assistant specialized in writing concise, professional meeting reminders.
+    const is24h = type === '24-hour';
 
-Your goals:
-- Maximize clarity, professionalism, and response rates
-- Keep messages brief, natural, and human-like
-- Personalize when relevant, without sounding forced
-- Use soft, action-oriented phrasing (e.g., "Feel free to pick a time that works best for you") to increase reply rates
+    const systemPrompt = `You are a high-performing AI sales assistant writing concise, professional meeting reminders.
+Rules:
+- Maximum 2 sentences
+- No emojis, no fluff
+- Confident, friendly, human tone
+- Always include the meeting time formatted in the lead's local time
+- Do NOT mention timezones by name — just write the time naturally
+- Output only the final message. No explanations.`;
 
-Strict rules:
-- Output must be 1–2 sentences maximum
-- No emojis, no fluff, no filler phrases
-- Maintain a confident, polite, and professional tone
-- Do NOT invent details that are not provided
-- Only use context if it is clearly relevant and adds value
-- Always include the meeting time and link (if available)
-
-Output only the final message. No explanations.
-`;
-
-    const prompt = `
-Write a ${type} meeting reminder.
+    const prompt = is24h
+      ? `Write a friendly 24-hour meeting reminder.
 
 Details:
-- Meeting title: ${booking.title}
-- Time: ${new Date(booking.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+- Meeting: ${booking.title}
+- Their local time: ${localTime}
 - Meeting link: ${booking.meetingUrl || 'Not provided'}
-- Recipient name: ${recipientName}
-- Sender business: ${user.company || user.businessName || 'Our Team'}
+- Lead name: ${recipientName}
+- Your business: ${user.company || user.businessName || 'Our Team'}
 
-Context from previous conversation:
+Instruction:
+- Remind them about tomorrow's call
+- Check they're still available
+- Sound like a real, warm person — not a reminder bot
+- Example tone: "Just checking in — we have a call tomorrow at [time]. Looking forward to it."
+- Keep it 1-2 sentences max`
+      : `Write a ${type} meeting reminder.
+
+Details:
+- Meeting: ${booking.title}
+- Their local time: ${localTime}
+- Meeting link: ${booking.meetingUrl || 'Not provided'}
+- Lead name: ${recipientName}
+- Your business: ${user.company || user.businessName || 'Our Team'}
+
+Previous context:
 ${historyStr || 'None'}
 
-Instructions:
-- If useful, reference a small, relevant detail from the conversation to personalize the message
-- If no useful context exists, skip personalization
-- Keep the message clear, direct, and natural
-- Avoid sounding robotic or overly formal
-`;
+Instruction:
+- Keep it clear, direct, natural
+- For 45-minute: light excitement, e.g. "We're 45 minutes out — see you shortly."
+- For 5-minute: short and punchy, e.g. "We're up in 5 — I'll be on the line."
+- 1-2 sentences max`;
 
     const { text } = await generateReply(systemPrompt, prompt);
 
@@ -172,7 +206,7 @@ Instructions:
       booking.userId,
       recipientEmail,
       text,
-      `Reminder: ${booking.title} in ${type}`,
+      `Reminder: ${booking.title}${is24h ? ' — Tomorrow' : ` in ${type}`}`,
       { isHtml: true, leadId: booking.leadId }
     );
   }

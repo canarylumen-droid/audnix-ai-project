@@ -140,6 +140,9 @@ export const leads = pgTable("leads", {
   leadsIntegrationIdIdx: index("leads_integration_id_idx").on(table.integrationId),
   leadsStatusIdx: index("leads_status_idx").on(table.status),
   leadsArchivedIdx: index("leads_archived_idx").on(table.archived),
+  // Phase 15: Composite indices for sub-100ms dashboard queries
+  leadsUserStatusIdx: index("leads_user_status_idx").on(table.userId, table.status),
+  leadsLastMsgIdx: index("leads_last_msg_idx").on(table.lastMessageAt),
 }));
 
 export const domainVerifications = pgTable("domain_verifications", {
@@ -149,6 +152,39 @@ export const domainVerifications = pgTable("domain_verifications", {
   verificationResult: jsonb("verification_result").$type<Record<string, any>>().notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+/**
+ * Lead Timezone Intelligence – Phase v2
+ * Auto-populated on lead import from city + niche inference.
+ * Drives niche-aware slot suggestions and natural-language copy.
+ */
+export const leadTimezoneProfiles = pgTable("lead_timezone_profiles", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  leadId: uuid("lead_id").notNull().unique().references(() => leads.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  detectedTimezone: text("detected_timezone"),              // e.g. "America/Chicago"
+  detectedCity: text("detected_city"),                     // e.g. "Houston"
+  niche: text("niche"),                                    // e.g. "plumbing", "real_estate"
+  nicheCategory: text("niche_category"),                   // e.g. "trades", "professional_services"
+  preferredContactStart: integer("preferred_contact_start").default(10),  // Hour 0-23 local
+  preferredContactEnd: integer("preferred_contact_end").default(18),      // Hour 0-23 local
+  preferredDays: jsonb("preferred_days").$type<string[]>().default(sql`'["Monday","Tuesday","Wednesday","Thursday","Friday"]'::jsonb`),
+  detectionConfidence: real("detection_confidence").default(0),
+  detectionSource: text("detection_source", {
+    enum: ["city_niche_inference", "email_context", "manual", "none"]
+  }).default("none"),
+  lastUpdatedAt: timestamp("last_updated_at").defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  tzProfileLeadIdx: index("tz_profile_lead_idx").on(table.leadId),
+  tzProfileUserIdx: index("tz_profile_user_idx").on(table.userId),
+}));
+
+export const leadTimezoneProfilesSelect = createSelectSchema(leadTimezoneProfiles);
+export const leadTimezoneProfilesInsert = createInsertSchema(leadTimezoneProfiles);
+export type LeadTimezoneProfile = z.infer<typeof leadTimezoneProfilesSelect>;
+export type InsertLeadTimezoneProfile = z.infer<typeof leadTimezoneProfilesInsert>;
+
 
 
 
@@ -317,7 +353,11 @@ export const calendarEvents = pgTable("calendar_events", {
   isAiBooked: boolean("is_ai_booked").notNull().default(false),
   preCallNote: text("pre_call_note"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // Phase 15: Fast calendar range queries
+  calEventsStartTimeIdx: index("cal_events_start_time_idx").on(table.startTime),
+  calEventsUserIdIdx: index("cal_events_user_id_idx").on(table.userId),
+}));
 
 export const videoMonitors = pgTable("video_monitors", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -491,7 +531,11 @@ export const followUpQueue = pgTable("follow_up_queue", {
   context: jsonb("context").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
   errorMessage: text("error_message"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // Phase 15: Critical for worker polling performance (avoids full-table scan)
+  followUpScheduledStatusIdx: index("follow_up_scheduled_status_idx").on(table.scheduledAt, table.status),
+  followUpUserIdIdx: index("follow_up_user_id_idx").on(table.userId),
+}));
 
 export const emailWarmupSchedules = pgTable("email_warmup_schedules", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),

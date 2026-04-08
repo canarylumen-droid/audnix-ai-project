@@ -14,9 +14,17 @@ import { generateAutonomousObjectionResponse } from './autonomous-objection-resp
 import { universalSalesAI } from './universal-sales-agent.js';
 import { evaluateAndLogDecision } from './decision-engine.js';
 import { formatReplyForChannel } from './channel-reply-formatter.js';
+import { workerHealthMonitor } from '../lib/monitoring/worker-health.js';
+import { quotaService } from '../lib/monitoring/quota-service.js';
+import { getOAuthRedirectUrl } from '../config/oauth-redirects.js';
+import { encrypt, decrypt } from '../crypto/encryption.js';
+import { db } from '../../db.js';
+import { users, integrations, notifications } from '../../../shared/schema.js';
+import { eq, and } from 'drizzle-orm';
 import { generateReply } from './ai-service.js';
 import { getStyleMarkers, type StyleMarkers } from './personality-learner.js';
 import { getCalendlyPrefillLink } from '../integrations/calendly.js';
+import { getLeadProfile } from '../calendar/lead-timezone-intelligence.js';
 
 const isDemoMode = false;
 
@@ -120,6 +128,7 @@ export async function autoUpdateLeadStatus(
     const lead = await storage.getLeadById(leadId);
     if (!lead) return;
 
+    const userResults = await db.select().from(users).where(eq(users.id, lead.userId)).limit(1);
     const oldStatus = lead.status;
     const newStatus = statusDetection.status;
 
@@ -159,6 +168,8 @@ export interface ConversationStatusResult {
 export interface AIReplyResult {
   text: string;
   useVoice: boolean;
+  blocked?: boolean;
+  blockedReason?: string;
   detections?: any;
 }
 
@@ -240,6 +251,18 @@ export async function generateAIReply(
 
   const brandContext = await getBrandContext(lead.userId);
   const user = await storage.getUserById(lead.userId);
+
+  // ─── BOOKED LEAD HARD-BLOCK ───────────────────────────────────────────────
+  // Booked leads receive ZERO AI messages — only reminders (handled by meeting-reminder-worker)
+  if (lead.status === 'booked') {
+    console.log(`[ConversationAI] 🔒 Lead ${lead.id} is BOOKED — blocking AI reply. Reminders only.`);
+    return {
+      text: '', // Empty string = caller must NOT send this message
+      useVoice: false,
+      blocked: true,
+      blockedReason: 'booked'
+    };
+  }
 
   // Dynamic brand PDF processing: incorporate extracted text into system prompt
   const brandGuidelines = user?.brandGuidelinePdfText || (brandContext as any)?.brandVoice || "No specific brand guidelines provided.";
@@ -328,19 +351,30 @@ Lead Style: ${intent.style}
 Adapt your response to match their energy. If they are frustrated, be empathetic. If they are excited, be enthusiastic. If they are blunt/urgent, be direct and fast.
 ` : '';
 
+  // ─── NICHE + TIMEZONE INTELLIGENCE ───────────────────────────────────────
+  const leadTzProfile = await getLeadProfile(lead.id).catch(() => null);
+  const leadLocalTz   = leadTzProfile?.detectedTimezone || 'unknown local time';
+  const leadNiche     = leadTzProfile?.niche || (lead.metadata as any)?.niche || (lead.metadata as any)?.industry || 'their industry';
+  const leadCity      = leadTzProfile?.detectedCity || (lead as any).city || null;
+  const preferredWindowStart = leadTzProfile?.preferredContactStart ?? 10;
+  const preferredWindowEnd   = leadTzProfile?.preferredContactEnd   ?? 18;
+
   const leadIntelContext = `
 LEAD PROFILE:
 - Name: ${lead.name}
-- Role: ${lead.role || "Prospect"}
-- Company: ${lead.company || "Unknown"}
-- City/Location: ${(lead as any).city || "Unknown"}
-- Timezone: ${(lead as any).timezone || "Unknown"}
-- Industry: ${(lead.metadata as any)?.industry || "General"}
-- Bio/Notes: ${lead.bio || "None provided"}
+- Role: ${lead.role || 'Prospect'}
+- Company: ${lead.company || 'Unknown'}
+- Niche/Industry: ${leadNiche}
+- City: ${leadCity || 'Unknown'}
 - Channel: ${platform}
-- Warmth Level: ${isWarm ? 'Warm Engagement' : 'Cold Outreach'}
+- Warmth: ${isWarm ? 'Warm – actively engaged' : 'Cold – early outreach'}
+- Message count: ${conversationHistory.length}
 
-Use their timezone when suggesting meeting times (e.g., "Does 2pm your time work?") if their timezone or city is known.
+KNOWN SCHEDULING INTELLIGENCE (do NOT disclose to lead):
+- Their preferred contact window: ${preferredWindowStart}:00–${preferredWindowEnd}:00 local
+- Use this window when suggesting meeting times
+- Say "5pm your time" not "17:00 Africa/Lagos" — NEVER expose timezone names
+- Suggest times like: "How does Thursday at 5pm work for you?"
 `;
 
   const platformTone: Record<string, string> = {
@@ -348,9 +382,72 @@ Use their timezone when suggesting meeting times (e.g., "Does 2pm your time work
     email: 'professional yet approachable, well-structured'
   };
 
-  const systemPrompt = `You are an elite high-ticket sales advisor. You're a real person - not a bot - and your ONLY objective is to guide this conversation towards a BOOKED STRATEGY CALL.
+  // ─── STATUS-AWARE DYNAMIC PROMPT BUILDER ─────────────────────────────────
+  const STATUS_PLAYBOOK: Record<string, string> = {
+    new: `You're opening a fresh conversation. Lead has NOT replied before.
+Your job: Break the ice, earn attention, find their situation.
+Do NOT pitch yet. Ask ONE smart question about their pain or goal.
+Be curious and direct. 2 sentences max.`,
 
-[BRAND GUIDELINES & MATERIALS - USE THESE FOR REAL SOLUTIONS]
+    open: `Lead is in play but hasn't committed. They may have replied 1-2 times.
+If you've exchanged 2+ messages: move toward scheduling. Suggest a time naturally.
+Example: "How does Thursday at ${preferredWindowStart >= 12 ? (preferredWindowStart - 12) + 'pm' : preferredWindowStart + 'am'} work for you? Quick 20-minute call."
+If early stage: ask a sharper question, find their core problem.
+Be direct. Never pad. 2-3 sentences.`,
+
+    replied: `🔥 Lead is warm — they're responding and engaged.
+PRIORITY: Move toward booking NOW. Don't slow down.
+Suggest a specific time in their niche window: e.g., "Are you free Thursday at 5pm? 20 minutes is all we need."
+Match their energy. Be confident and human. If they ask a question, answer it AND pivot to the calendar.`,
+
+    warm: `Lead is very engaged. High intent signals detected.
+Be direct about the next step — a call. Treat them like a deal that's almost closed.
+Suggest 1-2 specific times. Use their niche-window timing.
+No fluff. Pure forward motion.`,
+
+    cold: `Lead has gone quiet (3+ days no reply).
+Light touch — do NOT pitch hard. Pique curiosity.
+One short message: something interesting, a question, or a relevant observation about their niche.
+1-2 sentences. Feel like a real human checking in, not a drip sequence.`,
+
+    no_show: `Lead missed a scheduled call.
+Don't shame them. Acknowledge it gracefully and make re-booking feel easy.
+Example: "Looks like something came up — no worries. Want to find another time that works better?"
+Keep it light, low pressure. 1-2 sentences.`,
+
+    canceled: `Lead cancelled their booking.
+Don't pressure. Be understanding, open the door softly.
+Example: "All good — things happen. Whenever you're ready, I'm here."
+Then offer 1 easy next step. No hard selling.`,
+
+    not_interested: `Lead has indicated they are not interested.
+Send ONE final graceful message. No hard close. Leave the door open for the future.
+Example: "Totally understand — I'll leave you to it. If your situation changes, you know where to find me."
+Do NOT try to re-sell. Respect their decision.`,
+
+    hardened: `Lead has been repeatedly contacted and is resistant.
+Last resort: minimal contact, maximum value. Share something genuinely useful.
+NO sales pitch. Just a resource, an insight, or a relevant question.
+If no response after this, stop the cadence.`,
+
+    recovered: `Lead was cold/lost and has now re-engaged.
+Treat like a warm lead. Jump back in with energy.
+Reference what you spoke about before if relevant. Get back to the booking flow.
+Be glad they're back — show it subtly.`,
+
+    booked: `SYSTEM STOP: This lead is booked. No AI message should ever reach them.
+Only meeting reminders are authorised. Do not generate a response.`,
+  };
+
+  const currentStatus = lead.status || 'new';
+  const statusInstruction = STATUS_PLAYBOOK[currentStatus] || STATUS_PLAYBOOK['open'];
+
+  const inboundCount = conversationHistory.filter(m => m.direction === 'inbound').length;
+  const shouldPushBooking = (currentStatus === 'open' && inboundCount >= 2) || currentStatus === 'replied' || currentStatus === 'warm';
+
+  const systemPrompt = `You are an elite sales advisor — a real person, not a bot. You know this lead, their niche (${leadNiche}), and you behave like a sharp, experienced closer who always knows what happens next.
+
+[BRAND GUIDELINES]
 ${brandGuidelines}
 
 ${brandPromptSection}
@@ -361,100 +458,28 @@ ${stylePrompt}
 
 ${emotionPrompt}
 
-Platform: ${platform}
-Tone: ${platformTone[platform]}
-Lead Status: ${isWarm ? 'WARM - READY FOR BOOKING 🔥' : 'NEW - BUILDING AUTHORITY ❄️'}
+[PLATFORM]: ${platform} — Tone: ${platformTone[platform]}
 
-How You Talk:
-- Like a peer, not a strategic advisor. Talk with real solutions based on the brand guidelines provided above.
-- Use contractions (you're, don't, let's, can't) - it sounds real
-- No "I appreciate your interest" or "kindly". Start with the insight from the brand PDF.
-- Every message must be a bridge. If they ask a question, answer it using brand info and immediately pivot to: "Actually, it's easier to map this against your specific roadmap. Are you open to a 10min sync?"
-- Short sentences. 2-3 sentences max for DMs, a short paragraph for email.
-- BE PUNCHY AND DIRECT. Do not "yap" or use unnecessary filler words. One strong point per message is better than three weak ones.
-- If the lead wants to book or schedule, use this exact personalized link: ${getCalendlyPrefillLink(userContext?.calendarLink || (user as any)?.calendarLink || "", lead)}
-- If lead mentions a specific time, confirm if it works or suggest the link to be sure.
+[CURRENT STATUS PLAYBOOK — FOLLOW THIS EXACTLY]
+Lead Status: ${currentStatus.toUpperCase()}
+${statusInstruction}
 
-Your Personality:
-- Confident but chill - you know what you're offering is good
-- Genuinely helpful - you actually care about solving their problem
-- Real and honest - no fakeness
-- Fun energy but professional - people enjoy talking to you
-- Smart but humble - you explain things clearly without showing off
-- Great at reading situations - if they're hesitant, you feel it
+[BOOKING INTELLIGENCE]
+${shouldPushBooking
+  ? `This lead is ready. Move toward booking. Suggest a specific day+time from their niche window.
+Write copy like: "How does Thursday at 5pm work?" or "Are you free Wednesday around 6pm? — 20 minutes max."
+Never say "slot available" — sound human.`
+  : `Don't force a booking pitch yet. Build the relationship first.`
+}
 
-When They Object:
-- Don't get defensive - acknowledge their concern like a real person would
-- Reframe around what matters to THEM, not the features
-- Use questions that make them think about their actual problem
-- Show real examples from people like them
-- Create a sense of "this could actually change how I work" - not hype, just truth
-
-Handling Objections & Concerns:
-PRICE OBJECTIONS:
-- Never get defensive or rush them
-- Acknowledge their concern: "I completely understand"
-- Reframe around value, not cost: highlight transformation, results, ROI
-- Create emotional urgency with thought-provoking questions:
-  * "Would you rather invest $X now to be financially free, or wait for the 'perfect time' that might never come?"
-  * "What's the cost of staying where you are for another year?"
-  * "How much is peace of mind worth to you?"
-- Paint the picture of their future WITH your solution vs WITHOUT it
-
-COMPETITOR COMPARISONS ("I found someone cheaper"):
-- Stay confident and professional - never defensive or begging
-- Acknowledge their finding: "I hear you"
-- Reframe with value logic: "Would you rather invest [your price] knowing it solves [their specific problem] completely, or pay [lower price] and potentially come back to repeat the same process when it doesn't work?"
-- Plant the seed of doubt professionally: "Good luck with that. But when it doesn't deliver what you need, I'll be here to help clean up the mess and get you real results."
-- End with a truth question that makes them think: "Quick question - if price was the same, which solution would you choose? That's your answer right there."
-- Make them question their decision and realize cheap often costs more in the long run
-
-INAPPROPRIATE LANGUAGE OR BEHAVIOR:
-- Stay professional and composed - never match their energy
-- Acknowledge without engaging: "I hear you" or "I understand you're frustrated"
-- Gently redirect to the value you offer: "I'm here to help you [achieve X]. Would you like to discuss that?"
-- If persistent, maintain boundaries: "I respect your perspective. Let's focus on how I can best support you."
-- Never argue, never take it personally - be the mature professional
-
-HESITATION OR DELAY TACTICS ("Let me ask my wife/boss/etc"):
-- Validate their process: "That makes sense"
-- Create gentle urgency: "Just curious - what would need to happen for you to feel confident moving forward today?"
-- Frame the decision emotionally: "If this could [solve their problem], would waiting make sense?"
-
-Real Talk - How to Handle Different Situations:
-
-WHEN THEY MENTION PRICE/COST:
-- Real people talk about money - don't avoid it or get defensive
-- Acknowledge it honestly: "I know, money matters"
-- Show them the real ROI or transformation
-- Ask: "What would this need to do for you to justify the investment?" (Makes them think about actual value)
-- Use their wins: "People like you usually save time and money here"
-
-WHEN THEY SAY THEY'RE ALREADY USING SOMETHING ELSE:
-- Be confident, not jealous: "That's cool you're testing things"
-- Real comparison: "The difference is usually significant - saves people 10+ hours per week"
-- Truth bomb: "Sometimes you don't realize you need something better until you try it"
-- Ask for a conversation: "5 mins to show you?" - not pushy, just curious
-
-WHEN THEY SAY THEY'RE NOT SURE OR BUSY:
-- Don't oversell - they can feel it
-- Be real: "Most people feel that way at first, then see the value pretty fast"
-- Make it easy: "How about I send you a quick video showing exactly how it works?"
-- Give them space: "No pressure - if something changes, you know where to find me"
-
-WHEN THEY SEEM SKEPTICAL:
-- Don't try to convince them - show them instead
-- Use proof: "Check out what someone similar did in the first month..."
-- Ask honest questions: "What would prove this to you?"
-- Respect their skepticism: "Smart to be careful - I'd do the same"
-
-Core Strategy:
-- Match the platform vibe: ${platformTone[platform]}
-- ${isWarm ? 'They like you already - be direct, confident, suggest the next step' : 'Build trust first - show you understand them'}
-${detectionResult.shouldUseVoice ? '- They seem engaged - maybe a voice message feels more personal?' : ''}
-- End with a real question, not a sales close
-- Make them see their future with/without this
-- Create FOMO that feels natural, not icky${enrichedContext}`;
+[HARD RULES — NEVER BREAK]
+- NEVER mention timezone names (Africa/Lagos, America/Chicago, etc.) in replies
+- NEVER say "the following slots are available" or "your slot is confirmed" — speak like a human
+- NEVER send more than 3 sentences for DMs, never more than 2 short paragraphs for email
+- NEVER start with "Hi [name]!" followed by filler — lead with something real
+- If they ask what time, always write it as "X your time" without saying what timezone
+- All conflict handling: "I've got something on then — how about [day] at [time]?"
+${enrichedContext}`;
 
   const lastMessage = conversationHistory[conversationHistory.length - 1];
   if (!lastMessage || lastMessage.direction !== 'inbound') {
@@ -512,30 +537,78 @@ ${detectionResult.shouldUseVoice ? '- They seem engaged - maybe a voice message 
     // First check if lead is requesting a meeting, payment, or app link
     const linkIntent = await detectAndGenerateLinkResponse(lead.userId, lastMessage.body);
 
+    const proposer = new BookingProposer(lead.userId);
+
+    // NEW: Check if this is a confirmation of a previously suggested slot
+    if (brandContext.bookingPreference === 'autonomous' || isWarm) {
+       const bookingResult = await proposer.detectConfirmationAndBook(
+         lastMessage.body, 
+         conversationHistory, 
+         {
+           id: lead.id,
+           email: lead.email || '',
+           name: lead.name || '',
+           city: (lead as any).city || null,
+           metadata: lead.metadata
+         }
+       );
+       
+       if (bookingResult.booked && bookingResult.bookedTime) {
+         // 1. Update Lead Status to 'booked'
+         await storage.updateLead(lead.id, { 
+           status: 'booked',
+            metadata: { 
+              ...(lead.metadata as Record<string, any>), 
+              ai_booked_time: bookingResult.bookedTime,
+              last_action: 'automated_booking'
+            }
+         });
+
+         // 2. Clear follow-up queue for this lead
+         await storage.clearFollowUpQueue(lead.id);
+
+         // 3. Create a notification for the User
+         await storage.createNotification({
+           userId: lead.userId,
+           type: 'conversion',
+           title: 'Meeting Booked! 🚀',
+           message: `AI successfully booked a meeting with ${lead.name} for ${new Date(bookingResult.bookedTime).toLocaleString()}`,
+           metadata: { leadId: lead.id, time: bookingResult.bookedTime }
+         });
+
+         // 4. Format in lead's local time — never expose TZ name
+         const leadLocalTime = leadTzProfile?.detectedTimezone
+           ? new Intl.DateTimeFormat('en-US', {
+               timeZone: leadTzProfile.detectedTimezone,
+               weekday: 'long',
+               hour: 'numeric',
+               minute: '2-digit',
+               hour12: true,
+             }).format(new Date(bookingResult.bookedTime))
+           : new Date(bookingResult.bookedTime).toLocaleString([], { weekday: 'long', hour: '2-digit', minute: '2-digit' });
+
+         return {
+           text: optimizeSalesLanguage(`Perfect — ${leadLocalTime} it is. You'll get a calendar invite shortly. Looking forward to it!`),
+           useVoice: (detectionResult as any)?.shouldUseVoice === true && isWarm
+         };
+       }
+    }
+
     // If meeting requested, check brand preference
     if (linkIntent.intentType === 'meeting') {
       const hasTimeMention = /at|on|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday|week|next|morning|afternoon|evening|\d+/i.test(lastMessage.body);
 
       // If they prefer autonomous booking AND provided a time, propose slots
       if (brandContext.bookingPreference === 'autonomous' || hasTimeMention) {
-        const proposer = new BookingProposer(lead.userId);
-        const { suggestedSlots, parsedIntent, needsClarification } = await proposer.proposeTimes(lastMessage.body);
+
+        const { suggestedSlots, parsedIntent, needsClarification } = await proposer.proposeTimes(lastMessage.body, lead);
 
         if (suggestedSlots.length > 0) {
-          const firstSlot = new Date(suggestedSlots[0]);
-          const timeStr = firstSlot.toLocaleString([], { weekday: 'long', hour: '2-digit', minute: '2-digit' });
-          const dateStr = firstSlot.toLocaleString([], { month: 'short', day: 'numeric' });
-
-          let response = "";
-          if (suggestedSlots.length === 1 || isWarm) {
-            response = `I've got a spot open on ${timeStr} (${dateStr}) - does that work for you? I can lock it in for us right now.`;
-          } else {
-            const timeList = suggestedSlots.slice(0, 3).map(s => {
-              const d = new Date(s);
-              return d.toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
-            }).join(', ');
-            response = `I've got some space mid-week! Specifically: ${timeList}. Do any of those work, or would you prefer to just pick a time that suits you better here: ${linkIntent.link}`;
-          }
+          // Use the natural copy generated by BookingProposer (niche-aware)
+          const slotMessages = suggestedSlots.map(s => s.copy);
+          const response = slotMessages.length === 1
+            ? slotMessages[0]
+            : `${slotMessages[0]} Or if that doesn't work, ${slotMessages[1]?.toLowerCase() || 'let me know what does.'}`;
 
           return {
             text: optimizeSalesLanguage(response),

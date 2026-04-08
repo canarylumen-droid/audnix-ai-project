@@ -1,9 +1,12 @@
-import { Request, Response } from 'express';
-import { db } from "../../db.js";
-import { calendarBookings, integrations, notifications } from "../../../shared/schema.js";
-import { eq, and, sql } from "drizzle-orm";
-import crypto from 'crypto';
+import { storage } from "../../storage.js";
 import { wsSync } from "../websocket-sync.js";
+import { users, integrations, calendarBookings, notifications, leads } from "../../../shared/schema.js";
+import { socketService } from "../realtime/socket-service.js";
+import { db } from "../../db.js";
+import { eq, and } from "drizzle-orm";
+import { Request, Response } from "express";
+import crypto from "crypto";
+import { availabilityService } from "../calendar/availability-service.js";
 
 interface CalendlyEventLocation {
   type: string;
@@ -92,6 +95,9 @@ export async function handleCalendlyWebhook(req: Request, res: Response): Promis
       case 'invitee.canceled':
         await handleMeetingCancelled(event);
         break;
+      case 'invitee.no_show.created':
+        await handleMeetingNoShow(event);
+        break;
       default:
         console.log(`Unhandled Calendly webhook event: ${eventType}`);
     }
@@ -115,12 +121,28 @@ async function handleMeetingBooked(event: CalendlyWebhookEvent): Promise<void> {
     if (!invitee || !scheduledEvent) return;
 
     // Find the user associated with this Calendly account
-    // For now, we'll try to find any user with a Calendly integration
-    // In production, you'd match by user URI or another unique ID
-    const [integration] = await db.select().from(integrations).where(eq(integrations.provider, 'calendly')).limit(1);
-    if (!integration) return;
+    // Use the scheduled event owner or the explicitly saved URI
+    let userId: string | null = null;
+    
+    // Attempt 1: Match by direct Calendly User URI if available in payload
+    const eventOwnerUri = (scheduledEvent as any).event_memberships?.[0]?.user;
+    if (eventOwnerUri) {
+      const [user] = await db.select().from(users).where(eq(users.calendlyUserUri, eventOwnerUri)).limit(1);
+      if (user) userId = user.id;
+    }
 
-    const userId = integration.userId;
+    // Attempt 2: Fallback to any Calendly integration (Legacy/Generic)
+    if (!userId) {
+      const { integrations } = await import("../../../shared/schema.js");
+      const [integration] = await db.select().from(integrations).where(eq(integrations.provider, 'calendly')).limit(1);
+      if (integration) userId = integration.userId;
+    }
+
+    if (!userId) {
+      console.warn(`[Calendly Webhook] No user found for event owner: ${eventOwnerUri}`);
+      return;
+    }
+
     const attendeeEmail = invitee.email;
 
     const [booking] = await db.insert(calendarBookings).values({
@@ -134,22 +156,27 @@ async function handleMeetingBooked(event: CalendlyWebhookEvent): Promise<void> {
       attendeeEmail: attendeeEmail,
       attendeeName: invitee.name || `${invitee.first_name || ''} ${invitee.last_name || ''}`.trim(),
       status: 'scheduled',
-      isAiBooked: true // Assume AI booked for now if it came via our flow
+      isAiBooked: true 
     }).returning();
 
-    // PHASE 14: Update Lead status to 'booked' for high-precision conversion tracking
+    // PHASE 14: Update Lead status to 'booked' 
     const { leads } = await import("../../../shared/schema.js");
     const [updatedLead] = await db.update(leads)
       .set({ 
         status: 'booked', 
         updatedAt: new Date(),
-        metadata: sql`jsonb_set(coalesce(${leads.metadata}, '{}'::jsonb), '{lastBooking}', ${JSON.stringify(booking)}::jsonb)`
+        metadata: booking ? sql`jsonb_set(coalesce(${leads.metadata}, '{}'::jsonb), '{lastBooking}', ${JSON.stringify(booking)}::jsonb)` : sql`${leads.metadata}`
       })
       .where(and(eq(leads.userId, userId), eq(leads.email, attendeeEmail)))
       .returning();
 
     if (updatedLead) {
       console.log(`✓ Lead ${updatedLead.id} (${attendeeEmail}) status updated to 'booked' via Calendly webhook`);
+      
+      // PHASE 3: Stop all follow-ups immediately
+      await storage.clearFollowUpQueue(updatedLead.id);
+      console.log(`✓ Follow-up queue cleared for lead: ${updatedLead.id}`);
+
       wsSync.notifyLeadsUpdated(userId, { event: 'UPDATE', leadId: updatedLead.id });
     }
 
@@ -179,14 +206,48 @@ async function handleMeetingBooked(event: CalendlyWebhookEvent): Promise<void> {
 async function handleMeetingCancelled(event: CalendlyWebhookEvent): Promise<void> {
   try {
     const scheduledEvent = event.payload.scheduled_event || event.payload.event;
+    const invitee = event.payload.invitee;
     if (!scheduledEvent) return;
 
     const [booking] = await db.update(calendarBookings)
-      .set({ status: 'cancelled' })
+      .set({ status: 'cancelled', updatedAt: new Date() })
       .where(eq(calendarBookings.externalEventId, scheduledEvent.uri))
       .returning();
 
     if (booking) {
+      // Update lead status to 'open' so re-engagement can happen
+      const { leads } = await import("../../../shared/schema.js");
+      const [updatedLead] = await db.update(leads)
+        .set({ status: 'open', updatedAt: new Date() })
+        .where(and(eq(leads.userId, booking.userId), eq(leads.email, booking.attendeeEmail)))
+        .returning();
+
+      if (updatedLead) {
+        console.log(`[Calendly] Booking cancelled – Lead ${updatedLead.id} status reset to 'open'`);
+        wsSync.notifyLeadsUpdated(booking.userId, { event: 'UPDATE', leadId: updatedLead.id });
+        // Phase 8: Emit real-time event
+        socketService.notifyCalendarUpdate(booking.userId, {
+          bookingId: booking.id,
+          status: 'cancelled',
+          attendeeEmail: booking.attendeeEmail,
+        });
+        socketService.notifyLeadUpdate(booking.userId, {
+          leadId: updatedLead.id,
+          status: 'open',
+          reason: 'Calendly booking cancelled',
+        });
+      }
+
+      // Notify user of cancellation
+      await db.insert(notifications).values({
+        userId: booking.userId,
+        type: 'system',
+        title: 'Meeting Cancelled 📅',
+        message: `${booking.attendeeName || booking.attendeeEmail} cancelled their meeting scheduled for ${new Date(booking.startTime).toLocaleDateString()}`,
+        metadata: { leadId: updatedLead?.id, attendeeEmail: booking.attendeeEmail }
+      }).catch(() => {}); // Non-critical
+
+      // Legacy WS broadcast
       wsSync.broadcastToUser(booking.userId, {
         type: 'CALENDAR_UPDATED',
         payload: { ...booking, status: 'cancelled' }
@@ -194,6 +255,72 @@ async function handleMeetingCancelled(event: CalendlyWebhookEvent): Promise<void
     }
   } catch (error) {
     console.error('Error in handleMeetingCancelled:', error);
+  }
+}
+
+/**
+ * Handle when an invitee does not show up
+ */
+async function handleMeetingNoShow(event: CalendlyWebhookEvent): Promise<void> {
+  try {
+    const payload = event.payload as any;
+    const inviteeUri = typeof payload.invitee === 'string' ? payload.invitee : payload.invitee?.uri;
+    const eventUri = payload.event || payload.scheduled_event?.uri || payload.scheduled_event;
+
+    if (!eventUri && !inviteeUri) {
+      console.warn('Calendly no-show payload missing event/invitee URI', payload);
+      return;
+    }
+
+    if (typeof eventUri === 'string' && eventUri.startsWith('https://api.calendly.com')) {
+      const [booking] = await db.update(calendarBookings)
+        .set({ status: 'no_show', updatedAt: new Date() })
+        .where(eq(calendarBookings.externalEventId, eventUri))
+        .returning();
+
+      if (booking) {
+        console.log(`✓ Lead (${booking.attendeeEmail}) marked as no-show for booking ${booking.id}`);
+
+        // Phase 8: Emit real-time event
+        socketService.notifyCalendarUpdate(booking.userId, {
+          bookingId: booking.id,
+          status: 'no_show',
+          attendeeEmail: booking.attendeeEmail,
+          startTime: booking.startTime?.toISOString(),
+        });
+
+        wsSync.broadcastToUser(booking.userId, {
+          type: 'CALENDAR_UPDATED',
+          payload: booking
+        });
+
+        const { leads } = await import("../../../shared/schema.js");
+        const [updatedLead] = await db.update(leads)
+          .set({ status: 'no_show', updatedAt: new Date() })
+          .where(and(eq(leads.userId, booking.userId), eq(leads.email, booking.attendeeEmail)))
+          .returning();
+
+        if (updatedLead) {
+          wsSync.notifyLeadsUpdated(booking.userId, { event: 'UPDATE', leadId: updatedLead.id });
+          socketService.notifyLeadUpdate(booking.userId, {
+            leadId: updatedLead.id,
+            status: 'no_show',
+            reason: 'Did not attend scheduled Calendly meeting',
+          });
+
+          // Schedule a re-engagement follow-up for no-shows (after 2 days)
+          try {
+            const { scheduleInitialFollowUp } = await import('../ai/follow-up-worker.js');
+            await scheduleInitialFollowUp(booking.userId, updatedLead.id, 'email');
+            console.log(`[Calendly] Re-engagement follow-up queued for no-show lead: ${updatedLead.id}`);
+          } catch (fErr) {
+            console.warn('[Calendly] Could not schedule no-show follow-up:', fErr);
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error in handleMeetingNoShow:', error);
   }
 }
 

@@ -25,15 +25,16 @@ import {
   Sparkles,
   ArrowDown,
   Send,
-  Brain
+  Brain,
+  Plus,
+  FileText,
+  Loader2
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useReducedMotion } from "@/lib/animation-utils";
 import { useRealtime } from "@/hooks/use-realtime";
-import { SiGmail } from "react-icons/si";
-import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
-import { WelcomeCelebration } from "@/components/WelcomeCelebration";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { SiGmail, SiGoogle } from "react-icons/si";
+import { useState, useEffect } from "react";
 import { PremiumLoader } from "@/components/ui/premium-loader";
 import { MailboxSwitcher } from "@/components/outreach/MailboxSwitcher";
 import { AutonomousActionFeed } from "@/components/outreach/AutonomousActionFeed";
@@ -51,6 +52,7 @@ interface UserProfile {
   businessName?: string;
   trialExpiresAt?: string;
   voiceNotesEnabled?: boolean;
+  subscriptionTier?: string;
   metadata?: {
     onboardingCompleted?: boolean;
     [key: string]: unknown;
@@ -136,13 +138,11 @@ const channelIcons = {
 };
 
 export default function DashboardHome() {
-  const prefersReducedMotion = useReducedMotion();
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [showWelcomeCelebration, setShowWelcomeCelebration] = useState(false);
   const queryClient = useQueryClient();
-  const [, setLocation] = useLocation();
+  const prefersReducedMotion = useReducedMotion();
   const { socket } = useRealtime();
   const { selectedMailboxId: selectedIntegrationId, setSelectedMailboxId: setSelectedIntegrationId } = useMailbox();
+  const [, setLocation] = useLocation();
 
   // Listen for socket updates
   useEffect(() => {
@@ -197,81 +197,10 @@ export default function DashboardHome() {
   }, [socket, queryClient]);
 
   // Fetch real user profile
-  const { data: user } = useQuery<UserProfile>({
+  const { data: user, isLoading: userLoading } = useQuery<UserProfile>({
     queryKey: ["/api/user/profile"],
     retry: false,
   });
-
-  // Ref guard — runs the show-once logic exactly once per mount, not on every user-data refetch
-  const hasInitialized = useRef(false);
-
-  useEffect(() => {
-    // Wait until user data is loaded and we haven't already initialised
-    if (!user || hasInitialized.current) return;
-    hasInitialized.current = true;
-
-    const userId = user.id;
-    const hasCompletedOnboarding = user.metadata?.onboardingCompleted === true;
-    const hasCelebrated = user.metadata?.onboardingCelebrated === true;
-
-    // Per-session guards (survives page refresh within same tab)
-    const sessionOnboarding = sessionStorage.getItem(`onboarding_shown_${userId}`);
-    const sessionCelebration = sessionStorage.getItem(`celebration_shown_${userId}`);
-
-    // Per-device persistent guards (localStorage)
-    const localOnboarding = localStorage.getItem(`onboarding_${userId}`);
-    // Treat hasCelebrated flag from backend as the ground truth; 
-    // localStorage is a secondary persistent guard.
-    const localCelebration = localStorage.getItem(`celebration_done_${userId}`);
-
-    if (!hasCompletedOnboarding && !localOnboarding && !sessionOnboarding) {
-      // New user who hasn't completed onboarding yet
-      setShowOnboarding(true);
-      sessionStorage.setItem(`onboarding_shown_${userId}`, 'true');
-    } else if (
-      hasCompletedOnboarding &&
-      !hasCelebrated &&          // backend hasn't marked it yet
-      !localCelebration &&       // device hasn't seen it either
-      !sessionCelebration        // not already shown this session
-    ) {
-      // Completed onboarding but celebration not yet marked — show once only
-      setShowWelcomeCelebration(true);
-      // Set BOTH guards immediately so it can NEVER show again in this session
-      sessionStorage.setItem(`celebration_shown_${userId}`, 'true');
-      localStorage.setItem(`celebration_done_${userId}`, 'true');
-    }
-    // If onboardingCompleted && (hasCelebrated || localCelebration) → show nothing
-  }, [user]);
-
-  const handleOnboardingComplete = useCallback(() => {
-    setShowOnboarding(false);
-    if (user?.id) {
-      localStorage.setItem(`onboarding_${user.id}`, 'true');
-      sessionStorage.setItem(`onboarding_shown_${user.id}`, 'true');
-      // Pre-set BOTH celebration guards so it can NEVER show again on future page loads
-      localStorage.setItem(`celebration_done_${user.id}`, 'true');
-      sessionStorage.setItem(`celebration_shown_${user.id}`, 'true');
-    }
-    setShowWelcomeCelebration(true);
-    queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
-  }, [user?.id, queryClient]);
-
-  const handleCelebrationComplete = async () => {
-    // Immediately hide the modal and set all local guards — do NOT wait for the backend
-    setShowWelcomeCelebration(false);
-    if (user?.id) {
-      localStorage.setItem(`celebration_done_${user.id}`, 'true');
-      sessionStorage.setItem(`celebration_shown_${user.id}`, 'true');
-    }
-    // Fire-and-forget: tell the backend so the flag persists across devices
-    try {
-      await apiRequest("POST", "/api/auth/mark-celebration-complete");
-      queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
-    } catch (err) {
-      console.error("Failed to mark celebration complete:", err);
-      // Not critical — localStorage guards will prevent re-showing
-    }
-  };
 
   const { data: statsData, isLoading: statsLoading, isFetching: statsFetching } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats", { integrationId: selectedIntegrationId }],
@@ -282,7 +211,7 @@ export default function DashboardHome() {
       if (!res.ok) throw new Error("Failed to fetch stats");
       return res.json();
     },
-    refetchInterval: 5000, // 5-second real-time sync
+    // Removed refetchInterval: Sockets will invalidate the query automatically
     placeholderData: (previousData) => previousData,
   });
 
@@ -333,6 +262,12 @@ export default function DashboardHome() {
 
   const isSmtpConnected = integrations?.some((i: any) => (i.provider === 'gmail' || i.provider === 'outlook' || i.provider === 'custom_email') && i.connected);
   const stats = statsData;
+  const userData = user;
+
+  const getNextPlan = () => {
+    const tier = (userData?.subscriptionTier || (userData as any)?.plan || 'starter').toLowerCase();
+    return tier;
+  };
 
   const getTrialDaysLeft = () => {
     if (!user?.plan || user.plan !== "trial" || !user?.trialExpiresAt) return 0;
@@ -419,9 +354,8 @@ export default function DashboardHome() {
     },
   ];
 
-  // NOTE: Do NOT early-return here — it unmounts the component and resets the onboarding ref guard.
-
-  if (statsLoading) {
+  // Strict Render Guard: Block the entire tree if loading, to prevent flickering.
+  if (statsLoading || userLoading) {
     return (
       <div className="h-[60vh] flex items-center justify-center">
         <PremiumLoader text="Loading Dashboard..." />
@@ -433,18 +367,8 @@ export default function DashboardHome() {
   const cleanInsightSummary = insightsData?.summary ? insightsData.summary.split('**').join('') : "";
 
   return (
-    <>
-      <OnboardingWizard isOpen={showOnboarding} onComplete={handleOnboardingComplete} />
-
-      {showWelcomeCelebration && user?.username && (
-        <WelcomeCelebration
-          username={user.username}
-          onComplete={handleCelebrationComplete}
-        />
-      )}
-
-      <div className="space-y-8 animate-in fade-in duration-700">
-        {/* Header */}
+    <div className="space-y-8 animate-in fade-in duration-700">
+      {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-8 border-b border-border/20">
           <div className="space-y-1">
             <h1 className="text-2xl md:text-5xl font-black tracking-tighter text-foreground break-words sm:break-normal">
@@ -682,7 +606,6 @@ export default function DashboardHome() {
           </div>
         </div>
       </div>
-    </>
   );
 }
 

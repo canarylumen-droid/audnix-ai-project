@@ -1,4 +1,9 @@
 import { getOAuthRedirectUrl } from '../config/oauth-redirects.js';
+import { storage } from '../../storage.js';
+import { encrypt, decrypt } from '../crypto/encryption.js';
+import { db } from '../../db.js';
+import { integrations } from '../../../shared/schema.js';
+import { eq } from 'drizzle-orm';
 
 export class CalendlyOAuth {
   private config: {
@@ -40,7 +45,7 @@ export class CalendlyOAuth {
     accessToken: string;
     refreshToken?: string;
     expiresAt: Date;
-    user?: { name: string; email: string };
+    user?: { name: string; email: string; timezone?: string; uri?: string; currentOrganization?: string; schedulingUrl?: string };
   }> {
     try {
       const response = await fetch('https://auth.calendly.com/oauth/token', {
@@ -74,7 +79,14 @@ export class CalendlyOAuth {
         accessToken: data.access_token,
         refreshToken: data.refresh_token || undefined,
         expiresAt: new Date(Date.now() + (data.expires_in || 3600) * 1000),
-        user: userInfo ? { name: userInfo.name || 'Calendly User', email: userInfo.email } : undefined
+        user: userInfo ? { 
+          name: userInfo.name || 'Calendly User', 
+          email: userInfo.email,
+          timezone: userInfo.timezone,
+          uri: userInfo.uri,
+          currentOrganization: userInfo.currentOrganization,
+          schedulingUrl: userInfo.schedulingUrl
+        } : undefined
       };
     } catch (error: any) {
       console.error('Calendly token exchange error:', error);
@@ -123,11 +135,12 @@ export class CalendlyOAuth {
   /**
    * Get user info from Calendly
    */
-  private async getUserInfo(accessToken: string): Promise<{ name: string; email: string } | null> {
+  public async getUserInfo(accessToken: string): Promise<{ name: string; email: string; timezone?: string; uri?: string; currentOrganization?: string; schedulingUrl?: string } | null> {
     try {
       const response = await fetch('https://api.calendly.com/users/me', {
         headers: {
-          Authorization: `Bearer ${accessToken}`,
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
         },
       });
 
@@ -139,6 +152,10 @@ export class CalendlyOAuth {
       return {
         name: data.resource?.name || 'Calendly User',
         email: data.resource?.email || '',
+        timezone: data.resource?.timezone,
+        uri: data.resource?.uri,
+        currentOrganization: data.resource?.current_organization,
+        schedulingUrl: data.resource?.scheduling_url
       };
     } catch (error) {
       console.error('Failed to get Calendly user info:', error);
@@ -187,51 +204,145 @@ export class CalendlyOAuth {
 
     // Storage cleanup will be handled by the disconnect route calling deleteIntegration
   }
+
+  /**
+   * Helper to get decrypted access token for a user
+   */
+  private async getAccessToken(userId: string): Promise<string | null> {
+    const { storage } = await import('../../storage.js');
+    const { decrypt } = await import('../crypto/encryption.js');
+
+    const integration = await storage.getIntegration(userId, 'calendly');
+    if (!integration || !integration.encryptedMeta) return null;
+
+    try {
+      const meta = JSON.parse(decrypt(integration.encryptedMeta));
+      
+      // Check expiry
+      if (meta.expiresAt && new Date(meta.expiresAt) < new Date()) {
+        console.log(`[Calendly] Token expired for ${userId}, refreshing...`);
+        const refreshed = await this.refreshAccessToken(meta.refresh_token);
+        
+        // Update storage
+        const updatedMeta = encrypt(JSON.stringify({
+          ...meta,
+          access_token: refreshed.accessToken,
+          expiresAt: refreshed.expiresAt.toISOString()
+        }));
+        
+        await storage.updateIntegration(userId, 'calendly', {
+          encryptedMeta: updatedMeta,
+          lastSync: new Date()
+        });
+        
+        return refreshed.accessToken;
+      }
+      
+      return meta.access_token || meta.token;
+    } catch (error) {
+      console.error('[Calendly] Failed to decrypt/refresh token:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get available slots for a user's event type
+   */
+  async getAvailableSlots(userId: string, startTime: string, endTime: string): Promise<any[]> {
+    const token = await this.getAccessToken(userId);
+    if (!token) throw new Error('Calendly not connected or token invalid');
+
+    // First get the user's event types if we don't have a specific URI
+    const { db } = await import('../../db.js');
+    const { calendarSettings } = await import('../../../shared/schema.js');
+    const { eq } = await import('drizzle-orm');
+
+    const [settings] = await db.select().from(calendarSettings).where(eq(calendarSettings.userId, userId)).limit(1);
+    let eventTypeUri = settings?.calendlyEventTypeUri;
+
+    if (!eventTypeUri) {
+      const etResponse = await fetch('https://api.calendly.com/event_types?user=https://api.calendly.com/users/me', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (etResponse.ok) {
+        const etData: any = await etResponse.json();
+        eventTypeUri = etData.collection?.[0]?.uri;
+      }
+    }
+
+    if (!eventTypeUri) throw new Error('No Calendly event type found for user');
+
+    const url = new URL('https://api.calendly.com/event_type_available_times');
+    url.searchParams.set('event_type_uri', eventTypeUri);
+    url.searchParams.set('start_time', startTime);
+    url.searchParams.set('end_time', endTime);
+
+    const response = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to fetch availability: ${error}`);
+    }
+
+    const data: any = await response.json();
+    return data.collection || [];
+  }
 }
 
 export const calendlyOAuth = new CalendlyOAuth();
 
 /**
  * Register/update Calendly webhook after OAuth connection
- * This creates webhook subscriptions for meeting events
  */
 export async function registerCalendlyWebhook(userId: string, accessToken: string): Promise<void> {
   try {
-    const webhookUrl = process.env.CALENDLY_WEBHOOK_URL || `${process.env.DOMAIN || 'https://audnixai.com'}/api/webhook/calendly`;
+    const userInfo = await calendlyOAuth.getUserInfo(accessToken);
+    if (!userInfo || !userInfo.currentOrganization) {
+      throw new Error('Could not determine Calendly organization for webhook registration');
+    }
 
-    // Subscribe to invitee.created (meeting booked) and invitee.canceled (meeting cancelled)
-    const eventTypes = ['invitee.created', 'invitee.canceled'];
-
-    for (const eventType of eventTypes) {
-      try {
-        const response = await fetch('https://api.calendly.com/webhook_subscriptions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            url: webhookUrl,
-            events: [eventType],
-            organization: 'https://api.calendly.com/organizations/me' // Will be replaced with actual org URI
-          }),
-        });
-
-        if (response.ok) {
-          const subscription: any = await response.json();
-          console.log(`✓ Calendly webhook registered for ${eventType} - ID: ${subscription.resource?.id || 'unknown'}`);
-        } else {
-          const error = await response.text();
-          console.warn(`⚠️ Failed to register Calendly webhook for ${eventType}: ${error}`);
-        }
-      } catch (err: any) {
-        console.warn(`⚠️ Error registering webhook for ${eventType}:`, err.message);
-        // Continue with other event types even if one fails
+    const webhookUrl = process.env.CALENDLY_WEBHOOK_URL || `${process.env.DOMAIN || 'https://audnix-ai.com'}/api/webhook/calendly`;
+    
+    // 1. List existing webhooks to avoid duplicates
+    const listResponse = await fetch(`https://api.calendly.com/webhook_subscriptions?organization=${encodeURIComponent(userInfo.currentOrganization)}&scope=organization`, {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+    
+    if (listResponse.ok) {
+      const listData: any = await listResponse.json();
+      const existing = listData.collection?.find((s: any) => s.callback_url === webhookUrl);
+      if (existing) {
+        console.log(`✓ Calendly webhook already exists for ${userInfo.email}`);
+        return;
       }
+    }
+
+    // 2. Create new subscription
+    const response = await fetch('https://api.calendly.com/webhook_subscriptions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        url: webhookUrl,
+        events: ['invitee.created', 'invitee.canceled'],
+        organization: userInfo.currentOrganization,
+        scope: 'organization'
+      }),
+    });
+
+    if (response.ok) {
+      const subscription: any = await response.json();
+      console.log(`✓ Calendly webhook registered - ID: ${subscription.resource?.id || 'unknown'}`);
+    } else {
+      const error = await response.text();
+      console.warn(`⚠️ Failed to register Calendly webhook: ${error}`);
     }
   } catch (error: any) {
     console.warn('⚠️ Calendly webhook registration warning:', error.message);
-    // Don't throw - webhooks are optional, OAuth connection should still succeed
   }
 }
 

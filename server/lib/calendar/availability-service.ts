@@ -1,6 +1,13 @@
 import { storage } from '../../storage.js';
 import { googleCalendarOAuth } from '../oauth/google-calendar.js';
-import { getCalendlySlots } from './calendly.js';
+import { calendlyOAuth } from '../oauth/calendly.js';
+import { timezoneService } from './timezone-service.js';
+
+/** Max outbounds/proposals allowed between 10PM-6AM per user per night */
+export const NIGHT_DELIVERY_CAP = 7;
+
+// In-memory tracker for night sessions: userId -> { count, resetAt }
+const nightDeliveryTracker = new Map<string, { count: number; resetAt: number }>();
 
 export interface AvailableSlot {
   start: Date;
@@ -9,73 +16,188 @@ export interface AvailableSlot {
 }
 
 export class AvailabilityService {
+  // Internal cache to prevent proposing the same slot to multiple leads in a short window
+  private static proposedSlotsCache: Map<string, { userId: string; start: Date; expiresAt: Date }> = new Map();
+
   /**
-   * Get suggested free times for the user to propose to a lead
+   * Get suggested free times for the user to propose to a lead.
+   * Intersects Calendly and Google Calendar availability with 15-minute buffers.
+   * Implements strict 10pm-6am No-Book rule based on User's timezone.
    */
   async getSuggestedTimes(userId: string, hoursAhead: number = 72): Promise<AvailableSlot[]> {
     try {
-      // 1. Check for Calendly first (primary booking tool)
       const user = await storage.getUserById(userId);
-      if (user?.calendlyAccessToken) {
-        const slots = await getCalendlySlots(user.calendlyAccessToken, 3); // 3 days ahead
+      const userTimezone = user?.timezone || 'Africa/Lagos'; 
+      const isWithinBusinessHours = (date: Date) => this.isWithinUserBusinessHours(date, userTimezone);
+
+      let candidateSlots: AvailableSlot[] = [];
+      const startTime = new Date().toISOString();
+      const endTime = new Date(Date.now() + hoursAhead * 60 * 60 * 1000).toISOString();
+
+      // Clean old cache entries
+      const nowMs = Date.now();
+      for (const [key, entry] of AvailabilityService.proposedSlotsCache.entries()) {
+        if (entry.expiresAt.getTime() < nowMs) AvailabilityService.proposedSlotsCache.delete(key);
+      }
+
+      // 1. Fetch from Calendly
+      try {
+        const slots = await calendlyOAuth.getAvailableSlots(userId, startTime, endTime);
         if (slots && slots.length > 0) {
-          return slots.slice(0, 5).map(s => ({
-            start: new Date(s.time),
-            end: new Date(new Date(s.time).getTime() + 30 * 60000), // Default 30 min
+          candidateSlots = slots.map(s => ({
+            start: new Date(s.start_time),
+            end: new Date(new Date(s.start_time).getTime() + (30 + 15) * 60 * 1000), 
             provider: 'calendly'
           }));
         }
+      } catch (err) {
+        console.warn(`[Availability] Calendly fetch failed for ${userId}:`, err);
       }
 
-      // 2. Check Google Calendar secondary
+      // 2. Fetch from Google if needed
+      if (candidateSlots.length === 0) {
+        const googleIntegration = await storage.getOAuthAccount(userId, 'google');
+        if (googleIntegration?.accessToken) {
+          candidateSlots = await this.searchGoogleSlots(userId, googleIntegration.accessToken, userTimezone);
+        }
+      }
+
+      // 3. Cross-Check, Filter, and Lock
       const googleIntegration = await storage.getOAuthAccount(userId, 'google');
-      if (googleIntegration?.accessToken) {
-        // Find next 5 slots
-        const now = new Date();
-        const nextSlots: AvailableSlot[] = [];
-        
-        // Simple search: try 1-hour slots starting next business hour
-        let searchTime = new Date(now);
-        searchTime.setMinutes(0, 0, 0);
-        searchTime.setHours(searchTime.getHours() + 2); // Start in 2 hours
+      const filteredSlots: AvailableSlot[] = [];
 
-        for (let i = 0; i < 24 && nextSlots.length < 5; i++) {
-          // Skip non-business hours (9 AM - 6 PM)
-          const hour = searchTime.getHours();
-          if (hour < 9 || hour > 18 || searchTime.getDay() === 0 || searchTime.getDay() === 6) {
-            searchTime.setHours(searchTime.getHours() + 1);
-            continue;
-          }
+      for (const slot of candidateSlots) {
+        // Business Hour Guard
+        if (!isWithinBusinessHours(slot.start)) continue;
 
-          const endTime = new Date(searchTime.getTime() + 60 * 60000);
-          const isAvailable = await googleCalendarOAuth.checkAvailability(
-            googleIntegration.accessToken, 
-            searchTime, 
-            endTime
+        // Proposal Lock Guard: Check if this slot was proposed to another lead in the last 60 mins
+        const cacheKey = `${userId}-${slot.start.getTime()}`;
+        if (AvailabilityService.proposedSlotsCache.has(cacheKey)) continue;
+
+        // Phase 4: Cross-check Calendly against Google if both connected
+        if (googleIntegration?.accessToken && slot.provider === 'calendly') {
+          const isActuallyFreeOnGoogle = await googleCalendarOAuth.checkAvailability(
+            googleIntegration.accessToken,
+            slot.start,
+            slot.end
           );
-
-          if (isAvailable) {
-            nextSlots.push({
-              start: new Date(searchTime),
-              end: endTime,
-              provider: 'google_calendar'
-            });
-          }
-          searchTime.setHours(searchTime.getHours() + 1);
+          if (!isActuallyFreeOnGoogle) continue;
         }
 
-        if (nextSlots.length > 0) return nextSlots;
+        // Add to result and Lock it for 60 minutes
+        filteredSlots.push(slot);
+        AvailabilityService.proposedSlotsCache.set(cacheKey, {
+          userId,
+          start: slot.start,
+          expiresAt: new Date(Date.now() + 60 * 60 * 1000)
+        });
+
+        if (filteredSlots.length >= 4) break; 
       }
 
-      // 3. Fallback: Default business hours (Emergency mode)
-      return this.generateDefaultSlots(hoursAhead);
+      if (filteredSlots.length > 0) return filteredSlots;
+
+      // 4. Fallback: Default with buffers
+      return this.generateDefaultSlots(hoursAhead, userTimezone);
     } catch (error) {
       console.error('Error in AvailabilityService:', error);
-      return this.generateDefaultSlots(hoursAhead);
+      return this.generateDefaultSlots(hoursAhead, 'Africa/Lagos');
     }
   }
 
-  private generateDefaultSlots(hoursAhead: number): AvailableSlot[] {
+  private async searchGoogleSlots(userId: string, accessToken: string, userTimezone: string): Promise<AvailableSlot[]> {
+    const nextSlots: AvailableSlot[] = [];
+    let searchTime = new Date();
+    searchTime.setMinutes(0, 0, 0);
+    searchTime.setHours(searchTime.getHours() + 2);
+
+    for (let i = 0; i < 48 && nextSlots.length < 5; i++) {
+        if (!this.isWithinUserBusinessHours(searchTime, userTimezone)) {
+          searchTime.setHours(searchTime.getHours() + 1);
+          continue;
+        }
+        const endTime = new Date(searchTime.getTime() + 60 * 60000);
+        const isAvailable = await googleCalendarOAuth.checkAvailability(accessToken, searchTime, endTime);
+        if (isAvailable) {
+          nextSlots.push({ start: new Date(searchTime), end: endTime, provider: 'google_calendar' });
+        }
+        searchTime.setHours(searchTime.getHours() + 1);
+    }
+    return nextSlots;
+  }
+
+  /**
+   * Calculate the next available minute we can deliver a message (06:05 AM in user TZ)
+   */
+  getNextAvailableBusinessHour(timeZone: string): Date {
+    return timezoneService.getNextSafeWindow(new Date(), timeZone);
+  }
+
+  /**
+   * Helper to determine valid booking times in a specific timezone
+   * Blocks: 22:00 - 06:00 (strict No-Book rule)
+   * Prevents booking on weekends too.
+   */
+  public isWithinUserBusinessHours(date: Date, timeZone: string): boolean {
+    const isNight = timezoneService.isNightWatch(date, timeZone);
+    if (isNight) return false;
+
+    // Use formatting to check weekend for lead-safe delivery
+    const weekday = timezoneService.formatForUser(date, timeZone, 'EEE');
+    if (weekday === 'Sat' || weekday === 'Sun') return false;
+
+    return true;
+  }
+
+  /**
+   * [Strict Protocol] Check if we can deliver a message during the Night Watch (10PM - 6AM).
+   * Returns true if it's currently Day OR if it's Night but we are under the cap (7).
+   */
+  public async canDeliverDuringNightWatch(userId: string, timeZone: string): Promise<{ allowed: boolean; isNight: boolean; count: number }> {
+    const now = new Date();
+    const isNight = timezoneService.isNightWatch(now, timeZone);
+    
+    if (!isNight) {
+      return { allowed: true, isNight: false, count: 0 };
+    }
+
+    // It's night - check the cap
+    let entry = nightDeliveryTracker.get(userId);
+    const resetTime = this.getNextMidnightMs();
+
+    if (!entry || Date.now() > entry.resetAt) {
+      entry = { count: 0, resetAt: resetTime };
+      nightDeliveryTracker.set(userId, entry);
+    }
+
+    return { 
+      allowed: entry.count < NIGHT_DELIVERY_CAP,
+      isNight: true,
+      count: entry.count
+    };
+  }
+
+  /**
+   * Record a night-time delivery to the tracker.
+   */
+  public incrementNightDelivery(userId: string): void {
+    let entry = nightDeliveryTracker.get(userId);
+    if (!entry || Date.now() > entry.resetAt) {
+      entry = { count: 1, resetAt: this.getNextMidnightMs() };
+    } else {
+      entry.count += 1;
+    }
+    nightDeliveryTracker.set(userId, entry);
+  }
+
+  private getNextMidnightMs(): number {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    return tomorrow.getTime();
+  }
+
+  private generateDefaultSlots(hoursAhead: number, userTimezone: string): AvailableSlot[] {
     const slots: AvailableSlot[] = [];
     const now = new Date();
     let search = new Date(now);
@@ -83,7 +205,7 @@ export class AvailabilityService {
     search.setMinutes(0, 0, 0);
 
     while (slots.length < 3) {
-      if (search.getHours() >= 10 && search.getHours() <= 16 && search.getDay() !== 0 && search.getDay() !== 6) {
+      if (this.isWithinUserBusinessHours(search, userTimezone)) {
         slots.push({
           start: new Date(search),
           end: new Date(search.getTime() + 60 * 60000),

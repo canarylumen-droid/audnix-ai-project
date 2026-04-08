@@ -204,6 +204,11 @@ router.post("/:leadId/read", requireAuth, async (req: Request, res: Response): P
     for (const n of leadNotifications) {
       await storage.markNotificationAsRead(n.id);
     }
+
+    // Notify client to update notification count/UI
+    const { wsSync } = await import('../lib/websocket-sync.js');
+    wsSync.notifyNotification(userId, { type: 'update', action: 'read_all', leadId });
+
     res.json({ success: true });
   } catch (error: unknown) {
     console.error("Mark messages read error:", error);

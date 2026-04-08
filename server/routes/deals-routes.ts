@@ -114,6 +114,11 @@ router.post('/', requireAuth, async (req: Request, res: Response): Promise<void>
       ...req.body
     });
 
+    // Notify client via WebSocket
+    const { wsSync } = await import('../lib/websocket-sync.js');
+    wsSync.notifyDealsUpdated(userId);
+    wsSync.notifyStatsUpdated(userId);
+
     res.status(201).json(deal);
   } catch (error) {
     console.error('Error creating deal:', error);
@@ -134,6 +139,11 @@ router.patch('/:id', requireAuth, async (req: Request, res: Response): Promise<v
       res.status(404).json({ error: 'Deal not found' });
       return;
     }
+
+    // Notify client via WebSocket
+    const { wsSync } = await import('../lib/websocket-sync.js');
+    wsSync.notifyDealsUpdated(userId);
+    wsSync.notifyStatsUpdated(userId);
 
     res.json(deal);
   } catch (error) {
@@ -161,6 +171,11 @@ router.post('/sync', requireAuth, async (req: Request, res: Response): Promise<v
         analyzedCount++;
       }
     }
+
+    // Notify client via WebSocket
+    const { wsSync } = await import('../lib/websocket-sync.js');
+    wsSync.notifyDealsUpdated(userId);
+    wsSync.notifyStatsUpdated(userId);
 
     res.json({ success: true, analyzedCount });
   } catch (error) {

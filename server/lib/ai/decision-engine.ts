@@ -7,7 +7,7 @@
  * Decision types: act | wait | skip | escalate
  * 
  * Requirements:
- * - Calendar booking: intent_score >= 70, timing_score >= 60
+ * - Calendar booking: intent_score >= 60, timing_score >= 50
  * - Video delivery: intent_score >= 50, engagement detected
  * - All decisions logged with confidence, reasoning, timing rationale
  */
@@ -66,8 +66,8 @@ export async function evaluateCalendarBookingDecision(
     .where(eq(calendarSettings.userId, userId))
     .limit(1);
   
-  const minIntent = settings?.minIntentScore ?? 70;
-  const minTiming = settings?.minTimingScore ?? 60;
+  const minIntent = settings?.minIntentScore ?? 60;
+  const minTiming = settings?.minTimingScore ?? 50;
   const autoBookingEnabled = settings?.autoBookingEnabled ?? false;
   
   if (!autoBookingEnabled) {
@@ -106,7 +106,7 @@ export async function evaluateCalendarBookingDecision(
   if (intentScore < 40) {
     return {
       decision: 'skip',
-      reasoning: `Intent too low (${intentScore}%). Not ready for booking.`,
+      reasoning: `Intent too low (${intentScore}%). Not ready for booking. Threshold is ${minIntent}%.`,
       intentScore,
       timingScore,
       confidence,

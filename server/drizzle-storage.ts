@@ -267,6 +267,18 @@ export class DrizzleStorage implements IStorage {
     return Number(result[0].count);
   }
 
+  async deleteUser(id: string): Promise<void> {
+    checkDatabase();
+    if (!isValidUUID(id)) return;
+
+    // We do NOT use revocationService here directly to avoid circular dependencies.
+    // Instead, the route handler calling deleteUser should orchestrate revocationService.revokeAllAndDestroyUser.
+    
+    // Deleting the user will cascade (if DB constraints are set) or we manually clean up.
+    // Drizzle/Postgres usually handles cascades on foreign keys.
+    await db.delete(users).where(eq(users.id, id));
+  }
+
   // --- Organization Methods ---
 
   async getOrganization(id: string): Promise<Organization | undefined> {
@@ -549,9 +561,24 @@ export class DrizzleStorage implements IStorage {
           actionUrl: `/dashboard/leads/${result[0].id}`
         });
       }
+
+      // Auto-populate timezone intelligence profile (non-blocking)
+      const meta = insertLead.metadata as any;
+      setImmediate(async () => {
+        try {
+          const { populateLeadProfile } = await import('./lib/calendar/lead-timezone-intelligence.js');
+          await populateLeadProfile(result[0].id, insertLead.userId, {
+            city: (insertLead as any).city || meta?.city,
+            niche: meta?.niche,
+            industry: meta?.industry,
+            company: insertLead.company || null,
+          });
+        } catch { /* non-critical */ }
+      });
     }
     return result[0];
   }
+
 
   async updateLead(id: string, updates: Partial<Lead>): Promise<Lead | undefined> {
     checkDatabase();
@@ -750,6 +777,14 @@ export class DrizzleStorage implements IStorage {
       // Notify both updates
       wsSync.notifyMessagesUpdated(message.userId, { event: 'INSERT', message: result[0] });
       wsSync.notifyLeadsUpdated(message.userId, { event: 'UPDATE', leadId: message.leadId });
+
+      // Phase 8: Emit direct thread update to dashboard for instant conversation sync
+      import('./lib/realtime/socket-service.js').then(({ socketService }) => {
+        socketService.getIo()?.to(`user:${message.userId}`).emit('thread:update', {
+          leadId: message.leadId,
+          message: result[0]
+        });
+      }).catch(err => console.error('[SocketService] Failed to emit thread:update', err));
 
       // --- Campaign Auto-Reply Trigger ---
       if (message.direction === 'inbound') {
@@ -1515,6 +1550,11 @@ export class DrizzleStorage implements IStorage {
     checkDatabase();
     const [result] = await db.insert(followUpQueue).values(data).returning();
     return result;
+  }
+
+  async clearFollowUpQueue(leadId: string): Promise<void> {
+    checkDatabase();
+    await db.delete(followUpQueue).where(eq(followUpQueue.leadId, leadId));
   }
 
   async updateFollowUpStatus(id: string, status: string, errorMessage?: string | null): Promise<FollowUpQueue | undefined> {

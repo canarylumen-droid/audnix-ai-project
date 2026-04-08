@@ -28,13 +28,37 @@ export function AuthGuard({ children, adminOnly = false }: AuthGuardProps) {
   const { data: user, isLoading, error } = useQuery<AuthUser>({
     queryKey: ["/api/user/profile"],
     retry: false,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
+
+  // Fast-track: check localStorage to avoid flicker for already-onboarded users
+  const localOnboardingStatus = localStorage.getItem('onboarding_completed') === 'true';
+  const onboardingCompleted = user?.metadata?.onboardingCompleted === true || localOnboardingStatus;
 
   useEffect(() => {
     if (!isLoading) {
       if (error || !user) {
         console.log("🔓 Not authenticated - redirecting to /auth");
         setLocation("/auth");
+        return;
+      }
+
+      // Check for onboarding completion
+      const serverOnboardingCompleted = user.metadata?.onboardingCompleted === true;
+      const currentPath = window.location.pathname;
+      
+      // Sync localStorage with server reality
+      if (serverOnboardingCompleted) {
+        localStorage.setItem('onboarding_completed', 'true');
+      }
+
+      if (!serverOnboardingCompleted && 
+          currentPath !== "/onboarding" && 
+          !currentPath.startsWith("/auth") &&
+          user.role !== "admin") {
+        console.log("🚧 Onboarding incomplete - redirecting to /onboarding");
+        localStorage.removeItem('onboarding_completed');
+        setLocation("/onboarding");
         return;
       }
 
@@ -46,14 +70,20 @@ export function AuthGuard({ children, adminOnly = false }: AuthGuardProps) {
   }, [user, isLoading, error, adminOnly, setLocation]);
 
   // Show loading while checking auth
-  if (isLoading) {
+  // Show loading while checking auth
+  // IF we have a local flag that onboarding is done, don't show the full page loader 
+  // unless there's an actual error or we ABSOLUTELY need to block.
+  if (isLoading && !localOnboardingStatus) {
     return (
       <Dialog open={true} onOpenChange={() => { }}>
-        <DialogContent className="sm:max-w-md border-0">
+        <DialogContent className="sm:max-w-md border-0 bg-background/80 backdrop-blur-md">
           <div className="flex flex-col items-center justify-center space-y-4 py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="relative w-12 h-12">
+              <Loader2 className="h-12 w-12 animate-spin text-primary relative z-10" />
+              <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full animate-pulse" />
+            </div>
             <div className="text-center">
-              <p className="text-white/70">Verifying access...</p>
+              <p className="text-white/70 font-medium tracking-tight">Accessing Secure Environment...</p>
             </div>
           </div>
         </DialogContent>

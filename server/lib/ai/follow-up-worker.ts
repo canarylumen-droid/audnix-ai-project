@@ -8,7 +8,11 @@ import { sendInstagramMessage } from '../channels/instagram.js';
 
 import { sendEmail } from '../channels/email.js';
 import { executeCommentFollowUps } from './comment-detection.js';
-import { storage } from '../../storage.js';
+import { storage } from "../../storage.js";
+import { wsSync } from "../websocket-sync.js";
+import { calendarBookings, notifications } from "../../../shared/schema.js";
+import { socketService } from "../realtime/socket-service.js";
+import { availabilityService } from "../calendar/availability-service.js";
 import { workerHealthMonitor } from '../monitoring/worker-health.js';
 import { quotaService } from '../monitoring/quota-service.js';
 import MultiChannelOrchestrator from '../multi-channel-orchestrator.js';
@@ -61,6 +65,14 @@ interface LocalMessage {
   createdAt: Date;
   role?: 'user' | 'assistant';
   created_at?: string;
+}
+
+export interface AIReplyResult {
+  text: string;
+  useVoice: boolean;
+  blocked?: boolean;
+  blockedReason?: string;
+  detections?: any;
 }
 
 interface DatabaseMessage {
@@ -196,6 +208,7 @@ export class FollowUpWorker {
         results.push(...batchResults);
         console.log(`✅ Batch complete in ${Date.now() - batchStartTime}ms`);
       }
+      const health = workerHealthMonitor.getHealthStatus();
       workerHealthMonitor.recordSuccess('follow-up-worker');
     } catch (error: any) {
       console.error('Queue processing error:', error);
@@ -219,6 +232,42 @@ export class FollowUpWorker {
         .set({ status: 'processing' })
         .where(eq(followUpQueue.id, job.id));
 
+      const user = await storage.getUserById(job.userId);
+      // NEW: [The Strict Protocol] Loosened Night Watch Delivery Constraints (10 PM - 6 AM)
+      if (user) {
+        const userTimezone = user.timezone || 'America/New_York';
+        const { availabilityService } = await import('../calendar/availability-service.js');
+        const nightWatch = await availabilityService.canDeliverDuringNightWatch(user.id, userTimezone);
+
+        if (!nightWatch.allowed) {
+          const nextRun = availabilityService.getNextAvailableBusinessHour(userTimezone);
+          console.log(`[Follow-Up Worker] 🌙 Night Watch Active & Cap Reached for ${user.email}. Postponing job ${job.id} to ${nextRun.toISOString()}`);
+          
+          await db.update(followUpQueue)
+            .set({ 
+              status: 'pending', 
+              scheduledAt: nextRun,
+              metadata: { ...(job.context as any || {}), postponed_by_night_watch: true }
+            })
+            .where(eq(followUpQueue.id, job.id));
+          return;
+        }
+
+        // If allowed during night, increment and notify
+        if (nightWatch.isNight) {
+          console.log(`[Follow-Up Worker] 🌙 The Strict Protocol: Delivering night follow-up ${nightWatch.count + 1}/7 for user ${user.id}`);
+          availabilityService.incrementNightDelivery(user.id);
+
+          // Dashboard notification for transparency
+          import('../realtime/socket-service.js').then(({ socketService }) => {
+            socketService.notifyNewNotification(user.id, {
+              type: 'info',
+              title: 'Night Watch Follow-Up Sent',
+              message: `An automated AI response was delivered during off-hours (${nightWatch.count + 1}/7 remaining).`
+            });
+          });
+        }
+      }
       // Attempt to reserve the lead to prevent race conditions (Phase 13: Mutex Lock)
       const reserved = await storage.reserveLeadForAction(job.leadId, 'follow_up');
       if (!reserved) {
@@ -260,8 +309,8 @@ export class FollowUpWorker {
 
       // CHECK 1: Global Autonomous Mode
       const userResults = await db.select().from(users).where(eq(users.id, job.userId)).limit(1);
-      const user = userResults[0];
-      const globalAutonomousMode = (user?.config as any)?.autonomousMode !== false;
+      const userDetail = userResults[0];
+      const globalAutonomousMode = (userDetail?.config as any)?.autonomousMode !== false;
 
       if (!globalAutonomousMode) {
         console.log(`[FOLLOW_UP] Global Autonomous Mode is OFF for user ${job.userId}. Reverting job ${job.id} to pending.`);
@@ -276,9 +325,7 @@ export class FollowUpWorker {
         return;
       }
 
-      // CHECK 3: Active Campaign Protection
-      // If the lead is currently in a campaign that's still 'pending' or 'sent' (not replied yet),
-      // we skip autonomous follow-ups to avoid overlapping with campaign sequence.
+      // 3. Active Campaign Protection
       const activeCampaignLead = await db.select()
         .from(campaignLeads)
         .where(
@@ -298,33 +345,25 @@ export class FollowUpWorker {
         return;
       }
 
-      // Get conversation history
-      const conversationHistory = await this.getConversationHistory(job.leadId);
-
-      // Get user's brand context
+      // 4. Gather Context
+      const conversationHistory = await storage.getMessagesByLeadId(job.leadId);
       const brandContext = await this.getBrandContext(job.userId);
 
       // [NEW] Inject Calendar Context for AI Booking Specialist
-      const calendarLink = user.calendarLink || (user as any).defaultCtaLink || '';
-      const isCalendlyConnected = !!user.calendlyAccessToken;
+      const calendarLink = userDetail?.calendarLink || (userDetail as any)?.defaultCtaLink || '';
+      const isCalendlyConnected = !!(userDetail as any)?.calendlyAccessToken;
       const bookingContext = {
         calendarLink,
         isCalendlyConnected,
-        calendlyUserUri: (user as any).calendlyUserUri
+        calendlyUserUri: (userDetail as any)?.calendlyUserUri
       };
 
-      // EXTRACT ROLE: Priority extraction for high-ticket disruption
-      const leadRole = (lead.metadata as any)?.role || "Founder";
-      const leadCompany = (lead.metadata as any)?.company || "the team";
-
-      // Calculate campaign day (how many days since lead was created)
+      // 5. Generate AI Content
       const campaignDay = Math.floor(
         (Date.now() - (lead.createdAt?.getTime() || Date.now())) / (1000 * 60 * 60 * 24)
       );
 
-      // Phase 7: Use expert pre-generated content if available
       const suggestedBody = (job.context as any)?.suggestedBody;
-      const suggestedSubject = (job.context as any)?.suggestedSubject;
       const customAutoReply = (job.context as any)?.customAutoReply;
       const isAutoReply = (job.context as any)?.isAutoReply === true;
       const intent = (job.context as any)?.intent || 'nurture';
@@ -332,29 +371,30 @@ export class FollowUpWorker {
       let aiReply = '';
 
       if (suggestedBody) {
-        console.log(`[FOLLOW_UP_WORKER] Using expert pre-generated content for lead ${lead.email}`);
         aiReply = suggestedBody;
       } else if (customAutoReply) {
-        console.log(`[FOLLOW_UP_WORKER] Using custom auto-reply template for lead ${lead.email}`);
-
-        // Basic template variable substitution
+        // Basic template substitution
         const firstName = lead.name.split(' ')[0] || 'there';
         const company = (lead.metadata as any)?.company || 'your company';
-
         aiReply = customAutoReply
           .replace(/{{firstName}}/g, firstName)
           .replace(/{{name}}/g, lead.name)
           .replace(/{{company}}/g, company);
       } else if (isAutoReply || intent === 'payment' || intent === 'booking') {
-        console.log(`[FOLLOW_UP_WORKER] Using intentional AI logic for lead ${lead.email} (Intent: ${intent})`);
         const { generateAIReply } = await import('./conversation-ai.js');
-        
-        // Enhance system prompt for specific intents
         let intentInstruction = "";
+        
         if (intent === 'payment') {
           intentInstruction = `\n\nCRITICAL TASK: This lead has agreed to a partnership or requested payment details. You MUST acknowledge this and provide the next steps for payment. Use the context: "${reasoning}".`;
         } else if (intent === 'booking') {
-          intentInstruction = `\n\nCRITICAL TASK: This lead is ready to book a call or demo. You MUST provide the calendar link and encourage them to pick a slot. Use the context: "${reasoning}".`;
+          try {
+            const { availabilityService } = await import('../calendar/availability-service.js');
+            const slots = await availabilityService.getSuggestedTimes(job.userId, 72);
+            const slotsText = availabilityService.formatSlotsForAI(slots);
+            intentInstruction = `\n\nCRITICAL TASK: This lead is ready to book a call or demo. You MUST provide the calendar link and optionally suggest these available times: [${slotsText}]. Encourage them to pick a slot. Use the context: "${reasoning}".`;
+          } catch (e) {
+            intentInstruction = `\n\nCRITICAL TASK: This lead is ready to book a call or demo. You MUST provide the calendar link and encourage them to pick a slot. Use the context: "${reasoning}".`;
+          }
         }
 
         const aiResult = await generateAIReply(
@@ -368,7 +408,6 @@ export class FollowUpWorker {
         );
         aiReply = aiResult.text || '';
       } else {
-        console.log(`[FOLLOW_UP_WORKER] Using follow-up sequence logic for lead ${lead.email}`);
         // Generate AI reply with day-aware context and brand personalization
         aiReply = await this.generateFollowUpMessage(lead, conversationHistory, brandContext, campaignDay, lead.createdAt || new Date(), job.userId, bookingContext);
       }
@@ -402,12 +441,13 @@ export class FollowUpWorker {
 
       if (intent === 'payment') {
         sendOptions.buttonText = 'Pay Securely';
-        sendOptions.buttonUrl = (user as any).paymentLink || (lead.metadata as any).payment_link || 'https://audnix.com/payment';
+        sendOptions.buttonUrl = (userDetail as any).paymentLink || (lead.metadata as any).payment_link || 'https://audnix.com/payment';
       } else if (intent === 'booking') {
         sendOptions.buttonText = 'Book a Time';
         sendOptions.buttonUrl = calendarLink;
       }
 
+      const suggestedSubject = (job.context as any)?.suggestedSubject;
       const sent = await this.sendMessage(job.userId, lead, aiReply, job.channel, {
         ...sendOptions,
         subject: suggestedSubject || undefined
@@ -424,6 +464,7 @@ export class FollowUpWorker {
           trackingId: trackingId,
           intent: intent
         });
+
 
         // UPDATE Dashboard Feed Outcome
         try {

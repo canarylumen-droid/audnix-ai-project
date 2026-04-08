@@ -99,23 +99,27 @@ export function RecentConversations() {
       }
     };
 
-    const handleMessagesUpdated = (payload: any) => {
-      if (!selectedMailboxId || payload.integrationId === selectedMailboxId) {
-        queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
-        if (selectedLead && payload.leadId === selectedLead.id) {
-          queryClient.invalidateQueries({ queryKey: ["/api/leads", selectedLead.id, "messages"] });
-        }
+    const handleThreadUpdate = (payload: any) => {
+      // payload: { leadId, userId, message }
+      console.log("[SOCKET] Thread update received:", payload.leadId);
+      
+      // Invalidate the leads list to show the new snippet
+      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      
+      // If we are currently viewing this specific lead, invalidate messages
+      if (selectedLead?.id === payload.leadId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/leads", payload.leadId, "messages"] });
       }
     };
 
-    socket.on('leads_updated', handleLeadsUpdated);
-    socket.on('messages_updated', handleMessagesUpdated);
+    socket.on("leads_updated", handleLeadsUpdated);
+    socket.on("thread:update", handleThreadUpdate);
 
     return () => {
-      socket.off('leads_updated', handleLeadsUpdated);
-      socket.off('messages_updated', handleMessagesUpdated);
+      socket.off("leads_updated", handleLeadsUpdated);
+      socket.off("thread:update", handleThreadUpdate);
     };
-  }, [socket, selectedMailboxId, selectedLead, queryClient]);
+  }, [socket, selectedMailboxId, selectedLead?.id, queryClient]);
 
   const { data: leadsData, isLoading: leadsLoading } = useQuery({
     queryKey: ["/api/leads", { integrationId: selectedMailboxId, channel: selectedChannel, limit: 10 }],

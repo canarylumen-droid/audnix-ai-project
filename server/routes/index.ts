@@ -34,6 +34,7 @@ import voiceRoutes from "./voice-routes.js";
 import webhookRouter from "./webhook.js";
 import workerRoutes from "./worker.js";
 import messagesRoutes from "./messages-routes.js";
+import healthRoutes from "./health-routes.js";
 
 import webhookMetaRoutes from "./webhook-meta.js";
 import automationRulesRoutes from "./automation-rules-routes.js";
@@ -48,6 +49,7 @@ import { organizationRouter } from "./organization-routes.js";
 import adminMigrationsRouter from "./admin-migrations.js";
 import notificationRoutes from "./notification-routes.js";
 import emailTrackingRoutes from "./email-tracking-routes.js";
+import { registerAnalyticsRoutes } from "./analytics-routes.js";
 
 export async function registerRoutes(app: Express): Promise<http.Server> {
   // 1. Static Assets & Public Manifests (Served before auth/rate limiting for common assets)
@@ -153,6 +155,8 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
   app.use("/api/email-tracking", emailTrackingRoutes);
   app.use("/api/admin", adminMigrationsRouter); // Admin-only migration controls
   app.use("/api/cron", (await import("./cron-routes.js")).default);
+  app.use("/api/health", healthRoutes);
+  registerAnalyticsRoutes(app); // Phase 14: KPI & Conversion Analytics
 
   // Create HTTP server
   const server = http.createServer(app);

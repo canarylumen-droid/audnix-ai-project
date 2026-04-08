@@ -287,6 +287,7 @@ export default function SettingsPage() {
                         <SelectItem value="America/New_York">Eastern (ET)</SelectItem>
                         <SelectItem value="America/Los_Angeles">Pacific (PT)</SelectItem>
                         <SelectItem value="Europe/London">London (GMT)</SelectItem>
+                        <SelectItem value="Africa/Lagos">West Africa Time (WAT / Lagos)</SelectItem>
                         <SelectItem value="Asia/Dubai">Dubai (GST)</SelectItem>
                         <SelectItem value="Asia/Singapore">Singapore (SGT)</SelectItem>
                       </SelectContent>

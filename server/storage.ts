@@ -3,6 +3,8 @@ import { type User, type InsertUser, type Lead, type InsertLead, type Message, t
 import { randomUUID } from "crypto";
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "./db.js";
+import { wsSync } from "./lib/websocket-sync.js";
+
 
 export type MessageDraft = Partial<InsertMessage> & { leadId: string; userId: string; body: string };
 
@@ -19,6 +21,7 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
   getUsers(): Promise<User[]>; // Alias for getAllUsers
   getUserCount(): Promise<number>;
+  deleteUser(id: string): Promise<void>;
 
   // Organization methods
   getOrganization(id: string): Promise<Organization | undefined>;
@@ -138,6 +141,7 @@ export interface IStorage {
   getFollowUpById(id: string): Promise<FollowUpQueue | undefined>;
   updateFollowUp(id: string, updates: Partial<FollowUpQueue>): Promise<FollowUpQueue | undefined>;
   getDueFollowUps(): Promise<FollowUpQueue[]>;
+  clearFollowUpQueue(leadId: string): Promise<void>;
 
   // AI Learning Patterns
   getLearningPatterns(userId: string): Promise<AiLearningPattern[]>;
@@ -299,6 +303,12 @@ export class MemStorage implements IStorage {
     this.deals = new Map();
   }
 
+  async clearFollowUpQueue(leadId: string): Promise<void> {
+    for (const [id, f] of this.followUps.entries()) {
+      if (f.leadId === leadId) this.followUps.delete(id);
+    }
+  }
+
   // --- User Methods ---
   async getUser(id: string): Promise<User | undefined> { return this.users.get(id); }
   async getUserById(id: string): Promise<User | undefined> { return this.users.get(id); }
@@ -380,6 +390,10 @@ export class MemStorage implements IStorage {
   async getAllUsers(): Promise<User[]> { return Array.from(this.users.values()); }
   async getUsers(): Promise<User[]> { return this.getAllUsers(); }
   async getUserCount(): Promise<number> { return this.users.size; }
+  async deleteUser(id: string): Promise<void> { 
+    this.users.delete(id); 
+    // Simplified cascade delete for in-memory model
+  }
 
   // --- Organization Methods ---
   async getOrganization(id: string): Promise<Organization | undefined> { return this.organizations.get(id); }
@@ -599,6 +613,10 @@ export class MemStorage implements IStorage {
       createdAt: now,
     };
     this.messages.set(id, newMessage);
+    
+    // Trigger WebSocket sync
+    wsSync.notifyMessagesUpdated(message.userId, { event: 'INSERT', message: newMessage });
+    
     return newMessage;
   }
   async updateMessage(id: string, updates: Partial<Message>): Promise<Message | undefined> {
@@ -606,6 +624,10 @@ export class MemStorage implements IStorage {
     if (!msg) return undefined;
     const updated = { ...msg, ...updates };
     this.messages.set(id, updated);
+    
+    // Trigger WebSocket sync
+    wsSync.notifyMessagesUpdated(updated.userId, { event: 'UPDATE', message: updated });
+    
     return updated;
   }
   async getMessageByTrackingId(trackingId: string): Promise<Message | undefined> {

@@ -4,6 +4,7 @@ import { storage } from '../storage.js';
 import { db } from '../db.js';
 import { sql } from 'drizzle-orm';
 import { encrypt, decrypt } from '../lib/crypto/encryption.js';
+import { revocationService } from '../lib/oauth/revocation-service.js';
 import nodemailer from 'nodemailer';
 const Mail = nodemailer;
 
@@ -156,6 +157,10 @@ router.put('/smtp', requireAuth, async (req: Request, res: Response): Promise<vo
         updated_at = NOW()
     `);
 
+    // Notify other clients about settings update
+    const { wsSync } = await import('../lib/websocket-sync.js');
+    wsSync.notifySettingsUpdated(userId, { smtpUpdated: true });
+
     res.json({ success: true, message: 'SMTP settings saved. Test connection to verify.' });
   } catch (error) {
     console.error('Error saving SMTP settings:', error);
@@ -260,6 +265,9 @@ router.put('/notifications', requireAuth, async (req: Request, res: Response): P
         updated_at = NOW()
     `);
 
+    const { wsSync } = await import('../lib/websocket-sync.js');
+    wsSync.notifySettingsUpdated(userId, { notificationsUpdated: true, emailEnabled, dailyDigest, weeklyReport });
+
     res.json({ success: true, message: 'Notification preferences saved' });
   } catch (error) {
     console.error('Error saving notification settings:', error);
@@ -287,6 +295,9 @@ router.put('/automation', requireAuth, async (req: Request, res: Response): Prom
         updated_at = NOW()
     `);
 
+    const { wsSync } = await import('../lib/websocket-sync.js');
+    wsSync.notifySettingsUpdated(userId, { automationUpdated: true, autoRespond, autoBookMeetings, voiceNotes });
+
     res.json({ success: true, message: 'Automation preferences saved' });
   } catch (error) {
     console.error('Error saving automation settings:', error);
@@ -313,12 +324,15 @@ router.put('/profile', requireAuth, async (req: Request, res: Response): Promise
         updated_at = NOW()
     `);
 
-    // Update user table for main fields
+    // Update user table for main fields (this internally triggers wsSync.notifySettingsUpdated for the main profile)
     await storage.updateUser(userId, {
       calendarLink: calendarLink,
       brandGuidelinePdfUrl: brandGuidelinePdfUrl,
       brandGuidelinePdfText: brandGuidelinePdfText
     });
+
+    const { wsSync } = await import('../lib/websocket-sync.js');
+    wsSync.notifySettingsUpdated(userId, { profileUpdated: true });
 
     res.json({ success: true, message: 'Profile settings saved' });
   } catch (error) {
@@ -382,6 +396,35 @@ router.post('/sync/force', requireAuth, async (req: Request, res: Response): Pro
   } catch (error) {
     console.error('Error in force sync:', error);
     res.status(500).json({ error: 'Failed to trigger sync' });
+  }
+});
+
+router.delete('/account', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req);
+    if (!userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    // 1. Perform full centralized OAuth token revocation & user deletion
+    // This will hit Calendly, Google Calendar, etc. to revoke third-party access
+    await revocationService.revokeAllAndDestroyUser(userId);
+
+    // 2. Destroy user session safely
+    (req as any).logout && (req as any).logout((err: any) => {
+      if (err) console.error("Error during logout:", err);
+    });
+    
+    // Fallback if req.session.destroy exists
+    if (req.session) {
+      req.session.destroy(() => {});
+    }
+
+    res.json({ success: true, message: 'Account, data, and OAuth tokens successfully destroyed.' });
+  } catch (error) {
+    console.error('Critical Error during account deletion:', error);
+    res.status(500).json({ error: 'Failed to completely delete account.' });
   }
 });
 

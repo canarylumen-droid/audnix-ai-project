@@ -217,6 +217,11 @@ router.post('/update-status', requireAuth, async (req: Request, res: Response): 
       }
     }
 
+    // Notify client via WebSocket
+    const { wsSync } = await import('../lib/websocket-sync.js');
+    wsSync.notifyLeadsUpdated(userId, { type: 'bulk_status_update', leadIds, status });
+    wsSync.notifyStatsUpdated(userId);
+
     res.json({
       success: errors.length === 0,
       updated: results.length,
@@ -269,6 +274,10 @@ router.post('/add-tags', requireAuth, async (req: Request, res: Response): Promi
         errors.push({ leadId, error: getErrorMessage(error) });
       }
     }
+
+    // Notify client via WebSocket
+    const { wsSync } = await import('../lib/websocket-sync.js');
+    wsSync.notifyLeadsUpdated(userId, { type: 'bulk_tags_updated', leadIds, tags });
 
     res.json({
       success: errors.length === 0,
@@ -330,6 +339,11 @@ router.post('/send-message', requireAuth, async (req: Request, res: Response): P
         errors.push({ leadId, error: getErrorMessage(error) });
       }
     }
+
+    // Notify client via WebSocket
+    const { wsSync } = await import('../lib/websocket-sync.js');
+    wsSync.notifyMessagesUpdated(userId);
+    wsSync.notifyStatsUpdated(userId);
 
     res.json({
       success: errors.length === 0,
@@ -393,6 +407,11 @@ router.post('/score-leads', requireAuth, async (req: Request, res: Response): Pr
       }
     }
 
+    // Notify client via WebSocket
+    const { wsSync } = await import('../lib/websocket-sync.js');
+    wsSync.notifyLeadsUpdated(userId, { type: 'bulk_scoring_complete', leadIds });
+    wsSync.notifyStatsUpdated(userId);
+
     res.json({
       success: errors.length === 0,
       scored: results.length,
@@ -422,6 +441,11 @@ router.post('/archive', requireAuth, async (req: Request, res: Response): Promis
 
     await storage.archiveMultipleLeads(leadIds, userId, archived);
 
+    // Notify client via WebSocket
+    const { wsSync } = await import('../lib/websocket-sync.js');
+    wsSync.notifyLeadsUpdated(userId, { type: 'bulk_archive', leadIds, archived });
+    wsSync.notifyStatsUpdated(userId);
+
     res.json({
       success: true,
       count: leadIds.length,
@@ -448,6 +472,11 @@ router.post('/delete', requireAuth, async (req: Request, res: Response): Promise
     }
 
     await storage.deleteMultipleLeads(leadIds, userId);
+
+    // Notify client via WebSocket
+    const { wsSync } = await import('../lib/websocket-sync.js');
+    wsSync.notifyLeadsUpdated(userId, { type: 'bulk_delete', leadIds });
+    wsSync.notifyStatsUpdated(userId);
 
     res.json({
       success: true,

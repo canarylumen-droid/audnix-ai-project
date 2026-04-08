@@ -147,6 +147,9 @@ export const OnboardingWizard = React.memo(function OnboardingWizard({ isOpen, o
         description: "You're all set. Let's start closing deals!",
       });
 
+      // Set instantaneous flag to prevent flicker on reload
+      localStorage.setItem('onboarding_completed', 'true');
+
       setTimeout(() => {
         onComplete();
       }, 1000);

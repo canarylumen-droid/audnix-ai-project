@@ -484,7 +484,7 @@ export default function IntegrationsPage() {
   const isAtMailboxLimit = limit !== -1 && connectedMailboxesCount >= limit;
 
   const getNextPlan = () => {
-    const tier = (userData?.user?.subscriptionTier || userData?.user?.plan || 'starter').toLowerCase();
+    const tier = (userData?.subscriptionTier || (userData as any)?.plan || 'starter').toLowerCase();
     if (tier === 'starter') return 'Pro';
     if (tier === 'pro') return 'Enterprise';
     return null;

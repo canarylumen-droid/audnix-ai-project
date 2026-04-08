@@ -5,6 +5,8 @@ import type { Integration } from '../../../shared/schema.js';
 import { generateReply } from '../ai/ai-service.js';
 import { MODELS } from '../ai/model-config.js';
 import { getPlanCapabilities } from '../../../shared/plan-utils.js';
+import { warmupService } from './warmup-service.js';
+import { socketService } from '../realtime/socket-service.js';
 
 export interface OutreachLead {
   name: string;
@@ -137,6 +139,33 @@ export async function runOutreachCampaign(
 
   // --- MAILBOX ROTATION LOGIC ---
   const allIntegrations = await storage.getIntegrations(userId);
+  
+  // NEW: [The Strict Protocol] Loosened Night Watch Delivery Constraints
+  const { availabilityService } = await import('../calendar/availability-service.js');
+  const userTimezone = user.timezone || 'America/New_York';
+  const nightWatch = await availabilityService.canDeliverDuringNightWatch(userId, userTimezone);
+
+  if (!nightWatch.allowed) {
+    console.log(`[Outreach] 🛑 Night Watch Active & Cap Reached for ${user.email} (Postponing until 06:00)`);
+    return {
+      results: [],
+      summary: { sent: 0, failed: 0, total: 0 }
+    };
+  }
+
+  // If it is night, we record and notify
+  if (nightWatch.isNight) {
+    console.log(`[Outreach] 🌙 The Strict Protocol: Delivering night outbound ${nightWatch.count + 1}/${availabilityService.constructor.prototype.constructor.NIGHT_DELIVERY_CAP || 7}`);
+    availabilityService.incrementNightDelivery(userId);
+    
+    // Fire-and-forget dashboard alert
+    socketService.notifyNewNotification(userId, {
+      type: 'info',
+      title: 'Night Watch Outreach Active',
+      message: `Delivering a late-night campaign outbound (${nightWatch.count + 1}/7). Remaining work will be paused if cap is reached.`
+    });
+  }
+
   const emailIntegrations = allIntegrations.filter(i =>
     ['custom_email', 'gmail', 'outlook'].includes(i.provider) && i.connected
   );
@@ -163,11 +192,24 @@ export async function runOutreachCampaign(
   }
 
   // Pre-calculate mailbox availability for bulk outreach
-  const usableMailboxes: Array<Integration & { sentCount: number; limit: number }> = [];
+  const rawMailboxes: Array<Integration & { sentCount: number; limit: number }> = [];
   for (const mb of emailMailboxes) {
     const sentCount = await storage.getIntegrationSentCount(userId, mb.id, today);
     const limit = PROVIDER_LIMITS[mb.provider] || 50;
-    usableMailboxes.push({ ...mb, sentCount, limit });
+    rawMailboxes.push({ ...mb, sentCount, limit });
+  }
+
+  // Phase 11: Apply domain warmup limits to newly connected mailboxes
+  const usableMailboxes = warmupService.applyWarmupLimits(rawMailboxes);
+  const warmingMailboxes = usableMailboxes.filter(m => m.warmupCapped);
+  if (warmingMailboxes.length > 0) {
+    for (const mb of warmingMailboxes) {
+      socketService.notifyMailboxWarning(userId, {
+        integrationId: mb.id,
+        provider: mb.provider,
+        reason: `Warmup mode active – daily limit is ${mb.limit} emails`,
+      });
+    }
   }
 
   let mailboxIndex = 0;
@@ -273,6 +315,12 @@ export async function runOutreachCampaign(
         );
 
         console.log(`[Outreach] ✅ Email sent to ${lead.email} via ${currentMailbox.accountType || currentMailbox.provider} (${outreachSent.messageId})`);
+        // Phase 8: Broadcast real-time progress to dashboard
+        socketService.notifyOutreachProgress(userId, {
+          leadEmail: lead.email,
+          status: 'sent',
+          subject: finalSubject,
+        });
       }
 
       if (!simulateOnly) {
