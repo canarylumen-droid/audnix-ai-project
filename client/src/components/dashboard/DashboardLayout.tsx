@@ -161,6 +161,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
     "Reports": true
   });
   const [showNotificationsPanel, setShowNotificationsPanel] = useState(false);
+  const [showPushPrompt, setShowPushPrompt] = useState(true);
   const isAutonomousMode = (user as any)?.config?.autonomousMode !== false;
   const isCalendarConnected = !!(user?.calendlyAccessToken || user?.calendarLink);
 
@@ -972,7 +973,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
       </div>
       {/* Notification Permission Slide-in */}
       <AnimatePresence>
-        {permission === 'default' && (
+        {permission === 'default' && showPushPrompt && (
           <motion.div
             initial={{ x: 400, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
@@ -1006,7 +1007,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                 </Button>
                 <Button
                   variant="ghost"
-                  onClick={() => {/* Maybe add a 'remind me later' logic */ }}
+                  onClick={() => setShowPushPrompt(false)}
                   className="px-4 h-10 rounded-xl text-muted-foreground font-bold text-[9px] uppercase tracking-widest hover:bg-muted/50"
                 >
                   Later

@@ -283,7 +283,7 @@ export default function IntegrationsPage() {
     }
   }, [customEmailStatus?.connected, customEmailStatus?.email, stats?.domainHealth, selectedMailboxId, queryClient]);
 
-  const integrations = integrationsData?.integrations ?? [];
+  const integrations = Array.isArray(integrationsData) ? integrationsData : (integrationsData as any)?.integrations ?? [];
   const allMailboxes = customEmailStatus?.integrations || [];
   const hasMailboxesConnected = allMailboxes.length > 0;
 

@@ -372,6 +372,8 @@ app.use((req, res, next) => {
     "/api/messages",
     "/api/notifications",
     "/api/dns/verify",
+    "/api/leads",
+    "/api/bulk",
   ];
 
   const requestPath = req.path;
