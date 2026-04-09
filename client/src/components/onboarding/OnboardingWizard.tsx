@@ -130,7 +130,7 @@ export const OnboardingWizard = React.memo(function OnboardingWizard({ isOpen, o
     setLoading(true);
 
     try {
-      await apiClient('/api/auth/complete-onboarding', {
+      await apiClient('/api/auth/username/complete-onboarding', {
         method: 'POST',
         body: JSON.stringify({
           userRole,
