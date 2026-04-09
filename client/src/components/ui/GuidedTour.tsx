@@ -117,9 +117,18 @@ export function GuidedTour({ isOpen, onComplete, onSkip }: GuidedTourProps) {
           const rect = element.getBoundingClientRect();
           // Check if element is visible
           if (rect.width > 0 && rect.height > 0) {
-            setTargetRect(rect);
-            // Non-blocking scroll
-            element.scrollIntoView({ behavior: 'auto', block: 'center' });
+            setTargetRect((prev) => {
+              if (
+                prev &&
+                Math.abs(prev.top - rect.top) < 1 &&
+                Math.abs(prev.left - rect.left) < 1 &&
+                Math.abs(prev.width - rect.width) < 1 &&
+                Math.abs(prev.height - rect.height) < 1
+              ) {
+                return prev;
+              }
+              return rect;
+            });
             return;
           }
         }
@@ -127,8 +136,21 @@ export function GuidedTour({ isOpen, onComplete, onSkip }: GuidedTourProps) {
       setTargetRect(null); // Fallback to center if not found
     };
 
+    // Scroll into view only once when step changes
+    const initialScroll = () => {
+      if (step.targetSelector) {
+        const element = document.querySelector(step.targetSelector);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    };
+
     // Increase delay to ensure DOM is ready
-    const timer = setTimeout(findTarget, 1000);
+    const timer = setTimeout(() => {
+      initialScroll();
+      findTarget();
+    }, 500);
     
     // Observers
     const observer = new MutationObserver(findTarget);
