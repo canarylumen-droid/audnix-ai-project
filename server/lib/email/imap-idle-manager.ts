@@ -67,11 +67,8 @@ class ImapIdleManager {
             return;
         }
         try {
-            const allIntegrations = await storage.getIntegrationsByProvider('custom_email');
-            const gmailIntegrations = await storage.getIntegrationsByProvider('gmail');
-            const outlookIntegrations = await storage.getIntegrationsByProvider('outlook');
-
-            const integrations = [...allIntegrations, ...gmailIntegrations, ...outlookIntegrations];
+            // Only custom_email integrations use IMAP IDLE. Gmail/Outlook use OAuth sync (emailSyncWorker).
+            const integrations = await storage.getIntegrationsByProvider('custom_email');
             const activeIntegrationIds = new Set(integrations.filter(i => i.connected).map(i => i.id));
 
             // Remove connections for integrations no longer active/connected
@@ -94,9 +91,9 @@ class ImapIdleManager {
                 }
             }
 
-            // Add connections for new active integrations
+            // Add connections for new active integrations (custom_email only — gmail/outlook use OAuth, not IMAP)
             for (const integration of integrations) {
-                if (integration.connected && !this.connections.has(integration.id)) {
+                if (integration.connected && integration.provider === 'custom_email' && !this.connections.has(integration.id)) {
                     console.log(`🔌 Opening IMAP connection for integration ${integration.id} (User: ${integration.userId})`);
                     this.setupConnection(integration.id, integration);
                 }
@@ -200,14 +197,26 @@ class ImapIdleManager {
      */
     private async setupConnection(integrationId: string, integration: Integration): Promise<void> {
         try {
-            const credentialsStr = await decrypt(integration.encryptedMeta!);
-            const config = JSON.parse(credentialsStr) as EmailConfig;
+            // Guard: skip integrations with missing or empty encrypted config
+            if (!integration.encryptedMeta) {
+                console.warn(`[IMAP] Skipping integration ${integrationId} — encryptedMeta is missing (User: ${integration.userId})`);
+                return;
+            }
+
+            let config: EmailConfig;
+            try {
+                const credentialsStr = await decrypt(integration.encryptedMeta);
+                config = JSON.parse(credentialsStr) as EmailConfig;
+            } catch (decryptErr) {
+                console.warn(`[IMAP] Skipping integration ${integrationId} — failed to decrypt/parse config: ${(decryptErr as any)?.message}`);
+                return;
+            }
 
             const imapHost = config.imap_host || config.smtp_host?.replace('smtp', 'imap') || '';
             const imapPort = config.imap_port || 993;
 
             if (!imapHost) {
-                console.error(`IMAP host not found for integration ${integrationId} (User: ${integration.userId})`);
+                console.warn(`[IMAP] Skipping integration ${integrationId} — imap_host not found in config (User: ${integration.userId})`);
                 return;
             }
 

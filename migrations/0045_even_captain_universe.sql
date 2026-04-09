@@ -1,4 +1,4 @@
-CREATE TABLE "admin_whitelist" (
+CREATE TABLE IF NOT EXISTS "admin_whitelist" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"email" text NOT NULL,
 	"status" text DEFAULT 'active' NOT NULL,
@@ -7,7 +7,7 @@ CREATE TABLE "admin_whitelist" (
 	CONSTRAINT "admin_whitelist_email_unique" UNIQUE("email")
 );
 --> statement-breakpoint
-CREATE TABLE "ai_learning_patterns" (
+CREATE TABLE IF NOT EXISTS "ai_learning_patterns" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"pattern_key" text NOT NULL,
@@ -17,7 +17,7 @@ CREATE TABLE "ai_learning_patterns" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "ai_process_logs" (
+CREATE TABLE IF NOT EXISTS "ai_process_logs" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"type" text NOT NULL,
@@ -30,7 +30,7 @@ CREATE TABLE "ai_process_logs" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "brand_pdf_cache" (
+CREATE TABLE IF NOT EXISTS "brand_pdf_cache" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"file_name" text NOT NULL,
@@ -45,7 +45,7 @@ CREATE TABLE "brand_pdf_cache" (
 	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
-CREATE TABLE "campaign_emails" (
+CREATE TABLE IF NOT EXISTS "campaign_emails" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"campaign_id" uuid NOT NULL,
 	"lead_id" uuid NOT NULL,
@@ -60,7 +60,7 @@ CREATE TABLE "campaign_emails" (
 	"metadata" jsonb DEFAULT '{}'::jsonb NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "campaign_leads" (
+CREATE TABLE IF NOT EXISTS "campaign_leads" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"campaign_id" uuid NOT NULL,
 	"lead_id" uuid NOT NULL,
@@ -76,7 +76,7 @@ CREATE TABLE "campaign_leads" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "domain_verifications" (
+CREATE TABLE IF NOT EXISTS "domain_verifications" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"domain" text NOT NULL,
@@ -84,7 +84,7 @@ CREATE TABLE "domain_verifications" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "email_events" (
+CREATE TABLE IF NOT EXISTS "email_events" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"token" text NOT NULL,
 	"event_type" text NOT NULL,
@@ -94,7 +94,7 @@ CREATE TABLE "email_events" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "email_messages" (
+CREATE TABLE IF NOT EXISTS "email_messages" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"lead_id" uuid,
@@ -115,7 +115,7 @@ CREATE TABLE "email_messages" (
 	CONSTRAINT "email_messages_message_id_unique" UNIQUE("message_id")
 );
 --> statement-breakpoint
-CREATE TABLE "email_reply_store" (
+CREATE TABLE IF NOT EXISTS "email_reply_store" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"message_id" text NOT NULL,
 	"in_reply_to" text NOT NULL,
@@ -130,7 +130,7 @@ CREATE TABLE "email_reply_store" (
 	CONSTRAINT "email_reply_store_message_id_unique" UNIQUE("message_id")
 );
 --> statement-breakpoint
-CREATE TABLE "email_tracking" (
+CREATE TABLE IF NOT EXISTS "email_tracking" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"lead_id" uuid,
@@ -146,7 +146,7 @@ CREATE TABLE "email_tracking" (
 	CONSTRAINT "email_tracking_token_unique" UNIQUE("token")
 );
 --> statement-breakpoint
-CREATE TABLE "lead_insights" (
+CREATE TABLE IF NOT EXISTS "lead_insights" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"lead_id" uuid NOT NULL,
 	"user_id" uuid NOT NULL,
@@ -164,7 +164,7 @@ CREATE TABLE "lead_insights" (
 	CONSTRAINT "lead_insights_lead_id_unique" UNIQUE("lead_id")
 );
 --> statement-breakpoint
-CREATE TABLE "lead_social_details" (
+CREATE TABLE IF NOT EXISTS "lead_social_details" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"lead_id" uuid NOT NULL,
 	"platform" text NOT NULL,
@@ -179,7 +179,7 @@ CREATE TABLE "lead_social_details" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "lead_timezone_profiles" (
+CREATE TABLE IF NOT EXISTS "lead_timezone_profiles" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"lead_id" uuid NOT NULL,
 	"user_id" uuid NOT NULL,
@@ -197,7 +197,7 @@ CREATE TABLE "lead_timezone_profiles" (
 	CONSTRAINT "lead_timezone_profiles_lead_id_unique" UNIQUE("lead_id")
 );
 --> statement-breakpoint
-CREATE TABLE "outreach_campaigns" (
+CREATE TABLE IF NOT EXISTS "outreach_campaigns" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"name" text NOT NULL,
@@ -212,7 +212,7 @@ CREATE TABLE "outreach_campaigns" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "push_subscriptions" (
+CREATE TABLE IF NOT EXISTS "push_subscriptions" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"endpoint" text NOT NULL,
@@ -221,7 +221,7 @@ CREATE TABLE "push_subscriptions" (
 	CONSTRAINT "push_subscriptions_endpoint_unique" UNIQUE("endpoint")
 );
 --> statement-breakpoint
-CREATE TABLE "smtp_settings" (
+CREATE TABLE IF NOT EXISTS "smtp_settings" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"email" text NOT NULL,
@@ -237,7 +237,7 @@ CREATE TABLE "smtp_settings" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "threads" (
+CREATE TABLE IF NOT EXISTS "threads" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"lead_id" uuid NOT NULL,
@@ -247,7 +247,7 @@ CREATE TABLE "threads" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "user_outreach_settings" (
+CREATE TABLE IF NOT EXISTS "user_outreach_settings" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"daily_limit" integer DEFAULT 50 NOT NULL,
