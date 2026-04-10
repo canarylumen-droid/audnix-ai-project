@@ -1017,6 +1017,9 @@ class ImapIdleManager {
         console.log(`📜 Starting historical sync for integration ${integrationId} (Up to ${limit} emails per folder)`);
         let totalImported = 0;
 
+        // Instant notify UI
+        wsSync.notifySyncStatus(userId, { syncing: true, integrationId });
+
         try {
             const syncFolder = async (folderName: string, direction: 'inbound' | 'outbound') => {
                 return new Promise<number>((resolve) => {
@@ -1097,6 +1100,8 @@ class ImapIdleManager {
             return { success: true, count: totalImported };
         } catch (error: any) {
             return { success: false, count: totalImported, error: error.message };
+        } finally {
+            wsSync.notifySyncStatus(userId, { syncing: false, integrationId });
         }
     }
 }

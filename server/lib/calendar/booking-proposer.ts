@@ -31,7 +31,7 @@ function isNightHour(date: Date, timezone: string): boolean {
 }
 
 /** Format a UTC ISO string as a natural human booking suggestion */
-function formatBookingCopy(isoSlot: string, leadProfile: any, useCount: number = 0, fallbackTz: string = 'Africa/Lagos'): string {
+function formatBookingCopy(isoSlot: string, leadProfile: any, useCount: number = 0, fallbackTz: string = 'UTC'): string {
   const date = new Date(isoSlot);
   const now = new Date();
   const tz = leadProfile?.detectedTimezone || fallbackTz;
@@ -74,7 +74,7 @@ function formatBookingCopy(isoSlot: string, leadProfile: any, useCount: number =
  * Generate professional clash/conflict copy.
  * Never says "slot taken" or "time is blocked."
  */
-function generateClashCopy(alternativeSlot: string | null, leadProfile: any, fallbackTz: string = 'Africa/Lagos'): string {
+function generateClashCopy(alternativeSlot: string | null, leadProfile: any, fallbackTz: string = 'UTC'): string {
   if (!alternativeSlot) {
     return "I've got a conflict coming up — let me get back to you with a couple more options.";
   }
@@ -153,7 +153,7 @@ export class BookingProposer {
 
       const leadTz = leadProfile?.detectedTimezone || inferTimezoneFromCity((lead as any).city || '');
       const [user] = await db.select().from(users).where(eq(users.id, this.userId)).limit(1);
-      const userTimezone = user?.timezone || 'Africa/Lagos';
+      const userTimezone = user?.timezone || 'UTC';
 
       // 2. Parse lead's stated intent
       const intentPrompt = `Extract meeting preferences from: "${userInput}"
@@ -286,7 +286,7 @@ Return JSON: { "matches": ["ISO_STRING"] }`;
   ): Promise<string> {
     const leadProfile = await getLeadProfile(lead.id);
     const [user] = await db.select({ timezone: users.timezone }).from(users).where(eq(users.id, this.userId)).limit(1);
-    const userTz = user?.timezone || 'Africa/Lagos';
+    const userTz = user?.timezone || 'UTC';
 
     const candidateSlots = await availabilityService.getSuggestedTimes(this.userId, 72);
     const alternative = candidateSlots.find(s => s.start.toISOString() !== clashSlotIso) || null;
@@ -337,7 +337,7 @@ Return JSON:
       // Check if this is a night booking — notify user (Strict Protocol)
       if (leadProfile) {
         const [user] = await db.select().from(users).where(eq(users.id, this.userId)).limit(1);
-        const userTz = user?.timezone || 'Africa/Lagos'; 
+        const userTz = user?.timezone || 'UTC'; 
         const leadTz = leadProfile.detectedTimezone || userTz;
         const slotDate = new Date(detection.confirmedTimeISO);
         

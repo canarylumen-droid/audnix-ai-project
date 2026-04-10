@@ -147,9 +147,9 @@ const DEFAULT_WINDOW: NicheWindow = {
 /**
  * Maps a city name to an IANA timezone string.
  * @param city City name
- * @param fallback Default timezone if city mapping fails (defaults to Africa/Lagos)
+ * @param fallback Default timezone if city mapping fails (defaults to UTC)
  */
-export function inferTimezoneFromCity(city: string, fallback: string = 'Africa/Lagos'): string {
+export function inferTimezoneFromCity(city: string, fallback: string = 'UTC'): string {
   if (!city) return fallback;
   const key = city.toLowerCase().replace(/[\s\-]/g, '_');
   return CITY_TIMEZONE_MAP[key] || fallback;
@@ -186,7 +186,7 @@ export function formatLocalHour(hour: number): string {
 export function isWithinLeadPreferredWindow(
   utcDate: Date,
   profile: { detectedTimezone: string | null; preferredContactStart: number | null; preferredContactEnd: number | null; preferredDays: string[] | null },
-  defaultTz: string = 'Africa/Lagos'
+  defaultTz: string = 'UTC'
 ): boolean {
   const tz = profile.detectedTimezone || defaultTz;
   const start = profile.preferredContactStart ?? 10;
@@ -226,7 +226,7 @@ export async function populateLeadProfile(
 
   // Get user profile first to find their default timezone
   const [user] = await db.select({ timezone: users.timezone }).from(users).where(eq(users.id, userId)).limit(1);
-  const userTz = user?.timezone || 'Africa/Lagos';
+  const userTz = user?.timezone || 'UTC';
 
   const detectedTimezone = inferTimezoneFromCity(cityInput, userTz);
   const window = inferPreferredWindowFromNiche(nicheInput);
