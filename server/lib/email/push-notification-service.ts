@@ -20,7 +20,7 @@ export class PushNotificationService {
 
     for (const account of googleAccounts) {
       try {
-        await gmailOAuth.watch(account.userId, account.providerAccountId);
+        await gmailOAuth.watch(account.userId, account.providerAccountId || '');
         socketService.emitToUser(account.userId, 'sync:status', {
             provider: 'google',
             status: 'connected',

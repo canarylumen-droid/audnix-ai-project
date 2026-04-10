@@ -496,11 +496,11 @@ ${enrichedContext}`;
     const response = await generateNegotiationResponse(priceObjection.severity || 'medium', lead.id);
     await saveNegotiationAttempt(lead.id, priceObjection.suggestedDiscount || 0, false);
 
-    const localizedResponse = await getLocalizedResponse(
-      response,
-      languageDetection,
-      'objection'
-    );
+      const localizedResponse = await getLocalizedResponse(
+        response,
+        languageDetection,
+        'objection'
+      );
 
     return {
       text: optimizeSalesLanguage(localizedResponse),
@@ -674,7 +674,7 @@ ${enrichedContext}`;
     const fallbackText = await getLocalizedResponse(
       "Thanks for your message! Looking forward to connecting shortly.",
       languageDetection,
-      'open'
+      'greeting'
     );
     
     return {

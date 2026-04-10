@@ -86,6 +86,7 @@ export interface IStorage {
   getIntegration(userId: string, provider: string): Promise<Integration | undefined>;
   getIntegrationById(id: string): Promise<Integration | undefined>;
   getIntegrationsByProvider(provider: string): Promise<Integration[]>;
+  getOAuthAccountsByProvider(provider: string): Promise<OAuthAccount[]>;
   createIntegration(integration: Partial<InsertIntegration> & { userId: string; provider: string; encryptedMeta: string }): Promise<Integration>;
   updateIntegration(userId: string, provider: string, updates: Partial<Integration>): Promise<Integration | undefined>;
   updateIntegrationById(id: string, updates: Partial<Integration>): Promise<Integration | undefined>;
@@ -1064,6 +1065,10 @@ export class MemStorage implements IStorage {
   }
   async getIntegrationsByProvider(provider: string): Promise<Integration[]> {
     return Array.from(this.integrations.values()).filter(i => i.provider === provider);
+  }
+  async getOAuthAccountsByProvider(provider: string): Promise<OAuthAccount[]> {
+    const oauthProvider = provider === 'gmail' ? 'google' : provider;
+    return Array.from(this.oauthAccounts.values()).filter(a => a.provider === oauthProvider);
   }
   async updateIntegration(userId: string, provider: string, updates: Partial<Integration>): Promise<Integration | undefined> {
     const i = await this.getIntegration(userId, provider);

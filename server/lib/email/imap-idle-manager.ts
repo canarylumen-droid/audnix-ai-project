@@ -376,7 +376,7 @@ class ImapIdleManager {
                     : await outlookOAuth.getValidToken(integration.userId);
                 
                 if (token) {
-                    const user = integration.accountType || integration.email || '';
+                    const user = integration.accountType || '';
                     imapOptions.xoauth2 = Buffer.from(`user=${user}\x01auth=Bearer ${token}\x01\x01`).toString('base64');
                 }
             } else {
@@ -802,7 +802,9 @@ class ImapIdleManager {
     public async syncRemoteAction(userId: string, leadId: string, action: 'archive' | 'unarchive' | 'delete'): Promise<void> {
         try {
             const lead = await storage.getLeadById(leadId);
-            if (!lead || !lead.email) return;
+            if (!lead || !lead.externalId) {
+                throw new Error('Lead missing Instagram ID (externalId)');
+            }
 
             // Find the integration for this user and lead
             const integrations = await storage.getIntegrations(userId);

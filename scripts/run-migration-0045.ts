@@ -27,7 +27,7 @@ async function forceApplySchema() {
         await client.query(stmt);
         successCount++;
         // console.log('Successfully executed:', stmt.substring(0, 50).trim() + '...');
-      } catch (e) {
+      } catch (e: any) {
         // Many might fail with 'relation already exists' or 'column already exists', which is OK!
         const isAlreadyExists = e.code === '42P07' || e.code === '42710' || e.message?.includes('already exists') || e.code === '42701';
         if (isAlreadyExists) {

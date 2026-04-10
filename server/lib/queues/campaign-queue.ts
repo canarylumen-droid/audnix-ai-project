@@ -293,7 +293,7 @@ async function getMailboxSentCount(userId: string, integrationId: string): Promi
     SELECT COUNT(*) as count FROM messages
     WHERE user_id = ${userId}
     AND direction = 'outbound'
-    AND (metadata->>'integrationId' = ${integrationId} OR metadata->>'integration_id' = ${integrationId})
+    AND integration_id = ${integrationId}::uuid
     AND created_at >= CURRENT_DATE::timestamp
   `);
   return Number(result.rows[0].count);
@@ -385,6 +385,7 @@ async function processSendBatch(data: SendBatchJobData): Promise<void> {
   // Check if mailbox is paused (spam risk)
   if ((integration as any).mailboxPauseUntil) {
     const pauseUntil = new Date((integration as any).mailboxPauseUntil);
+    const now = new Date();
     if (pauseUntil > now) {
       console.warn(`[CampaignWorker] Mailbox ${integrationId} paused until ${pauseUntil.toISOString()}, skipping`);
       return;

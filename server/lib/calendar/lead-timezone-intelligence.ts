@@ -1,5 +1,6 @@
 import { db } from '../../db.js';
-import { leadTimezoneProfiles, leads } from '../../../shared/schema.js';
+import { storage } from '../../storage.js';
+import { leadTimezoneProfiles, leads, users } from '../../../shared/schema.js';
 import { eq } from 'drizzle-orm';
 import type { LeadTimezoneProfile } from '../../../shared/schema.js';
 

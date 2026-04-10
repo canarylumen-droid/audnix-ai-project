@@ -187,6 +187,13 @@ export class AvailabilityService {
     }
     nightDeliveryTracker.set(userId, entry);
   }
+  
+  /**
+   * Helper to check if it's currently night time in a specific timezone.
+   */
+  public isCurrentlyNight(timeZone: string): boolean {
+    return timezoneService.isNightWatch(new Date(), timeZone);
+  }
 
   private getNextMidnightMs(): number {
     const tomorrow = new Date();

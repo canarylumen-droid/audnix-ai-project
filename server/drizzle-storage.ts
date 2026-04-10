@@ -1022,6 +1022,17 @@ export class DrizzleStorage implements IStorage {
       .where(eq(integrations.provider, provider as any));
   }
 
+  async getOAuthAccountsByProvider(provider: string): Promise<OAuthAccount[]> {
+    checkDatabase();
+    // Normalize provider name for OAuth table (gmail -> google, custom_email -> custom, etc.)
+    const oauthProvider = provider === 'gmail' ? 'google' : provider;
+    
+    return await db
+      .select()
+      .from(oauthAccounts)
+      .where(eq(oauthAccounts.provider, oauthProvider as any));
+  }
+
   async createIntegration(
     integration: Partial<InsertIntegration> & {
       userId: string;

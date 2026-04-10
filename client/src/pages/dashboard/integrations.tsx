@@ -478,7 +478,7 @@ export default function IntegrationsPage() {
   };
 
   const connectedMailboxesCount = (customEmailStatus?.integrations?.length || 0) +
-    (integrations.filter(i => i.provider === 'gmail' || i.provider === 'outlook').length || 0);
+    (integrations.filter((i: any) => i.provider === 'gmail' || i.provider === 'outlook').length || 0);
 
   const limit = getMailboxLimit();
   const isAtMailboxLimit = limit !== -1 && connectedMailboxesCount >= limit;

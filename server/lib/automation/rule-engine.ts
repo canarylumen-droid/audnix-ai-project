@@ -88,7 +88,7 @@ export class AutomationRuleEngine {
 
       // Determine the minimum cooldown across all proactive rules to optimize the query
       // Default to 24h if none specified, but usually it's rule.cooldownMinutes
-      const minCooldownMins = Math.min(...proactiveRules.map(r => r.cooldownMinutes || 1440));
+      const minCooldownMins = Math.min(...proactiveRules.map((r: any) => r.cooldownMinutes || 1440));
       const lookbackLimit = new Date(Date.now() - minCooldownMins * 60000);
 
       // Find leads who haven't moved in a while (dynamic threshold based on rules)

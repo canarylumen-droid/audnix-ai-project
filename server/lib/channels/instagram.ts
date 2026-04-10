@@ -324,8 +324,8 @@ export async function sendInstagramOutreach(
   }
 
   const lead = await storage.getLead(leadId);
-  if (!lead || !lead.socialId) {
-    throw new Error('Lead missing Instagram ID (socialId)');
+  if (!lead || !lead.externalId) {
+    throw new Error('Lead missing Instagram ID (externalId)');
   }
 
   try {
@@ -348,7 +348,7 @@ export async function sendInstagramOutreach(
 
     await createTrackedEmail({
       userId,
-      recipientEmail: lead.socialId, // Using ID as "email" for tracking consistency
+      recipientEmail: lead.externalId, // Using ID as "email" for tracking consistency
       subject: 'Instagram Message',
       sentAt: new Date(),
       messageId: trackingToken
@@ -357,7 +357,7 @@ export async function sendInstagramOutreach(
     const result = await sendInstagramMessage(
       accessToken,
       instagramBusinessAccountId,
-      lead.socialId,
+      lead.externalId,
       trackedMessage
     );
 
@@ -367,7 +367,7 @@ export async function sendInstagramOutreach(
       leadId,
       body: trackedMessage,
       direction: 'outbound',
-      threadId: `ig_thread_${lead.socialId}`,
+      threadId: `ig_thread_${lead.externalId}`,
       metadata: { 
         channel: 'instagram', 
         trackingToken, 

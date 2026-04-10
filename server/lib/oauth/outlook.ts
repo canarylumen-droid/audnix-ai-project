@@ -514,3 +514,5 @@ export class OutlookOAuth {
     }
   }
 }
+
+export const outlookOAuth = new OutlookOAuth();
