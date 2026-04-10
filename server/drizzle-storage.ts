@@ -2441,6 +2441,106 @@ export class DrizzleStorage implements IStorage {
       .where(eq(notifications.userId, userId));
   }
 
+  // --- Outreach Campaign methods ---
+
+  async getOutreachCampaign(id: string): Promise<OutreachCampaign | undefined> {
+    checkDatabase();
+    if (!isValidUUID(id)) return undefined;
+    const [result] = await db.select().from(outreachCampaigns).where(eq(outreachCampaigns.id, id)).limit(1);
+    return result;
+  }
+
+  async createOutreachCampaign(campaign: InsertOutreachCampaign): Promise<OutreachCampaign> {
+    checkDatabase();
+    const [result] = await db.insert(outreachCampaigns).values(campaign).returning();
+    return result;
+  }
+
+  async updateOutreachCampaign(id: string, updates: Partial<OutreachCampaign>): Promise<OutreachCampaign | undefined> {
+    checkDatabase();
+    if (!isValidUUID(id)) return undefined;
+    const [result] = await db
+      .update(outreachCampaigns)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(outreachCampaigns.id, id))
+      .returning();
+    return result;
+  }
+
+  async addLeadsToCampaign(campaignId: string, leadsList: { leadId: string }[]): Promise<void> {
+    checkDatabase();
+    if (leadsList.length === 0) return;
+    
+    const values = leadsList.map(item => ({
+      campaignId,
+      leadId: item.leadId,
+      status: 'pending' as const,
+    }));
+
+    // Using onConflictDoNothing to avoid duplicates if leads are already in the campaign
+    await db.insert(campaignLeads).values(values).onConflictDoNothing();
+  }
+
+  async getPendingCampaignLeads(campaignId: string): Promise<(CampaignLead & { lead: Lead })[]> {
+    checkDatabase();
+    const result = await db
+      .select({
+        campaignLead: campaignLeads,
+        lead: leads
+      })
+      .from(campaignLeads)
+      .innerJoin(leads, eq(campaignLeads.leadId, leads.id))
+      .where(and(
+        eq(campaignLeads.campaignId, campaignId),
+        or(eq(campaignLeads.status, 'pending'), eq(campaignLeads.status, 'queued'))
+      ));
+
+    return result.map(r => ({ ...r.campaignLead, lead: r.lead }));
+  }
+
+  async getCampaignLead(campaignId: string, leadId: string): Promise<CampaignLead | undefined> {
+    checkDatabase();
+    const [result] = await db
+      .select()
+      .from(campaignLeads)
+      .where(and(
+        eq(campaignLeads.campaignId, campaignId),
+        eq(campaignLeads.leadId, leadId)
+      ))
+      .limit(1);
+    return result;
+  }
+
+  async updateCampaignLeadStatus(campaignId: string, leadId: string, status: OutreachCampaignStatus, error?: string): Promise<void> {
+    checkDatabase();
+    await db
+      .update(campaignLeads)
+      .set({ 
+        status: status as any, 
+        error: error || null,
+        sentAt: status === 'sent' ? new Date() : undefined,
+        updatedAt: new Date()
+      })
+      .where(and(
+        eq(campaignLeads.campaignId, campaignId),
+        eq(campaignLeads.leadId, leadId)
+      ));
+  }
+
+  async scheduleNextCampaignStep(campaignLeadId: string, nextActionAt: Date): Promise<void> {
+    checkDatabase();
+    await db
+      .update(campaignLeads)
+      .set({
+        nextActionAt,
+        currentStep: sql`${campaignLeads.currentStep} + 1`,
+        updatedAt: new Date()
+      })
+      .where(eq(campaignLeads.id, campaignLeadId));
+  }
 }
+
+// Helper for campaign lead status type (from schema)
+type OutreachCampaignStatus = "pending" | "sent" | "failed" | "replied" | "aborted" | "queued";
 
 export const drizzleStorage = new DrizzleStorage();

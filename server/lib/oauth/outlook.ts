@@ -35,6 +35,7 @@ interface OutlookProfile {
 
 export class OutlookOAuth {
   private config: OutlookOAuthConfig;
+  private static refreshLocks = new Map<string, Promise<string | null>>();
 
   constructor() {
     this.config = {
@@ -280,9 +281,19 @@ export class OutlookOAuth {
         return null;
       }
 
-      try {
-        // Refresh the token
-        const decryptedRefreshToken = await decrypt(tokenData.refreshToken);
+      const lockKey = userId;
+      
+      // If a refresh is already in progress, wait for it
+      const existingLock = OutlookOAuth.refreshLocks.get(lockKey);
+      if (existingLock) {
+        console.log(`[Outlook OAuth] 🔒 Refresh already in progress for ${lockKey}, waiting...`);
+        return existingLock;
+      }
+
+      const refreshPromise = (async () => {
+        try {
+          // Refresh the token
+          const decryptedRefreshToken = await decrypt(tokenData.refreshToken!);
         const newTokens = await this.refreshAccessToken(decryptedRefreshToken);
 
         // Update stored tokens
@@ -308,7 +319,13 @@ export class OutlookOAuth {
       } catch (error) {
         console.error('Error refreshing Outlook token:', error);
         return null;
+      } finally {
+        OutlookOAuth.refreshLocks.delete(lockKey);
       }
+    })();
+
+    OutlookOAuth.refreshLocks.set(lockKey, refreshPromise);
+    return refreshPromise;
     }
 
     // Token is still valid

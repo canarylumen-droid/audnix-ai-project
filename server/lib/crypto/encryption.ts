@@ -1,4 +1,3 @@
-
 import crypto from "crypto";
 
 const ALGORITHM = "aes-256-gcm";
@@ -95,8 +94,20 @@ export function decryptToJSON<T = any>(ciphertext: string): T {
     
     return parsed as T;
   } catch (error: any) {
-    console.error('[SECURITY] JSON deserialization failed:', error.message);
-    throw new Error('Failed to deserialize encrypted data - possible tampering detected');
+    console.error('[SECURITY] ⚠️ JSON deserialization failed:', error.message);
+    throw new Error(`Data decryption failed: ${error.message}`);
+  }
+}
+
+/**
+ * Safely attempt to decrypt JSON without throwing
+ */
+export function tryDecryptToJSON<T = any>(ciphertext: string | null | undefined): T | null {
+  if (!ciphertext) return null;
+  try {
+    return decryptToJSON<T>(ciphertext);
+  } catch (err) {
+    return null;
   }
 }
 

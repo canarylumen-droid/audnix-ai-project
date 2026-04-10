@@ -1437,58 +1437,89 @@ router.post("/import-pdf", requireAuth, upload.single("pdf"), async (req: Reques
 /**
  * Run outreach campaign
  * POST /api/ai/run-outreach
+ * 
+ * With Redis: enqueues the campaign as a BullMQ job (crash-safe, resumes on restart).
+ * Without Redis: falls back to synchronous execution.
  */
 router.post("/run-outreach", requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
     const { leads, brandContext, runDemo = false } = req.body;
 
-    const { runOutreachCampaign, runDemoOutreach } = await import('../lib/outreach/outreach-runner.js');
-    type OutreachLead = { name: string; email: string; company?: string };
-    type BrandContext = { serviceName: string; pricing: string; valueProposition: string; businessName?: string };
-
-    let result;
-
-    if (runDemo) {
-      // Run demo with predefined leads
-      result = await runDemoOutreach(userId);
-    } else if (leads && Array.isArray(leads) && brandContext) {
-      // Run custom campaign
-      result = await runOutreachCampaign(
-        userId,
-        leads as OutreachLead[],
-        brandContext as BrandContext,
-        { followUpDays: [3, 7, 14], delayBetweenEmailsMs: 2000 }
-      );
-    } else {
-      res.status(400).json({ error: "Provide 'leads' array and 'brandContext', or set 'runDemo: true'" });
+    if (!leads || !Array.isArray(leads) || leads.length === 0) {
+      res.status(400).json({ error: "No leads provided." });
       return;
     }
 
-    // Create summary notification
-    await storage.createNotification({
+    if (!brandContext || !brandContext.serviceName) {
+      res.status(400).json({ error: "Brand context (serviceName, valueProposition) is required." });
+      return;
+    }
+
+    // 1. Create or Find Outreach Campaign Record
+    const campaign = await storage.createOutreachCampaign({
       userId,
-      type: 'insight',
-      title: '🚀 Outreach Campaign Complete',
-      message: `Sent ${result.summary.sent}/${result.summary.total} emails. ${result.summary.failed} failed.`,
-      metadata: {
-        activityType: 'outreach_campaign_complete',
-        sent: result.summary.sent,
-        failed: result.summary.failed,
-        total: result.summary.total
-      }
+      name: brandContext.serviceName,
+      status: 'active',
+      template: brandContext,
+      metadata: { source: runDemo ? 'demo' : 'api' }
     });
 
-    res.json({
-      success: true,
-      ...result
-    });
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : "Failed to run outreach";
-    console.error("Outreach campaign error:", error);
-    res.status(500).json({ error: errorMessage });
+    // 2. Resolve/Create Leads and Assign to Campaign
+    const leadAssignments: { leadId: string }[] = [];
+    for (const l of leads) {
+      let lead = await storage.getLeadByEmail(l.email, userId);
+      if (!lead) {
+        lead = await storage.createLead({
+          userId,
+          name: l.name,
+          email: l.email,
+          channel: 'email',
+          status: 'new',
+          metadata: { company: l.company, source: 'outreach_api' }
+        }, { suppressNotification: true });
+      }
+      leadAssignments.push({ leadId: lead.id });
+    }
+
+    await storage.addLeadsToCampaign(campaign.id, leadAssignments);
+
+    // 3. Dispatch to Queue
+    const { dispatchOutreachCampaign } = await import('../lib/queues/outreach-queue.js');
+    const { jobId, queued } = await dispatchOutreachCampaign(userId, campaign.id);
+
+    if (queued) {
+      res.json({
+        success: true,
+        campaignId: campaign.id,
+        jobId,
+        message: `Enterprise outreach started for ${leads.length} leads. Tracking ID: ${campaign.id}`
+      });
+    } else {
+      // Background worker not available (no Redis) - Run synchronously for this small batch
+      // In production, we expect Redis to be present.
+      const { runOutreachCampaignQueued } = await import('../lib/outreach/outreach-runner.js');
+      
+      // Start processing but return immediately to avoid timeout (pseudo-background)
+      setImmediate(() => {
+        runOutreachCampaignQueued(userId, campaign.id).catch(err => {
+          console.error(`[OutreachSyncFallback] Campaign ${campaign.id} failed:`, err);
+        });
+      });
+
+      res.json({
+        success: true,
+        campaignId: campaign.id,
+        message: `Campaign started in local mode (No Redis found). Leads: ${leads.length}`
+      });
+    }
+
+  } catch (error: any) {
+    console.error("[API] Outreach Dispatch Failure:", error.message);
+    res.status(500).json({ error: error.message || "Failed to initiate outreach." });
   }
 });
+
 
 /**
  * AI Grammar Check

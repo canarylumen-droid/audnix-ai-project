@@ -22,6 +22,26 @@ if (!process.env.NODE_ENV) {
   process.env.NODE_ENV = "development";
 }
 
+// Global Exception Handlers for Production Stability
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[FATAL] 🛑 Unhandled Rejection at:', promise, 'reason:', reason);
+  if (process.env.OBSERVABILITY_SENTRY_DSN) {
+    Sentry.captureException(reason);
+  }
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL] 🛑 Uncaught Exception:', err);
+  if (process.env.OBSERVABILITY_SENTRY_DSN) {
+    Sentry.captureException(err);
+  }
+  // In production, we let the process exit for uncaught exceptions 
+  // so the orchestrator (Railway/K8s) can restart it cleanly.
+  if (process.env.NODE_ENV === 'production') {
+    setTimeout(() => process.exit(1), 1000);
+  }
+});
+
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
@@ -647,6 +667,14 @@ async function runMigrations() {
               startWorker("Mailbox Health", () => mailboxHealthService.start());
               startWorker("Lead Redistribution", () => redistributionWorker.start());
 
+              // [PHASE 2 HARDENING] Global Outreach Queue Worker
+              try {
+                const { startOutreachWorker } = await import("./lib/queues/outreach-queue.js");
+                startWorker("Outreach Queue", () => startOutreachWorker());
+              } catch (e) {
+                log("⚠️ Outreach Worker could not be started", "error");
+              }
+
               // AI Provider Smoke Test
               try {
                 const { getAIStatus } = await import("./lib/ai/ai-service.js");
@@ -669,13 +697,25 @@ async function runMigrations() {
     // Graceful Shutdown Handlers
     const shutdown = async (signal: string) => {
       log(`🛑 Received ${signal}. Shutting down gracefully...`);
-      // Add any specific cleanup logic here (e.g., closing DB pool, stopping workers)
+
+      // 1. Stop accepting new requests immediately
       server.close(() => {
-        log("👋 Server closed. Process exiting.");
+        log("👋 HTTP server closed. Process exiting.");
         process.exit(0);
       });
-      
-      // Force exit after 10s if graceful shutdown fails
+
+      // 2. Stop background services to release sockets and DB connections
+      try {
+        const { imapIdleManager } = await import("./lib/email/imap-idle-manager.js");
+        imapIdleManager.stop();
+      } catch (e) { /* service may not have started */ }
+
+      try {
+        const { mailboxHealthService } = await import("./lib/email/mailbox-health-service.js");
+        mailboxHealthService.stop();
+      } catch (e) { /* service may not have started */ }
+
+      // 3. Force exit after 10s if graceful shutdown fails
       setTimeout(() => {
         log("⚠️ Forceful shutdown triggered");
         process.exit(1);
@@ -684,6 +724,7 @@ async function runMigrations() {
 
     process.on('SIGTERM', () => shutdown('SIGTERM'));
     process.on('SIGINT', () => shutdown('SIGINT'));
+
   }
 })();
 

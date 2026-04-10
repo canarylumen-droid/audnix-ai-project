@@ -284,7 +284,11 @@ export const integrations = pgTable("integrations", {
   warmupStatus: text("warmup_status", { enum: ["active", "paused", "completed", "none"] }).notNull().default("none"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  integrationsUserIdIdx: index('integrations_user_id_idx').on(table.userId),
+  integrationsHealthStatusIdx: index('integrations_health_status_idx').on(table.healthStatus),
+  integrationsConnectedIdx: index('integrations_connected_idx').on(table.connected),
+}));
 
 export const deals = pgTable("deals", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -705,7 +709,11 @@ export const auditTrail = pgTable("audit_trail", {
   messageId: uuid("message_id"),
   details: jsonb("details").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  auditTrailUserIdIdx: index('audit_trail_user_id_idx').on(table.userId),
+  auditTrailCreatedAtIdx: index('audit_trail_created_at_idx').on(table.createdAt),
+  auditTrailActionIdx: index('audit_trail_action_idx').on(table.action),
+}));
 
 export const pdfAnalytics = pgTable("pdf_analytics", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),

@@ -151,7 +151,7 @@ export class AvailabilityService {
    * [Strict Protocol] Check if we can deliver a message during the Night Watch (10PM - 6AM).
    * Returns true if it's currently Day OR if it's Night but we are under the cap (7).
    */
-  public async canDeliverDuringNightWatch(userId: string, timeZone: string): Promise<{ allowed: boolean; isNight: boolean; count: number }> {
+  public async canDeliverDuringNightWatch(integrationId: string, timeZone: string): Promise<{ allowed: boolean; isNight: boolean; count: number }> {
     const now = new Date();
     const isNight = timezoneService.isNightWatch(now, timeZone);
     
@@ -159,13 +159,13 @@ export class AvailabilityService {
       return { allowed: true, isNight: false, count: 0 };
     }
 
-    // It's night - check the cap
-    let entry = nightDeliveryTracker.get(userId);
+    // It's night - check the cap per mailbox (integrationId)
+    let entry = nightDeliveryTracker.get(integrationId);
     const resetTime = this.getNextMidnightMs();
 
     if (!entry || Date.now() > entry.resetAt) {
       entry = { count: 0, resetAt: resetTime };
-      nightDeliveryTracker.set(userId, entry);
+      nightDeliveryTracker.set(integrationId, entry);
     }
 
     return { 
@@ -178,14 +178,14 @@ export class AvailabilityService {
   /**
    * Record a night-time delivery to the tracker.
    */
-  public incrementNightDelivery(userId: string): void {
-    let entry = nightDeliveryTracker.get(userId);
+  public incrementNightDelivery(integrationId: string): void {
+    let entry = nightDeliveryTracker.get(integrationId);
     if (!entry || Date.now() > entry.resetAt) {
       entry = { count: 1, resetAt: this.getNextMidnightMs() };
     } else {
       entry.count += 1;
     }
-    nightDeliveryTracker.set(userId, entry);
+    nightDeliveryTracker.set(integrationId, entry);
   }
   
   /**

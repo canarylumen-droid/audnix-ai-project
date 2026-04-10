@@ -45,6 +45,10 @@ class MailboxHealthService {
   private readonly SPAM_BOUNCE_THRESHOLD = 0.10; // 10% bounce rate = warning
   private readonly SPAM_BOUNCE_CRITICAL = 0.20; // 20% bounce rate = pause
   private readonly MAX_FAILURES_BEFORE_REMOVE = 3;
+  private readonly failureBurstTracking = new Map<string, number[]>();
+  private readonly TOXIC_BURST_THRESHOLD = 3; // 3 failures
+  private readonly TOXIC_BURST_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
+  private readonly TOXIC_PAUSE_DURATION_MS = 60 * 60 * 1000; // 1 hour
 
   /**
    * Start the health monitoring service
@@ -168,12 +172,42 @@ class MailboxHealthService {
       // Only handle as fatal mailbox failure if it matches known patterns
       if (this.isMailboxError(err.message)) {
         await this.handleMailboxFailure(integration, err.message);
+        await this.trackFailureBurst(integration);
       } else {
         console.warn(`[MailboxHealth] Non-fatal check error for ${integration.id}:`, err.message);
       }
     }
 
     return result;
+  }
+
+  /**
+   * Track high-frequency failures to detect "toxic" accounts
+   */
+  private async trackFailureBurst(integration: any): Promise<void> {
+    const now = Date.now();
+    const failures = this.failureBurstTracking.get(integration.id) || [];
+    
+    // Filter failures within the window
+    const recentFailures = [...failures.filter(t => now - t < this.TOXIC_BURST_WINDOW_MS), now];
+    this.failureBurstTracking.set(integration.id, recentFailures);
+
+    if (recentFailures.length >= this.TOXIC_BURST_THRESHOLD) {
+      const pauseUntil = new Date(now + this.TOXIC_PAUSE_DURATION_MS);
+      console.error(`[MailboxHealth] ☣️ Toxic burst detected for ${integration.id} (${recentFailures.length} f/10m). Pausing for 1 hour.`);
+      
+      await db.update(integrations)
+        .set({
+          healthStatus: 'warning',
+          mailboxPauseUntil: pauseUntil,
+          lastHealthError: `Toxic failure burst detected: ${recentFailures.length} errors in 10m. System-level pause active.`,
+          updatedAt: new Date(),
+        })
+        .where(eq(integrations.id, integration.id));
+
+      // Reset tracking after pause
+      this.failureBurstTracking.delete(integration.id);
+    }
   }
 
   /**

@@ -28,6 +28,7 @@ interface GmailProfile {
 export class GmailOAuth {
   private config: GmailOAuthConfig;
   private oauth2Client: any;
+  private static refreshLocks = new Map<string, Promise<string | null>>();
 
   constructor() {
     this.config = {
@@ -190,8 +191,18 @@ export class GmailOAuth {
     if (expiresAt <= new Date(now.getTime() + 5 * 60 * 1000)) {
       if (!tokenData.refreshToken) return null;
 
-      try {
-        const decryptedRefreshToken = decrypt(tokenData.refreshToken);
+      const lockKey = `${userId}:${emailAddress || 'default'}`;
+      
+      // If a refresh is already in progress, wait for it
+      const existingLock = GmailOAuth.refreshLocks.get(lockKey);
+      if (existingLock) {
+        console.log(`[Gmail OAuth] 🔒 Refresh already in progress for ${lockKey}, waiting...`);
+        return existingLock;
+      }
+
+      const refreshPromise = (async () => {
+        try {
+          const decryptedRefreshToken = decrypt(tokenData.refreshToken!);
         const newTokens = await this.refreshAccessToken(decryptedRefreshToken);
         const encryptedNewAccessToken = encrypt(newTokens.access_token);
         
@@ -219,7 +230,13 @@ export class GmailOAuth {
       } catch (error) {
         console.error('Error refreshing Gmail token:', error);
         return null;
+      } finally {
+        GmailOAuth.refreshLocks.delete(lockKey);
       }
+    })();
+
+    GmailOAuth.refreshLocks.set(lockKey, refreshPromise);
+    return refreshPromise;
     }
 
     if (!tokenData.accessToken) return null;
@@ -421,7 +438,12 @@ export class GmailOAuth {
     const client = this.createClient({ access_token: accessToken });
     const gmail = google.gmail({ version: 'v1', auth: client });
 
-    const topicName = process.env.GOOGLE_PUBSUB_TOPIC || `projects/${process.env.GOOGLE_PROJECT_ID}/topics/audnix-gmail-push`;
+    const topicName = process.env.GOOGLE_PUBSUB_TOPIC || (process.env.GOOGLE_PROJECT_ID ? `projects/${process.env.GOOGLE_PROJECT_ID}/topics/audnix-gmail-push` : undefined);
+
+    if (!topicName || topicName.includes('projects/undefined/')) {
+      console.warn(`[Gmail OAuth] ⚠️ Skipping watch setup: GOOGLE_PROJECT_ID is not configured in environment variables.`);
+      return null;
+    }
 
     try {
       console.log(`[Gmail OAuth] 📡 Setting up watch for ${emailAddress || userId} on topic ${topicName}`);

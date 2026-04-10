@@ -266,8 +266,16 @@ ALTER TABLE "video_monitors" ALTER COLUMN "id" SET DEFAULT gen_random_uuid();-->
 ALTER TABLE "video_monitors" ALTER COLUMN "cta_text" SET DEFAULT 'Check it out';--> statement-breakpoint
 ALTER TABLE "video_monitors" ALTER COLUMN "metadata" SET DEFAULT '{}'::jsonb;--> statement-breakpoint
 ALTER TABLE "video_monitors" ALTER COLUMN "metadata" SET NOT NULL;--> statement-breakpoint
-ALTER TABLE "audit_trail" ADD COLUMN "integration_id" uuid;--> statement-breakpoint
-ALTER TABLE "bounce_tracker" ADD COLUMN "integration_id" uuid;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='audit_trail' AND column_name='integration_id') THEN
+        ALTER TABLE "audit_trail" ADD COLUMN "integration_id" uuid;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bounce_tracker' AND column_name='integration_id') THEN
+        ALTER TABLE "bounce_tracker" ADD COLUMN "integration_id" uuid;
+    END IF;
+END $$;--> statement-breakpoint
 ALTER TABLE "deals" ADD COLUMN "deal_value" integer DEFAULT 0;--> statement-breakpoint
 ALTER TABLE "deals" ADD COLUMN "calendar_link" text;--> statement-breakpoint
 ALTER TABLE "deals" ADD COLUMN "source" text DEFAULT 'manual';--> statement-breakpoint
@@ -292,7 +300,11 @@ ALTER TABLE "leads" ADD COLUMN "reply_email" text;--> statement-breakpoint
 ALTER TABLE "leads" ADD COLUMN "verified" boolean DEFAULT false NOT NULL;--> statement-breakpoint
 ALTER TABLE "leads" ADD COLUMN "verified_at" timestamp;--> statement-breakpoint
 ALTER TABLE "leads" ADD COLUMN "archived" boolean DEFAULT false NOT NULL;--> statement-breakpoint
-ALTER TABLE "leads" ADD COLUMN "integration_id" uuid;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='leads' AND column_name='integration_id') THEN
+        ALTER TABLE "leads" ADD COLUMN "integration_id" uuid;
+    END IF;
+END $$;--> statement-breakpoint
 ALTER TABLE "leads" ADD COLUMN "timezone" text;--> statement-breakpoint
 ALTER TABLE "leads" ADD COLUMN "calendly_link" text;--> statement-breakpoint
 ALTER TABLE "leads" ADD COLUMN "fathom_meeting_id" text;--> statement-breakpoint
@@ -304,16 +316,28 @@ ALTER TABLE "messages" ADD COLUMN "opened_at" timestamp;--> statement-breakpoint
 ALTER TABLE "messages" ADD COLUMN "clicked_at" timestamp;--> statement-breakpoint
 ALTER TABLE "messages" ADD COLUMN "replied_at" timestamp;--> statement-breakpoint
 ALTER TABLE "messages" ADD COLUMN "is_read" boolean DEFAULT false NOT NULL;--> statement-breakpoint
-ALTER TABLE "messages" ADD COLUMN "integration_id" uuid;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='messages' AND column_name='integration_id') THEN
+        ALTER TABLE "messages" ADD COLUMN "integration_id" uuid;
+    END IF;
+END $$;--> statement-breakpoint
 ALTER TABLE "messages" ADD COLUMN "target_url" text;--> statement-breakpoint
-ALTER TABLE "notifications" ADD COLUMN "integration_id" uuid;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='notifications' AND column_name='integration_id') THEN
+        ALTER TABLE "notifications" ADD COLUMN "integration_id" uuid;
+    END IF;
+END $$;--> statement-breakpoint
 ALTER TABLE "oauth_accounts" ADD COLUMN "metadata" jsonb DEFAULT '{}'::jsonb NOT NULL;--> statement-breakpoint
 ALTER TABLE "processed_comments" ADD COLUMN "video_monitor_id" uuid;--> statement-breakpoint
 ALTER TABLE "processed_comments" ADD COLUMN "commenter_username" text NOT NULL;--> statement-breakpoint
 ALTER TABLE "processed_comments" ADD COLUMN "comment_text" text NOT NULL;--> statement-breakpoint
 ALTER TABLE "processed_comments" ADD COLUMN "status" text DEFAULT 'dm_sent' NOT NULL;--> statement-breakpoint
 ALTER TABLE "processed_comments" ADD COLUMN "lead_id" uuid;--> statement-breakpoint
-ALTER TABLE "prospects" ADD COLUMN "integration_id" uuid;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='prospects' AND column_name='integration_id') THEN
+        ALTER TABLE "prospects" ADD COLUMN "integration_id" uuid;
+    END IF;
+END $$;--> statement-breakpoint
 ALTER TABLE "users" ADD COLUMN "calendar_link" text;--> statement-breakpoint
 ALTER TABLE "users" ADD COLUMN "brand_guideline_pdf_url" text;--> statement-breakpoint
 ALTER TABLE "users" ADD COLUMN "brand_guideline_pdf_text" text;--> statement-breakpoint

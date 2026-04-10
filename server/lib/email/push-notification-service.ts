@@ -18,7 +18,8 @@ export class PushNotificationService {
 
     console.log(`[PushService] Initializing push for ${googleAccounts.length} Google and ${outlookAccounts.length} Outlook accounts`);
 
-    for (const account of googleAccounts) {
+    // Initialize Google accounts in parallel
+    await Promise.allSettled(googleAccounts.map(async (account) => {
       try {
         await gmailOAuth.watch(account.userId, account.providerAccountId || '');
         socketService.emitToUser(account.userId, 'sync:status', {
@@ -30,9 +31,10 @@ export class PushNotificationService {
       } catch (err) {
         console.error(`[PushService] Failed to watch Google ${account.providerAccountId}:`, err);
       }
-    }
+    }));
 
-    for (const account of outlookAccounts) {
+    // Initialize Outlook accounts in parallel
+    await Promise.allSettled(outlookAccounts.map(async (account) => {
       try {
         await this.outlookOAuth.createSubscription(account.userId);
         socketService.emitToUser(account.userId, 'sync:status', {
@@ -44,7 +46,7 @@ export class PushNotificationService {
       } catch (err) {
         console.error(`[PushService] Failed to subscribe Outlook ${account.providerAccountId}:`, err);
       }
-    }
+    }));
   }
 
   /**

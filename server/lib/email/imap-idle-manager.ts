@@ -54,6 +54,30 @@ class ImapIdleManager {
     }
 
     /**
+     * Gracefully stop the IMAP IDLE Manager.
+     * Called during server SIGTERM/SIGINT to prevent ghost sessions on redeploy.
+     */
+    stop(): void {
+        this.isRunning = false;
+
+        let closed = 0;
+        for (const [integrationId, folderMap] of this.connections.entries()) {
+            const intervals = this.syncIntervals.get(integrationId);
+            if (intervals) {
+                for (const interval of intervals.values()) clearInterval(interval);
+                this.syncIntervals.delete(integrationId);
+            }
+            for (const imap of folderMap.values()) {
+                try { imap.end(); closed++; } catch (e) { /* already disconnected */ }
+            }
+        }
+
+        this.connections.clear();
+        this.folders.clear();
+        console.log(`[ImapIdleManager] Stopped. Closed ${closed} connection(s).`);
+    }
+
+    /**
      * Get discovered folders for a specific integration
      */
     public getDiscoveredFolders(integrationId: string): { inbox: string[], sent: string[], spam: string[] } | undefined {
@@ -222,8 +246,13 @@ class ImapIdleManager {
                 return;
             }
 
-            const imapHost = config.imap_host || config.smtp_host?.replace('smtp', 'imap') || '';
+            let imapHost = config.imap_host || config.smtp_host?.replace('smtp', 'imap') || '';
             const imapPort = config.imap_port || 993;
+
+            if (!imapHost) {
+                if (integration.provider === 'gmail') imapHost = 'imap.gmail.com';
+                else if (integration.provider === 'outlook') imapHost = 'outlook.office365.com';
+            }
 
             if (!imapHost) {
                 console.warn(`[IMAP] Skipping integration ${integrationId} — imap_host not found in config (User: ${integration.userId})`);
@@ -358,8 +387,18 @@ class ImapIdleManager {
             const credentialsStr = await decrypt(integration.encryptedMeta!);
             const config = JSON.parse(credentialsStr) as EmailConfig;
 
-            const imapHost = config.imap_host || config.smtp_host?.replace('smtp', 'imap') || '';
+            let imapHost = config.imap_host || config.smtp_host?.replace('smtp', 'imap') || '';
             const imapPort = config.imap_port || 993;
+
+            if (!imapHost) {
+                if (integration.provider === 'gmail') imapHost = 'imap.gmail.com';
+                else if (integration.provider === 'outlook') imapHost = 'outlook.office365.com';
+            }
+
+            if (!imapHost) {
+                console.warn(`[IMAP Persistent] Skipping folder ${folderName} for ${integrationId} — imap_host not found.`);
+                return;
+            }
 
             const imapOptions: any = {
                 user: config.smtp_user || integration.accountType || '',

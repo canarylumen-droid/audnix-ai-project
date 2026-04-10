@@ -320,17 +320,33 @@ async function mailboxHasPendingReply(integrationId: string): Promise<boolean> {
 /**
  * Calculate a per-mailbox send interval with jitter.
  * Spreads remaining sends across remaining business hours to avoid bursting.
+ *
+ * NIGHT WATCH:
+ * Between 10 PM and 6 AM, the engine enters "Night Watch" mode.
+ * In this mode, intervals are multiplied by 10-15x to ensure
+ * extremely low volume (approx 1-2 emails per mailbox per hour).
  */
 function calcMailboxInterval(sentToday: number, dailyLimit: number): number {
   const now = new Date();
+  const currentHour = now.getHours(); // Local server time
   
-  // 24/7 MODE: Removing business hour clamping. Spreading across full remaining day.
+  // Detect Night Watch (10 PM to 6 AM)
+  const isNightWatch = currentHour >= 22 || currentHour < 6;
+
   const endOfDay = new Date(now);
   endOfDay.setHours(23, 59, 59, 999);
   const remainingHours = Math.max(0.25, (endOfDay.getTime() - now.getTime()) / (3600 * 1000));
 
   const remainingSends = Math.max(1, dailyLimit - sentToday);
-  const baseIntervalMs = (remainingHours * 3600 * 1000) / remainingSends;
+  let baseIntervalMs = (remainingHours * 3600 * 1000) / remainingSends;
+
+  // Apply Night Watch multiplier if active
+  if (isNightWatch) {
+    // Increase delay to at least 45 minutes during night watch
+    // (approx 10-11 sends per 8hr night window max)
+    baseIntervalMs = Math.max(baseIntervalMs, 45 * 60_000);
+    console.log(`[CampaignWorker] 🌙 Night Watch active: Throttling mailbox to ${Math.round(baseIntervalMs / 60000)}m intervals`);
+  }
 
   // Clamp: at least 30s, at most 60 minutes for better 24/7 distribution
   const clamped = Math.min(60 * 60_000, Math.max(30_000, baseIntervalMs));
@@ -476,7 +492,16 @@ async function processSendBatch(data: SendBatchJobData): Promise<void> {
 
   // 7. FAULT-TOLERANT SEND: Wrap in try/catch to handle mailbox errors
   try {
-    await deliverCampaignEmail(userId, campaign, lead, leadEntry, integrationId);
+    if (lead.channel === 'instagram') {
+      await deliverCampaignInstagram(userId, campaign, lead, leadEntry, integrationId);
+    } else {
+      await deliverCampaignEmail(userId, campaign, lead, leadEntry, integrationId);
+    }
+    
+    // Success: Reset failure counts if any
+    await resetCampaignFailureCount(campaignId);
+    await db!.update(integrations).set({ failureCount: 0 }).where(eq(integrations.id, integrationId));
+    
   } catch (sendError: any) {
     const errorMsg = sendError.message || 'Unknown send error';
     console.error(`[CampaignWorker] ❌ Send failed for ${lead.email} via ${integrationId}: ${errorMsg}`);
@@ -872,6 +897,127 @@ async function deliverCampaignEmail(
   console.log(`[CampaignWorker] ✅ Campaign "${campaign.name}" step ${leadEntry.currentStep} → ${lead.email} via ${integrationId}`);
 }
 
+/**
+ * Helper to deliver campaign message via Instagram
+ */
+async function deliverCampaignInstagram(
+  userId: string,
+  campaign: any,
+  lead: any,
+  leadEntry: any,
+  integrationId: string
+): Promise<void> {
+  const { sendInstagramOutreach } = await import('../channels/instagram.js');
+  
+  let body = (campaign.template as any).body;
+  if (leadEntry.currentStep > 0) {
+    const followups = (campaign.template as any)?.followups || [];
+    const fuConfig = followups[leadEntry.currentStep - 1];
+    if (fuConfig) body = fuConfig.body;
+  }
+
+  // Personalization
+  const firstName = lead.name?.trim().split(' ')[0] || 'there';
+  const company = (lead as any).company?.trim() || 'your company';
+  body = body
+    .replace(/{{firstName}}/g, firstName)
+    .replace(/{{lead_name}}/g, lead.name?.trim() || firstName)
+    .replace(/{{company}}/g, company);
+
+  const result = await sendInstagramOutreach(userId, lead.id, body, {
+    isAutonomous: true,
+    metadata: { campaignId: campaign.id, step: leadEntry.currentStep, integrationId }
+  });
+
+  // Track Instagram message in campaign history
+  await db!.insert(campaignEmails).values({
+    campaignId: campaign.id,
+    leadId: lead.id,
+    userId,
+    messageId: result.messageId,
+    subject: 'Instagram DM',
+    body,
+    stepIndex: leadEntry.currentStep,
+    status: 'sent'
+  });
+
+  // Update lead status
+  const nextStep = leadEntry.currentStep + 1;
+  const followupsArr = (campaign.template as any)?.followups || [];
+  const hasMore = nextStep <= followupsArr.length;
+  let nextActionAt = null;
+
+  if (hasMore) {
+    const delayDays = followupsArr[nextStep - 1]?.delayDays || 3;
+    nextActionAt = new Date();
+    nextActionAt.setDate(nextActionAt.getDate() + delayDays);
+  }
+
+  await db!.update(campaignLeads)
+    .set({
+      status: 'sent',
+      currentStep: nextStep,
+      nextActionAt,
+      sentAt: new Date(),
+      error: null,
+    })
+    .where(eq(campaignLeads.id, leadEntry.id));
+
+  // Stats
+  await db!.update(outreachCampaigns)
+    .set({
+      stats: sql`jsonb_set(stats, '{sent}', (COALESCE((stats->>'sent')::int, 0) + 1)::text::jsonb)`,
+      updatedAt: new Date()
+    })
+    .where(eq(outreachCampaigns.id, campaign.id));
+
+  console.log(`[CampaignWorker] 📸 Instagram sent for campaign "${campaign.name}" to ${lead.externalId}`);
+}
+
+/**
+ * Circuit Breaker: Reset failure count on success
+ */
+async function resetCampaignFailureCount(campaignId: string): Promise<void> {
+  await db!.update(outreachCampaigns)
+    .set({
+      stats: sql`jsonb_set(stats, '{consecutive_failures}', '0')`,
+    })
+    .where(eq(outreachCampaigns.id, campaignId));
+}
+
+/**
+ * Circuit Breaker: Handle and increment failures
+ */
+async function handleCampaignFailure(campaignId: string): Promise<void> {
+  const [campaign] = await db!.select().from(outreachCampaigns).where(eq(outreachCampaigns.id, campaignId));
+  if (!campaign) return;
+
+  const currentFailures = Number((campaign.stats as any)?.consecutive_failures || 0) + 1;
+  
+  await db!.update(outreachCampaigns)
+    .set({
+      stats: sql`jsonb_set(stats, '{consecutive_failures}', ${currentFailures.toString()}::jsonb)`,
+    })
+    .where(eq(outreachCampaigns.id, campaignId));
+
+  // Threshold: 3 consecutive failures aborts/pauses the campaign
+  if (currentFailures >= 3) {
+    console.error(`[CampaignWorker] 🚨 CIRCUIT BREAKER: Campaign ${campaignId} hit 3 failures. PAUSING.`);
+    await campaignQueueManager.pauseCampaign(campaignId);
+    await db!.update(outreachCampaigns)
+      .set({ status: 'paused', updatedAt: new Date() })
+      .where(eq(outreachCampaigns.id, campaignId));
+      
+    // Notify user - via storage helper if exists, or system message
+    await storage.createNotification({
+      userId: campaign.userId,
+      type: 'system',
+      title: 'Campaign Paused: High Failure Rate',
+      message: `Your campaign "${campaign.name}" has been paused after 3 consecutive errors. Please check your mailbox connection.`,
+    });
+  }
+}
+
 // ─── Initialize Worker ──────────────────────────────────────────────────────
 
 export const campaignWorker = hasRedis ? new Worker<CampaignJobData>(
@@ -893,8 +1039,13 @@ if (campaignWorker) {
     }
   });
 
-  campaignWorker.on('failed', (job, err) => {
+  campaignWorker.on('failed', async (job, err) => {
     console.error(`[CampaignWorker] ✗ ${job?.data?.type} failed (${job?.id}):`, err.message);
+    
+    // Circuit Breaker: Increment campaign failure count
+    if (job?.data?.type === 'campaign:send-batch' && job.data.campaignId) {
+      await handleCampaignFailure(job.data.campaignId);
+    }
   });
 
   console.log('✅ BullMQ Campaign Queue Worker initialized (concurrency: 15)');

@@ -1,5 +1,5 @@
 import { drizzleStorage } from "./drizzle-storage.js";
-import { type User, type InsertUser, type Lead, type InsertLead, type Message, type InsertMessage, type Integration, type InsertIntegration, type Deal, type InsertDeal, type FollowUpQueue, type InsertFollowUpQueue, type OAuthAccount, type InsertOAuthAccount, type CalendarEvent, type InsertCalendarEvent, type AuditTrail, type InsertAuditTrail, type Organization, type InsertOrganization, type TeamMember, type InsertTeamMember, type Payment, type InsertPayment, type AiLearningPattern, type InsertAiLearningPattern, type SmtpSettings, type InsertSmtpSettings, type EmailMessage, type InsertEmailMessage, type Notification, type InsertNotification, type Thread, type InsertThread, type LeadInsight, type InsertLeadInsight, smtpSettings, users, leads, messages, integrations, deals, followUpQueue, aiLearningPatterns, notifications, threads, leadInsights } from "../shared/schema.js";
+import { type User, type InsertUser, type Lead, type InsertLead, type Message, type InsertMessage, type Integration, type InsertIntegration, type Deal, type InsertDeal, type FollowUpQueue, type InsertFollowUpQueue, type OAuthAccount, type InsertOAuthAccount, type CalendarEvent, type InsertCalendarEvent, type AuditTrail, type InsertAuditTrail, type Organization, type InsertOrganization, type TeamMember, type InsertTeamMember, type Payment, type InsertPayment, type AiLearningPattern, type InsertAiLearningPattern, type SmtpSettings, type InsertSmtpSettings, type EmailMessage, type InsertEmailMessage, type Notification, type InsertNotification, type Thread, type InsertThread, type LeadInsight, type InsertLeadInsight, type OutreachCampaign, type InsertOutreachCampaign, type CampaignLead, type InsertCampaignLead, smtpSettings, users, leads, messages, integrations, deals, followUpQueue, aiLearningPatterns, notifications, threads, leadInsights, outreachCampaigns, campaignLeads } from "../shared/schema.js";
 import { randomUUID } from "crypto";
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "./db.js";
@@ -251,6 +251,15 @@ export interface IStorage {
     channelPerformance: Array<{ channel: string; value: number }>;
     recentEvents: Array<{ id: string; type: string; description: string; time: string; isNew: boolean }>;
   }>;
+
+  // Outreach Campaign methods
+  getOutreachCampaign(id: string): Promise<OutreachCampaign | undefined>;
+  createOutreachCampaign(campaign: InsertOutreachCampaign): Promise<OutreachCampaign>;
+  updateOutreachCampaign(id: string, updates: Partial<OutreachCampaign>): Promise<OutreachCampaign | undefined>;
+  addLeadsToCampaign(campaignId: string, leads: { leadId: string }[]): Promise<void>;
+  getCampaignLead(campaignId: string, leadId: string): Promise<CampaignLead | undefined>;
+  updateCampaignLeadStatus(campaignId: string, leadId: string, status: CampaignLead["status"], error?: string): Promise<void>;
+  scheduleNextCampaignStep(campaignLeadId: string, nextActionAt: Date): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
