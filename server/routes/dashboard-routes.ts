@@ -19,6 +19,18 @@ const statsCache = new LRUCache<string, any>({
   ttl: 1000 * 5 // Reduced to 5 seconds for real-time sync
 });
 
+/**
+ * Invalidate the dashboard stats cache for a specific user.
+ * Call this when leads, conversions, or messages are updated.
+ */
+export function invalidateStatsCache(userId: string) {
+  // Delete both specific integration caches and the 'all' cache
+  const keysToDelete = Array.from(statsCache.keys()).filter(k => k.startsWith(`${userId}:`));
+  keysToDelete.forEach(k => statsCache.delete(k));
+  console.log(`[Cache] Invalidated dashboard stats for user ${userId} (${keysToDelete.length} keys)`);
+}
+
+
 const router = Router();
 
 /**

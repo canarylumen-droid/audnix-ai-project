@@ -1,7 +1,7 @@
 import { Server, Socket } from 'socket.io';
 import http from 'http';
 
-type MessageType = 'leads_updated' | 'messages_updated' | 'deals_updated' | 'settings_updated' | 'ping' | 'pong' | 'PROSPECTING_LOG' | 'PROSPECT_FOUND' | 'PROSPECT_UPDATED' | 'notification' | 'calendar_updated' | 'TERMINATE_SESSION' | 'insights_updated' | 'activity_updated' | 'stats_updated' | 'campaigns_updated' | 'campaign_stats_updated' | 'desktop_notification' | 'SECURITY_ALERT';
+type MessageType = 'leads_updated' | 'messages_updated' | 'deals_updated' | 'settings_updated' | 'ping' | 'pong' | 'PROSPECTING_LOG' | 'PROSPECT_FOUND' | 'PROSPECT_UPDATED' | 'notification' | 'calendar_updated' | 'TERMINATE_SESSION' | 'insights_updated' | 'activity_updated' | 'stats_updated' | 'campaigns_updated' | 'campaign_stats_updated' | 'desktop_notification' | 'SECURITY_ALERT' | 'sync_status';
 
 interface SyncMessage {
   type: MessageType;
@@ -135,6 +135,10 @@ class WebSocketSyncServer {
 
   notifyStatsUpdated(userId: string, data?: any) {
     this.emitToUser(userId, 'stats_updated', { ...data, timestamp: new Date().toISOString() });
+  }
+
+  notifySyncStatus(userId: string, data: { syncing: boolean; folder?: string; integrationId?: string }) {
+    this.emitToUser(userId, 'sync_status', data);
   }
 
   notifyEmailSent(userId: string, data: { leadId: string; messageId?: string; subject?: string }) {

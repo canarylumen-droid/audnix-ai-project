@@ -473,9 +473,20 @@ async function processEmailForLead(
         try {
           const fullAnalysis = await analyzeInboundMessage(lead.id, messageForAnalysis as any, lead as any);
           console.log(`[EMAIL_IMPORT] Full inbound analysis for ${lead.email}: urgency=${fullAnalysis.urgencyLevel}, quality=${fullAnalysis.qualityScore}`);
+
+          // Phase 11: Trigger Intelligence-governed Automation Rules
+          const { AutomationRuleEngine } = await import('../automation/rule-engine.js');
+          await AutomationRuleEngine.processEvent(userId, lead.id, {
+            channel: 'email',
+            intentScore: fullAnalysis.qualityScore,
+            confidence: (fullAnalysis.intent as any)?.confidence || 0.8,
+            messageBody: email.text || email.html || '',
+            messageId: (newMessage as any).id
+          });
         } catch (analysisError) {
           console.error('[EMAIL_IMPORT] Inbound message analysis error:', analysisError);
         }
+
 
         // Check if we should auto-reply (lead not paused, not recently replied)
         const existingOutbound = existingMessages.filter(m => m.direction === 'outbound');

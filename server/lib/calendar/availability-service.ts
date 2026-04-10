@@ -27,7 +27,7 @@ export class AvailabilityService {
   async getSuggestedTimes(userId: string, hoursAhead: number = 72): Promise<AvailableSlot[]> {
     try {
       const user = await storage.getUserById(userId);
-      const userTimezone = user?.timezone || 'Africa/Lagos'; 
+      const userTimezone = user?.timezone || 'UTC'; 
       const isWithinBusinessHours = (date: Date) => this.isWithinUserBusinessHours(date, userTimezone);
 
       let candidateSlots: AvailableSlot[] = [];
@@ -101,7 +101,8 @@ export class AvailabilityService {
       return this.generateDefaultSlots(hoursAhead, userTimezone);
     } catch (error) {
       console.error('Error in AvailabilityService:', error);
-      return this.generateDefaultSlots(hoursAhead, 'Africa/Lagos');
+      // Last resort fallback to UTC for stability
+      return this.generateDefaultSlots(hoursAhead, 'UTC');
     }
   }
 
@@ -138,15 +139,12 @@ export class AvailabilityService {
    * Blocks: 22:00 - 06:00 (strict No-Book rule)
    * Prevents booking on weekends too.
    */
+  /**
+   * Helper to determine valid booking times.
+   * 24/7 MODE: All hours and days are now considered valid for autonomous outreach and booking.
+   */
   public isWithinUserBusinessHours(date: Date, timeZone: string): boolean {
-    const isNight = timezoneService.isNightWatch(date, timeZone);
-    if (isNight) return false;
-
-    // Use formatting to check weekend for lead-safe delivery
-    const weekday = timezoneService.formatForUser(date, timeZone, 'EEE');
-    if (weekday === 'Sat' || weekday === 'Sun') return false;
-
-    return true;
+    return true; // No limitations
   }
 
   /**
@@ -217,11 +215,12 @@ export class AvailabilityService {
     return slots;
   }
 
-  formatSlotsForAI(slots: AvailableSlot[]): string {
+  formatSlotsForAI(slots: AvailableSlot[], timeZone: string = 'UTC'): string {
     if (slots.length === 0) return "No specific times found. Please use the booking link.";
     
     return slots.map(s => {
       return s.start.toLocaleString('en-US', {
+        timeZone,
         weekday: 'long',
         month: 'short',
         day: 'numeric',

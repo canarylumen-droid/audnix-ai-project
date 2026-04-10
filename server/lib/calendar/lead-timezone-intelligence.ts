@@ -146,12 +146,13 @@ const DEFAULT_WINDOW: NicheWindow = {
 
 /**
  * Maps a city name to an IANA timezone string.
- * Returns Africa/Lagos as default for African-focused outreach.
+ * @param city City name
+ * @param fallback Default timezone if city mapping fails (defaults to Africa/Lagos)
  */
-export function inferTimezoneFromCity(city: string): string {
-  if (!city) return 'Africa/Lagos';
+export function inferTimezoneFromCity(city: string, fallback: string = 'Africa/Lagos'): string {
+  if (!city) return fallback;
   const key = city.toLowerCase().replace(/[\s\-]/g, '_');
-  return CITY_TIMEZONE_MAP[key] || 'Africa/Lagos';
+  return CITY_TIMEZONE_MAP[key] || fallback;
 }
 
 /**
@@ -184,9 +185,10 @@ export function formatLocalHour(hour: number): string {
  */
 export function isWithinLeadPreferredWindow(
   utcDate: Date,
-  profile: { detectedTimezone: string | null; preferredContactStart: number | null; preferredContactEnd: number | null; preferredDays: string[] | null }
+  profile: { detectedTimezone: string | null; preferredContactStart: number | null; preferredContactEnd: number | null; preferredDays: string[] | null },
+  defaultTz: string = 'Africa/Lagos'
 ): boolean {
-  const tz = profile.detectedTimezone || 'Africa/Lagos';
+  const tz = profile.detectedTimezone || defaultTz;
   const start = profile.preferredContactStart ?? 10;
   const end = profile.preferredContactEnd ?? 18;
   const days = profile.preferredDays || ['Monday','Tuesday','Wednesday','Thursday','Friday'];
@@ -222,7 +224,11 @@ export async function populateLeadProfile(
   const nicheInput = options.niche || options.industry || '';
   const cityInput = options.city || '';
 
-  const detectedTimezone = inferTimezoneFromCity(cityInput);
+  // Get user profile first to find their default timezone
+  const [user] = await db.select({ timezone: users.timezone }).from(users).where(eq(users.id, userId)).limit(1);
+  const userTz = user?.timezone || 'Africa/Lagos';
+
+  const detectedTimezone = inferTimezoneFromCity(cityInput, userTz);
   const window = inferPreferredWindowFromNiche(nicheInput);
   const confidence = (cityInput ? 0.5 : 0) + (nicheInput ? 0.5 : 0);
 

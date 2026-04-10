@@ -6,7 +6,7 @@ import { formatInTimeZone, toDate } from 'date-fns-tz';
  * Priority: Africa/Lagos (WAT) as the focal point for user availability.
  */
 export class TimezoneService {
-  private static DEFAULT_USER_TZ = 'Africa/Lagos';
+  private static DEFAULT_USER_TZ = 'UTC';
 
   /**
    * Format a date for display/AI prompts in the user's local timezone

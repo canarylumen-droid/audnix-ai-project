@@ -129,7 +129,7 @@ export class MeetingReminderWorker {
     if (!recipientEmail) return;
 
     // Get lead's inferred timezone for accurate time display
-    let leadTz = 'Africa/Lagos';
+    let leadTz = user.timezone || 'UTC'; 
     if (lead?.id) {
       const [tzProfile] = await db
         .select({ detectedTimezone: leadTimezoneProfiles.detectedTimezone })

@@ -164,6 +164,17 @@ export class FollowUpWorker {
       await executeCommentFollowUps();
 
       // Get pending jobs from Neon database
+      // 11. Intelligence-Governed Proactive Automation Scanner
+      try {
+        const { AutomationRuleEngine } = await import('../automation/rule-engine.js');
+        const activeUsers = await db.select({ id: users.id }).from(users);
+        for (const user of activeUsers) {
+          await AutomationRuleEngine.processProactiveRules(user.id);
+        }
+      } catch (autoErr) {
+        console.error('[FollowUpWorker] Automation scan failed:', autoErr);
+      }
+
       const jobs = await db
         .select()
         .from(followUpQueue)
@@ -179,6 +190,7 @@ export class FollowUpWorker {
       if (!jobs || jobs.length === 0) {
         return;
       }
+
 
       console.log(`Processing ${jobs.length} follow-up jobs...`);
 
@@ -233,41 +245,16 @@ export class FollowUpWorker {
         .where(eq(followUpQueue.id, job.id));
 
       const user = await storage.getUserById(job.userId);
-      // NEW: [The Strict Protocol] Loosened Night Watch Delivery Constraints (10 PM - 6 AM)
-      if (user) {
-        const userTimezone = user.timezone || 'America/New_York';
+      // 24/7 MODE: Night Watch blocking removed.
+      // The system will now deliver messages autonomously at any hour including midnight.
+      if (user && user.id) {
         const { availabilityService } = await import('../calendar/availability-service.js');
-        const nightWatch = await availabilityService.canDeliverDuringNightWatch(user.id, userTimezone);
-
-        if (!nightWatch.allowed) {
-          const nextRun = availabilityService.getNextAvailableBusinessHour(userTimezone);
-          console.log(`[Follow-Up Worker] 🌙 Night Watch Active & Cap Reached for ${user.email}. Postponing job ${job.id} to ${nextRun.toISOString()}`);
-          
-          await db.update(followUpQueue)
-            .set({ 
-              status: 'pending', 
-              scheduledAt: nextRun,
-              metadata: { ...(job.context as any || {}), postponed_by_night_watch: true }
-            })
-            .where(eq(followUpQueue.id, job.id));
-          return;
-        }
-
-        // If allowed during night, increment and notify
-        if (nightWatch.isNight) {
-          console.log(`[Follow-Up Worker] 🌙 The Strict Protocol: Delivering night follow-up ${nightWatch.count + 1}/7 for user ${user.id}`);
-          availabilityService.incrementNightDelivery(user.id);
-
-          // Dashboard notification for transparency
-          import('../realtime/socket-service.js').then(({ socketService }) => {
-            socketService.notifyNewNotification(user.id, {
-              type: 'info',
-              title: 'Night Watch Follow-Up Sent',
-              message: `An automated AI response was delivered during off-hours (${nightWatch.count + 1}/7 remaining).`
-            });
-          });
+        const isNight = await availabilityService.isCurrentlyNight(user.timezone || 'America/New_York');
+        if (isNight) {
+          console.log(`[Follow-Up Worker] 🌙 24/7 Autonomous Mode: Sending night follow-up for user ${user.id}`);
         }
       }
+
       // Attempt to reserve the lead to prevent race conditions (Phase 13: Mutex Lock)
       const reserved = await storage.reserveLeadForAction(job.leadId, 'follow_up');
       if (!reserved) {

@@ -38,7 +38,7 @@ class EmailSyncWorker {
   private isRunning = false;
   private isSyncing = false;
   private syncTimeout: NodeJS.Timeout | null = null;
-  private readonly SYNC_INTERVAL_MS = 300000; // Increased to 5m to protect DB quota (Neon)
+  private readonly SYNC_INTERVAL_MS = 3600000; // 1 hour - Real-time sync is now handled by IMAP IDLE.
   private readonly GHOSTED_THRESHOLD_HOURS = 48;
 
   /**
@@ -89,22 +89,31 @@ class EmailSyncWorker {
     console.log('📬 Email sync worker stopped');
   }
 
-  /**
-   * Sync emails for all users with connected email integrations
-   */
   async syncAllUserEmails(): Promise<void> {
     try {
-      const emailProviders = ['gmail', 'outlook']; // Removed custom_email from here as it's handled by ImapIdleManager
+      // 24/7 MODE: Sync logic moved to ImapIdleManager for real-time IDLE sync. 
+      // This worker now primarily handles maintenance and secondary sync checks.
+      const providers = ['gmail', 'outlook']; 
       let integrations: Integration[] = [];
 
-      for (const provider of emailProviders) {
+      // Renew real-time push subscriptions (Google/Outlook)
+      try {
+        const { PushNotificationService } = await import('./push-notification-service.js');
+        await PushNotificationService.initializeAll();
+      } catch (e) {
+        console.error('[EmailSync] Push renewal failed:', e);
+      }
+
+      for (const provider of providers) {
         const found = await storage.getIntegrationsByProvider(provider);
         if (found) integrations = [...integrations, ...found];
       }
 
       for (const integration of integrations) {
         if (!integration.connected) continue;
-        await this.syncUserEmails(integration.userId, integration);
+        
+        // ghosted lead detection (maintenance)
+        await this.detectGhostedLeads(integration.userId);
       }
       workerHealthMonitor.recordSuccess('email-sync-worker');
     } catch (error: any) {

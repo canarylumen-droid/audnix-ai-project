@@ -292,10 +292,21 @@ async function processInstagramMessage(message: InstagramMessage): Promise<void>
       try {
         const fullAnalysis = await analyzeInboundMessage(lead.id, latestMessage, lead as any);
         console.log(`[IG_EVENT] Full inbound analysis: urgency=${fullAnalysis.urgencyLevel}, quality=${fullAnalysis.qualityScore}, action=${fullAnalysis.suggestedAction}`);
+
+        // Phase 11: Trigger Intelligence-governed Automation Rules
+        const { AutomationRuleEngine } = await import('../automation/rule-engine.js');
+        await AutomationRuleEngine.processEvent(integration.userId, lead.id, {
+          channel: 'instagram',
+          intentScore: fullAnalysis.qualityScore,
+          confidence: (fullAnalysis.intent as any)?.confidence || 0.8,
+          messageBody: messageText,
+          messageId: latestMessage.id
+        });
       } catch (analysisError) {
         console.error('[IG_EVENT] Inbound message analysis error:', analysisError);
       }
     }
+
 
     const intent = await analyzeLeadIntent(messageText, lead as any);
 

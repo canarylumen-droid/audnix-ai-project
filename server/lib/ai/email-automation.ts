@@ -17,8 +17,8 @@ export async function scheduleAutomatedEmailReply(
         const existingJob = await storage.getPendingFollowUp(leadId);
         if (existingJob) return;
 
-        // For email, we wait slightly longer to appear human (5-15 mins)
-        const delayMs = (5 + Math.random() * 10) * 60 * 1000;
+        // 24/7 MODE: Reduced delay to 1-2 minutes for faster autonomous response.
+        const delayMs = (1 + Math.random()) * 60 * 1000;
         const scheduledAt = new Date(Date.now() + delayMs);
 
         console.log(`[EMAIL_AUTO] Scheduling reply for ${leadId} in ${Math.round(delayMs / 60000)}m at ${scheduledAt.toISOString()}`);

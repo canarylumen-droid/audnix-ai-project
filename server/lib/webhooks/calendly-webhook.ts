@@ -178,6 +178,25 @@ async function handleMeetingBooked(event: CalendlyWebhookEvent): Promise<void> {
       console.log(`✓ Follow-up queue cleared for lead: ${updatedLead.id}`);
 
       wsSync.notifyLeadsUpdated(userId, { event: 'UPDATE', leadId: updatedLead.id });
+
+      // 🚀 SDR MANAGER: Run autonomous analysis on the booking notes/intent
+      try {
+        const { generateLeadIntelligenceDashboard } = await import('../ai/lead-intelligence.js');
+        const { messages } = await db.select().from(require("../../../shared/schema.js").messages).where(eq(require("../../../shared/schema.js").messages.leadId, updatedLead.id));
+        
+        await generateLeadIntelligenceDashboard(updatedLead as any, messages as any);
+        console.log(`✓ SDR Analysis updated for booked lead: ${updatedLead.id}`);
+        
+        // Push "booked" event with enriched metadata
+        wsSync.notifyActivityUpdated(userId, {
+            type: 'lead_booked',
+            title: 'Lead Booked! 📅',
+            message: `${updatedLead.name} at ${updatedLead.company || 'their company'} just booked a call.`,
+            metadata: { leadId: updatedLead.id, status: 'booked' }
+        });
+      } catch (sdrErr) {
+        console.error('Error in SDR booking analysis:', sdrErr);
+      }
     }
 
     // Notify user

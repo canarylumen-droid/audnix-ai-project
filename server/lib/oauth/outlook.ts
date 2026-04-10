@@ -446,4 +446,71 @@ export class OutlookOAuth {
       return null;
     }
   }
+
+  /**
+   * Create a Graph API subscription for real-time push notifications
+   */
+  async createSubscription(userId: string): Promise<any> {
+    const accessToken = await this.getValidToken(userId);
+    if (!accessToken) throw new Error('No valid Outlook access token');
+
+    const notificationUrl = process.env.OUTLOOK_WEBHOOK_URL || `${process.env.APP_URL}/api/webhooks/outlook/push`;
+    const expirationDateTime = new Date(Date.now() + 4230 * 60 * 1000).toISOString(); // Max ~2.9 days
+
+    const subscription = {
+      changeType: 'created',
+      notificationUrl,
+      resource: 'me/messages',
+      expirationDateTime,
+      clientState: crypto.createHash('sha256').update(userId + (process.env.SESSION_SECRET || 'fallback')).digest('hex')
+    };
+
+    const response = await fetch('https://graph.microsoft.com/v1.0/subscriptions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(subscription)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error(`[Outlook OAuth] Subscription failed: ${JSON.stringify(data)}`);
+      throw new Error(data.error?.message || 'Failed to create subscription');
+    }
+
+    // Store subscription details in user metadata
+    const user = await storage.getUser(userId);
+    await storage.updateUser(userId, {
+      metadata: {
+        ...(user?.metadata as any || {}),
+        outlook_subscription_id: data.id,
+        outlook_subscription_expiry: data.expirationDateTime
+      }
+    });
+
+    return data;
+  }
+
+  /**
+   * Delete a Graph API subscription
+   */
+  async deleteSubscription(userId: string, subscriptionId: string): Promise<void> {
+    const accessToken = await this.getValidToken(userId);
+    if (!accessToken) return;
+
+    const response = await fetch(`https://graph.microsoft.com/v1.0/subscriptions/${subscriptionId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+
+    if (!response.ok && response.status !== 404) {
+      const error = await response.json();
+      console.warn(`[Outlook OAuth] Failed to delete subscription: ${error.error?.message}`);
+    }
+  }
 }

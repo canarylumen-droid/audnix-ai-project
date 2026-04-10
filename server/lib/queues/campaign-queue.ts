@@ -108,9 +108,8 @@ export class CampaignQueueManager {
     for (const mbId of mailboxIds) {
       const dailyLimit = mailboxLimits[mbId] || 50;
 
-      // Calculate repeat interval: spread sends evenly across ~14 hours of business time
-      // e.g. 50/day → 1 every ~17 minutes. 300/day → 1 every ~2.8 minutes
-      const businessHours = 14; // Approximate sending window
+      // 24/7 MODE: Spread sends evenly across full 24h window
+      const businessHours = 24; 
       const repeatMs = Math.max(
         60_000, // Never faster than 1 per minute
         Math.floor((businessHours * 60 * 60 * 1000) / dailyLimit)
@@ -324,20 +323,17 @@ async function mailboxHasPendingReply(integrationId: string): Promise<boolean> {
  */
 function calcMailboxInterval(sentToday: number, dailyLimit: number): number {
   const now = new Date();
-  const currentHour = now.getHours();
-  const currentMin = now.getMinutes();
-
-  // Business hours: 7am – 9pm (14 hours)
-  const businessStart = 7;
-  const businessEnd = 21;
-  const clampedHour = Math.max(businessStart, Math.min(currentHour, businessEnd));
-  const remainingHours = Math.max(0.25, businessEnd - clampedHour - currentMin / 60);
+  
+  // 24/7 MODE: Removing business hour clamping. Spreading across full remaining day.
+  const endOfDay = new Date(now);
+  endOfDay.setHours(23, 59, 59, 999);
+  const remainingHours = Math.max(0.25, (endOfDay.getTime() - now.getTime()) / (3600 * 1000));
 
   const remainingSends = Math.max(1, dailyLimit - sentToday);
   const baseIntervalMs = (remainingHours * 3600 * 1000) / remainingSends;
 
-  // Clamp: at least 45s, at most 30 minutes
-  const clamped = Math.min(30 * 60_000, Math.max(45_000, baseIntervalMs));
+  // Clamp: at least 30s, at most 60 minutes for better 24/7 distribution
+  const clamped = Math.min(60 * 60_000, Math.max(30_000, baseIntervalMs));
 
   // Add ±15% random jitter to avoid mechanical patterns
   const jitter = clamped * 0.15 * (Math.random() * 2 - 1);
@@ -370,10 +366,8 @@ async function processSendBatch(data: SendBatchJobData): Promise<void> {
     return;
   }
 
-  // 2. Check weekend exclusion
-  const now = new Date();
-  const isWeekend = now.getDay() === 0 || now.getDay() === 6;
-  if (isWeekend && campaign.excludeWeekends) return;
+  // 24/7 MODE: Ignoring weekend exclusion flag for autonomous performance
+  // if (isWeekend && campaign.excludeWeekends) return;
 
   // 3. FAULT TOLERANCE: Verify mailbox is still healthy and not paused
   const integration = await storage.getIntegrationById(integrationId);

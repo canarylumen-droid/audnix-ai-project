@@ -80,6 +80,7 @@ const getRelativeTime = (timestamp: string | Date): string => {
 interface RealtimeContextType {
   socket: Socket | null;
   isConnected: boolean;
+  isSyncing: boolean;
   notificationPermission: NotificationPermission;
   requestPermission: () => Promise<void>;
 }
@@ -87,6 +88,7 @@ interface RealtimeContextType {
 const RealtimeContext = createContext<RealtimeContextType>({
   socket: null,
   isConnected: false,
+  isSyncing: false,
   notificationPermission: 'default',
   requestPermission: async () => { }
 });
@@ -107,6 +109,7 @@ export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
   const socketRef = useRef<Socket | null>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
+  const [isSyncing, setIsSyncing] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>(
     typeof Notification !== 'undefined' ? Notification.permission : 'denied'
   );
@@ -168,6 +171,26 @@ export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
     socketInstance.on('connect_error', (err) => {
       console.error('Socket connection error:', err);
       setConnectionStatus('disconnected');
+    });
+
+    // SYNC STATUS
+    let syncTimeout: NodeJS.Timeout | null = null;
+    socketInstance.on('sync_status', (payload: any) => {
+      console.log('🔄 Sync status update:', payload);
+      setIsSyncing(!!payload.syncing);
+      
+      if (payload.syncing) {
+        if (syncTimeout) clearTimeout(syncTimeout);
+        // Safety timeout: 60 seconds max per sync pulse
+        syncTimeout = setTimeout(() => setIsSyncing(false), 60000);
+      } else {
+        if (syncTimeout) clearTimeout(syncTimeout);
+      }
+
+      if (payload.event === 'completed' && payload.count > 0) {
+        queryClient.invalidateQueries({ queryKey: ['/api/leads'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/conversations'] });
+      }
     });
 
     // LEADS UPDATES
@@ -331,10 +354,12 @@ export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
     socketInstance.on('activity_updated', (payload: any) => {
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/activity'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/ai-actions'] }); // Critical for SDR loop visibility
       
       // If activity involves a specific lead (like tracking events), refresh that lead
       if (payload.leadId) {
         queryClient.invalidateQueries({ queryKey: ['/api/leads'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/leads/' + payload.leadId] }); // Specific lead details
         queryClient.invalidateQueries({ queryKey: ["/api/messages", payload.leadId] });
       } else {
         // Generic activities (like external deletions) should also refresh high-level data
@@ -430,7 +455,7 @@ export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
   }, [userId, queryClient, toast]);
 
   return (
-    <RealtimeContext.Provider value={{ socket, isConnected, notificationPermission, requestPermission }}>
+    <RealtimeContext.Provider value={{ socket, isConnected, isSyncing, notificationPermission, requestPermission }}>
       {children}
     </RealtimeContext.Provider>
   );

@@ -55,9 +55,10 @@ ${objectionContext}
 ### Decision rules for CLOSING (Expert Mode)
 1. **Target 3-Email Conversion**: Do not waste time on "How are you?" or fluff. Be direct, value-driven, and assume the sale.
 2. **Specific Availability**: If the action is "book_meeting", YOU MUST propose 2-3 specific times from the Availability list provided above. Example: "I checked my calendar and I'm free Wednesday at 2pm or Thursday at 10am. Does either work?"
-3. **Objection Handling**: If the lead mentions a competitor, focus on Audnix's unique Level 5 Autonomy. If they mention price, pivot to ROI.
-4. **NO CHASING**: Set \`delayDays\` if the lead says "next month" or "traveling". Cite their specific reasoning.
-5. **No Placeholders**: Never use [Name] or [Link]. Use the real data provided.
+3. **24/7 Autonomy**: You operate around the clock. Do NOT wait for 'business hours' to reply to hot leads. Respond ASAP whenever they are active, even at 2 AM or on weekends.
+4. **Objection Handling**: If the lead mentions a competitor, focus on Audnix's unique Level 5 Autonomy. If they mention price, pivot to ROI.
+5. **NO CHASING**: Set `delayDays` if the lead says "next month" or "traveling". Cite their specific reasoning.
+6. **No Placeholders**: Never use [Name] or [Link]. Use the real data provided.
 
 ### Available Actions
 - send_payment_link: Ready for checkout.

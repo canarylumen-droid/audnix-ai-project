@@ -7,6 +7,8 @@ import type { Integration } from '../../../shared/schema.js';
 import { wsSync } from '../websocket-sync.js';
 import { mailboxHealthService } from './mailbox-health-service.js';
 import { quotaService } from '../monitoring/quota-service.js';
+import { gmailOAuth } from '../oauth/gmail.js';
+import { outlookOAuth } from '../oauth/outlook.js';
 
 interface EmailConfig {
     smtp_host?: string;
@@ -67,8 +69,15 @@ class ImapIdleManager {
             return;
         }
         try {
-            // Only custom_email integrations use IMAP IDLE. Gmail/Outlook use OAuth sync (emailSyncWorker).
-            const integrations = await storage.getIntegrationsByProvider('custom_email');
+            // 24/7 MODE: Including Gmail and Outlook for real-time IDLE sync
+            const providers = ['custom_email', 'gmail', 'outlook'];
+            let integrations: Integration[] = [];
+            
+            for (const provider of providers) {
+                const found = await storage.getIntegrationsByProvider(provider);
+                if (found) integrations = [...integrations, ...found];
+            }
+            
             const activeIntegrationIds = new Set(integrations.filter(i => i.connected).map(i => i.id));
 
             // Remove connections for integrations no longer active/connected
@@ -93,8 +102,9 @@ class ImapIdleManager {
 
             // Add connections for new active integrations (custom_email only — gmail/outlook use OAuth, not IMAP)
             for (const integration of integrations) {
-                if (integration.connected && integration.provider === 'custom_email' && !this.connections.has(integration.id)) {
-                    console.log(`🔌 Opening IMAP connection for integration ${integration.id} (User: ${integration.userId})`);
+                const isSupported = ['custom_email', 'gmail', 'outlook'].includes(integration.provider);
+                if (integration.connected && isSupported && !this.connections.has(integration.id)) {
+                    console.log(`🔌 Opening real-time IMAP connection for integration ${integration.id} (${integration.provider}, User: ${integration.userId})`);
                     this.setupConnection(integration.id, integration);
                 }
             }
@@ -220,9 +230,8 @@ class ImapIdleManager {
                 return;
             }
 
-            const imap = new Imap({
-                user: config.smtp_user!,
-                password: config.smtp_pass!,
+            const imapOptions: any = {
+                user: config.smtp_user || integration.accountType || '',
                 host: imapHost,
                 port: imapPort,
                 tls: imapPort === 993,
@@ -233,11 +242,39 @@ class ImapIdleManager {
                     interval: 10000,
                     idleInterval: 300000,
                     forceNoop: true
-                },
-                debug: (msg: string) => {
-                    // console.log(`[IMAP RAW ${integrationId}]`, msg); 
                 }
-            });
+            };
+
+            // Handle OAuth providers with XOAUTH2
+            if (integration.provider === 'gmail' || integration.provider === 'outlook') {
+                const token = integration.provider === 'gmail' 
+                    ? await gmailOAuth.getValidToken(integration.userId, integration.accountType || undefined)
+                    : await outlookOAuth.getValidToken(integration.userId);
+                
+                if (token) {
+                    imapOptions.xoauth2 = Buffer.from(
+                        `user=${imapOptions.user}\x01auth=Bearer ${token}\x01\x01`
+                    ).toString('base64');
+                    
+                    const { socketService } = await import('../realtime/socket-service.js');
+                    socketService.emitToUser(integration.userId, 'sync:status', {
+                        integrationId,
+                        provider: integration.provider,
+                        status: 'connected',
+                        realtime: true,
+                        method: 'idle'
+                    });
+                    // Remove password for OAuth
+                    delete imapOptions.password;
+                } else {
+                    console.warn(`[IMAP] Could not get OAuth token for ${integration.provider} integration ${integrationId}`);
+                    return;
+                }
+            } else {
+                imapOptions.password = config.smtp_pass!;
+            }
+
+            const imap = new Imap(imapOptions);
 
             if (!this.connections.has(integrationId)) this.connections.set(integrationId, new Map());
             this.connections.get(integrationId)!.set('discovery', imap);
@@ -324,15 +361,29 @@ class ImapIdleManager {
             const imapHost = config.imap_host || config.smtp_host?.replace('smtp', 'imap') || '';
             const imapPort = config.imap_port || 993;
 
-            const imap = new Imap({
-                user: config.smtp_user!,
-                password: config.smtp_pass!,
+            const imapOptions: any = {
+                user: config.smtp_user || integration.accountType || '',
                 host: imapHost,
                 port: imapPort,
                 tls: imapPort === 993,
                 tlsOptions: { rejectUnauthorized: false },
                 keepalive: { interval: 10000, idleInterval: 300000, forceNoop: true }
-            });
+            };
+
+            if (integration.provider === 'gmail' || integration.provider === 'outlook') {
+                const token = integration.provider === 'gmail' 
+                    ? await gmailOAuth.getValidToken(integration.userId, integration.accountType || undefined)
+                    : await outlookOAuth.getValidToken(integration.userId);
+                
+                if (token) {
+                    const user = integration.accountType || integration.email || '';
+                    imapOptions.xoauth2 = Buffer.from(`user=${user}\x01auth=Bearer ${token}\x01\x01`).toString('base64');
+                }
+            } else {
+                imapOptions.password = config.smtp_pass!;
+            }
+
+            const imap = new Imap(imapOptions);
 
             if (!this.connections.has(integrationId)) this.connections.set(integrationId, new Map());
             this.connections.get(integrationId)!.set(folderName, imap);
@@ -395,6 +446,9 @@ class ImapIdleManager {
         if (imap.state !== 'authenticated') return;
         if (this.syncing.has(integrationId)) return;
         this.syncing.add(integrationId);
+        
+        // Instant notify UI
+        wsSync.notifySyncStatus(userId, { syncing: true, integrationId });
 
         try {
             const folders = this.folders.get(integrationId);
@@ -409,6 +463,7 @@ class ImapIdleManager {
             console.error(`[IMAP] Sync folders failed for ${integrationId}:`, error);
         } finally {
             this.syncing.delete(integrationId);
+            wsSync.notifySyncStatus(userId, { syncing: false, integrationId });
         }
     }
 
@@ -417,15 +472,22 @@ class ImapIdleManager {
             const folders = this.folders.get(integrationId) || { inbox: ['INBOX'], sent: [] };
             const primaryInbox = folders.inbox[0] || 'INBOX';
 
+            wsSync.notifySyncStatus(userId, { syncing: true, folder: folderName, integrationId });
+
+            const safeResolve = () => {
+                wsSync.notifySyncStatus(userId, { syncing: false, folder: folderName, integrationId });
+                resolve();
+            };
+
             if (imap.state !== 'authenticated') {
                 console.warn(`[IMAP] Connection state is ${imap.state}, skipping openBox for ${folderName}`);
-                resolve();
+                safeResolve();
                 return;
             }
             imap.openBox(folderName, true, (err: any, box: any) => {
                 if (err) {
                     console.warn(`[IMAP] Could not open folder ${folderName} for integration ${integrationId}:`, err.message);
-                    resolve();
+                    safeResolve();
                     return;
                 }
 
@@ -437,13 +499,13 @@ class ImapIdleManager {
                                     if (imap.state === 'authenticated' && typeof (imap as any).idle === 'function') (imap as any).idle();
                                 } catch (e) { }
                             }
-                            resolve();
+                            safeResolve();
                         });
                     } else {
                         try {
                             if (imap.state === 'authenticated' && typeof (imap as any).idle === 'function') (imap as any).idle();
                         } catch (e) { }
-                        resolve();
+                        safeResolve();
                     }
                     return;
                 }
@@ -453,7 +515,7 @@ class ImapIdleManager {
                     try {
                         if (imap.state === 'authenticated' && typeof (imap as any).idle === 'function') (imap as any).idle();
                     } catch (e) { }
-                    resolve();
+                    safeResolve();
                     return;
                 }
 
@@ -537,29 +599,62 @@ class ImapIdleManager {
                                 for (const email of emails) {
                                   if (email.direction === 'inbound' && !email.isSpam) {
                                       const lead = await storage.getLeadByEmail(email.from?.split('<')[1]?.split('>')[0] || email.from, userId);
-                                      if (lead && !lead.aiPaused) {
-                                          if (!isAutonomousMode) {
-                                              console.log(`[IMAP] AI Engine is OFF. Skipping autonomous reply for lead ${lead.email}`);
+                                      if (lead) {
+                                          if (!isAutonomousMode || lead.aiPaused) {
+                                              console.log(`[IMAP] ${!isAutonomousMode ? 'AI Engine OFF' : 'Lead AI Paused'}. Skipping autonomous analysis/reply for ${lead.email}`);
+                                              
+                                              // Still notify UI even if AI is off so the message appears!
+                                              wsSync.notifyMessagesUpdated(userId, { 
+                                                  leadId: lead.id, 
+                                                  message: { id: email.id, content: email.text, direction: 'inbound', createdAt: email.date },
+                                                  integrationId: integrationId 
+                                              });
                                               continue;
                                           }
 
-                                          const intent = await analyzeLeadIntent(email.text, {
-                                              id: lead.id,
-                                              name: lead.name,
-                                              channel: 'email',
-                                              status: lead.status,
-                                              tags: lead.tags || []
-                                          });
+                                          // 🚀 CENTRAL SDR MANAGER LOOP: Analyze arrival immediately!
+                                          console.log(`[IMAP] 🧠 Triggering SDR Arrival Analysis for ${lead.id}`);
+                                          const { processInboundMessageWithAnalysis } = await import('../ai/inbound-message-analyzer.js');
+                                          
+                                          const analysis = await processInboundMessageWithAnalysis(lead.id, email.text, 'email');
 
-                                          await scheduleAutomatedEmailReply(
-                                              userId,
-                                              lead.id,
-                                              email.from,
-                                              email.subject,
-                                              email.text,
-                                              intent,
-                                              email.threadId
-                                          );
+                                          // Push Granular Data for "Zero Refresh" UI
+                                          wsSync.notifyMessagesUpdated(userId, { 
+                                              leadId: lead.id, 
+                                              message: { 
+                                                id: email.id, 
+                                                content: email.text, 
+                                                direction: 'inbound', 
+                                                createdAt: email.date,
+                                                intent: analysis?.urgencyLevel,
+                                                status: lead.status // Status might have been updated by analyzer
+                                              },
+                                              integrationId: integrationId
+                                          });
+                                          
+                                          // Also notify that leads list needs refresh (for status/tags)
+                                          wsSync.notifyLeadsUpdated(userId, { event: 'UPDATE', leadId: lead.id });
+
+                                          if (analysis?.shouldAutoReply) {
+                                              const { scheduleAutomatedEmailReply } = await import('../ai/email-automation.js');
+                                              await scheduleAutomatedEmailReply(
+                                                  userId,
+                                                  lead.id,
+                                                  email.from,
+                                                  email.subject,
+                                                  email.text,
+                                                  analysis.intent as any,
+                                                  email.threadId
+                                              );
+                                          }
+
+                                          // 🚀 ZERO REFRESH: Notify Activity Feed of the analysis/audit log
+                                          wsSync.notifyActivityUpdated(userId, {
+                                              type: 'message_received',
+                                              leadId: lead.id,
+                                              title: 'New SDR Analysis',
+                                              message: analysis?.suggestedAction || 'Message analyzed and status updated.'
+                                          });
                                       }
                                   }
                                 }
@@ -588,13 +683,13 @@ class ImapIdleManager {
                                     if (imap.state === 'authenticated' && typeof (imap as any).idle === 'function') (imap as any).idle();
                                 } catch (e) { }
                             }
-                            resolve();
+                            safeResolve();
                         });
                     } else {
                         try {
                             if (imap.state === 'authenticated' && typeof (imap as any).idle === 'function') (imap as any).idle();
                         } catch (e) { }
-                        resolve();
+                        safeResolve();
                     }
                 });
             });

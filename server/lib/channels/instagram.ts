@@ -29,7 +29,7 @@ export async function sendInstagramMessage(
   instagramBusinessAccountId: string,
   recipientId: string,
   message: string
-): Promise<void> {
+): Promise<{ messageId: string }> {
   // Instagram Direct uses Facebook Graph API, not Instagram Graph API
   const endpoint = `https://graph.facebook.com/v18.0/${instagramBusinessAccountId}/messages`;
 
@@ -59,6 +59,7 @@ export async function sendInstagramMessage(
   }
 
   console.log('Instagram text message sent successfully:', data);
+  return { messageId: data.message_id || data.id || `ig_${Date.now()}` };
 }
 
 /**
@@ -130,7 +131,7 @@ export async function sendInstagramVoiceMessage(
   instagramBusinessAccountId: string,
   recipientId: string,
   audioUrl: string
-): Promise<void> {
+): Promise<{ messageId: string }> {
   // Step 1: Upload the audio file and get attachment_id
   const attachmentId = await uploadInstagramAttachment(
     accessToken,
@@ -173,6 +174,7 @@ export async function sendInstagramVoiceMessage(
   }
 
   console.log('Instagram voice message sent successfully:', data);
+  return { messageId: data.message_id || data.id || `ig_voice_${Date.now()}` };
 }
 
 /**
@@ -190,7 +192,7 @@ export async function sendInstagramMedia(
   recipientId: string,
   mediaUrl: string,
   mediaType: 'image' | 'video' = 'image'
-): Promise<void> {
+): Promise<{ messageId: string }> {
   // Step 1: Upload the media file and get attachment_id
   const attachmentId = await uploadInstagramAttachment(
     accessToken,
@@ -233,6 +235,7 @@ export async function sendInstagramMedia(
   }
 
   console.log('Instagram media sent successfully:', data);
+  return { messageId: data.message_id || data.id || `ig_media_${Date.now()}` };
 }
 
 /**
@@ -306,17 +309,23 @@ export async function subscribeToInstagramWebhooks(
 
 /**
  * High-level helper to send an Instagram outreach message for a given user
- * Automatically retrieves and decrypts credentials
+ * Automatically retrieves and decrypts credentials and logs to database.
  */
 export async function sendInstagramOutreach(
   userId: string,
-  recipientId: string,
-  message: string
-): Promise<void> {
+  leadId: string,
+  message: string,
+  options: { isAutonomous?: boolean; metadata?: any } = {}
+): Promise<{ messageId: string }> {
   const integration = await storage.getIntegration(userId, 'instagram');
   
   if (!integration || !integration.connected || !integration.encryptedMeta) {
     throw new Error('Instagram integration not connected');
+  }
+
+  const lead = await storage.getLead(leadId);
+  if (!lead || !lead.socialId) {
+    throw new Error('Lead missing Instagram ID (socialId)');
   }
 
   try {
@@ -339,18 +348,39 @@ export async function sendInstagramOutreach(
 
     await createTrackedEmail({
       userId,
-      recipientEmail: recipientId, // Using ID as "email" for tracking consistency
+      recipientEmail: lead.socialId, // Using ID as "email" for tracking consistency
       subject: 'Instagram Message',
       sentAt: new Date(),
       messageId: trackingToken
     });
 
-    await sendInstagramMessage(
+    const result = await sendInstagramMessage(
       accessToken,
       instagramBusinessAccountId,
-      recipientId,
+      lead.socialId,
       trackedMessage
     );
+
+    // LOG TO PERMANENT MESSAGES TABLE FOR DASHBOARD VISIBILITY
+    await storage.createMessage({
+      userId,
+      leadId,
+      body: trackedMessage,
+      direction: 'outbound',
+      threadId: `ig_thread_${lead.socialId}`,
+      metadata: { 
+        channel: 'instagram', 
+        trackingToken, 
+        messageId: result.messageId,
+        integrationId: integration.id,
+        isAutonomous: !!options.isAutonomous,
+        ...(options.metadata || {})
+      }
+    });
+
+    return result;
+
+    return result;
   } catch (error: any) {
     console.error(`[IG_OUTREACH] Failed for user ${userId}:`, error.message);
     

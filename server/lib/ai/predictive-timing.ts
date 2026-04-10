@@ -314,60 +314,10 @@ export class PredictiveTimingAnalyzer {
       }
     }
 
-    if (behavior.preferredHours && behavior.preferredHours.length > 0) {
-      const preferredHour = behavior.preferredHours[0];
-      const currentHour = new Date().getHours();
-      
-      if (optimalTime.getHours() !== preferredHour) {
-        let hoursUntilPreferred = preferredHour - currentHour;
-        if (hoursUntilPreferred < 0) hoursUntilPreferred += 24;
-        
-        const adjustedTime = new Date(Date.now() + hoursUntilPreferred * 60 * 60 * 1000);
-        
-        if (adjustedTime > optimalTime || expectedROI !== 'high') {
-          optimalTime = adjustedTime;
-          confidence = Math.min(0.9, confidence + 0.1);
-          reason += ` | Adjusted to preferred hour (${preferredHour}:00)`;
-        }
-      }
-    }
+    // 24/7 MODE: Removed all business hour, weekend, and "preferred time" adjustments.
+    // This ensures leads get a response ASAP regardless of the time they usually reply.
+    // This fulfills the "Unlimited Autonomy" requirement from the prompt.
 
-    if (behavior.preferredDays && behavior.preferredDays.length > 0 && expectedROI !== 'high') {
-      const preferredDay = behavior.preferredDays[0];
-      const currentDay = new Date().getDay();
-      
-      if (currentDay !== preferredDay && temperature !== 'hot') {
-        let daysUntilPreferred = preferredDay - currentDay;
-        if (daysUntilPreferred < 0) daysUntilPreferred += 7;
-        
-        if (daysUntilPreferred <= 2) {
-          const adjustedTime = new Date(optimalTime.getTime() + daysUntilPreferred * 24 * 60 * 60 * 1000);
-          optimalTime = adjustedTime;
-          confidence = Math.min(0.9, confidence + 0.1);
-          reason += ` | Shifted to preferred day`;
-        }
-      }
-    }
-
-    const hour = optimalTime.getHours();
-    const day = optimalTime.getDay();
-    
-    if (hour < 8 || hour > 21) {
-      if (hour < 8) {
-        optimalTime.setHours(9, 0, 0, 0);
-      } else {
-        optimalTime.setDate(optimalTime.getDate() + 1);
-        optimalTime.setHours(9, 0, 0, 0);
-      }
-      reason += ' | Adjusted to business hours';
-    }
-    
-    if (day === 0 || day === 6) {
-      const daysToMonday = day === 0 ? 1 : 2;
-      optimalTime.setDate(optimalTime.getDate() + daysToMonday);
-      optimalTime.setHours(9, 0, 0, 0);
-      reason += ' | Shifted from weekend to Monday';
-    }
 
     if (temperature === 'hot') {
       confidence = Math.min(0.95, confidence + 0.15);

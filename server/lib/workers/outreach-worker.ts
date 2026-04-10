@@ -119,8 +119,8 @@ export class AutonomousOutreachWorker {
   private pollingInterval: NodeJS.Timeout | null = null;
   private activeOutreachQueue: Map<string, boolean> = new Map(); // Track users being processed
   private readonly POLL_INTERVAL_MS = 5000; // 5 seconds
-  private readonly MIN_DELAY_MS = 120000; // 2 minutes
-  private readonly MAX_DELAY_MS = 240000; // 4 minutes
+  private readonly MIN_DELAY_MS = 60000; // 1 minute (Reduced for 24/7 ASAP mode)
+  private readonly MAX_DELAY_MS = 120000; // 2 minutes (Reduced for 24/7 ASAP mode)
 
   constructor() {
     this.isRunning = false;

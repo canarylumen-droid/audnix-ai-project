@@ -31,9 +31,10 @@ function isNightHour(date: Date, timezone: string): boolean {
 }
 
 /** Format a UTC ISO string as a natural human booking suggestion */
-function formatBookingCopy(isoSlot: string, leadProfile: any, useCount: number = 0): string {
+function formatBookingCopy(isoSlot: string, leadProfile: any, useCount: number = 0, fallbackTz: string = 'Africa/Lagos'): string {
   const date = new Date(isoSlot);
-  const tz = leadProfile?.detectedTimezone || 'Africa/Lagos';
+  const now = new Date();
+  const tz = leadProfile?.detectedTimezone || fallbackTz;
 
   const dayName = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'long' }).format(date);
   const shortDate = new Intl.DateTimeFormat('en-US', {
@@ -41,19 +42,30 @@ function formatBookingCopy(isoSlot: string, leadProfile: any, useCount: number =
     month: 'short',
     day: 'numeric',
   }).format(date);
+  
   const hour = parseInt(
     new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', hourCycle: 'h23' }).format(date),
     10
   );
   const timeStr = formatLocalHour(hour);
 
+  // Smart relative dating
+  const dateStr = date.toDateString();
+  const nowStr = now.toDateString();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toDateString();
+
+  const timeReference = dateStr === nowStr ? 'today' : dateStr === tomorrowStr ? 'tomorrow' : dayName;
+
   // Vary the copy so it doesn't sound templated
   const templates = [
-    `How does ${dayName} at ${timeStr} work for you?`,
-    `Are you free ${dayName} (${shortDate}) around ${timeStr}? It only takes about 20 minutes.`,
-    `${dayName} at ${timeStr} — does that work on your end?`,
-    `Would ${dayName} at ${timeStr} be good for a quick call?`,
-    `${dayName} around ${timeStr} — good for you?`,
+    `How does ${timeReference} at ${timeStr} work for you?`,
+    `Are you free ${timeReference} (${shortDate}) around ${timeStr}? It only takes about 20 minutes.`,
+    `${timeReference} at ${timeStr} — does that work on your end?`,
+    `Would ${timeReference} at ${timeStr} be good for a quick call?`,
+    `${timeReference} around ${timeStr} — good for you?`,
+    `Does ${timeStr} ${timeReference} suit you for a brief chat?`,
   ];
   return templates[useCount % templates.length];
 }
@@ -62,12 +74,12 @@ function formatBookingCopy(isoSlot: string, leadProfile: any, useCount: number =
  * Generate professional clash/conflict copy.
  * Never says "slot taken" or "time is blocked."
  */
-function generateClashCopy(alternativeSlot: string | null, leadProfile: any): string {
+function generateClashCopy(alternativeSlot: string | null, leadProfile: any, fallbackTz: string = 'Africa/Lagos'): string {
   if (!alternativeSlot) {
     return "I've got a conflict coming up — let me get back to you with a couple more options.";
   }
   const date = new Date(alternativeSlot);
-  const tz = leadProfile?.detectedTimezone || 'Africa/Lagos';
+  const tz = leadProfile?.detectedTimezone || fallbackTz;
   const dayName = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'long' }).format(date);
   const hour = parseInt(
     new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', hourCycle: 'h23' }).format(date),
@@ -189,7 +201,7 @@ Return strictly JSON:
             preferredContactStart: leadProfile.preferredContactStart,
             preferredContactEnd: leadProfile.preferredContactEnd,
             preferredDays: leadProfile.preferredDays as string[],
-          });
+          }, userTimezone);
         }
         return true;
       });
@@ -247,10 +259,9 @@ Return JSON: { "matches": ["ISO_STRING"] }`;
       // 8. Mark as proposed
       nightCapped.forEach(s => BookingProposer.markSlotProposed(this.userId, s));
 
-      // 9. Build natural-language copy for each slot
       const suggestedSlots = nightCapped.map((iso, idx) => ({
         iso,
-        copy: formatBookingCopy(iso, leadProfile, idx),
+        copy: formatBookingCopy(iso, leadProfile, idx, userTimezone),
       }));
 
       return {
@@ -274,9 +285,12 @@ Return JSON: { "matches": ["ISO_STRING"] }`;
     allMessages: any[]
   ): Promise<string> {
     const leadProfile = await getLeadProfile(lead.id);
+    const [user] = await db.select({ timezone: users.timezone }).from(users).where(eq(users.id, this.userId)).limit(1);
+    const userTz = user?.timezone || 'Africa/Lagos';
+
     const candidateSlots = await availabilityService.getSuggestedTimes(this.userId, 72);
     const alternative = candidateSlots.find(s => s.start.toISOString() !== clashSlotIso) || null;
-    return generateClashCopy(alternative?.start?.toISOString() || null, leadProfile);
+    return generateClashCopy(alternative?.start?.toISOString() || null, leadProfile, userTz);
   }
 
   /**
@@ -322,12 +336,12 @@ Return JSON:
 
       // Check if this is a night booking — notify user (Strict Protocol)
       if (leadProfile) {
-        const leadTz = leadProfile.detectedTimezone || 'Africa/Lagos';
+        const [user] = await db.select().from(users).where(eq(users.id, this.userId)).limit(1);
+        const userTz = user?.timezone || 'Africa/Lagos'; 
+        const leadTz = leadProfile.detectedTimezone || userTz;
         const slotDate = new Date(detection.confirmedTimeISO);
         
-        const [user] = await db.select().from(users).where(eq(users.id, this.userId)).limit(1);
-        const userTimezone = user?.timezone || 'Africa/Lagos';
-        const nightWatch = await availabilityService.canDeliverDuringNightWatch(this.userId, userTimezone);
+        const nightWatch = await availabilityService.canDeliverDuringNightWatch(this.userId, userTz);
         
         if (nightWatch.isNight) {
           availabilityService.incrementNightDelivery(this.userId);

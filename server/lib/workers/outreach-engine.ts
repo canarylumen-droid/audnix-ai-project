@@ -28,7 +28,7 @@ import { ReputationGuard } from '../email/reputation-guard.js';
 export class OutreachEngine {
   private isRunning: boolean = false;
   private interval: NodeJS.Timeout | null = null;
-  private readonly TICK_INTERVAL_MS = 300000; // Increased to 5m to protect DB quota (Neon)
+  private readonly TICK_INTERVAL_MS = 60000; // Reduced to 1m for 24/7 autonomous deployment
   private activeUserProcessing: Set<string> = new Set();
   private readonly MAX_CONCURRENT_USERS = 5000;
   private userMailboxIndex: Map<string, number> = new Map(); // Tracks rotating mailbox index per user
@@ -221,7 +221,7 @@ export class OutreachEngine {
 
     let campaign = null;
     for (const c of sortedCampaigns) {
-      if (isWeekend && c.excludeWeekends) continue;
+      // 24/7 MODE: Ignoring weekend exclusion flags
       campaign = c;
       break;
     }
@@ -568,32 +568,11 @@ export class OutreachEngine {
     // Calculate safe dynamic rate for non-stop delivery over 24 hours
     let finalMailboxLimit = mailboxDailyLimit;
 
-    // --- Peak Hour Analysis ---
-    const now = new Date();
-    const currentHour = now.getHours();
-
-    // Fetch analytics summary for the user to find bestReplyHour
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    let bestHour = 14; // Default to 2 PM if unknown
-    try {
-      const analytics = await storage.getAnalyticsSummary(userId, thirtyDaysAgo);
-      bestHour = analytics?.summary?.bestReplyHour || 14;
-    } catch (e) {
-      console.warn(`[OutreachEngine] Could not fetch analytics for user ${userId}, using default peak hour`);
-    }
-
-    // Check if we are in the peak window (+/- 1 hour from bestHour)
-    const isPeakHour = Math.abs(currentHour - bestHour) <= 1 || Math.abs(currentHour - (bestHour + 24)) <= 1;
-
-    // Adaptive frequency: During peak hours, we can send more aggressively (up to 3x base rate)
-    // but we still respect the daily total cap.
-    const peakMultiplier = isPeakHour ? 3 : 1;
-    const baseSendsPerHour = Math.max(1, Math.ceil(mailboxDailyLimit / 24));
-
-    // Cap at 50/hour for new safety, 100/hr for high-priority replies
-    const targetSendsPerHour = Math.min(baseSendsPerHour * peakMultiplier, isHighPriority ? 100 : 50);
+    // 24/7 MODE: Peak Hour Analysis removed. Operating at safe constant frequency.
+    const isPeakHour = true; // Always active
+    
+    // Adaptive frequency: 24/7 consistent pace 
+    const targetSendsPerHour = Math.min(Math.max(1, Math.ceil(mailboxDailyLimit / 24)) * 2, isHighPriority ? 100 : 50);
 
     // 1. Cooldown check (using integrationId if available)
     const lastSentResult = await db.execute(sql`

@@ -150,6 +150,38 @@ export class MultiChannelOrchestrator {
 
     return null;
   }
+
+  /**
+   * Universal dispatch for all outbound AI communication
+   */
+  static async dispatchMessage(userId: string, leadId: string, content: string, options: {
+    channel: 'email' | 'instagram';
+    subject?: string;
+    isAutonomous?: boolean;
+    metadata?: any;
+  }) {
+    console.log(`[Orchestrator] Dispatching ${options.channel} to lead ${leadId} (Autonomous: ${!!options.isAutonomous})`);
+
+    const lead = await storage.getLead(leadId);
+    if (!lead) throw new Error(`Lead ${leadId} not found`);
+
+    if (options.channel === 'email') {
+      const { sendEmail } = await import('./channels/email.js');
+      return await sendEmail(userId, lead.email || '', content, options.subject || 'Follow up', {
+        leadId,
+        isAutonomous: options.isAutonomous,
+        ...options.metadata
+      });
+    } else if (options.channel === 'instagram') {
+      const { sendInstagramOutreach } = await import('./channels/instagram.js');
+      return await sendInstagramOutreach(userId, leadId, content, {
+        isAutonomous: options.isAutonomous,
+        metadata: options.metadata
+      });
+    } else {
+      throw new Error(`Unsupported channel: ${options.channel}`);
+    }
+  }
 }
 
 // Export for use in follow-up worker

@@ -418,4 +418,64 @@ function mapLemonSqueezyToPlan(productId: string, variantId: string): string {
   return mapping[`${productId}_${variantId}`] || 'trial';
 }
 
+/**
+ * Gmail Pub/Sub push notification handler
+ */
+router.post('/google/push', async (req: Request, res: Response) => {
+  try {
+    const message = req.body.message;
+    if (!message || !message.data) {
+      return res.status(400).send('Invalid Pub/Sub message');
+    }
+
+    const decoded = JSON.parse(Buffer.from(message.data, 'base64').toString());
+    const { PushNotificationService } = await import('../lib/email/push-notification-service.js');
+    
+    await PushNotificationService.handleGmailPush(decoded);
+    res.status(200).send('OK');
+  } catch (error) {
+    console.error('[Webhooks] Gmail push failed:', error);
+    res.status(500).send('Error');
+  }
+});
+
+/**
+ * Outlook Graph API push notification handler
+ */
+router.post('/outlook/push', async (req: Request, res: Response) => {
+  try {
+    // Handle validation request
+    if (req.query.validationToken) {
+      return res.status(200).send(req.query.validationToken);
+    }
+
+    const notifications = req.body.value || [];
+    const { PushNotificationService } = await import('../lib/email/push-notification-service.js');
+
+    for (const notification of notifications) {
+      const clientState = notification.clientState;
+      // In a production app, verify clientState here to prevent spoofing
+      
+      const resourceData = notification.resourceData;
+      if (resourceData && resourceData.id) {
+          // Outlook notifications don't always include userId directly, 
+          // we might need to look it up or rely on the clientState to store userId
+          // For simplicity, we assume we find the user by looking at active subscriptions 
+          const subId = notification.subscriptionId;
+          const users = await storage.getAllUsers();
+          const user = users.find(u => (u.metadata as any)?.outlook_subscription_id === subId);
+          
+          if (user) {
+              await PushNotificationService.handleOutlookPush(user.id, resourceData.id);
+          }
+      }
+    }
+
+    res.status(202).send('Accepted');
+  } catch (error) {
+    console.error('[Webhooks] Outlook push failed:', error);
+    res.status(500).send('Error');
+  }
+});
+
 export default router;

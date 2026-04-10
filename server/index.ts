@@ -632,12 +632,15 @@ async function runMigrations() {
               startWorker("Meeting Reminders", () => meetingReminderWorker.start());
               startWorker("Lead Expiry", () => leadExpiryWorker.start());
 
-              // Real-time IMAP IDLE Manager
+              // Real-time Push & IMAP IDLE Managers
               try {
                 const { imapIdleManager } = await import("./lib/email/imap-idle-manager.js");
+                const { PushNotificationService } = await import("./lib/email/push-notification-service.js");
+                
                 startWorker("IMAP IDLE", () => imapIdleManager.start());
+                startWorker("Native Push", () => PushNotificationService.initializeAll());
               } catch (e) {
-                log("⚠️ IMAP IDLE Manager could not be imported", "error");
+                log("⚠️ Real-time managers could not be started", "error");
               }
 
               // Mailbox Health Monitoring & Lead Redistribution

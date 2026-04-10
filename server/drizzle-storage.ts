@@ -599,6 +599,14 @@ export class DrizzleStorage implements IStorage {
     if (result) {
       wsSync.notifyLeadsUpdated(result.userId, { event: 'UPDATE', lead: result });
 
+      // Phase 11: Invalidate dashboard stats for Zero Refresh
+      try {
+        const { invalidateStatsCache } = await import('./routes/dashboard-routes.js');
+        invalidateStatsCache(result.userId);
+        wsSync.notifyStatsUpdated(result.userId);
+      } catch (err) { }
+
+
       // Trigger notification on status change
       if (oldLead && updates.status && oldLead.status !== updates.status) {
         this.createNotification({
@@ -777,6 +785,14 @@ export class DrizzleStorage implements IStorage {
       // Notify both updates
       wsSync.notifyMessagesUpdated(message.userId, { event: 'INSERT', message: result[0] });
       wsSync.notifyLeadsUpdated(message.userId, { event: 'UPDATE', leadId: message.leadId });
+
+      // Phase 11: Invalidate dashboard stats for Zero Refresh sync
+      try {
+        const { invalidateStatsCache } = await import('./routes/dashboard-routes.js');
+        invalidateStatsCache(message.userId);
+        wsSync.notifyStatsUpdated(message.userId);
+      } catch (err) { }
+
 
       // Phase 8: Emit direct thread update to dashboard for instant conversation sync
       import('./lib/realtime/socket-service.js').then(({ socketService }) => {

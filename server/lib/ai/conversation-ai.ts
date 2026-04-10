@@ -669,8 +669,16 @@ ${enrichedContext}`;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error("AI reply generation error:", errorMessage);
+    
+    // Robust production fallback - localized and polite
+    const fallbackText = await getLocalizedResponse(
+      "Thanks for your message! Looking forward to connecting shortly.",
+      languageDetection,
+      'open'
+    );
+    
     return {
-      text: optimizeSalesLanguage("Thanks for your message! Let me get back to you shortly with more details."),
+      text: optimizeSalesLanguage(fallbackText),
       useVoice: false
     };
   }

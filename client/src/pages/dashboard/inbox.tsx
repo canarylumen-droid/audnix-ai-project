@@ -178,7 +178,36 @@ export default function InboxPage() {
 
   const { data: user } = useQuery<any>({ queryKey: ["/api/user/profile"] });
 
-  const { socket } = useRealtime();
+  const { socket, isSyncing: backendSyncing } = useRealtime();
+  const [syncStatus, setSyncStatus] = useState<Record<string, any>>({});
+
+  useEffect(() => {
+    if (!socket) return;
+    
+    // Listen for sync health updates from the server
+    const onSyncStatus = (data: any) => {
+      setSyncStatus(prev => ({
+        ...prev,
+        [data.integrationId]: data
+      }));
+    };
+
+    socket.on('sync:status', onSyncStatus);
+    return () => {
+      socket.off('sync:status', onSyncStatus);
+    };
+  }, [socket]);
+
+  // Helper to determine aggregate sync health
+  const getOverallSyncHealth = () => {
+    const statuses = Object.values(syncStatus);
+    if (statuses.length === 0) return 'idle';
+    if (statuses.some(s => s.status === 'connected' && s.realtime)) return 'realtime';
+    if (statuses.some(s => s.status === 'connected')) return 'polling';
+    return 'disconnected';
+  };
+
+  const syncHealth = getOverallSyncHealth();
 
   useEffect(() => {
     if (!socket) return;
@@ -859,7 +888,26 @@ export default function InboxPage() {
         )}>
           <div className="p-4 border-b space-y-4 shrink-0">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold">Inbox</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-bold">Inbox</h2>
+                {/* Real-time Connectivity Indicator */}
+                <div className={cn(
+                  "flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider transition-all duration-500",
+                  syncHealth === 'realtime' ? "bg-emerald-500/10 text-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.15)]" :
+                  syncHealth === 'polling' ? "bg-amber-500/10 text-amber-500" :
+                  syncHealth === 'disconnected' ? "bg-red-500/10 text-red-500" :
+                  "bg-muted text-muted-foreground opacity-50"
+                )}>
+                  <div className={cn(
+                    "h-1.5 w-1.5 rounded-full",
+                    syncHealth === 'realtime' ? "bg-emerald-500 animate-pulse" :
+                    syncHealth === 'polling' ? "bg-amber-500" :
+                    syncHealth === 'disconnected' ? "bg-red-500" :
+                    "bg-muted-foreground"
+                  )} />
+                  {syncHealth === 'realtime' ? 'Live' : syncHealth === 'polling' ? 'Polling' : syncHealth === 'disconnected' ? 'Offline' : 'Idle'}
+                </div>
+              </div>
               <div className="flex items-center gap-2">
                 {/* Status Filter Dropdown */}
                 <DropdownMenu>
@@ -884,11 +932,13 @@ export default function InboxPage() {
                   </DropdownMenuContent>
                 </DropdownMenu>
 
-                <Button variant="ghost" size="icon" onClick={() => {
+                <Button variant="ghost" size="icon" disabled={backendSyncing} onClick={() => {
                   queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
                   queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
                   toast({ title: "Syncing...", description: "Fetching latest messages from the cloud." });
-                }}><RefreshCw className="h-4 w-4" /></Button>
+                }}>
+                  <RefreshCw className={cn("h-4 w-4", backendSyncing && "animate-spin text-primary")} />
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"

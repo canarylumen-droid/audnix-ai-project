@@ -409,6 +409,66 @@ export class GmailOAuth {
       throw new Error(`Failed to get message details: ${error.message}`);
     }
   }
+
+  /**
+   * Register for push notifications (watch)
+   * This sends notifications to a Cloud Pub/Sub topic.
+   */
+  async watch(userId: string, emailAddress?: string): Promise<any> {
+    const accessToken = await this.getValidToken(userId, emailAddress);
+    if (!accessToken) throw new Error('No valid access token available');
+
+    const client = this.createClient({ access_token: accessToken });
+    const gmail = google.gmail({ version: 'v1', auth: client });
+
+    const topicName = process.env.GOOGLE_PUBSUB_TOPIC || `projects/${process.env.GOOGLE_PROJECT_ID}/topics/audnix-gmail-push`;
+
+    try {
+      console.log(`[Gmail OAuth] 📡 Setting up watch for ${emailAddress || userId} on topic ${topicName}`);
+      const response = await gmail.users.watch({
+        userId: 'me',
+        requestBody: {
+          topicName,
+          labelIds: ['INBOX'],
+          labelFilterAction: 'include'
+        }
+      });
+      
+      // Store the expiration and historyId in metadata for better tracking
+      const user = await storage.getUser(userId);
+      await storage.updateUser(userId, {
+        metadata: {
+          ...(user?.metadata as any || {}),
+          gmail_watch_expiry: response.data.expiration,
+          gmail_watch_history_id: response.data.historyId,
+        }
+      });
+
+      return response.data;
+    } catch (error: any) {
+      console.error(`[Gmail OAuth] Watch failed: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Stop push notifications (stop)
+   */
+  async stop(userId: string, emailAddress?: string): Promise<void> {
+    const accessToken = await this.getValidToken(userId, emailAddress);
+    if (!accessToken) return;
+
+    const client = this.createClient({ access_token: accessToken });
+    const gmail = google.gmail({ version: 'v1', auth: client });
+
+    try {
+      if (gmail.users) {
+        await gmail.users.stop({ userId: 'me' });
+      }
+    } catch (error: any) {
+      console.error(`[Gmail OAuth] Stop watch failed: ${error.message}`);
+    }
+  }
 }
 
 // Singleton instance — imported by google-redirect.ts and oauth.ts
