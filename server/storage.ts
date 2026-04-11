@@ -283,6 +283,8 @@ export class MemStorage implements IStorage {
   private notifications: Map<string, Notification>;
   private oauthAccounts: Map<string, OAuthAccount>;
   private videoMonitors: Map<string, any>;
+  private outreachCampaigns: Map<string, OutreachCampaign>;
+  private campaignLeads: Map<string, CampaignLead>;
   private processedComments: Set<string>;
   private brandKnowledge: Map<string, string>;
   private deals: Map<string, any>;
@@ -308,6 +310,8 @@ export class MemStorage implements IStorage {
     this.notifications = new Map();
     this.oauthAccounts = new Map();
     this.videoMonitors = new Map();
+    this.outreachCampaigns = new Map();
+    this.campaignLeads = new Map();
     this.processedComments = new Set();
     this.brandKnowledge = new Map();
     this.deals = new Map();
@@ -721,21 +725,6 @@ export class MemStorage implements IStorage {
     return {} as any;
   }
 
-  async getVoiceMinutesBalance(userId: string): Promise<number> {
-    return 0;
-  }
-
-  async getRecentBounces(userId: string, hours: number = 168): Promise<any[]> {
-    return [];
-  }
-
-  async getDomainVerifications(userId: string, limit: number = 10): Promise<any[]> {
-    return [];
-  }
-
-  async createDomainVerification(userId: string, data: any): Promise<any> {
-    return null;
-  }
 
   // Onboarding methods
 
@@ -1227,6 +1216,81 @@ export class MemStorage implements IStorage {
   }
   async deleteNotification(id: string, userId: string): Promise<void> {
     this.notifications.delete(id);
+  }
+
+
+
+  async getRecentBounces(userId: string, hours?: number): Promise<any[]> { return []; }
+  async getDomainVerifications(userId: string, limit?: number): Promise<any[]> { return []; }
+  async createDomainVerification(userId: string, data: any): Promise<any> { return data; }
+  async getVoiceMinutesBalance(userId: string): Promise<number> { return 0; }
+
+  // --- Outreach Campaign Methods ---
+  async getOutreachCampaign(id: string): Promise<OutreachCampaign | undefined> {
+    return this.outreachCampaigns.get(id);
+  }
+  async createOutreachCampaign(campaign: InsertOutreachCampaign): Promise<OutreachCampaign> {
+    const id = randomUUID();
+    const newCampaign: OutreachCampaign = {
+      ...campaign,
+      id,
+      stats: campaign.stats || { total: 0, sent: 0, replied: 0, bounced: 0 },
+      config: campaign.config || { dailyLimit: 50, minDelayMinutes: 2 },
+      metadata: campaign.metadata || {},
+      status: campaign.status || "draft",
+      excludeWeekends: campaign.excludeWeekends || false,
+      replyEmail: campaign.replyEmail || null,
+      aiAutonomousMode: campaign.aiAutonomousMode || false,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    } as OutreachCampaign;
+    this.outreachCampaigns.set(id, newCampaign);
+    return newCampaign;
+  }
+  async updateOutreachCampaign(id: string, updates: Partial<OutreachCampaign>): Promise<OutreachCampaign | undefined> {
+    const campaign = this.outreachCampaigns.get(id);
+    if (!campaign) return undefined;
+    const updated = { ...campaign, ...updates, updatedAt: new Date() };
+    this.outreachCampaigns.set(id, updated);
+    return updated;
+  }
+  async addLeadsToCampaign(campaignId: string, leads: { leadId: string }[]): Promise<void> {
+    for (const l of leads) {
+      const id = randomUUID();
+      const campaignLead: CampaignLead = {
+        id,
+        campaignId,
+        leadId: l.leadId,
+        status: 'pending',
+        currentStep: 0,
+        nextActionAt: null,
+        sentAt: null,
+        error: null,
+        retryCount: 0,
+        integrationId: null,
+        metadata: {},
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      this.campaignLeads.set(id, campaignLead);
+    }
+  }
+  async getCampaignLead(campaignId: string, leadId: string): Promise<CampaignLead | undefined> {
+    return Array.from(this.campaignLeads.values()).find(cl => cl.campaignId === campaignId && cl.leadId === leadId);
+  }
+  async updateCampaignLeadStatus(campaignId: string, leadId: string, status: CampaignLead["status"], error?: string): Promise<void> {
+    const cl = Array.from(this.campaignLeads.values()).find(cl => cl.campaignId === campaignId && cl.leadId === leadId);
+    if (cl) {
+      const updated = { ...cl, status, error: error || null, updatedAt: new Date() };
+      this.campaignLeads.set(cl.id, updated);
+    }
+  }
+  async scheduleNextCampaignStep(campaignLeadId: string, nextActionAt: Date): Promise<void> {
+    const cl = this.campaignLeads.get(campaignLeadId);
+    if (cl) {
+      const updated = { ...cl, nextActionAt, updatedAt: new Date() };
+      this.campaignLeads.set(campaignLeadId, updated);
+    }
   }
 }
 

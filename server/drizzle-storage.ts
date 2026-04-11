@@ -1,5 +1,5 @@
 import type { IStorage } from './storage.js';
-import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile, OtpCode, FollowUpQueue, InsertFollowUpQueue, OAuthAccount, InsertOAuthAccount, CalendarEvent, InsertCalendarEvent, AuditTrail, InsertAuditTrail, Organization, InsertOrganization, TeamMember, InsertTeamMember, Payment, InsertPayment, SmtpSettings, InsertSmtpSettings, EmailMessage, InsertEmailMessage, Notification, InsertNotification, Thread, InsertThread, LeadInsight, InsertLeadInsight } from "../shared/schema.js";
+import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile, OtpCode, FollowUpQueue, InsertFollowUpQueue, OAuthAccount, InsertOAuthAccount, CalendarEvent, InsertCalendarEvent, AuditTrail, InsertAuditTrail, Organization, InsertOrganization, TeamMember, InsertTeamMember, Payment, InsertPayment, SmtpSettings, InsertSmtpSettings, EmailMessage, InsertEmailMessage, Notification, InsertNotification, Thread, InsertThread, LeadInsight, InsertLeadInsight, OutreachCampaign, InsertOutreachCampaign, CampaignLead, InsertCampaignLead } from "../shared/schema.js";
 import { db } from './db.js';
 import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes, payments, followUpQueue, oauthAccounts, calendarEvents, auditTrail, organizations, teamMembers, aiLearningPatterns, bounceTracker, smtpSettings, videoMonitors, processedComments, emailMessages, brandEmbeddings, threads, leadInsights, outreachCampaigns, campaignLeads } from "../shared/schema.js";
 import { eq, desc, and, gte, lte, sql, not, isNull, or, like, inArray, exists } from "drizzle-orm";
@@ -2495,7 +2495,7 @@ export class DrizzleStorage implements IStorage {
         or(eq(campaignLeads.status, 'pending'), eq(campaignLeads.status, 'queued'))
       ));
 
-    return result.map(r => ({ ...r.campaignLead, lead: r.lead }));
+    return result.map((r: { campaignLead: CampaignLead, lead: Lead }) => ({ ...r.campaignLead, lead: r.lead }));
   }
 
   async getCampaignLead(campaignId: string, leadId: string): Promise<CampaignLead | undefined> {

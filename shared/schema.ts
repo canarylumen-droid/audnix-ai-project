@@ -459,6 +459,7 @@ export const outreachCampaigns = pgTable("outreach_campaigns", {
   }>().notNull().default(sql`'{"dailyLimit": 50, "minDelayMinutes": 2}'::jsonb`),
   replyEmail: text("reply_email"),
   aiAutonomousMode: boolean("ai_autonomous_mode").notNull().default(false),
+  metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 }, (table) => ({

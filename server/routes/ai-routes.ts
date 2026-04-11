@@ -1467,7 +1467,7 @@ router.post("/run-outreach", requireAuth, async (req: Request, res: Response): P
 
     // 2. Resolve/Create Leads and Assign to Campaign
     const leadAssignments: { leadId: string }[] = [];
-    for (const l of leads) {
+    for (const l of (leads as any[])) {
       let lead = await storage.getLeadByEmail(l.email, userId);
       if (!lead) {
         lead = await storage.createLead({
@@ -1502,7 +1502,7 @@ router.post("/run-outreach", requireAuth, async (req: Request, res: Response): P
       
       // Start processing but return immediately to avoid timeout (pseudo-background)
       setImmediate(() => {
-        runOutreachCampaignQueued(userId, campaign.id).catch(err => {
+        runOutreachCampaignQueued(userId, campaign.id).catch((err: any) => {
           console.error(`[OutreachSyncFallback] Campaign ${campaign.id} failed:`, err);
         });
       });

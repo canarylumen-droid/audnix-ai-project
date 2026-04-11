@@ -23,6 +23,7 @@ import { decryptToJSON } from '../crypto/encryption.js';
 import { hasRedis } from '../queues/redis-config.js';
 import { mailboxHealthService } from '../email/mailbox-health-service.js';
 import { quotaService } from '../monitoring/quota-service.js';
+import { warmupService } from '../outreach/warmup-service.js';
 import { ReputationGuard } from '../email/reputation-guard.js';
 
 export class OutreachEngine {
@@ -146,9 +147,9 @@ export class OutreachEngine {
   }
 
   /**
-   * Process outreach for a single user (Campaign + Autonomous)
+   * Process outreach for a specific user (Batch mode)
    */
-  private async processUserOutreach(userId: string): Promise<void> {
+  public async processUserOutreach(userId: string): Promise<void> {
     this.activeUserProcessing.add(userId);
     try {
       // --- FAULT TOLERANCE: Plan Expiry Check ---
@@ -477,6 +478,16 @@ export class OutreachEngine {
 
     // --- Autonomous Adaptive Reputation Limits ---
     let effectiveLimit = baseEffectiveLimit;
+    
+    // Apply Warmup Service limits
+    if (integration.provider !== 'instagram') {
+      const warmup = warmupService.getWarmupStatus(integration, hardLimit);
+      if (warmup.isWarmingUp && warmup.dailyLimit < effectiveLimit) {
+        effectiveLimit = warmup.dailyLimit;
+        console.log(`[OutreachEngine] 🛡️ WARMUP LIMIT: Mailbox ${integration.id} (${integration.provider}) capped at ${effectiveLimit} - ${warmup.reason}`);
+      }
+    }
+
     if (integration.provider !== 'instagram') {
       try {
         // [PHASE 18] REAL-TIME SAFETY INTERLOCK

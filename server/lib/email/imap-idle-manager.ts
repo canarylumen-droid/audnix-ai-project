@@ -957,23 +957,6 @@ class ImapIdleManager {
         }
     }
 
-    stop(): void {
-        this.isRunning = false;
-        
-        // Clear all sync intervals
-        for (const folderMap of this.syncIntervals.values()) {
-            for (const interval of folderMap.values()) clearInterval(interval);
-        }
-        this.syncIntervals.clear();
-
-        for (const folderMap of this.connections.values()) {
-            for (const imap of folderMap.values()) {
-                try { imap.end(); } catch (e) {}
-            }
-        }
-        this.connections.clear();
-        console.log('🛑 IMAP IDLE Manager stopped');
-    }
 
     public async appendSentMessage(userId: string, integrationId: string, rawMessage: string, config: EmailConfig): Promise<void> {
         const MAX_RETRIES = 3;

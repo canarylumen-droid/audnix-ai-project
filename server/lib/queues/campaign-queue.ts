@@ -11,6 +11,7 @@
 
 import { Queue, Worker, Job } from 'bullmq';
 import { redisConnection, hasRedis } from './redis-config.js';
+export { hasRedis, redisConnection };
 import { db } from '../../db.js';
 import {
   outreachCampaigns,
@@ -56,13 +57,18 @@ interface AutoReplyJobData {
   leadId: string;
 }
 
+interface AutonomousJobData {
+  type: 'autonomous';
+  userId: string;
+}
+
 interface StatsUpdateJobData {
   type: 'campaign:update-stats';
   campaignId: string;
   userId: string;
 }
 
-type CampaignJobData = SendBatchJobData | FollowUpJobData | AutoReplyJobData | StatsUpdateJobData;
+type CampaignJobData = SendBatchJobData | FollowUpJobData | AutoReplyJobData | StatsUpdateJobData | AutonomousJobData;
 
 // ─── Queue & Worker ───────────────────────────────────────────────────────────
 
@@ -277,6 +283,14 @@ async function processCampaignJob(job: Job<CampaignJobData>): Promise<void> {
       break;
     case 'campaign:update-stats':
       await processStatsUpdate(data);
+      break;
+    case 'autonomous':
+      try {
+        const { outreachEngine } = await import('../workers/outreach-engine.js');
+        await outreachEngine.processUserOutreach(data.userId);
+      } catch (err: any) {
+        console.error(`[CampaignWorker] Autonomous outreach failed for user ${data.userId}:`, err.message);
+      }
       break;
     default:
       console.warn(`[CampaignWorker] Unknown job type: ${(data as any).type}`);

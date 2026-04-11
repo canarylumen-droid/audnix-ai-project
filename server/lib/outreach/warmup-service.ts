@@ -6,12 +6,6 @@ import type { Integration } from '../../../shared/schema.js';
  *
  * Prevents spam-folder placement by enforcing progressive send limits
  * for newly connected email accounts.
- *
- * Warmup Schedule:
- *   Day 1-2  : max 5 emails / day
- *   Day 3-5  : max 20 emails / day
- *   Day 6-10 : max 50 emails / day
- *   Day 11+  : normal provider limits apply
  */
 
 interface WarmupStatus {
@@ -22,28 +16,35 @@ interface WarmupStatus {
 }
 
 class WarmupService {
+  /**
+   * Professional tiered warmup schedule:
+   * 1-2   Days -> 25  emails / day
+   * 3-5   Days -> 75  emails / day
+   * 6-10  Days -> 150 emails / day
+   * 11-14 Days -> 300 emails / day
+   */
   private readonly WARMUP_STAGES: Array<{ maxDays: number; limit: number }> = [
-    { maxDays: 2,  limit: 5  },
-    { maxDays: 5,  limit: 20 },
-    { maxDays: 10, limit: 50 },
+    { maxDays: 2,  limit: 25  },
+    { maxDays: 5,  limit: 75  },
+    { maxDays: 10, limit: 150 },
+    { maxDays: 14, limit: 300 },
   ];
 
-  private readonly FULL_WARMUP_DAYS = 10;
+  private readonly FULL_WARMUP_DAYS = 14;
 
   /**
-   * Returns the effective daily send limit for a mailbox integration.
-   * If the mailbox is warming up, this will be lower than the provider max.
+   * Returns the effective daily send limit for a mailbox integration based on age.
    */
   getWarmupStatus(integration: Integration, providerMax: number): WarmupStatus {
+    // Treat null/undefined createdAt as "now" (Day 0)
     const createdAt = integration.createdAt
       ? new Date(integration.createdAt)
       : new Date();
 
-    const daysSinceConnected = Math.floor(
-      (Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24)
-    );
+    const diffTime = Date.now() - createdAt.getTime();
+    const daysSinceConnected = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
 
-    // Check if still in warmup period
+    // Find the current stage
     for (const stage of this.WARMUP_STAGES) {
       if (daysSinceConnected <= stage.maxDays) {
         return {
@@ -75,7 +76,7 @@ class WarmupService {
 
       if (warmup.isWarmingUp && warmup.dailyLimit < mb.limit) {
         console.log(
-          `[WarmupService] ⚠️ Mailbox ${mb.id} (${mb.provider}) – ${warmup.reason}`
+          `[WarmupService] 🛡️ Mailbox ${mb.id} (${mb.provider}) – ${warmup.reason}`
         );
         return {
           ...mb,
@@ -92,7 +93,7 @@ class WarmupService {
    * Quick check: is this integration currently in warmup?
    */
   isWarming(integration: Integration): boolean {
-    return this.getWarmupStatus(integration, 999).isWarmingUp;
+    return this.getWarmupStatus(integration, 99999).isWarmingUp;
   }
 }
 
