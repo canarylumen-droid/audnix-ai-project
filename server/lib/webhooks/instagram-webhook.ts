@@ -318,10 +318,20 @@ async function processInstagramMessage(message: InstagramMessage): Promise<void>
       newTags.push('hot-lead');
 
       if (intent.wantsToSchedule || intent.readyToBuy) {
-        newStatus = 'converted'; // mapped 'converting' -> 'converted'? Schema has 'converted'.
+        newStatus = 'open'; 
         newTags.push('ready-to-buy');
 
-        await scheduleCalendarMeeting(lead as any, integration.userId);
+        await storage.createFollowUp({
+          userId: integration.userId,
+          leadId: lead.id,
+          channel: 'instagram',
+          status: 'pending',
+          scheduledAt: new Date(Date.now() + 2 * 60 * 1000), // Reply with link in 2 mins
+          context: {
+            intent: intent.readyToBuy ? 'payment' : 'booking',
+            reasoning: 'AI detected high intent to buy/schedule from Instagram webhook.'
+          }
+        });
       }
     } else if (intent.isNegative && intent.confidence > 0.7) {
       newStatus = 'not_interested'; // valid enum
@@ -633,32 +643,4 @@ function getSmartScheduleTime(intent: IntentAnalysis, lead: LeadRecord): string 
   return new Date(now + delayMs).toISOString();
 }
 
-async function scheduleCalendarMeeting(lead: any, userId: string): Promise<void> {
-  try {
-    const nextSlot = getNextAvailableSlot(userId);
-    await storage.createCalendarEvent({
-      userId,
-      leadId: lead.id,
-      title: `Meeting with ${lead.name}`,
-      startTime: new Date(nextSlot),
-      endTime: new Date(new Date(nextSlot).getTime() + 30 * 60 * 1000), // 30 min default
-      provider: 'google', // Default or fetch from settings
-      externalId: generateMeetingLink(), // Mock ID for now
-      meetingUrl: generateMeetingLink(),
-      description: 'Auto-scheduled via AI'
-    });
-  } catch (error) {
-    console.error('Error scheduling calendar meeting:', error);
-  }
-}
 
-function getNextAvailableSlot(_userId: string): string {
-  const date = new Date();
-  date.setDate(date.getDate() + 2);
-  date.setHours(14, 0, 0, 0);
-  return date.toISOString();
-}
-
-function generateMeetingLink(): string {
-  return `https://meet.google.com/${Math.random().toString(36).substring(2, 15)}`;
-}

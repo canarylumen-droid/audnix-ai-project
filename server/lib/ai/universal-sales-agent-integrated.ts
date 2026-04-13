@@ -133,6 +133,7 @@ function convertToSchemaLead(lead: LeadWithProfile): Lead {
     fathomMeetingId: (lead as any).fathomMeetingId || null,
     createdAt: new Date(),
     updatedAt: new Date(),
+    bant: null,
   };
 }
 

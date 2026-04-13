@@ -25,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useMailbox } from "@/hooks/use-mailbox";
 import { LeadIntelligenceModal } from "@/components/dashboard/LeadIntelligenceModal";
+import { FathomCallLog } from "@/components/outreach/FathomCallLog";
 import { CustomContextMenu, useContextMenu } from "@/components/ui/interactive/CustomContextMenu";
 import UnifiedCampaignWizard from "@/components/outreach/UnifiedCampaignWizard";
 import { CampaignListModal } from "@/components/outreach/CampaignListModal";
@@ -1466,6 +1467,19 @@ export default function InboxPage() {
                                     <span className="text-foreground/70">{messagesData?.messages?.length || 0} messages</span>
                                   </div>
                                 </div>
+                              </AccordionContent>
+                            </AccordionItem>
+
+                            {/* Fathom Meetings */}
+                            <AccordionItem value="meetings" className="border-none space-y-2">
+                              <AccordionTrigger className="hover:no-underline py-0">
+                                <div className="flex items-center gap-2">
+                                  <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Recorded Meetings</h4>
+                                  <div className="h-1 w-1 rounded-full bg-primary animate-pulse" />
+                                </div>
+                              </AccordionTrigger>
+                              <AccordionContent className="pt-2">
+                                {activeLead && <FathomCallLog leadId={activeLead.id} />}
                               </AccordionContent>
                             </AccordionItem>
                           </Accordion>

@@ -25,6 +25,7 @@ import { generateReply } from './ai-service.js';
 import { getStyleMarkers, type StyleMarkers } from './personality-learner.js';
 import { getCalendlyPrefillLink } from '../integrations/calendly.js';
 import { getLeadProfile } from '../calendar/lead-timezone-intelligence.js';
+import { searchSimilarChunks } from './vector-search.js';
 
 const isDemoMode = false;
 
@@ -873,10 +874,22 @@ export async function generateExpertOutreach(
   userId: string
 ): Promise<{ subject: string, body: string, alternatives: string[] }> {
   const brandContext = await getBrandContext(userId);
+  const user = await storage.getUserById(userId);
+  const intelligence = (user as any)?.intelligenceMetadata || {};
+  
   const offer = brandContext.offer || "your premium solution";
   const leadRole = lead.role || "Founder";
   const industry = (lead.metadata as any)?.industry || "your industry";
   const leadBio = lead.bio || "";
+
+  // Semantically retrieve the best knowledge fragments for this specific lead/industry
+  let ragContext = "";
+  try {
+    const relevantChunks = await searchSimilarChunks(`${lead.company} ${industry} ${leadRole}`, userId, 5);
+    ragContext = relevantChunks.map(c => `[From ${c.fileName}]: ${c.content}`).join("\n\n");
+  } catch (ragError) {
+    console.warn("⚠️ [RAG] Outreach retrieval error:", ragError);
+  }
 
   try {
     const systemPrompt = `You are an elite high-ticket sales copywriting expert (Think Joe Sugarman + Chris Voss). 
@@ -890,6 +903,16 @@ export async function generateExpertOutreach(
 
     BRAND CONTEXT:
     ${formatBrandContextForPrompt(brandContext)}
+
+    STRATEGIC INTELLIGENCE (Deep Research Results):
+    - Market Gaps: ${JSON.stringify(intelligence.marketGaps || [])}
+    - Top Competitors: ${JSON.stringify(intelligence.competitors || [])}
+    - Our Differentiators: ${JSON.stringify(intelligence.differentiators || [])}
+    - UVP: ${intelligence.uvp || offer}
+    - Strategic Advantage: ${intelligence.whyYouWin || ""}
+
+    DETAILED KNOWLEDGE BASE (Semantic Retrieval):
+    ${ragContext || "No specific knowledge base fragments found."}
     COPYWRITING DIRECTIVES:
     1. PEER-TO-PEER AUTHORITY: You are a high-level strategic advisor, not a salesperson. Speak with authority to ${leadRole}s.
     2. THE CURIOSITY GAP: Start with a disruptive observation about ${industry} or their specific business type (e.g. Agency).
@@ -976,6 +999,17 @@ export async function generateCampaignTemplateSequence(
   const brandContext = await getBrandContext(userId);
   const user = await storage.getUserById(userId);
   
+  const intelligence = (user as any)?.intelligenceMetadata || {};
+  let ragContext = "Use general brand context.";
+  try {
+    const ragContextChunks = await searchSimilarChunks("Campaign sequence " + (focus || ""), userId, 3);
+    if (ragContextChunks && ragContextChunks.length > 0) {
+      ragContext = ragContextChunks.map((c: any) => c.content).join("\n\n");
+    }
+  } catch (e) {
+    // Ignore, fallback to default
+  }
+
   // Combine brand config and PDF vector text if available
   const pdfIntel = user?.brandGuidelinePdfText 
     ? `BRAND PDF INTEL EXCERPTS: ${user.brandGuidelinePdfText.substring(0, 1500)}` 
@@ -991,7 +1025,15 @@ export async function generateCampaignTemplateSequence(
     BRAND INTEL:
     Offer: ${JSON.stringify(offer)}
     Company Name: ${(brandContext as any)?.businessName || 'Us'}
-    ${pdfIntel}
+    
+    STRATEGIC POSITIONING:
+    - Market Gaps to Exploit: ${JSON.stringify(intelligence.marketGaps || [])}
+    - Core Advantage: ${intelligence.whyYouWin || ""}
+    - UVP: ${intelligence.uvp || offer}
+
+    SEMANTIC KNOWLEDGE BASE (Use for specific USPs):
+    ${ragContext || "Use general brand context."}
+    
     ${customFocus}
 
     RULES & FORMATTING:

@@ -519,4 +519,24 @@ router.post("/generate-message-with-intelligence", requireAuth, async (req: Requ
   }
 });
 
+// ============ FATHOM CALL HISTORY ============
+router.get("/:id/fathom-calls", requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const leadId = req.params.id;
+
+    const lead = await storage.getLeadById(leadId);
+    if (!lead || lead.userId !== userId) {
+      res.status(404).json({ error: "Lead not found" });
+      return;
+    }
+
+    const calls = await storage.getFathomCalls(leadId);
+    res.json(calls);
+  } catch (error) {
+    console.error("Error fetching Fathom calls:", error);
+    res.status(500).json({ error: "Failed to fetch meeting history" });
+  }
+});
+
 export default router;

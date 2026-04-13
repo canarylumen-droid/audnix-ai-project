@@ -21,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
 import { PdfIcon, VoiceIcon } from "@/components/ui/CustomIcons";
+import { BrandKnowledgeBase } from "@/components/admin/BrandKnowledgeBase";
 
 interface UserProfile {
   id: string;
@@ -300,104 +301,7 @@ export default function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="brand" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <Card className="border-border/50 shadow-sm rounded-2xl">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-xl font-black">
-                  <Brain className="h-6 w-6 text-primary animate-pulse" />
-                  Intelligence Memory (Base context)
-                </CardTitle>
-                <CardDescription className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50">
-                  Upload brand materials to train your personal AI brain.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-8 pt-0">
-                {user.metadata?.brandPdfFileName ? (
-                  <div className="border-2 border-primary/20 bg-primary/5 rounded-2xl p-8 flex flex-col items-center justify-center text-center">
-                    <div className="mb-4 bg-primary/10 p-4 rounded-full">
-                      <PdfIcon className="w-8 h-8 text-primary" />
-                    </div>
-                    <h3 className="font-bold text-lg mb-1">{user.metadata.brandPdfFileName}</h3>
-                    <p className="text-xs text-muted-foreground mb-6">
-                      Uploaded on {new Date(user.metadata.brandPdfUploadedAt).toLocaleDateString()}
-                    </p>
-                    <div className="flex gap-3">
-                      <Button variant="outline" size="sm" onClick={() => pdfInputRef.current?.click()} disabled={uploadPDFMutation.isPending}>
-                        {uploadPDFMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
-                        Replace PDF
-                      </Button>
-                    </div>
-                    <input ref={pdfInputRef} type="file" className="hidden" accept=".pdf" onChange={e => e.target.files?.[0] && uploadPDFMutation.mutate(e.target.files[0])} />
-                  </div>
-                ) : (
-                  <div
-                    className="group border-2 border-dashed border-border hover:border-primary/50 transition-all rounded-2xl p-10 flex flex-col items-center justify-center text-center cursor-pointer bg-muted/30"
-                    onClick={() => pdfInputRef.current?.click()}
-                  >
-                    <div className="mb-6">
-                      <PdfIcon className="w-12 h-12" />
-                    </div>
-                    <h3 className="font-bold mb-2">Upload Brand PDF</h3>
-                    <p className="text-xs text-muted-foreground max-w-[240px] leading-relaxed">
-                      Guides, sales scripts, or brand decks used for AI training.
-                    </p>
-                    <input ref={pdfInputRef} type="file" className="hidden" accept=".pdf" onChange={e => e.target.files?.[0] && uploadPDFMutation.mutate(e.target.files[0])} />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="border-border/50 shadow-sm rounded-2xl">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-xl">
-                  <MailIcon className="h-5 w-5 text-primary" />
-                  SMTP Settings
-                </CardTitle>
-                <CardDescription>Manage your primary sending address and track activity.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="p-4 rounded-xl bg-muted/30 border border-border">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <p className="text-sm font-bold">{smtpData?.[0]?.email || "sales@replyflow.pro"}</p>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Primary Sending Address</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold">Test Send</Button>
-                      <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold">Edit</Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 text-[10px] font-bold"
-                        onClick={async () => {
-                          try {
-                            toast({ title: "Sync Started", description: "Fetching emails from the last 30 days..." });
-                            await apiRequest('POST', '/api/custom-email/sync-history', { days: 30 });
-                            toast({ title: "Sync Scheduled", description: "Emails are being imported in the background." });
-                          } catch (err) {
-                            toast({ title: "Sync Failed", description: "Could not start historical sync.", variant: "destructive" });
-                          }
-                        }}
-                      >
-                        <RefreshCw className="w-3 h-3 mr-1.5" />
-                        Sync History
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 rounded-lg bg-background border border-border">
-                      <p className="text-xl font-black">{smtpData?.[0]?.dailySentCount || 0}</p>
-                      <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-tighter">Sent Today</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-background border border-border">
-                      <p className="text-xl font-black">{smtpData?.[0]?.yesterdaySentCount || 0}</p>
-                      <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-tighter">Sent Yesterday</p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <BrandKnowledgeBase embedded={true} />
         </TabsContent>
 
         <TabsContent value="ai" className="space-y-6">

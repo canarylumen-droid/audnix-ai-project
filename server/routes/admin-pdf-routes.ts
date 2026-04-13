@@ -7,11 +7,14 @@ import { sql } from "drizzle-orm";
 import { generateReply } from "../lib/ai/ai-service.js";
 import { MODELS } from "../lib/ai/model-config.js";
 import crypto from "crypto";
-import { detectUVP } from "../lib/ai/universal-sales-agent.js";
+import { detectUVP, gatherCompetitorIntelligence } from "../lib/ai/universal-sales-agent.js";
+import { indexPdfChunks, ensureVectorSetup } from "../lib/ai/vector-search.js";
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const pdf = require('pdf-parse');
 
+// Ensure vector infrastructure is ready on module load
+ensureVectorSetup().catch(e => console.warn('[AdminPdf] Vector setup warning:', e.message));
 
 const router = Router();
 
@@ -445,6 +448,38 @@ Only include fields you can confidently extract. Return valid JSON only.`,
 
       console.log(`✅ Brand PDF uploaded and processed for user ${userId}`);
 
+      // PHASE 1.5: Autonomous Deep Research (Competitor Gaps & UVP)
+      let intelligenceMetadata = (user as any).intelligenceMetadata || {};
+      try {
+        console.log("🔍 [DeepResearch] Starting autonomous competitive analysis...");
+        const competitorAnalysis = await gatherCompetitorIntelligence(
+          brandContext.industry || "B2B",
+          brandContext.companyName || user.businessName || "Your Brand"
+        );
+
+        const uvpAnalysis = await detectUVP(brandContext);
+
+        intelligenceMetadata = {
+          ...intelligenceMetadata,
+          competitors: competitorAnalysis.competitors,
+          marketGaps: competitorAnalysis.gaps,
+          opportunities: competitorAnalysis.opportunities,
+          uvp: uvpAnalysis.uvp,
+          differentiators: uvpAnalysis.differentiators,
+          whyYouWin: uvpAnalysis.whyYouWin,
+          lastResearchAt: new Date().toISOString(),
+          sourceDocument: req.file.originalname
+        };
+
+        // Persist the strategic intelligence
+        await storage.updateUser(userId, { 
+          intelligenceMetadata: intelligenceMetadata as any 
+        });
+        console.log("💎 [DeepResearch] Intelligence metadata crystallized.");
+      } catch (researchError) {
+        console.warn("⚠️ [DeepResearch] Enrichment skipped due to AI error:", researchError);
+      }
+
       // TRIGGER: If leads exist, start outreach immediately (boom)
       try {
         const { triggerAutoOutreach } = await import("../lib/sales-engine/outreach-engine.js");
@@ -453,10 +488,28 @@ Only include fields you can confidently extract. Return valid JSON only.`,
         console.warn("Failed to trigger auto-outreach after upload:", triggerError);
       }
 
+      // PHASE 2: Index chunks into vector store for semantic RAG (CUMULATIVE VERSIONING)
+      let chunksIndexed = 0;
+      try {
+        const cacheResult = await db.execute(sql`
+          SELECT id FROM brand_pdf_cache WHERE user_id = ${userId} ORDER BY created_at DESC LIMIT 1
+        `);
+        const pdfId = (cacheResult.rows[0] as any)?.id || fileHash;
+        
+        // Pass options for cumulative memory (retain old, increment version)
+        chunksIndexed = await indexPdfChunks(pdfText, userId, pdfId, req.file.originalname, {
+          clearPrevious: false // RETAIN OLD MEMORY as per Level 10 requirement
+        });
+        console.log(`🔍 [VectorSearch] Indexed ${chunksIndexed} semantic chunks (cumulative) for user ${userId}`);
+      } catch (vecError) {
+        console.warn('Vector indexing failed (non-critical):', (vecError as Error).message);
+      }
+
       res.json({
         success: true,
         message: "Brand PDF uploaded and processed successfully",
         cached: false,
+        chunksIndexed,
         extracted: {
           companyName: brandContext.companyName,
           industry: brandContext.industry,
@@ -545,20 +598,32 @@ router.patch(
       const updates = req.body as Record<string, unknown>;
       const existingMetadata = (user.metadata || {}) as DeepMergeObject;
 
-      // Deep merge updates with existing metadata
+      // Extract specific fields meant for top-level user columns
+      const { uvp, businessLogo, ...otherUpdates } = updates;
+
+      // Deep merge remaining updates with existing metadata
       const updatedMetadata = deepMerge(existingMetadata, {
-        ...updates,
+        ...otherUpdates,
         brandContextUpdatedAt: new Date().toISOString(),
       } as DeepMergeObject);
 
+      // Handle Intelligence Metadata steering
+      const updatedIntelligence = uvp ? {
+        ...(user.intelligenceMetadata as Record<string, any> || {}),
+        uvp: uvp as string,
+        lastResearchAt: new Date().toISOString()
+      } : user.intelligenceMetadata;
+
       await storage.updateUser(userId, {
         metadata: updatedMetadata,
-        businessName: (updates.companyName as string | undefined) || user.businessName,
+        businessName: (otherUpdates.companyName as string | undefined) || user.businessName,
+        ...(businessLogo !== undefined && { businessLogo: businessLogo as string }),
+        ...(uvp !== undefined && { intelligenceMetadata: updatedIntelligence })
       });
 
       res.json({
         success: true,
-        message: "Brand context updated",
+        message: "Brand context and intelligence steered successfully",
       });
     } catch (error: unknown) {
       console.error("Error updating brand context:", error);
@@ -677,6 +742,105 @@ router.get(
       });
     } catch (error: unknown) {
       console.error("Error fetching brand context:", error);
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  }
+);
+
+/**
+ * GET /api/brand-pdf/extracted-text
+ * Return full extracted text for in-place editing in the UI
+ */
+router.get(
+  "/extracted-text",
+  requireAuth,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = getCurrentUserId(req);
+      if (!userId) { res.status(401).json({ error: "Not authenticated" }); return; }
+
+      const result = await db.execute(sql`
+        SELECT id, file_name, extracted_text, analysis_score, created_at
+        FROM brand_pdf_cache
+        WHERE user_id = ${userId}
+        ORDER BY created_at DESC
+        LIMIT 1
+      `);
+
+      if (result.rows.length === 0) {
+        res.json({ exists: false, text: null });
+        return;
+      }
+
+      const row = result.rows[0] as any;
+
+      // Also get chunk count from brand_embeddings
+      const chunkResult = await db.execute(sql`
+        SELECT COUNT(*) AS count FROM brand_embeddings WHERE user_id = ${userId}
+      `).catch(() => ({ rows: [{ count: 0 }] }));
+      const chunkCount = parseInt((chunkResult.rows[0] as any)?.count || '0');
+
+      const user = await storage.getUserById(userId);
+
+      res.json({
+        exists: true,
+        id: row.id,
+        fileName: row.file_name,
+        text: row.extracted_text || user?.brandGuidelinePdfText || "",
+        analysisScore: row.analysis_score,
+        chunkCount,
+        createdAt: row.created_at,
+        intelligenceMetadata: (user as any)?.intelligenceMetadata || {},
+        businessLogo: (user as any)?.businessLogo,
+      });
+    } catch (error: unknown) {
+      console.error("Error fetching extracted text:", error);
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  }
+);
+
+/**
+ * PATCH /api/brand-pdf/extracted-text
+ * Save edited PDF text + re-index vector chunks
+ */
+router.patch(
+  "/extracted-text",
+  requireAuth,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = getCurrentUserId(req);
+      if (!userId) { res.status(401).json({ error: "Not authenticated" }); return; }
+
+      const { text, pdfId } = req.body as { text: string; pdfId: string };
+      if (!text || !pdfId) {
+        res.status(400).json({ error: "text and pdfId are required" });
+        return;
+      }
+
+      // Update the stored extracted text
+      await db.execute(sql`
+        UPDATE brand_pdf_cache
+        SET extracted_text = ${text.substring(0, 100000)}, updated_at = NOW()
+        WHERE id = ${pdfId} AND user_id = ${userId}
+      `);
+
+      // Also update user's brandGuidelinePdfText
+      await storage.updateUser(userId, { brandGuidelinePdfText: text });
+
+      // Re-index all vector chunks from the edited text
+      let chunksIndexed = 0;
+      try {
+        const cacheRow = await db.execute(sql`SELECT file_name FROM brand_pdf_cache WHERE id = ${pdfId}`);
+        const fileName = (cacheRow.rows[0] as any)?.file_name || 'Edited Document';
+        chunksIndexed = await indexPdfChunks(text, userId, pdfId, fileName);
+      } catch (vecError) {
+        console.warn('Re-indexing after edit failed:', (vecError as Error).message);
+      }
+
+      res.json({ success: true, chunksIndexed });
+    } catch (error: unknown) {
+      console.error("Error saving edited text:", error);
       res.status(500).json({ error: getErrorMessage(error) });
     }
   }

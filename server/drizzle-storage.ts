@@ -1,7 +1,7 @@
 import type { IStorage } from './storage.js';
-import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile, OtpCode, FollowUpQueue, InsertFollowUpQueue, OAuthAccount, InsertOAuthAccount, CalendarEvent, InsertCalendarEvent, AuditTrail, InsertAuditTrail, Organization, InsertOrganization, TeamMember, InsertTeamMember, Payment, InsertPayment, SmtpSettings, InsertSmtpSettings, EmailMessage, InsertEmailMessage, Notification, InsertNotification, Thread, InsertThread, LeadInsight, InsertLeadInsight, OutreachCampaign, InsertOutreachCampaign, CampaignLead, InsertCampaignLead } from "../shared/schema.js";
+import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile, OtpCode, FollowUpQueue, InsertFollowUpQueue, OAuthAccount, InsertOAuthAccount, CalendarEvent, InsertCalendarEvent, AuditTrail, InsertAuditTrail, Organization, InsertOrganization, TeamMember, InsertTeamMember, Payment, InsertPayment, SmtpSettings, InsertSmtpSettings, EmailMessage, InsertEmailMessage, Notification, InsertNotification, Thread, InsertThread, LeadInsight, InsertLeadInsight, OutreachCampaign, InsertOutreachCampaign, CampaignLead, InsertCampaignLead, FathomCall, InsertFathomCall } from "../shared/schema.js";
 import { db } from './db.js';
-import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes, payments, followUpQueue, oauthAccounts, calendarEvents, auditTrail, organizations, teamMembers, aiLearningPatterns, bounceTracker, smtpSettings, videoMonitors, processedComments, emailMessages, brandEmbeddings, threads, leadInsights, outreachCampaigns, campaignLeads } from "../shared/schema.js";
+import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes, payments, followUpQueue, oauthAccounts, calendarEvents, auditTrail, organizations, teamMembers, aiLearningPatterns, bounceTracker, smtpSettings, videoMonitors, processedComments, emailMessages, brandEmbeddings, threads, leadInsights, outreachCampaigns, campaignLeads, fathomCalls } from "../shared/schema.js";
 import { eq, desc, and, gte, lte, sql, not, isNull, or, like, inArray, exists } from "drizzle-orm";
 import { isValidUUID } from './lib/utils/validation.js';
 import crypto from 'crypto';
@@ -2008,6 +2008,8 @@ export class DrizzleStorage implements IStorage {
     queuedLeads: number;
     undeliveredLeads: number;
     conversionRate: number;
+    intentRate: number;
+    outreachVelocity: number;
   }> {
     checkDatabase();
     const sevenDaysAgo = new Date();
@@ -2047,6 +2049,15 @@ export class DrizzleStorage implements IStorage {
         and ${leads.integrationId} = ${options.integrationId}
       )`)!;
     }
+
+    const [queueStats] = await db.select({
+      failedFollowUps: sql<number>`count(*) filter (where status = 'failed')`
+    })
+      .from(followUpQueue)
+      .where(options?.integrationId 
+        ? and(eq(followUpQueue.userId, userId), sql`exists (select 1 from ${leads} where ${leads.id} = ${followUpQueue.leadId} and ${leads.integrationId} = ${options.integrationId})`)
+        : eq(followUpQueue.userId, userId)
+      );
 
     const [leadsStats] = await db.select({
       totalLeads: sql<number>`count(*)`,
@@ -2094,33 +2105,55 @@ export class DrizzleStorage implements IStorage {
     // For averageResponseTime, we also ideally filter by integrationId
     const averageResponseTime = await this.calculateAverageResponseTime(userId, options?.integrationId);
 
+    // Phase 14: Hardened Funnel Math
+    const totalLeadsRaw = Number(leadsStats?.totalLeads || 0);
+    const totalSentRaw = Number(messagesStats?.totalSent || 0);
+    const openedRaw = Number(messagesStats?.opened || 0);
+    const repliedLeadsRaw = Number(leadsStats?.repliedLeads || 0);
+    const convertedLeadsRaw = Number(leadsStats?.convertedLeads || 0);
+
+    // Calculate "Outreached Leads" for a more accurate response/conversion rate denominator
+    // If we haven't outreached to a lead, they shouldn't skew the conversion/response percentage downwards.
+    // However, for pure overview, totalLeads is sometimes preferred. Level 10 uses the outreached denominator.
+    const [outreachStats] = await db.select({
+      outreachedLeads: sql<number>`count(distinct ${messages.leadId}) filter (where ${messages.direction} = 'outbound')`
+    })
+      .from(messages)
+      .where(messagesWhere);
+    
+    const outreachedLeadsRaw = Number(outreachStats?.outreachedLeads || 0);
+
+    // Helper to calculate capped percentage with min sample safety
+    const calculateRate = (num: number, den: number, minDen: number = 1) => {
+      if (den < minDen) return 0;
+      const rate = (num / den) * 100;
+      return Number(Math.min(100, Math.max(0, rate)).toFixed(2));
+    };
+
     return {
-      totalLeads: Number(leadsStats?.totalLeads || 0),
+      totalLeads: totalLeadsRaw,
       newLeads: Number(leadsStats?.newLeads || 0),
       activeLeads: Number(leadsStats?.activeLeads || 0),
-      convertedLeads: Number(leadsStats?.convertedLeads || 0),
+      convertedLeads: convertedLeadsRaw,
       hardenedLeads: Number(leadsStats?.hardenedLeads || 0),
       bouncyLeads: Number(leadsStats?.bouncyLeads || 0),
       recoveredLeads: Number(leadsStats?.recoveredLeads || 0),
       positiveIntents: Number(messagesStats?.positiveIntents || 0),
-      totalMessages: Number(messagesStats?.totalSent || 0),
+      totalMessages: totalSentRaw,
       messagesToday: Number(messagesStats?.messagesToday || 0),
       messagesYesterday: Number(messagesStats?.messagesYesterday || 0),
       pipelineValue: Number(dealsStats?.pipelineValue || 0) + Number(predictedStats?.value || 0),
       closedRevenue: Number(dealsStats?.closedRevenue || 0),
-      // Use higher precision floats for calculations (Phase 14)
-      openRate: Number(messagesStats?.totalSent || 0) > 0 
-        ? Number(((Number(messagesStats?.opened || 0) / Number(messagesStats?.totalSent || 0)) * 100).toFixed(2))
-        : 0,
-      responseRate: Number(leadsStats?.totalLeads || 0) > 0 
-        ? Number(((Number(leadsStats?.repliedLeads || 0) / Number(leadsStats?.totalLeads || 0)) * 100).toFixed(2))
-        : 0,
-      conversionRate: Number(leadsStats?.totalLeads || 0) > 0
-        ? Number(((Number(leadsStats?.convertedLeads || 0) / Number(leadsStats?.totalLeads || 0)) * 100).toFixed(2))
-        : 0,
       averageResponseTime,
       queuedLeads: Number(leadsStats?.queuedLeads || 0),
-      undeliveredLeads: Number(leadsStats?.bouncyLeads || 0),
+      undeliveredLeads: Number(queueStats?.failedFollowUps || 0),
+      
+      // Precision Rates - Level 10 Ratio-Safe Math
+      openRate: calculateRate(openedRaw, totalSentRaw, 5), // Min sample 5 for stability
+      responseRate: calculateRate(repliedLeadsRaw, outreachedLeadsRaw, 1), 
+      conversionRate: calculateRate(convertedLeadsRaw, outreachedLeadsRaw, 1),
+      intentRate: calculateRate(Number(messagesStats?.positiveIntents || 0), repliedLeadsRaw, 1),
+      outreachVelocity: calculateRate(totalSentRaw, totalLeadsRaw, 1),
     };
   }
 
@@ -2529,14 +2562,33 @@ export class DrizzleStorage implements IStorage {
 
   async scheduleNextCampaignStep(campaignLeadId: string, nextActionAt: Date): Promise<void> {
     checkDatabase();
-    await db
-      .update(campaignLeads)
-      .set({
-        nextActionAt,
-        currentStep: sql`${campaignLeads.currentStep} + 1`,
-        updatedAt: new Date()
-      })
+    await db.update(campaignLeads)
+      .set({ scheduledAt: nextActionAt, updatedAt: new Date() })
       .where(eq(campaignLeads.id, campaignLeadId));
+  }
+
+  // --- Fathom Meeting methods ---
+  async getFathomCalls(leadId: string): Promise<FathomCall[]> {
+    checkDatabase();
+    if (!isValidUUID(leadId)) return [];
+    return await db
+      .select()
+      .from(fathomCalls)
+      .where(eq(fathomCalls.leadId, leadId))
+      .orderBy(desc(fathomCalls.occurredAt));
+  }
+
+  async createFathomCall(call: InsertFathomCall): Promise<FathomCall> {
+    checkDatabase();
+    const [result] = await db
+      .insert(fathomCalls)
+      .values({
+        ...call,
+        occurredAt: call.occurredAt ? new Date(call.occurredAt) : new Date(),
+        createdAt: new Date(),
+      })
+      .returning();
+    return result;
   }
 }
 

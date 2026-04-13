@@ -71,7 +71,7 @@ export function PDFUploadModalV2({ onClose }: { onClose: () => void }) {
 
       // NOTE: Assuming 'token' is available in this scope, e.g., from a useAuth hook or context.
       // For demonstration, a placeholder is used. Replace with actual token retrieval.
-      const response = await fetch("/api/pdf/upload", {
+      const response = await fetch("/api/brand-pdf/analyze", {
         method: "POST",
         body: formData,
         credentials: "include",
@@ -111,7 +111,7 @@ export function PDFUploadModalV2({ onClose }: { onClose: () => void }) {
       formData.append("pdf", file);
       formData.append("skipValidation", String(forceContinue));
 
-      const response = await fetch("/api/admin/upload-brand-pdf", {
+      const response = await fetch("/api/brand-pdf/upload", {
         method: "POST",
         body: formData,
       });

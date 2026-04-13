@@ -1,10 +1,12 @@
 import { generateReply } from './ai-service.js';
+import { extractJson } from '../utils/json-util.js';
 import { db } from '../../db.js';
 import { leads, auditTrail, followUpQueue, users, aiActionLogs } from '../../../shared/schema.js';
 import { eq, desc, and } from 'drizzle-orm';
 import { calendlyService } from '../integrations/calendly.js';
 import { availabilityService } from '../calendar/availability-service.js';
 import { objectionService } from './objection-handler.js';
+import { searchSimilarChunks, userHasChunks } from './vector-search.js';
 
 export interface AgentActionDecision {
   action: 'send_payment_link' | 'send_invoice' | 'schedule_followup' | 'book_meeting' | 'request_info' | 'pause_nurture' | 'unknown';
@@ -15,7 +17,12 @@ export interface AgentActionDecision {
   emailSubject?: string;
   emailBody?: string;
   spacingReasoning?: string;
+  attachedAssetUrl?: string; // Phase 16: Attached RAG asset
 }
+
+// NOTE: CASE_STUDY_DB has been removed. The agent now uses real semantic
+// search against the user's uploaded Brand PDF via pgvector.
+// If no PDF is uploaded, the agent gracefully skips asset attachment.
 
 /**
  * Autonomous agent core mapping text summaries from Fathom 
@@ -36,9 +43,35 @@ export async function evaluateNextBestAction(leadId: string, summary: string): P
   const suggestedSlots = await availabilityService.getSuggestedTimes(lead.userId);
   const formattedSlots = availabilityService.formatSlotsForAI(suggestedSlots);
 
+  // Strategic Intelligence (Deep Research)
+  const intelligence = (user as any)?.intelligenceMetadata || {};
+  const strategicContext = `
+### Strategic Intelligence (Deep Research)
+- Competitors: ${JSON.stringify(intelligence.competitors || [])}
+- Market Gaps: ${JSON.stringify(intelligence.marketGaps || [])}
+- Our Differentiators: ${JSON.stringify(intelligence.differentiators || [])}
+- UVP: ${intelligence.uvp || 'Standard premium offering'}
+- Why We Win: ${intelligence.whyYouWin || ""}
+`;
+
   // Detect and format objections
   const playbook = objectionService.getPlaybookForSummary(summary);
   const objectionContext = objectionService.formatPlaybookForAI(playbook);
+
+  // Phase 14 (Real RAG): Retrieve semantically relevant brand content from user's PDF
+  const hasPdfContext = await userHasChunks(lead.userId);
+  let ragContext = '';
+  let ragSuggestion = '';
+  if (hasPdfContext) {
+    const relevantChunks = await searchSimilarChunks(summary, lead.userId, 3)
+      .catch(() => []);
+    if (relevantChunks.length > 0) {
+      ragContext = `\n\n### Relevant Brand Knowledge (from your uploaded PDF):\n` +
+        relevantChunks.map((c, i) => `[${i + 1}] ${c.content}`).join('\n---\n');
+    }
+  } else {
+    ragSuggestion = `\n\n💡 TIP: You have not uploaded a Brand PDF yet. Upload one in Settings → Brand PDF to dramatically improve AI email quality and attach real case studies.`;
+  }
 
   const systemPrompt = `
 You are an "Expert SDR Manager" AI at Audnix. You are NOT a dull assistant; you are a high-performing closer.
@@ -48,17 +81,27 @@ Your goal: Determine the single Next Best Action (NBA) from a call summary and d
 - Expert/Sender: ${user?.name || 'the team'}
 - Booking Link: ${bookingLink || 'Ask for availability'}
 - Real-Time Availability (SUGGEST THESE): ${formattedSlots}
+${ragContext}
+${strategicContext}
 
-### Objection Handling (PRIORITIZE THIS)
+### Objection Handling & Battle Cards (STRICT ANTI-HALLUCINATION)
 ${objectionContext}
+RULE 1: If drafting an objection response, ONLY use facts from the Brand Knowledge section above.
+RULE 2: Do NOT invent features, pricing, or timelines. If unsure, request another meeting.
+RULE 3: Do NOT chase aggressively if the lead is cold. Be respectful to preserve the deal.
+RULE 4: If no Brand Knowledge is available, keep the email generic but professional — never fabricate specifics.
 
 ### Decision rules for CLOSING (Expert Mode)
-1. **Target 3-Email Conversion**: Do not waste time on "How are you?" or fluff. Be direct, value-driven, and assume the sale.
-2. **Specific Availability**: If the action is "book_meeting", YOU MUST propose 2-3 specific times from the Availability list provided above. Example: "I checked my calendar and I'm free Wednesday at 2pm or Thursday at 10am. Does either work?"
-3. **24/7 Autonomy**: You operate around the clock. Do NOT wait for 'business hours' to reply to hot leads. Respond ASAP whenever they are active, even at 2 AM or on weekends.
-4. **Objection Handling**: If the lead mentions a competitor, focus on Audnix's unique Level 5 Autonomy. If they mention price, pivot to ROI.
-5. **NO CHASING**: Set \`delayDays\` if the lead says "next month" or "traveling". Cite their specific reasoning.
-6. **No Placeholders**: Never use [Name] or [Link]. Use the real data provided.
+1. **Target 3-Email Conversion**: Do not waste time on fluff. Be direct, value-driven.
+2. **Specific Availability**: If the action is "book_meeting", YOU MUST propose 2-3 specific times from the Availability list provided above. Example: "I'm free Wednesday at 2pm or Thursday at 10am. Does either work?"
+3. **24/7 Autonomy**: You operate around the clock. Respond ASAP to hot leads.
+4. **NO CHASING**: Set \`delayDays\` if the lead says "next month" or "traveling". Cite their specific reasoning.
+5. **No Placeholders**: Never use [Name] or [Link]. Use the real data provided.
+
+### Asset Attachment (Phase 15: Content Matching)
+If the lead has a specific objection/need, map it to one of these categories to attach a case study:
+"pricing", "competitor", "trust", "timing", "features".
+Return this category in \`attachedAssetCategory\` if applicable.
 
 ### Available Actions
 - send_payment_link: Ready for checkout.
@@ -78,7 +121,8 @@ ${objectionContext}
   "intentScore": 0-100,
   "emailSubject": "1-6 word punchy subject",
   "emailBody": "2-4 sentence expert email body. Lead with value. Include specific slots if booking.",
-  "spacingReasoning": "Why this specific delay? Citing lead verbatim if possible."
+  "spacingReasoning": "Why this specific delay? Citing lead verbatim if possible.",
+  "attachedAssetCategory": "pricing | competitor | trust | timing | features | null"
 }
 `;
 
@@ -94,9 +138,51 @@ ${objectionContext}
 
   try {
     const result = await generateReply(systemPrompt, userPrompt, { jsonMode: true, temperature: 0.1 });
-    decision = JSON.parse(result.text);
+    const parsed = extractJson<any>(result.text);
+
+    // Real RAG: If AI identifies an objection category, find the best matching
+    // chunk from the user's PDF via semantic search instead of a fake URL dict.
+    let finalEmailBody = parsed.emailBody || '';
+    let attachedUrl: string | undefined = undefined;
+
+    if (parsed.attachedAssetCategory && hasPdfContext) {
+      const assetChunks = await searchSimilarChunks(
+        `${parsed.attachedAssetCategory} case study results`,
+        lead.userId,
+        1
+      ).catch(() => []);
+
+      if (assetChunks.length > 0 && assetChunks[0].similarity > 0.65) {
+        // Append the most relevant excerpt instead of a fake link
+        const assetSource = assetChunks[0].fileName;
+        const assetSnippet = assetChunks[0].content.substring(0, 400);
+        
+        // Strategic framing for the attachment based on versioning
+        finalEmailBody += `\n\nP.S. I thought this excerpt from our "${assetSource}" would be relevant to our discussion:\n\n"${assetSnippet}..."`;
+        
+        console.log(`📎 [AutonomousAgent] Attached asset from ${assetSource} (Similarity: ${assetChunks[0].similarity})`);
+      }
+    }
+
+    // Append the PDF suggestion to reasoning if no chunks found
+    if (!hasPdfContext) {
+      console.log(`[AutonomousAgent] ℹ️ No Brand PDF found for user ${lead.userId}. Skipping asset attachment. ${ragSuggestion}`);
+    }
+
+    decision = {
+      action: parsed.action || 'unknown',
+      reasoning: parsed.reasoning || '',
+      delayDays: parsed.delayDays || 0,
+      confidence: parsed.confidence || 0.5,
+      intentScore: parsed.intentScore || 50,
+      emailSubject: parsed.emailSubject,
+      emailBody: finalEmailBody,
+      spacingReasoning: parsed.spacingReasoning,
+      attachedAssetUrl: attachedUrl
+    };
   } catch (error) {
-    console.error("[Autonomous Agent] Failed to parse JSON response:", error);
+    console.error("[Autonomous Agent] Failed to process action logic:", error);
+    throw new Error(`Failed to process Autonomous Agent logic: ${(error as Error).message}`);
   }
 
   // 1. Check Global Engine Toggle

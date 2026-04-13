@@ -36,7 +36,7 @@ export function PDFUploadModal({ onClose }: { onClose: () => void }) {
       const formData = new FormData();
       formData.append("pdf", selectedFile);
 
-      const response = await fetch("/api/pdf/upload", {
+      const response = await fetch("/api/brand-pdf/analyze", {
         method: "POST",
         body: formData,
       });
@@ -73,7 +73,7 @@ export function PDFUploadModal({ onClose }: { onClose: () => void }) {
       formData.append("pdf", file);
       formData.append("skipValidation", String(forceContinue));
 
-      const response = await fetch("/api/admin/upload-brand-pdf", {
+      const response = await fetch("/api/brand-pdf/upload", {
         method: "POST",
         body: formData,
       });

@@ -22,6 +22,7 @@ import { getBrandPersonalization, formatChannelMessage, getContextAwareSystemPro
 import { multiProviderEmailFailover } from '../email/multi-provider-failover.js';
 import { decrypt, decryptToJSON } from '../crypto/encryption.js';
 import { shouldAskForFollow } from './follow-request-handler.js';
+import { searchSimilarChunks, userHasChunks } from './vector-search.js';
 import type {
   BrandContext,
   ChannelType,
@@ -310,6 +311,20 @@ export class FollowUpWorker {
         console.log(`⏸️  Skipping follow-up for lead ${lead.name} (AI paused for this lead)`);
         await db.update(followUpQueue).set({ status: 'completed', processedAt: new Date() }).where(eq(followUpQueue.id, job.id));
         return;
+      }
+
+      // CHECK 2.5: Integration-level AI Mode
+      if (job.channel !== 'email') {
+        const matchingIntegration = await db.select()
+          .from(integrations)
+          .where(and(eq(integrations.userId, job.userId), eq(integrations.provider, job.channel as any)))
+          .limit(1);
+          
+        if (matchingIntegration.length > 0 && matchingIntegration[0].aiAutonomousMode === false) {
+           console.log(`[FOLLOW_UP] Integration Autonomous Mode is OFF for ${job.channel}. Reverting job to pending.`);
+           await db.update(followUpQueue).set({ status: 'pending' }).where(eq(followUpQueue.id, job.id));
+           return;
+        }
       }
 
       // 3. Active Campaign Protection
@@ -794,7 +809,7 @@ REPLY:`;
   }
 
   /**
-   * Get brand context for a user
+   * Get brand context for a user — now enriched with semantic PDF chunks
    */
   private async getBrandContext(userId: string): Promise<BrandContext> {
     if (!db) {
@@ -830,11 +845,31 @@ REPLY:`;
     const userMetadata = user?.metadata as Record<string, unknown> | null;
     const brandColors = (userMetadata?.brandColors as string) || '#007bff';
 
+    // Phase 2: Pull semantic chunks from vector store (from user's Brand PDF)
+    let vectorSnippets: string[] = [];
+    try {
+      if (await userHasChunks(userId)) {
+        const chunks = await searchSimilarChunks('brand offer objection tone pricing', userId, 4);
+        vectorSnippets = chunks
+          .filter(c => c.similarity > 0.4)
+          .map(c => c.content.substring(0, 400));
+        if (vectorSnippets.length > 0) {
+          console.log(`[FollowUpWorker] 🧠 Injecting ${vectorSnippets.length} brand knowledge chunks for user ${userId}`);
+        }
+      } else {
+        console.log(`[FollowUpWorker] 💡 No Brand PDF found for user ${userId}. Tip: Upload a Brand PDF to improve AI reply quality.`);
+      }
+    } catch (vecError) {
+      console.warn('[FollowUpWorker] Vector search failed (non-critical):', (vecError as Error).message);
+    }
+
+    const existingSnippets = brandData?.map((d: BrandSnippetData) => d.snippet) || [];
+
     return {
       businessName: user?.company || 'Your Business',
       voiceRules: user?.replyTone ? `Be ${user.replyTone}` : 'Be professional',
       brandColors: brandColors,
-      brandSnippets: brandData?.map((d: BrandSnippetData) => d.snippet) || []
+      brandSnippets: [...existingSnippets, ...vectorSnippets]
     };
   }
 

@@ -1,7 +1,7 @@
 import { storage } from '../../storage.js';
 import { verifyDomainDns } from '../email/dns-verification.js';
 import { wsSync } from '../websocket-sync.js';
-import { decryptToJSON } from '../crypto/encryption.js';
+import { tryDecryptToJSON } from '../crypto/encryption.js';
 import { quotaService } from '../monitoring/quota-service.js';
 
 export class ReputationWorker {
@@ -41,7 +41,7 @@ export class ReputationWorker {
                 );
 
                 for (const integration of emailIntegrations) {
-                    const meta = decryptToJSON(integration.encryptedMeta) || {};
+                    const meta = tryDecryptToJSON(integration.encryptedMeta) || ({} as any);
                     const email = meta.email || meta.user || (integration as any).email;
                     if (!email) continue;
 

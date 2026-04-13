@@ -1,5 +1,5 @@
 import { drizzleStorage } from "./drizzle-storage.js";
-import { type User, type InsertUser, type Lead, type InsertLead, type Message, type InsertMessage, type Integration, type InsertIntegration, type Deal, type InsertDeal, type FollowUpQueue, type InsertFollowUpQueue, type OAuthAccount, type InsertOAuthAccount, type CalendarEvent, type InsertCalendarEvent, type AuditTrail, type InsertAuditTrail, type Organization, type InsertOrganization, type TeamMember, type InsertTeamMember, type Payment, type InsertPayment, type AiLearningPattern, type InsertAiLearningPattern, type SmtpSettings, type InsertSmtpSettings, type EmailMessage, type InsertEmailMessage, type Notification, type InsertNotification, type Thread, type InsertThread, type LeadInsight, type InsertLeadInsight, type OutreachCampaign, type InsertOutreachCampaign, type CampaignLead, type InsertCampaignLead, smtpSettings, users, leads, messages, integrations, deals, followUpQueue, aiLearningPatterns, notifications, threads, leadInsights, outreachCampaigns, campaignLeads } from "../shared/schema.js";
+import { type User, type InsertUser, type Lead, type InsertLead, type Message, type InsertMessage, type Integration, type InsertIntegration, type Deal, type InsertDeal, type FollowUpQueue, type InsertFollowUpQueue, type OAuthAccount, type InsertOAuthAccount, type CalendarEvent, type InsertCalendarEvent, type AuditTrail, type InsertAuditTrail, type Organization, type InsertOrganization, type TeamMember, type InsertTeamMember, type Payment, type InsertPayment, type AiLearningPattern, type InsertAiLearningPattern, type SmtpSettings, type InsertSmtpSettings, type EmailMessage, type InsertEmailMessage, type Notification, type InsertNotification, type Thread, type InsertThread, type LeadInsight, type InsertLeadInsight, type OutreachCampaign, type InsertOutreachCampaign, type CampaignLead, type InsertCampaignLead, type FathomCall, type InsertFathomCall, smtpSettings, users, leads, messages, integrations, deals, followUpQueue, aiLearningPatterns, notifications, threads, leadInsights, outreachCampaigns, campaignLeads, fathomCalls } from "../shared/schema.js";
 import { randomUUID } from "crypto";
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "./db.js";
@@ -260,6 +260,10 @@ export interface IStorage {
   getCampaignLead(campaignId: string, leadId: string): Promise<CampaignLead | undefined>;
   updateCampaignLeadStatus(campaignId: string, leadId: string, status: CampaignLead["status"], error?: string): Promise<void>;
   scheduleNextCampaignStep(campaignLeadId: string, nextActionAt: Date): Promise<void>;
+  
+  // Fathom Meeting logic
+  getFathomCalls(leadId: string): Promise<FathomCall[]>;
+  createFathomCall(call: InsertFathomCall): Promise<FathomCall>;
 }
 
 export class MemStorage implements IStorage {
@@ -288,6 +292,7 @@ export class MemStorage implements IStorage {
   private processedComments: Set<string>;
   private brandKnowledge: Map<string, string>;
   private deals: Map<string, any>;
+  private fathomCallsStore: Map<string, FathomCall>;
 
   constructor() {
     this.users = new Map();
@@ -315,6 +320,7 @@ export class MemStorage implements IStorage {
     this.processedComments = new Set();
     this.brandKnowledge = new Map();
     this.deals = new Map();
+    this.fathomCallsStore = new Map();
   }
 
   async clearFollowUpQueue(leadId: string): Promise<void> {
@@ -390,6 +396,8 @@ export class MemStorage implements IStorage {
       stripeSessionId: null,
       subscriptionId: null,
       metadata: {},
+      businessLogo: null,
+      intelligenceMetadata: {},
     };
     this.users.set(id, user);
     return user;
@@ -524,6 +532,7 @@ export class MemStorage implements IStorage {
       timezone: insertLead.timezone || "America/New_York",
       calendlyLink: insertLead.calendlyLink || null,
       fathomMeetingId: insertLead.fathomMeetingId || null,
+      bant: null,
     };
     this.leads.set(id, lead);
     return lead;
@@ -793,6 +802,34 @@ export class MemStorage implements IStorage {
       code.updatedAt = new Date();
       this.otpCodes.set(id, code);
     }
+  }
+
+  // --- Fathom Meeting methods ---
+  async getFathomCalls(leadId: string): Promise<FathomCall[]> {
+    return Array.from(this.fathomCallsStore.values())
+      .filter(c => c.leadId === leadId)
+      .sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime());
+  }
+
+  async createFathomCall(insertCall: InsertFathomCall): Promise<FathomCall> {
+    const id = randomUUID();
+    const call: FathomCall = {
+      id,
+      userId: insertCall.userId,
+      leadId: insertCall.leadId,
+      fathomMeetingId: insertCall.fathomMeetingId,
+      title: insertCall.title || "Meeting",
+      summary: insertCall.summary || null,
+      transcript: insertCall.transcript || null,
+      videoUrl: insertCall.videoUrl || null,
+      videoThumbnail: insertCall.videoThumbnail || null,
+      occurredAt: insertCall.occurredAt ? new Date(insertCall.occurredAt) : new Date(),
+      metadata: insertCall.metadata || {},
+      analysis: null,
+      createdAt: new Date(),
+    };
+    this.fathomCallsStore.set(id, call);
+    return call;
   }
 
   async cleanupDemoData(): Promise<{ deletedUsers: number }> {

@@ -83,6 +83,8 @@ export const users = pgTable("users", {
   calendlyRefreshToken: text("calendly_refresh_token"),
   calendlyExpiresAt: timestamp("calendly_expires_at"),
   calendlyUserUri: text("calendly_user_uri"),
+  businessLogo: text("business_logo"),
+  intelligenceMetadata: jsonb("intelligence_metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
 });
 
 export const brandPdfCache = pgTable("brand_pdf_cache", {
@@ -133,6 +135,12 @@ export const leads = pgTable("leads", {
   calendlyLink: text("calendly_link"),
   fathomMeetingId: text("fathom_meeting_id"),
   metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
+  bant: jsonb("bant").$type<{
+    budget?: string;
+    authority?: string;
+    need?: string;
+    timeline?: string;
+  }>().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
@@ -653,6 +661,8 @@ export const brandEmbeddings = pgTable("brand_embeddings", {
   source: text("source").notNull(),
   embedding: text("embedding"), // Vector stored as text in Neon
   snippet: text("snippet").notNull(),
+  version: integer("version").notNull().default(1),
+  documentId: uuid("document_id").default(sql`gen_random_uuid()`),
   metadata: jsonb("metadata").$type<Record<string, any>>(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -1112,6 +1122,76 @@ export type Prospect = typeof prospects.$inferSelect;
 export type InsertProspect = typeof prospects.$inferInsert;
 export type LeadSocialDetail = typeof leadSocialDetails.$inferSelect;
 export type InsertLeadSocialDetail = typeof leadSocialDetails.$inferInsert;
+
+export const fathomCalls = pgTable("fathom_calls", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+  fathomMeetingId: text("fathom_meeting_id").notNull(),
+  title: text("title"),
+  summary: text("summary"),
+  transcript: text("transcript"),
+  videoUrl: text("video_url"),
+  videoThumbnail: text("video_thumbnail"),
+  occurredAt: timestamp("occurred_at").notNull().defaultNow(),
+  metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
+  analysis: jsonb("analysis").$type<{
+    outcome: "closed" | "followed_up" | "lost" | "no_show";
+    coaching: {
+      strengths: string[];
+      weaknesses: string[];
+      improvements: string[];
+      progressAudit?: string;
+    };
+    bant?: {
+      budget?: string;
+      authority?: string;
+      need?: string;
+      timeline?: string;
+    };
+    primaryObjection?: {
+      category: "pricing" | "competitor" | "trust" | "timing" | "features" | "other";
+      snippet: string;
+    };
+    sentimentPivot?: {
+      quote: string;
+      shift: "positive" | "negative";
+    };
+    talkRatio?: number;
+    bookingFailureReason?: string;
+    suggestedAction: string;
+    automatedActionTaken?: string;
+    status?: string;
+    error?: string;
+  }>().default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  fathomCallsLeadIdx: index("fathom_calls_lead_idx").on(table.leadId),
+  fathomCallsMeetingIdx: index("fathom_calls_meeting_idx").on(table.fathomMeetingId),
+}));
+
+export const fathomCallsSelect = createSelectSchema(fathomCalls);
+export const fathomCallsInsert = createInsertSchema(fathomCalls);
+export type FathomCall = typeof fathomCalls.$inferSelect;
+export type InsertFathomCall = typeof fathomCalls.$inferInsert;
+
+export const prospectObjections = pgTable("prospect_objections", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+  fathomMeetingId: text("fathom_meeting_id"),
+  category: text("category", { enum: ["pricing", "competitor", "trust", "timing", "features", "other"] }).notNull(),
+  snippet: text("snippet").notNull(),
+  isResolved: boolean("is_resolved").default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  objectionsLeadIdx: index("objections_lead_idx").on(table.leadId),
+}));
+
+export const prospectObjectionsSelect = createSelectSchema(prospectObjections);
+export const prospectObjectionsInsert = createInsertSchema(prospectObjections);
+export type ProspectObjection = typeof prospectObjections.$inferSelect;
+export type InsertProspectObjection = typeof prospectObjections.$inferInsert;
 
 export type BrandPdfCache = typeof brandPdfCache.$inferSelect;
 export type InsertBrandPdfCache = typeof brandPdfCache.$inferInsert;
