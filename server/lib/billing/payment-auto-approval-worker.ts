@@ -1,6 +1,9 @@
 import { storage } from "../../storage.js";
 import { workerHealthMonitor } from "../monitoring/worker-health.js";
 import { quotaService } from "../monitoring/quota-service.js";
+import { db } from "../../db.js";
+import { users } from "../../../shared/schema.js";
+import { eq, and, isNotNull, inArray, ne } from "drizzle-orm";
 
 interface AutoApprovalStats {
   checked: number;
@@ -63,10 +66,14 @@ class PaymentAutoApprovalWorker {
       const now = new Date();
       const currentTime = now.getTime();
 
-      // Get all users
-      const users = await storage.getAllUsers();
-      const pendingUsers = users.filter(
-        (u: any) => u.paymentStatus === "pending" && u.pendingPaymentPlan
+      if (!db) return;
+
+      // Direct targeted query for pending users to save bandwidth/quota
+      const pendingUsers = await db.select().from(users).where(
+        and(
+          eq(users.paymentStatus, "pending"),
+          isNotNull(users.pendingPaymentPlan)
+        )
       );
 
       this.stats.checked += 1;
@@ -120,8 +127,11 @@ class PaymentAutoApprovalWorker {
       const whitelist = whitelistRaw.split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
 
       if (whitelist.length > 0) {
-        const usersToUpgrade = users.filter(u =>
-          whitelist.includes(u.email.toLowerCase()) && u.plan !== 'pro'
+        const usersToUpgrade = await db.select().from(users).where(
+          and(
+            inArray(users.email, whitelist),
+            ne(users.plan, 'pro')
+          )
         );
 
         for (const user of usersToUpgrade) {

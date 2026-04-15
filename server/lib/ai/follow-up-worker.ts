@@ -168,9 +168,25 @@ export class FollowUpWorker {
       // 11. Intelligence-Governed Proactive Automation Scanner
       try {
         const { AutomationRuleEngine } = await import('../automation/rule-engine.js');
-        const activeUsers = await db.select({ id: users.id }).from(users);
-        for (const user of activeUsers) {
-          await AutomationRuleEngine.processProactiveRules(user.id);
+        const { automationRules } = await import('../../../shared/schema.js');
+        const { or } = await import('drizzle-orm');
+        
+        const activeRules = await db
+          .select({ userId: automationRules.userId })
+          .from(automationRules)
+          .where(
+            and(
+              eq(automationRules.isActive, true),
+              or(
+                eq(automationRules.ruleType, 're_engagement'),
+                eq(automationRules.ruleType, 'follow_up')
+              )
+            )
+          );
+          
+        const uniqueUsers = [...new Set(activeRules.map(r => r.userId))];
+        for (const userId of uniqueUsers) {
+          await AutomationRuleEngine.processProactiveRules(userId);
         }
       } catch (autoErr) {
         console.error('[FollowUpWorker] Automation scan failed:', autoErr);

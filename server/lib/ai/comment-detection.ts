@@ -2,6 +2,9 @@ import { generateReply } from './ai-service.js';
 import { MODELS } from './model-config.js';
 import { storage } from '../../storage.js';
 import type { Lead, Message } from '../../../shared/schema.js';
+import { db } from '../../db.js';
+import { notifications } from '../../../shared/schema.js';
+import { eq, and } from 'drizzle-orm';
 import { formatDMWithButton, formatCommentReply, prepareMetaButton, type DMButton } from './dm-formatter.js';
 import { workerHealthMonitor } from '../monitoring/worker-health.js';
 
@@ -425,24 +428,32 @@ export async function executeCommentFollowUps(): Promise<void> {
   try {
     const now = new Date();
 
-    // Get all notifications for comment follow-ups that are due
-    const allUsers = await storage.getAllUsers().catch(() => []);
+    if (!db) return;
 
-    for (const user of allUsers) {
-      const notifications = await storage.getNotifications(user.id);
+    // Direct DB query for due notifications globally, avoiding N+1 loops over ALL users
+    const allNotifications = await db
+      .select()
+      .from(notifications)
+      .where(
+        and(
+          eq(notifications.type, 'info'),
+          eq(notifications.isRead, false)
+        )
+      );
 
-      for (const notification of notifications) {
-        if (
-          notification.type === 'info' &&
-          notification.metadata?.followUpType === 'comment_automation' &&
-          notification.metadata?.scheduledFor
-        ) {
-          const scheduledTime = new Date(notification.metadata.scheduledFor);
+    // Filter in JS to safely check JSON metadata
+    const dueNotifications = allNotifications.filter(n => {
+      const meta = n.metadata as any;
+      if (!meta || meta.followUpType !== 'comment_automation' || !meta.scheduledFor) return false;
+      return new Date(meta.scheduledFor) <= now;
+    });
 
-          if (now >= scheduledTime) {
-            const leadId = notification.metadata.leadId;
-            const intent = notification.metadata.intent;
-            const postContext = notification.metadata.postContext || '';
+    for (const notification of dueNotifications) {
+      try {
+        const leadId = (notification.metadata as any).leadId;
+        const intent = (notification.metadata as any).intent;
+        const postContext = (notification.metadata as any).postContext || '';
+        const userId = notification.userId;
 
             // Get lead and check engagement
             const lead = await storage.getLeadById(leadId);
@@ -474,7 +485,7 @@ export async function executeCommentFollowUps(): Promise<void> {
 
             await storage.createMessage({
               leadId: lead.id,
-              userId: user.id,
+              userId: userId,
               provider: lead.channel as any,
               direction: 'outbound',
               body: followUpDM,
@@ -490,8 +501,8 @@ export async function executeCommentFollowUps(): Promise<void> {
             await storage.markNotificationAsRead(notification.id);
 
             console.log(`✓ Sent 6-hour follow-up to ${lead.name}`);
-          }
-        }
+      } catch (innerErr) {
+          console.error(`Failed to process comment follow-up for notification ${notification.id}`, innerErr);
       }
     }
     workerHealthMonitor.recordSuccess('video-comment-monitor');
