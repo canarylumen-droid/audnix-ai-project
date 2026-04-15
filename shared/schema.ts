@@ -85,6 +85,8 @@ export const users = pgTable("users", {
   calendlyUserUri: text("calendly_user_uri"),
   businessLogo: text("business_logo"),
   intelligenceMetadata: jsonb("intelligence_metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
+  defaultPaymentLink: text("default_payment_link"),
+  aiStickerFollowupsEnabled: boolean("ai_sticker_followups_enabled").notNull().default(true),
 });
 
 export const brandPdfCache = pgTable("brand_pdf_cache", {
@@ -1160,6 +1162,8 @@ export const fathomCalls = pgTable("fathom_calls", {
     talkRatio?: number;
     bookingFailureReason?: string;
     suggestedAction: string;
+    agreedToPay?: boolean;
+    paymentAmount?: string;
     automatedActionTaken?: string;
     status?: string;
     error?: string;
@@ -1174,6 +1178,48 @@ export const fathomCallsSelect = createSelectSchema(fathomCalls);
 export const fathomCallsInsert = createInsertSchema(fathomCalls);
 export type FathomCall = typeof fathomCalls.$inferSelect;
 export type InsertFathomCall = typeof fathomCalls.$inferInsert;
+
+export const pendingPayments = pgTable("pending_payments", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+  fathomMeetingId: text("fathom_meeting_id"),
+  status: text("status", { enum: ["pending", "sent", "paid", "expired"] }).notNull().default("pending"),
+  readyToGoEmail: text("ready_to_go_email"),
+  customPaymentLink: text("custom_payment_link"),
+  amountDetected: real("amount_detected"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  pendingPaymentsLeadIdx: index("pending_payments_lead_idx").on(table.leadId),
+  pendingPaymentsUserStatusIdx: index("pending_payments_user_status_idx").on(table.userId, table.status),
+}));
+
+export const pendingPaymentsSelect = createSelectSchema(pendingPayments);
+export const pendingPaymentsInsert = createInsertSchema(pendingPayments);
+export type PendingPayment = typeof pendingPayments.$inferSelect;
+export type InsertPendingPayment = typeof pendingPayments.$inferInsert;
+
+export const aiStickerMetrics = pgTable("ai_sticker_metrics", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  stickerId: text("sticker_id").notNull(),
+  provider: text("provider", { enum: ["giphy"] }).notNull().default("giphy"),
+  url: text("url").notNull(),
+  associatedNiche: text("associated_niche"),
+  sentiment: text("sentiment"),
+  conversionWeight: real("conversion_weight").notNull().default(1.0),
+  usageCount: integer("usage_count").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  aiStickerMetricsUserStickerIdx: index("ai_sticker_metrics_user_sticker_idx").on(table.userId, table.stickerId),
+}));
+
+export const aiStickerMetricsSelect = createSelectSchema(aiStickerMetrics);
+export const aiStickerMetricsInsert = createInsertSchema(aiStickerMetrics);
+export type AiStickerMetric = typeof aiStickerMetrics.$inferSelect;
+export type InsertAiStickerMetric = typeof aiStickerMetrics.$inferInsert;
 
 export const prospectObjections = pgTable("prospect_objections", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),

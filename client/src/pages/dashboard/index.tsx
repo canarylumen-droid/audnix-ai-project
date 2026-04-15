@@ -22,6 +22,7 @@ const AIDecisionsPage = lazy(() => import("./ai-decisions"));
 const ObjectionsLibraryPage = lazy(() => import("./objections-library"));
 const ProspectingPage = lazy(() => import("./prospecting"));
 const LeadProfilePage = lazy(() => import("./lead-profile"));
+const PendingPaymentsPage = lazy(() => import("./pending-payments"));
 
 export default function DashboardRoutes() {
   const [location] = useLocation();
@@ -52,6 +53,7 @@ export default function DashboardRoutes() {
           <Route path="/dashboard/ai-decisions" component={AIDecisionsPage} />
           <Route path="/dashboard/objections" component={ObjectionsLibraryPage} />
           <Route path="/dashboard/prospecting" component={ProspectingPage} />
+          <Route path="/dashboard/pending-payments" component={PendingPaymentsPage} />
         </Switch>
       </Suspense>
     </DashboardLayout>

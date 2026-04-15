@@ -1,5 +1,5 @@
 import { drizzleStorage } from "./drizzle-storage.js";
-import { type User, type InsertUser, type Lead, type InsertLead, type Message, type InsertMessage, type Integration, type InsertIntegration, type Deal, type InsertDeal, type FollowUpQueue, type InsertFollowUpQueue, type OAuthAccount, type InsertOAuthAccount, type CalendarEvent, type InsertCalendarEvent, type AuditTrail, type InsertAuditTrail, type Organization, type InsertOrganization, type TeamMember, type InsertTeamMember, type Payment, type InsertPayment, type AiLearningPattern, type InsertAiLearningPattern, type SmtpSettings, type InsertSmtpSettings, type EmailMessage, type InsertEmailMessage, type Notification, type InsertNotification, type Thread, type InsertThread, type LeadInsight, type InsertLeadInsight, type OutreachCampaign, type InsertOutreachCampaign, type CampaignLead, type InsertCampaignLead, type FathomCall, type InsertFathomCall, smtpSettings, users, leads, messages, integrations, deals, followUpQueue, aiLearningPatterns, notifications, threads, leadInsights, outreachCampaigns, campaignLeads, fathomCalls } from "../shared/schema.js";
+import { type User, type InsertUser, type Lead, type InsertLead, type Message, type InsertMessage, type Integration, type InsertIntegration, type Deal, type InsertDeal, type FollowUpQueue, type InsertFollowUpQueue, type OAuthAccount, type InsertOAuthAccount, type CalendarEvent, type InsertCalendarEvent, type AuditTrail, type InsertAuditTrail, type Organization, type InsertOrganization, type TeamMember, type InsertTeamMember, type Payment, type InsertPayment, type AiLearningPattern, type InsertAiLearningPattern, type SmtpSettings, type InsertSmtpSettings, type EmailMessage, type InsertEmailMessage, type Notification, type InsertNotification, type Thread, type InsertThread, type LeadInsight, type InsertLeadInsight, type OutreachCampaign, type InsertOutreachCampaign, type CampaignLead, type InsertCampaignLead, type FathomCall, type InsertFathomCall, type PendingPayment, type InsertPendingPayment, smtpSettings, users, leads, messages, integrations, deals, followUpQueue, aiLearningPatterns, notifications, threads, leadInsights, outreachCampaigns, campaignLeads, fathomCalls, pendingPayments } from "../shared/schema.js";
 import { randomUUID } from "crypto";
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "./db.js";
@@ -264,6 +264,12 @@ export interface IStorage {
   // Fathom Meeting logic
   getFathomCalls(leadId: string): Promise<FathomCall[]>;
   createFathomCall(call: InsertFathomCall): Promise<FathomCall>;
+
+  // Pending Payments logic
+  getPendingPayments(userId: string): Promise<(PendingPayment & { lead: Lead | null })[]>;
+  getPendingPayment(id: string): Promise<PendingPayment | undefined>;
+  createPendingPayment(data: InsertPendingPayment): Promise<PendingPayment>;
+  updatePendingPayment(id: string, updates: Partial<PendingPayment>): Promise<PendingPayment | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -293,6 +299,7 @@ export class MemStorage implements IStorage {
   private brandKnowledge: Map<string, string>;
   private deals: Map<string, any>;
   private fathomCallsStore: Map<string, FathomCall>;
+  private pendingPaymentsStore: Map<string, PendingPayment>;
 
   constructor() {
     this.users = new Map();
@@ -321,6 +328,7 @@ export class MemStorage implements IStorage {
     this.brandKnowledge = new Map();
     this.deals = new Map();
     this.fathomCallsStore = new Map();
+    this.pendingPaymentsStore = new Map();
   }
 
   async clearFollowUpQueue(leadId: string): Promise<void> {
@@ -395,9 +403,11 @@ export class MemStorage implements IStorage {
       paymentApprovedAt: null,
       stripeSessionId: null,
       subscriptionId: null,
-      metadata: {},
       businessLogo: null,
+      metadata: insertUser.metadata || {},
       intelligenceMetadata: {},
+      defaultPaymentLink: null,
+      aiStickerFollowupsEnabled: true,
     };
     this.users.set(id, user);
     return user;
@@ -1328,6 +1338,39 @@ export class MemStorage implements IStorage {
       const updated = { ...cl, nextActionAt, updatedAt: new Date() };
       this.campaignLeads.set(campaignLeadId, updated);
     }
+  }
+
+
+  // --- Pending Payment methods ---
+  async getPendingPayments(userId: string): Promise<(PendingPayment & { lead: Lead | null })[]> {
+    return Array.from(this.pendingPaymentsStore.values())
+      .filter(p => p.userId === userId)
+      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+      .map(p => ({ ...p, lead: null })); // MemStorage has no join capability — lead is null
+  }
+
+  async getPendingPayment(id: string): Promise<PendingPayment | undefined> {
+    return this.pendingPaymentsStore.get(id);
+  }
+
+  async createPendingPayment(data: InsertPendingPayment): Promise<PendingPayment> {
+    const id = randomUUID();
+    const payment: PendingPayment = {
+      ...data,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as PendingPayment;
+    this.pendingPaymentsStore.set(id, payment);
+    return payment;
+  }
+
+  async updatePendingPayment(id: string, updates: Partial<PendingPayment>): Promise<PendingPayment | undefined> {
+    const payment = this.pendingPaymentsStore.get(id);
+    if (!payment) return undefined;
+    const updated = { ...payment, ...updates, updatedAt: new Date() };
+    this.pendingPaymentsStore.set(id, updated);
+    return updated;
   }
 }
 

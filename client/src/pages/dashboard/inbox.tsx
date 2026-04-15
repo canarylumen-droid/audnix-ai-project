@@ -60,6 +60,8 @@ import {
   Plug,
   Facebook,
   MapPin,
+  Smile,
+  Image as ImageIcon,
 } from "lucide-react";
 import { SiGoogle } from "react-icons/si";
 import {
@@ -143,6 +145,35 @@ export default function InboxPage() {
   const [localDrafts, setLocalDrafts] = useState<Record<string, string>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const [activeReplyTab, setActiveReplyTab] = useState<'text' | 'emoji' | 'sticker'>('text');
+  const [giphySearch, setGiphySearch] = useState('');
+  const [giphyResults, setGiphyResults] = useState<any[]>([]);
+  const [isGiphyLoading, setIsGiphyLoading] = useState(false);
+
+  useEffect(() => {
+    if (activeReplyTab !== 'sticker' || !giphySearch) return;
+    const t = setTimeout(async () => {
+      setIsGiphyLoading(true);
+      try {
+        const res = await fetch(`https://api.giphy.com/v1/gifs/search?api_key=L3oTohJzXf3L7r3Q5b3t3S3Gg3d8S3d&q=${encodeURIComponent(giphySearch)}&limit=8`);
+        const data = await res.json();
+        setGiphyResults(data.data || []);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsGiphyLoading(false);
+      }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [giphySearch, activeReplyTab]);
+
+  const STICKER_PRESETS = [
+    { id: '1', title: 'Waiting', url: 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExajMwaHJkdzU5MzRka2h6OWxhMmo1ajAwd2lkdHdkazZqaWk5czE5aSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/o5oLImoQgGsKY/giphy.gif' },
+    { id: '2', title: 'Skeleton', url: 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3Y5Yjk5dmVxc2h2cGx5cWQwamx5eDZ0bzcxZzNndWJ6aHRqaXVheCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/pFZTlrO0MV6yA/giphy.gif' },
+    { id: '3', title: 'Mr Bean', url: 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExeGJ0NTkwYzdidnpvdmk1MmQ2MjI5cmJpd2NscDdkZXRud3lrd24wayZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/tXL4FHPSnVJ0A/giphy.gif' },
+    { id: '4', title: 'Still Waiting', url: 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZ2p1eWwwaHR2Mmt4dnN2Mmt4dnN2Mmt4dnN2Mmt4diZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/7XiLpLVq6bOIQ/giphy.gif' }
+  ];
 
   // Load drafts on mount
   useEffect(() => {
@@ -1664,6 +1695,60 @@ export default function InboxPage() {
                   <div className="p-4 md:p-6 border-t bg-background shrink-0 shadow-[0_-4px_15px_-3px_rgba(0,0,0,0.05)] sticky bottom-0 z-20 w-full mb-[env(safe-area-inset-bottom)]">
                     <div className="flex gap-2 md:gap-3 items-end max-w-5xl mx-auto w-full">
                       <div className="flex-1 relative group bg-white/50 dark:bg-black/20 rounded-2xl border border-border/40 focus-within:border-amber-500/50 focus-within:ring-4 focus-within:ring-amber-500/10 transition-all">
+                        {/* Tab Headers */}
+                        <div className="flex items-center gap-4 px-4 py-2 border-b border-border/30 bg-muted/20 rounded-t-2xl">
+                          <button onClick={() => setActiveReplyTab('text')} className={cn("text-[10px] font-bold tracking-wider uppercase transition-colors flex items-center gap-1", activeReplyTab === 'text' ? "text-primary" : "text-muted-foreground hover:text-foreground")}>
+                            <MessageSquare className="w-3 h-3" /> Text
+                          </button>
+                          <button onClick={() => setActiveReplyTab('emoji')} className={cn("text-[10px] font-bold tracking-wider uppercase transition-colors flex items-center gap-1", activeReplyTab === 'emoji' ? "text-primary" : "text-muted-foreground hover:text-foreground")}>
+                            <Smile className="w-3 h-3" /> Emoji
+                          </button>
+                          <button onClick={() => setActiveReplyTab('sticker')} className={cn("text-[10px] font-bold tracking-wider uppercase transition-colors flex items-center gap-1", activeReplyTab === 'sticker' ? "text-primary" : "text-muted-foreground hover:text-foreground")}>
+                            <ImageIcon className="w-3 h-3" /> Sticker
+                          </button>
+                        </div>
+                        
+                        {/* Tab Content */}
+                        {activeReplyTab === 'emoji' && (
+                          <div className="p-3 bg-muted/10 grid grid-cols-8 gap-2 max-h-32 overflow-y-auto border-b border-border/30">
+                            {['😀','😂','🥰','😎','🔥','💯','👍','🙌','✨','🎉','🚀','💸','💬','👀','🤔','✅'].map(emoji => (
+                              <button key={emoji} onClick={() => setReplyMessage(prev => prev + emoji)} className="text-xl hover:scale-110 transition-transform">
+                                {emoji}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {activeReplyTab === 'sticker' && (
+                          <div className="p-3 bg-muted/10 border-b border-border/30">
+                            <Input 
+                              placeholder="Search Giphy..." 
+                              value={giphySearch} 
+                              onChange={(e) => setGiphySearch(e.target.value)} 
+                              className="h-8 text-xs mb-3 font-medium"
+                            />
+                            {isGiphyLoading ? (
+                               <div className="flex justify-center p-4"><Loader2 className="w-4 h-4 animate-spin text-primary" /></div>
+                            ) : giphyResults.length > 0 ? (
+                               <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto">
+                                 {giphyResults.map(gif => (
+                                   <button key={gif.id} onClick={() => sendMutation.mutate(gif.images.fixed_height.url)} className="relative aspect-square rounded-lg overflow-hidden border border-border/50 hover:border-primary">
+                                     <img src={gif.images.fixed_height.url} alt="giphy" className="w-full h-full object-cover" />
+                                   </button>
+                                 ))}
+                               </div>
+                            ) : (
+                               <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto">
+                                 {STICKER_PRESETS.map(preset => (
+                                   <button key={preset.id} onClick={() => sendMutation.mutate(preset.url)} className="relative aspect-square rounded-lg overflow-hidden border border-border/50 hover:border-primary">
+                                     <img src={preset.url} alt={preset.title} className="w-full h-full object-cover" />
+                                   </button>
+                                 ))}
+                               </div>
+                            )}
+                          </div>
+                        )}
+
                         <Textarea
                           value={replyMessage}
                           onChange={e => {

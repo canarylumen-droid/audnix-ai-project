@@ -35,6 +35,7 @@ import webhookRouter from "./webhook.js";
 import workerRoutes from "./worker.js";
 import messagesRoutes from "./messages-routes.js";
 import healthRoutes from "./health-routes.js";
+import pendingPaymentsRoutes from "./pending-payments.js";
 
 import webhookMetaRoutes from "./webhook-meta.js";
 import automationRulesRoutes from "./automation-rules-routes.js";
@@ -132,6 +133,7 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
   app.use("/api/outreach", healthRouter);
   app.use("/api/payment/approval", paymentApproval);
   app.use("/api/payment/checkout", paymentCheckout);
+  app.use("/api/pending-payments", pendingPaymentsRoutes);
   app.use("/api/sales", salesEngine);
   app.use("/api/stripe/confirmation", stripePaymentConfirmation);
   app.use("/api/video", videoAutomationRoutes);

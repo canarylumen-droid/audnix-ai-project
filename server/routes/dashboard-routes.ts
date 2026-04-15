@@ -522,9 +522,10 @@ router.get('/user/profile', requireAuth, async (req: Request, res: Response): Pr
       voiceNotesEnabled,
       createdAt: user.createdAt,
       config: user.config,
-      defaultCtaLink: metadata?.defaultCtaLink as string || '',
-      defaultCtaText: metadata?.defaultCtaText as string || '',
-      calendarLink: metadata?.calendarLink as string || '',
+      defaultPaymentLink: user.defaultPaymentLink || '',
+      aiStickerFollowupsEnabled: user.aiStickerFollowupsEnabled ?? true,
+      // autonomousMode lives inside config JSONB — expose it explicitly so the UI toggle reads correctly
+      autonomousMode: !!(user.config as any)?.autonomousMode,
       metadata: {
         ...(metadata || {}),
         onboardingCompleted: hasCompletedOnboarding,
@@ -590,7 +591,7 @@ router.put('/user/profile', requireAuth, async (req: Request, res: Response): Pr
       return;
     }
 
-    const { name, username, company, timezone, defaultCtaLink, defaultCtaText, calendarLink, voiceNotesEnabled, config } = req.body;
+    const { name, username, company, timezone, defaultCtaLink, defaultCtaText, calendarLink, voiceNotesEnabled, config, defaultPaymentLink, aiStickerFollowupsEnabled } = req.body;
 
     const user = await storage.getUserById(userId);
     if (!user) {
@@ -605,6 +606,8 @@ router.put('/user/profile', requireAuth, async (req: Request, res: Response): Pr
     if (username !== undefined) updates.username = username;
     if (company !== undefined) updates.businessName = company;
     if (timezone !== undefined) updates.timezone = timezone;
+    if (defaultPaymentLink !== undefined) (updates as any).defaultPaymentLink = defaultPaymentLink;
+    if (aiStickerFollowupsEnabled !== undefined) (updates as any).aiStickerFollowupsEnabled = aiStickerFollowupsEnabled === true;
 
     // Store CTA settings, Calendar Link, and Voice Settings in metadata
     if (defaultCtaLink !== undefined || defaultCtaText !== undefined || calendarLink !== undefined || voiceNotesEnabled !== undefined) {
@@ -617,11 +620,13 @@ router.put('/user/profile', requireAuth, async (req: Request, res: Response): Pr
       };
     }
 
-    if (config !== undefined) {
-      updates.config = {
-        ...((user.config as any) || {}),
-        ...config
-      };
+    if (config !== undefined || aiStickerFollowupsEnabled !== undefined) {
+      // All JSONB config fields must be merged here — autonomousMode lives in config, not top-level
+      const existingConfig = (user.config as any) || {};
+      const configPatch: Record<string, unknown> = { ...existingConfig };
+      if (config !== undefined) Object.assign(configPatch, config);
+      // aiStickerFollowupsEnabled is a real top-level column — handle separately below
+      updates.config = configPatch;
     }
 
     await storage.updateUser(userId, updates);

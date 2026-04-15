@@ -8,6 +8,7 @@ import {
   integrations,
   campaignEmails,
   users,
+  pendingPayments,
   type Integration
 } from '../../../shared/schema.js';
 import { getPlanCapabilities } from '../../../shared/plan-utils.js';
@@ -204,6 +205,33 @@ export class OutreachEngine {
     if (hasRedis) return false;
 
     // --- FALLBACK: Inline processing when Redis is unavailable ---
+    
+    // --- LEVEL 20: AUTONOMOUS SALES PRIORITY PAUSE ---
+    // If there is ANY checkout link queued or pending dispatch, we hard-pause standard campaigns.
+    // This protects daily sending limits from clashing with highly valuable payment links.
+    try {
+      const userResultForPause = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      const isUserAutonomous = userResultForPause[0]?.config?.autonomousMode !== false;
+
+      if (isUserAutonomous) {
+        const activeCheckouts = await db.select({ id: pendingPayments.id })
+          .from(pendingPayments)
+          .where(
+            and(
+              eq(pendingPayments.userId, userId),
+              eq(pendingPayments.status, 'pending')
+            )
+          ).limit(1);
+
+        if (activeCheckouts.length > 0) {
+          console.log(`⏸️ [Priority Schedule] Pausing campaigns for ${userId}. Active checkout links detected!`);
+          return false;
+        }
+      }
+    } catch (e) {
+      console.error("[Priority Schedule] Error checking priority:", e);
+    }
+
     // Find active campaigns for this user
     const campaigns = await db
       .select()

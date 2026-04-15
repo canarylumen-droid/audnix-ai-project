@@ -36,6 +36,8 @@ interface UserProfile {
   defaultCtaLink?: string;
   defaultCtaText?: string;
   metadata?: any;
+  defaultPaymentLink?: string;
+  aiStickerFollowupsEnabled?: boolean;
 }
 
 export default function SettingsPage() {
@@ -60,6 +62,8 @@ export default function SettingsPage() {
     calendarLink: "",
     voiceNotesEnabled: true,
     autonomousMode: true,
+    defaultPaymentLink: "",
+    aiStickerFollowupsEnabled: true,
   });
 
   useEffect(() => {
@@ -74,6 +78,8 @@ export default function SettingsPage() {
         calendarLink: (user as any).calendarLink || "",
         voiceNotesEnabled: user.voiceNotesEnabled ?? true,
         autonomousMode: (user as any).config?.autonomousMode !== false,
+        defaultPaymentLink: user.defaultPaymentLink || "",
+        aiStickerFollowupsEnabled: user.aiStickerFollowupsEnabled ?? true,
       });
     }
   }, [user]);
@@ -279,6 +285,16 @@ export default function SettingsPage() {
                     />
                   </div>
                   <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mr-2">Default Checkout Link</Label>
+                    <Input
+                      value={formData.defaultPaymentLink}
+                      onChange={e => handleFieldChange('defaultPaymentLink', e.target.value)}
+                      placeholder="Enter Your Payment link"
+                      className="rounded-xl h-11 border-primary/30 focus-visible:ring-primary"
+                    />
+                    <p className="text-[10px] text-muted-foreground">Used autonomously when a lead agrees to buy on call.</p>
+                  </div>
+                  <div className="space-y-2">
                     <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Timezone</Label>
                     <Select value={formData.timezone} onValueChange={v => handleFieldChange('timezone', v)}>
                       <SelectTrigger className="rounded-xl h-11">
@@ -355,6 +371,37 @@ export default function SettingsPage() {
                     checked={formData.voiceNotesEnabled && canAccessVoiceNotes}
                     onCheckedChange={c => canAccessVoiceNotes && handleFieldChange('voiceNotesEnabled', c)}
                     disabled={!canAccessVoiceNotes}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 bg-muted/30 rounded-2xl border border-border hover:border-border/80 transition-all gap-4">
+                <div className="flex gap-4">
+                  <div className="p-3 rounded-2xl bg-background border border-border shrink-0">
+                    <span className="text-2xl">⏳</span>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-base flex items-center gap-2">
+                      AI Sticker Follow-ups
+                      <Badge variant="outline" className="text-[9px] uppercase font-bold text-primary border-primary">High Conversion</Badge>
+                    </h4>
+                    <p className="text-sm text-muted-foreground max-w-md leading-relaxed mb-4">
+                      When a prospect agrees to pay but ghosts for 48 hours, the AI will autonomously send a highly-converting "waiting" sticker via Giphy (e.g. Mr. Bean waiting).
+                    </p>
+                    <div className="flex gap-2 opacity-80 mt-2">
+                       <img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExajMwaHJkdzU5MzRka2h6OWxhMmo1ajAwd2lkdHdkazZqaWk5czE5aSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/o5oLImoQgGsKY/giphy.gif" alt="Mr Bean Waiting" className="w-12 h-12 rounded-lg object-cover" />
+                       <img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3Y5Yjk5dmVxc2h2cGx5cWQwamx5eDZ0bzcxZzNndWJ6aHRqaXVheCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/pFZTlrO0MV6yA/giphy.gif" alt="Skeleton Waiting" className="w-12 h-12 rounded-lg object-cover" />
+                       <img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExeGJ0NTkwYzdidnpvdmk1MmQ2MjI5cmJpd2NscDdkZXRud3lrd24wayZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/tXL4FHPSnVJ0A/giphy.gif" alt="Waitings" className="w-12 h-12 rounded-lg object-cover" />
+                      <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
+                        + More
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="sm:shrink-0 w-full sm:w-auto flex justify-end">
+                  <Switch
+                    checked={formData.aiStickerFollowupsEnabled}
+                    onCheckedChange={c => handleFieldChange('aiStickerFollowupsEnabled', c)}
                   />
                 </div>
               </div>

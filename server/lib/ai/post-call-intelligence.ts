@@ -26,6 +26,8 @@ export interface PostCallAnalysis {
   talkRatio?: number; // Estimated % of time the salesperson talked (e.g. 75)
   bookingFailureReason?: string;
   suggestedAction: string;
+  agreedToPay?: boolean;
+  paymentAmount?: string;
   confidence: number;
 }
 
@@ -49,6 +51,11 @@ EXTRACTION REQUIREMENTS:
    - Identify 2-3 specific weaknesses or missed opportunities.
    - Provide 3 actionable improvements for the next call.
    - Progress Audit: If PAST CONTEXT is provided, grade if the salesperson followed up on prior promises.
+
+5. PAYMENT EXTRACTION (CRITICAL):
+   - Analyze if the prospect explicitly agreed to pay or buy the product on this call (must be high confidence, "yes I will pay", "send the link", etc.).
+   - Extract the agreedToPay boolean (true/false).
+   - If true, extract the paymentAmount (e.g., "$2,000", "€500/mo") if explicitly stated.
 
 SUGGESTED ACTION:
 - Autonomously decide the single most effective next step (e.g., "Send personalized case study", "Book follow-up in 3 days", "Draft Battle Card").
@@ -95,6 +102,8 @@ Analyze the call intelligence.`;
       talkRatio: analysis.talkRatio,
       bookingFailureReason: analysis.bookingFailureReason,
       suggestedAction: analysis.suggestedAction || "Follow up via email",
+      agreedToPay: analysis.agreedToPay,
+      paymentAmount: analysis.paymentAmount,
       confidence: analysis.confidence || 0.8,
     };
   } catch (error) {

@@ -1,7 +1,7 @@
 import type { IStorage } from './storage.js';
-import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile, OtpCode, FollowUpQueue, InsertFollowUpQueue, OAuthAccount, InsertOAuthAccount, CalendarEvent, InsertCalendarEvent, AuditTrail, InsertAuditTrail, Organization, InsertOrganization, TeamMember, InsertTeamMember, Payment, InsertPayment, SmtpSettings, InsertSmtpSettings, EmailMessage, InsertEmailMessage, Notification, InsertNotification, Thread, InsertThread, LeadInsight, InsertLeadInsight, OutreachCampaign, InsertOutreachCampaign, CampaignLead, InsertCampaignLead, FathomCall, InsertFathomCall } from "../shared/schema.js";
+import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile, OtpCode, FollowUpQueue, InsertFollowUpQueue, OAuthAccount, InsertOAuthAccount, CalendarEvent, InsertCalendarEvent, AuditTrail, InsertAuditTrail, Organization, InsertOrganization, TeamMember, InsertTeamMember, Payment, InsertPayment, SmtpSettings, InsertSmtpSettings, EmailMessage, InsertEmailMessage, Notification, InsertNotification, Thread, InsertThread, LeadInsight, InsertLeadInsight, OutreachCampaign, InsertOutreachCampaign, CampaignLead, InsertCampaignLead, FathomCall, InsertFathomCall, PendingPayment, InsertPendingPayment } from "../shared/schema.js";
 import { db } from './db.js';
-import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes, payments, followUpQueue, oauthAccounts, calendarEvents, auditTrail, organizations, teamMembers, aiLearningPatterns, bounceTracker, smtpSettings, videoMonitors, processedComments, emailMessages, brandEmbeddings, threads, leadInsights, outreachCampaigns, campaignLeads, fathomCalls } from "../shared/schema.js";
+import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes, payments, followUpQueue, oauthAccounts, calendarEvents, auditTrail, organizations, teamMembers, aiLearningPatterns, bounceTracker, smtpSettings, videoMonitors, processedComments, emailMessages, brandEmbeddings, threads, leadInsights, outreachCampaigns, campaignLeads, fathomCalls, pendingPayments } from "../shared/schema.js";
 import { eq, desc, and, gte, lte, sql, not, isNull, or, like, inArray, exists } from "drizzle-orm";
 import { isValidUUID } from './lib/utils/validation.js';
 import crypto from 'crypto';
@@ -2588,6 +2588,67 @@ export class DrizzleStorage implements IStorage {
         createdAt: new Date(),
       })
       .returning();
+    return result;
+  }
+
+  // --- Pending Payment methods ---
+  async getPendingPayments(userId: string): Promise<(PendingPayment & { lead: Lead | null })[]> {
+    checkDatabase();
+    const result = await db
+      .select({
+        payment: pendingPayments,
+        lead: leads
+      })
+      .from(pendingPayments)
+      .leftJoin(leads, eq(pendingPayments.leadId, leads.id))
+      .where(eq(pendingPayments.userId, userId))
+      .orderBy(desc(pendingPayments.updatedAt));
+
+    return result.map((r: any) => ({
+      ...r.payment,
+      lead: r.lead
+    }));
+  }
+
+  async getPendingPayment(id: string): Promise<PendingPayment | undefined> {
+    checkDatabase();
+    if (!isValidUUID(id)) return undefined;
+    const [result] = await db
+      .select()
+      .from(pendingPayments)
+      .where(eq(pendingPayments.id, id))
+      .limit(1);
+    return result;
+  }
+
+  async createPendingPayment(data: InsertPendingPayment): Promise<PendingPayment> {
+    checkDatabase();
+    const [result] = await db
+      .insert(pendingPayments)
+      .values({
+        ...data,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+    return result;
+  }
+
+  async updatePendingPayment(id: string, updates: Partial<PendingPayment>): Promise<PendingPayment | undefined> {
+    checkDatabase();
+    if (!isValidUUID(id)) return undefined;
+    const [result] = await db
+      .update(pendingPayments)
+      .set({
+        ...updates,
+        updatedAt: new Date()
+      })
+      .where(eq(pendingPayments.id, id))
+      .returning();
+    
+    if (result) {
+      wsSync.notifyLeadsUpdated(result.userId, { event: 'UPDATE', leadId: result.leadId });
+    }
     return result;
   }
 }

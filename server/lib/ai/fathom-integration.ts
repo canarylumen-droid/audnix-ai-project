@@ -1,6 +1,6 @@
 import { storage } from '../../storage.js';
 import { db } from '../../db.js';
-import { leads, auditTrail, fathomCalls, prospectObjections } from '../../../shared/schema.js';
+import { leads, auditTrail, fathomCalls, prospectObjections, users, pendingPayments } from '../../../shared/schema.js';
 import { eq, and, ilike, desc } from 'drizzle-orm';
 import { evaluateNextBestAction } from './autonomous-agent.js';
 import fetch from 'node-fetch';
@@ -186,6 +186,72 @@ export async function processFathomWebhook(payload: FathomWebhookPayload) {
                snippet: analysis.primaryObjection.snippet,
            });
            console.log(`⚔️ Objection Logged for Battle-Card agent: ${analysis.primaryObjection.category}`);
+        }
+
+        // --- LEVEL 20 AUTONOMOUS PAYMENT PIPELINE ---
+        if (analysis.agreedToPay && analysis.confidence >= 0.7) {
+          console.log(`💰 Prospect ${lead.email} agreed to pay on the call! Initiating Payment Pipeline.`);
+          
+          // Get user configuration for Autonomous Mode
+          const userRec = await db.select().from(users).where(eq(users.id, lead.userId)).limit(1);
+          // autonomousMode lives in the config JSONB column — no top-level column exists
+          const isAutonomous = !!(userRec[0]?.config as any)?.autonomousMode;
+          const parsedAmount = analysis.paymentAmount ? parseFloat(analysis.paymentAmount.replace(/[^0-9.]/g, '')) : null;
+
+          // Idempotency: Prevent duplicate payment rows if Fathom retries the same webhook
+          const existingPayment = await db.select()
+            .from(pendingPayments)
+            .where(and(eq(pendingPayments.leadId, lead.id), eq(pendingPayments.fathomMeetingId, fathomMeetingId)))
+            .limit(1);
+
+          if (existingPayment.length > 0) {
+            console.log(`[Idempotency] pending_payments record already exists for lead ${lead.id} + meeting ${fathomMeetingId}. Skipping duplicate insert.`);
+            continue;
+          }
+
+          // Insert into pending_payments (first time only)
+          const insertedPayment = await db.insert(pendingPayments).values({
+            userId: lead.userId,
+            leadId: lead.id,
+            fathomMeetingId: fathomMeetingId,
+            status: 'pending',
+            amountDetected: parsedAmount || null,
+          }).returning();
+
+          if (isAutonomous) {
+             console.log(`🤖 Autonomous Mode ON: Queuing instant checkout email dispatch for ${lead.email}`);
+             // Phase 8/12: Trigger Checkout Draft & Dispatch Queue
+             const { checkoutWorker } = await import('../workers/checkout-worker.js');
+             await checkoutWorker.processPendingPayment(insertedPayment[0].id);
+          } else {
+             console.log(`⏸️ Autonomous Mode OFF: Check pending dashboard to dispatch email for ${lead.email}`);
+          }
+
+          // [PHASE 20] SHIELD ACTIVATED: Pause AI outreach immediately
+          // This ensures standard campaigns don't keep firing while we wait for payment.
+          await db.update(leads)
+            .set({ aiPaused: true, status: 'warm', updatedAt: new Date() })
+            .where(eq(leads.id, lead.id));
+          
+          // Also abort any active campaign leads for this lead
+          const { campaignLeads } = await import('../../../shared/schema.js');
+          await db.update(campaignLeads)
+            .set({ status: 'aborted', updatedAt: new Date() })
+            .where(eq(campaignLeads.leadId, lead.id));
+          
+          // Emit WebSocket event for real-time Dashboard 
+          try {
+             // In-App Notification System
+             // We can fire a global event if socket.io is set up, but for now we write an audit trail so it appears instantly.
+             await storage.createAuditLog({
+                userId: lead.userId,
+                leadId: lead.id,
+                action: 'payment_agreed',
+                details: { status: isAutonomous ? 'queued' : 'pending_review', amount: analysis.paymentAmount }
+             });
+          } catch (e) {
+             console.warn("Failed to update realtime socket audit log.");
+          }
         }
 
         console.log(`🧠 Autonomous Coaching Analysis complete for ${lead.email}`);

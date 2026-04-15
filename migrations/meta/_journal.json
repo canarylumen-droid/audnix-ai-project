@@ -337,6 +337,13 @@
       "when": 1776123246057,
       "tag": "0047_sticky_wendigo",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1776201694378,
+      "tag": "0048_thick_speed",
+      "breakpoints": true
     }
   ]
 }

@@ -221,6 +221,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
       items: [
         { label: "Inbox", icon: Inbox, path: "/dashboard/inbox" },
         { label: "Automation", icon: Zap, path: "/dashboard/automation" },
+        { label: "Pending Payments", icon: DollarSign, path: "/dashboard/pending-payments" },
         { label: "Pipeline", icon: Briefcase, path: "/dashboard/deals" },
         { label: "Integrations", icon: Plug, path: "/dashboard/integrations" },
       ],

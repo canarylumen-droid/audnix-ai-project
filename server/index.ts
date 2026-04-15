@@ -619,7 +619,8 @@ async function runMigrations() {
                 { meetingReminderWorker },
                 { mailboxHealthService },
                 { redistributionWorker },
-                { leadExpiryWorker }
+                { leadExpiryWorker },
+                { emojiFollowupWorker }
               ] = await Promise.all([
                 import("./lib/ai/follow-up-worker.js"),
                 import("./lib/ai/video-comment-monitor.js"),
@@ -631,7 +632,8 @@ async function runMigrations() {
                 import("./lib/workers/meeting-reminder-worker.js"),
                 import("./lib/email/mailbox-health-service.js"),
                 import("./lib/email/redistribution-worker.js"),
-                import("./lib/workers/lead-expiry-worker.js")
+                import("./lib/workers/lead-expiry-worker.js"),
+                import("./lib/workers/emoji-followup-worker.js")
               ]);
 
               // Background workers for side-effect initializations (BullMQ, etc.)
@@ -651,6 +653,7 @@ async function runMigrations() {
               startWorker("Reputation", () => (reputationWorker as any).start());
               startWorker("Meeting Reminders", () => meetingReminderWorker.start());
               startWorker("Lead Expiry", () => leadExpiryWorker.start());
+              startWorker("Emoji Follow-up", () => emojiFollowupWorker.start());
 
               // Real-time Push & IMAP IDLE Managers
               try {
