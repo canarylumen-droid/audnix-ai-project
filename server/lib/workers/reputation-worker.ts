@@ -31,16 +31,24 @@ export class ReputationWorker {
 
         try {
             console.log('🔍 Running autonomous reputation checks (Every 2m)...');
-            const users = await storage.getAllUsers();
+            const { db } = await import('../../db.js');
+            const { integrations, users } = await import('../../../shared/schema.js');
+            const { eq, and, inArray } = await import('drizzle-orm');
 
-            for (const user of users) {
-                const integrations = await storage.getIntegrations(user.id);
-                const emailIntegrations = integrations.filter(i =>
-                    (i.provider === 'gmail' || i.provider === 'outlook' || i.provider === 'custom_email') &&
-                    i.connected
-                );
+            // Optimisation: Fetch integrations directly instead of scanning all users
+            const emailIntegrations = await db.select({
+                integration: integrations,
+                user: users
+            }).from(integrations)
+            .innerJoin(users, eq(users.id, integrations.userId))
+            .where(
+                and(
+                    eq(integrations.connected, true),
+                    inArray(integrations.provider, ['gmail', 'outlook', 'custom_email'])
+                )
+            );
 
-                for (const integration of emailIntegrations) {
+            for (const { integration, user } of emailIntegrations) {
                     const meta = tryDecryptToJSON(integration.encryptedMeta) || ({} as any);
                     const email = meta.email || meta.user || (integration as any).email;
                     if (!email) continue;
@@ -70,7 +78,6 @@ export class ReputationWorker {
                             console.error(`Failed to save reputation for ${domain}:`, e);
                         }
                 }
-            }
         } catch (error: any) {
             console.error('Reputation Worker Error:', error);
             quotaService.reportDbError(error);
