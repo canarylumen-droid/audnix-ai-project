@@ -56,9 +56,8 @@ export class PushNotificationService {
     const { emailAddress, historyId } = data;
     console.log(`[PushService] 🔔 Gmail Push received for ${emailAddress} (History: ${historyId})`);
 
-    // Find the user for this email
-    const accounts = await storage.getOAuthAccountsByProvider('google');
-    const account = accounts.find(a => a.providerAccountId === emailAddress);
+    // Find the user for this email with an optimized query
+    const account = await storage.getOAuthAccountByProviderAccountId('google', emailAddress);
     
     if (!account) {
       console.warn(`[PushService] No account found for push email ${emailAddress}`);

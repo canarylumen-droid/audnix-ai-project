@@ -372,7 +372,7 @@ export default function DashboardHome() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-8 border-b border-border/20">
           <div className="space-y-1">
             <h1 className="text-2xl md:text-5xl font-black tracking-tighter text-foreground break-words sm:break-normal">
-              Welcome, {user?.name?.split(' ')[0] || user?.username || 'User'}
+                Welcome, {user?.name?.split(' ')[0] || user?.username || 'Partner'}
             </h1>
             <p className="text-muted-foreground/60 text-base md:text-lg font-medium tracking-tight">
               {isSmtpConnected ? "Outreach engine performing optimally." : "Connect SMTP to start automation."}
@@ -423,7 +423,7 @@ export default function DashboardHome() {
                 <Brain className="h-6 w-6" />
               </div>
               <div className="flex-1 space-y-1 text-center md:text-left">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">Peak Hour Optimization</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">Standard Peak Window</h3>
                 <p className="text-sm md:text-base font-bold text-foreground/90">
                   AI predicts your optimal sending window is <span className="text-primary font-black uppercase tracking-widest">{insightsData.bestReplyHour || 14}:00 - {((insightsData.bestReplyHour || 14) + 2) % 24}:00</span> based on recent patterns.
                 </p>
@@ -482,7 +482,7 @@ export default function DashboardHome() {
                         <span className="text-[8px] md:text-[9px] font-bold text-muted-foreground/30 uppercase tracking-widest truncate">Growth</span>
                       </div>
                     )}
-                    <div className="flex items-center justify-between mt-auto pt-4 opacity-0 group-hover:opacity-100 transition-all transform translate-y-3 group-hover:translate-y-0 duration-300">
+                    <div className="flex items-center justify-between mt-auto pt-4 opacity-0 group-hover:opacity-100 transition-all duration-300">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -523,7 +523,7 @@ export default function DashboardHome() {
                 <h4 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary mb-2">
                   <Brain className="h-4 w-4" /> Deep Insights
                 </h4>
-                {cleanInsightSummary ? `"${cleanInsightSummary}"` : ""}
+                {cleanInsightSummary ? cleanInsightSummary : ""}
               </motion.div>
             )}
             <div className="h-[600px]">
@@ -608,4 +608,3 @@ export default function DashboardHome() {
       </div>
   );
 }
-

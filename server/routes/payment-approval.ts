@@ -19,12 +19,8 @@ router.get("/pending", requireAuth, async (req: Request, res: Response) => {
     }
 
     // Query database for pending payments using the formal payments table
-    const allUsers = await storage.getAllUsers();
-    const userMap = new Map(allUsers.map(u => [u.id, u]));
-
-    // We still consider users with legacy pending fields for backward compatibility
-    // but we prefer the payments table
-    const usersWithLegacyPending = allUsers.filter((u: any) => u.paymentStatus === "pending");
+    // Directly query database for pending payments using optimized method
+    const usersWithLegacyPending = await storage.getPendingLegacyPayments();
 
     return res.json({
       pending: usersWithLegacyPending.map((u: any) => ({
@@ -58,16 +54,8 @@ router.get("/stats", requireAuth, async (req: Request, res: Response) => {
       return res.status(403).json({ error: "Admin only" });
     }
 
-    const users = await storage.getAllUsers();
-    const stats = {
-      trial_users: users.filter((u: any) => u.plan === "trial").length,
-      starter_users: users.filter((u: any) => u.plan === "starter").length,
-      pro_users: users.filter((u: any) => u.plan === "pro").length,
-      enterprise_users: users.filter((u: any) => u.plan === "enterprise").length,
-      total_users: users.length,
-      pending_approvals: users.filter((u: any) => u.paymentStatus === "pending").length,
-      approved_payments: users.filter((u: any) => u.paymentStatus === "approved").length,
-    };
+    const stats: any = await storage.getPaymentStats();
+    stats.total_users = await storage.getUserCount();
 
     return res.json({ stats });
   } catch (error: any) {

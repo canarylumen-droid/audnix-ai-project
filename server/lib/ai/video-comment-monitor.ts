@@ -502,7 +502,8 @@ export function startVideoCommentMonitoring(): void {
       return;
     }
     try {
-      const users: User[] = await storage.getAllUsers();
+      // Only check users who actually have active monitors
+      const users: User[] = await (storage as any).getUsersWithActiveVideoMonitors?.() || [];
 
       for (const user of users) {
         try {

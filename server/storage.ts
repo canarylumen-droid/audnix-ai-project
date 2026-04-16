@@ -18,6 +18,12 @@ export interface IStorage {
   toggleAi(leadId: string, paused: boolean): Promise<void>;
   createUser(user: Partial<InsertUser> & { email: string }): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
+  getUsersNeedingWeeklyInsights(): Promise<User[]>;
+  getUsersWithActiveVideoMonitors(): Promise<User[]>;
+  getPaymentStats(): Promise<Record<string, number>>;
+  getPendingLegacyPayments(): Promise<any[]>;
+  getUserByStripeCustomerId(customerId: string): Promise<User | undefined>;
+  getUserByOutlookSubscriptionId(subscriptionId: string): Promise<User | undefined>;
   getAllUsers(): Promise<User[]>;
   getUsers(): Promise<User[]>; // Alias for getAllUsers
   getUserCount(): Promise<number>;
@@ -87,6 +93,7 @@ export interface IStorage {
   getIntegrationById(id: string): Promise<Integration | undefined>;
   getIntegrationsByProvider(provider: string): Promise<Integration[]>;
   getOAuthAccountsByProvider(provider: string): Promise<OAuthAccount[]>;
+  getOAuthAccountByProviderAccountId(provider: string, providerAccountId: string): Promise<OAuthAccount | undefined>;
   createIntegration(integration: Partial<InsertIntegration> & { userId: string; provider: string; encryptedMeta: string }): Promise<Integration>;
   updateIntegration(userId: string, provider: string, updates: Partial<Integration>): Promise<Integration | undefined>;
   updateIntegrationById(id: string, updates: Partial<Integration>): Promise<Integration | undefined>;
@@ -1371,6 +1378,39 @@ export class MemStorage implements IStorage {
     const updated = { ...payment, ...updates, updatedAt: new Date() };
     this.pendingPaymentsStore.set(id, updated);
     return updated;
+  }
+
+  // --- Missing methods for IStorage compliance ---
+  async getUsersNeedingWeeklyInsights(): Promise<User[]> {
+    return Array.from(this.users.values()).filter((u: User) => {
+      const lastInsight = u.lastInsightGeneratedAt || u.createdAt;
+      const days = Math.floor((Date.now() - new Date(lastInsight).getTime()) / (1000 * 60 * 60 * 24));
+      return days >= 7;
+    });
+  }
+
+  async getUsersWithActiveVideoMonitors(): Promise<User[]> {
+    return []; // MemStorage doesn't support complex joins currently
+  }
+
+  async getPaymentStats(): Promise<Record<string, number>> {
+    return { starter: 0, pro: 0, enterprise: 0, pending_approvals: 0 };
+  }
+
+  async getPendingLegacyPayments(): Promise<any[]> {
+    return [];
+  }
+
+  async getUserByStripeCustomerId(customerId: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find((u: User) => u.stripeCustomerId === customerId);
+  }
+
+  async getUserByOutlookSubscriptionId(subscriptionId: string): Promise<User | undefined> {
+    return undefined;
+  }
+
+  async getOAuthAccountByProviderAccountId(provider: string, providerAccountId: string): Promise<OAuthAccount | undefined> {
+    return Array.from(this.oauthAccounts.values()).find(acc => acc.provider === provider && acc.providerAccountId === providerAccountId);
   }
 }
 

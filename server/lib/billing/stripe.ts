@@ -105,19 +105,23 @@ export async function createStripeCustomer(
   name?: string,
   userId?: string
 ): Promise<string> {
-  if (isDemoMode) {
+  if (isDemoMode || !stripe) {
     return `cus_mock_${Date.now()}`;
   }
 
-  // Stripe SDK is not initialized here as we only use payment links
-  // A customer is created implicitly by Stripe when a payment link is used.
-  // We store the Stripe customer ID in our DB upon successful checkout.
-
-  // For now, returning a mock ID for demo mode.
-  // In a real scenario, this function might not be needed if customer creation is handled by Stripe checkout.
-  // If we need to explicitly create a customer, we would need the Stripe SDK initialized.
-  // Given the current context (payment links only), this function might be vestigial or needs re-evaluation.
-  return `cus_mock_${Date.now()}`;
+  try {
+    const customer = await stripe.customers.create({
+      email,
+      name,
+      metadata: { userId: userId || '' },
+    });
+    return customer.id;
+  } catch (error) {
+    console.error('Error creating Stripe customer:', error);
+    // Return a mock ID as fallback to prevent blocking user flow if Stripe is down or keys are misconfigured,
+    // but log it prominently.
+    return `cus_error_fallback_${Date.now()}`;
+  }
 }
 
 /**

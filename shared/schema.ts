@@ -87,7 +87,10 @@ export const users = pgTable("users", {
   intelligenceMetadata: jsonb("intelligence_metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
   defaultPaymentLink: text("default_payment_link"),
   aiStickerFollowupsEnabled: boolean("ai_sticker_followups_enabled").notNull().default(true),
-});
+}, (table) => ({
+  usersStripeCustomerIdx: index("users_stripe_customer_idx").on(table.stripeCustomerId),
+  usersEmailIdx: index("users_email_idx").on(table.email),
+}));
 
 export const brandPdfCache = pgTable("brand_pdf_cache", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -533,7 +536,10 @@ export const prospects = pgTable("prospects", {
   status: text("status").default("found"),
   metadata: jsonb("metadata").$type<Record<string, any>>().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  prospectsUserIdIdx: index("prospects_user_id_idx").on(table.userId),
+  prospectsIntegrationIdIdx: index("prospects_integration_id_idx").on(table.integrationId),
+}));
 
 export const followUpQueue = pgTable("follow_up_queue", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),

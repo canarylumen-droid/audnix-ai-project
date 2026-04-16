@@ -67,9 +67,10 @@ export async function getStripeClient(): Promise<Stripe | null> {
     return cachedStripeClient;
   }
 
-  const secretKey = await getStripeCredentials();
+  const secretKey = await getStripeCredentials() || process.env.STRIPE_SECRET_KEY;
   
   if (!secretKey) {
+    console.warn('⚠️ Stripe Secret Key MISSING. Provide STRIPE_SECRET_KEY or use Replit Stripe connector.');
     return null;
   }
 

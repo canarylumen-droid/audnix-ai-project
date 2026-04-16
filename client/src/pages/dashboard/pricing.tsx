@@ -85,7 +85,7 @@ export default function PricingPage() {
             className="text-muted-foreground font-bold text-2xl max-w-2xl mx-auto leading-tight"
           >
             Deploy autonomous agents that handle outreach, objection mastery, and closed revenue.
-            <span className="text-foreground ml-2 underline underline-offset-8 decoration-primary/40">Zero setup fees.</span>
+            <span className="text-foreground ml-2 underline underline-offset-8 decoration-primary/40">Scale instantly.</span>
           </motion.p>
         </div>
 
@@ -184,7 +184,7 @@ export default function PricingPage() {
                     {loadingPlan === tier.id ? (
                       <Loader2 className="w-4 h-4 animate-spin mr-2" />
                     ) : null}
-                    {isCurrentPlan ? "Current Plan" : "Initialize Scale"}
+                    {isCurrentPlan ? "Current Plan" : "Start Scaling"}
                   </Button>
                 </div>
               </motion.div>

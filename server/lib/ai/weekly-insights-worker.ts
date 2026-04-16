@@ -53,9 +53,10 @@ export class WeeklyInsightsWorker {
     }
     try {
       // Check if database is ready by attempting to get users
-      let users: User[];
+      // Only fetch users who are due for insights (7+ days or never)
+      let users: User[] = [];
       try {
-        users = await storage.getAllUsers();
+        users = await storage.getUsersNeedingWeeklyInsights();
       } catch (dbError: unknown) {
         const error = dbError as DatabaseError;
         // Database not ready (migrations not run, or connection issue)

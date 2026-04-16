@@ -257,14 +257,14 @@ export default function ObjectionsLibraryPage() {
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
           <div className="text-center md:text-left space-y-4">
             <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter uppercase leading-[0.9]">
-              Custom Intelligence <br /> <span className="text-primary">Logic Required?</span>
+              Custom Sales <br /> <span className="text-primary">Logic Required?</span>
             </h2>
             <p className="text-white/60 font-bold max-w-md tracking-tight text-lg">
-              Train your personal objection patterns into the intelligence core for deterministic close rates. Automated evolution active.
+              Train your personal objection patterns into the core for proven close rates. Automated optimization active.
             </p>
           </div>
           <Button className="h-20 px-16 rounded-[2rem] bg-white text-black font-black uppercase tracking-[0.3em] text-[10px] hover:scale-105 active:scale-95 transition-all shadow-[0_20px_40px_rgba(255,255,255,0.1)]">
-            Initialize Trainer
+            Start Trainer
           </Button>
         </div>
       </motion.div>

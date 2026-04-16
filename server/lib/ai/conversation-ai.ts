@@ -181,7 +181,7 @@ export interface MemoryRetrievalResult {
   metadata?: any;
 }
 
-const brandPromptSection = `[BRAND CONTEXT PLACEHOLDER]`;
+// Brand section is dynamically generated below
 
 /**
  * Detect conversation intent and update lead status automatically
@@ -451,7 +451,11 @@ Only meeting reminders are authorised. Do not generate a response.`,
 [BRAND GUIDELINES]
 ${brandGuidelines}
 
-${brandPromptSection}
+${brandGuidelines}
+
+${(brandContext as any)?.brandSnippets?.length > 0
+  ? `KEY BRAND MESSAGES:\n${(brandContext as any).brandSnippets.map((s: string) => `- ${s}`).join('\n')}`
+  : ''}
 
 ${leadIntelContext}
 

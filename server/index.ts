@@ -192,15 +192,14 @@ if (!hasEmailKey) {
 
 app.use("/api/", apiLimiter);
 app.use("/api/auth/", authLimiter);
+app.use("/*/webhook/*", express.json({
+  verify: (req: any, _res, buf) => {
+    req.rawBody = buf;
+  }
+}));
+
 app.use("/webhook/stripe", express.raw({ type: "application/json" }));
-app.use(
-  "/api/webhook/instagram",
-  express.json({
-    verify: (req: any, _res, buf) => {
-      req.rawBody = buf;
-    },
-  }),
-);
+
 app.use(
   "/api/instagram/callback",
   express.json({
@@ -596,12 +595,18 @@ async function runMigrations() {
             log("⚙️ Starting background workers (Lazy Loaded)...");
             
             // Worker error wrapper for graceful degradation
-            const startWorker = (name: string, startFn: () => void) => {
+            const startWorker = async (name: string, startFn: () => any) => {
               try {
-                startFn();
+                const result = startFn();
+                if (result instanceof Promise) {
+                  result.catch((error) => {
+                    console.error(`   - ${name} worker (async error): ❌ Failed:`, error);
+                    quotaService.reportDbError(error);
+                  });
+                }
                 console.log(`   - ${name} worker: ✅ Online`);
               } catch (error) {
-                console.error(`   - ${name} worker: ❌ Failed:`, error);
+                console.error(`   - ${name} worker (sync error): ❌ Failed:`, error);
                 quotaService.reportDbError(error);
               }
             };

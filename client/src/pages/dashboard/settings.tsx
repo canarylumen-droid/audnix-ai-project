@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { User, Loader2, Upload, Mic, Settings, Save, ShieldCheck, Globe, Palette, Lock, Brain, Mail as MailIcon, RefreshCw, Activity, CheckCircle2, Plus } from "lucide-react";
+import { User, Loader2, Upload, Mic, Settings, Save, ShieldCheck, Globe, Palette, Lock, Brain, Mail, RefreshCw, Activity, CheckCircle2, Plus, Phone, ArrowLeft, Building2 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -192,6 +192,10 @@ export default function SettingsPage() {
           <TabsTrigger value="profile" className="flex-1 rounded-lg px-4 md:px-8 py-2 font-bold text-xs md:text-sm whitespace-nowrap">Profile</TabsTrigger>
           <TabsTrigger value="brand" className="flex-1 rounded-lg px-4 md:px-8 py-2 font-bold text-xs md:text-sm whitespace-nowrap">Intelligence Memory</TabsTrigger>
           <TabsTrigger value="ai" className="flex-1 rounded-lg px-4 md:px-8 py-2 font-bold text-xs md:text-sm whitespace-nowrap">Automation</TabsTrigger>
+          <TabsTrigger value="voice" className="flex-1 rounded-lg px-4 md:px-8 py-2 font-bold text-xs md:text-sm whitespace-nowrap flex items-center gap-2">
+            <Mic className="h-3 w-3" /> Voice AI
+            {!canAccessVoiceNotes && <Lock className="h-3 w-3 opacity-60" />}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="space-y-6">
@@ -351,29 +355,6 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 bg-muted/30 rounded-2xl border border-border hover:border-border/80 transition-all gap-4">
-                <div className="flex gap-4">
-                  <div className="p-3 rounded-2xl bg-background border border-border shrink-0">
-                    <VoiceIcon className="w-8 h-8" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-base flex items-center gap-2">
-                      Voice Engagement
-                      {canAccessVoiceNotes ? <Badge className="bg-primary hover:bg-primary text-black text-[9px] font-bold">Pro Feature</Badge> : <Lock className="h-3 w-3 text-muted-foreground" />}
-                    </h4>
-                    <p className="text-sm text-muted-foreground max-w-md leading-relaxed">
-                      AI-generated voice notes for personalized Instagram engagement.
-                    </p>
-                  </div>
-                </div>
-                <div className="sm:shrink-0 w-full sm:w-auto flex justify-end">
-                  <Switch
-                    checked={formData.voiceNotesEnabled && canAccessVoiceNotes}
-                    onCheckedChange={c => canAccessVoiceNotes && handleFieldChange('voiceNotesEnabled', c)}
-                    disabled={!canAccessVoiceNotes}
-                  />
-                </div>
-              </div>
 
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 bg-muted/30 rounded-2xl border border-border hover:border-border/80 transition-all gap-4">
                 <div className="flex gap-4">
@@ -406,61 +387,6 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="p-6 bg-muted/30 rounded-xl border border-border">
-                <div className="flex justify-between items-center mb-6">
-                  <div>
-                    <h4 className="font-bold text-sm">Voice Training (Clone)</h4>
-                    <p className="text-xs text-muted-foreground mt-1">Upload 1-3 samples of your voice to train the AI.</p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => voiceInputRef.current?.click()}
-                    disabled={cloneVoiceMutation.isPending || !canAccessVoiceNotes}
-                    className="h-9 px-4 rounded-lg font-bold border-primary/20 hover:bg-primary/5 text-primary"
-                  >
-                    {cloneVoiceMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Mic className="w-4 h-4 mr-2" />}
-                    {user.metadata?.voiceCloneId ? 'Update Voice' : 'Clone Voice'}
-                  </Button>
-                  <input
-                    ref={voiceInputRef}
-                    type="file"
-                    multiple
-                    className="hidden"
-                    accept="audio/*"
-                    onChange={e => e.target.files && cloneVoiceMutation.mutate(e.target.files)}
-                  />
-                </div>
-
-                {user.metadata?.voiceCloneId && (
-                  <div className="flex items-center gap-4 p-4 bg-primary/5 rounded-xl border border-primary/10 mb-6">
-                    <div className="p-2 bg-primary/20 rounded-full text-primary">
-                      <ShieldCheck className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-primary">Voice Identity Verified</p>
-                      <p className="text-[10px] text-muted-foreground">Successfully cloned and ready for engagement.</p>
-                    </div>
-                  </div>
-                )}
-
-                <div className="space-y-4">
-                  <div className="flex justify-between mb-1">
-                    <h4 className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Monthly Voice Usage</h4>
-                    <span className="text-[11px] font-bold text-primary">{voiceUsage?.percentage || 0}% Used</span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden border border-border/50">
-                    <div
-                      className="h-full bg-primary transition-all duration-500"
-                      style={{ width: `${voiceUsage?.percentage || 0}%` }}
-                    />
-                  </div>
-                  <div className="flex justify-between text-[10px] text-muted-foreground font-medium">
-                    <span>{voiceUsage?.used.toFixed(2) || 0} mins used</span>
-                    <span>{voiceUsage?.remaining.toFixed(2) || 0} mins remaining</span>
-                  </div>
-                </div>
-              </div>
 
               <div className="p-6 bg-muted/30 rounded-xl border border-border">
                 <div className="flex justify-between mb-4">
@@ -473,6 +399,128 @@ export default function SettingsPage() {
                 <p className="text-xs text-muted-foreground mt-3">
                   Minimum confidence score required for the system to reply without human review.
                 </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="voice" className="space-y-6">
+          <Card className="border-border/50 shadow-sm rounded-2xl">
+            <CardHeader>
+              <CardTitle className="text-xl">Voice AI & Cloning</CardTitle>
+              <CardDescription>Configure AI-generated voice notes for highly-personalized outreach.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {!canAccessVoiceNotes && (
+                <div className="p-6 bg-primary/5 border border-primary/20 rounded-2xl flex flex-col items-center text-center gap-4 mb-4">
+                  <div className="p-3 bg-primary/10 rounded-full">
+                    <Lock className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-lg">Pro Feature</h4>
+                    <p className="text-sm text-muted-foreground max-w-sm">
+                      Voice AI and Voice Cloning are only available on Growth and Performance plans.
+                    </p>
+                  </div>
+                  <Button variant="default" className="rounded-xl px-6" asChild>
+                    <Link href="/pricing">View Plans</Link>
+                  </Button>
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 bg-gradient-to-br from-primary/5 to-purple-500/5 rounded-2xl border border-primary/20 hover:border-primary/40 transition-all gap-4">
+                <div className="flex gap-4">
+                  <div className="p-3 rounded-2xl bg-primary/10 border border-primary/20 shrink-0">
+                    <VoiceIcon className="w-8 h-8 text-primary" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-base">Voice Engagement</h4>
+                    <p className="text-sm text-muted-foreground max-w-md leading-relaxed">
+                      Automatically send personalized voice notes via Instagram DM for 10x higher response rates.
+                    </p>
+                  </div>
+                </div>
+                <div className="sm:shrink-0 w-full sm:w-auto flex justify-end">
+                  <Switch
+                    checked={formData.voiceNotesEnabled && canAccessVoiceNotes}
+                    onCheckedChange={c => canAccessVoiceNotes && handleFieldChange('voiceNotesEnabled', c)}
+                    disabled={!canAccessVoiceNotes}
+                    className="data-[state=checked]:bg-primary"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className="md:col-span-2 border-border/50 shadow-none bg-muted/20">
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-center mb-6">
+                      <div>
+                        <h4 className="font-bold text-sm">Voice Identity (Clone)</h4>
+                        <p className="text-xs text-muted-foreground mt-1">Train the AI with your own voice for authentic engagement.</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => voiceInputRef.current?.click()}
+                        disabled={cloneVoiceMutation.isPending || !canAccessVoiceNotes}
+                        className="h-9 px-4 rounded-lg font-bold border-primary/20 hover:bg-primary/5 text-primary"
+                      >
+                        {cloneVoiceMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Mic className="w-4 h-4 mr-2" />}
+                        {user.metadata?.voiceCloneId ? 'Update Identity' : 'Clone Voice'}
+                      </Button>
+                      <input
+                        ref={voiceInputRef}
+                        type="file"
+                        multiple
+                        className="hidden"
+                        accept="audio/*"
+                        onChange={e => e.target.files && cloneVoiceMutation.mutate(e.target.files)}
+                      />
+                    </div>
+
+                    {user.metadata?.voiceCloneId ? (
+                      <div className="flex items-center gap-4 p-4 bg-primary/10 rounded-xl border border-primary/20 mb-2">
+                        <div className="p-2 bg-primary/20 rounded-full text-primary">
+                          <ShieldCheck className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-primary">Identity Verified</p>
+                          <p className="text-[10px] text-muted-foreground">Successfully cloned and ready for engagement.</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-6 text-center border-2 border-dashed border-border rounded-xl">
+                        <Mic className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-20" />
+                        <p className="text-xs text-muted-foreground">Upload 1-3 voice samples (30s each) to begin.</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card className="border-border/50 shadow-none bg-muted/20">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex justify-between mb-1">
+                      <h4 className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Monthly Capacity</h4>
+                      <span className="text-[11px] font-bold text-primary">{voiceUsage?.percentage || 0}%</span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden border border-border/50">
+                      <div
+                        className="h-full bg-primary transition-all duration-500 shadow-[0_0_10px_rgba(var(--primary),0.5)]"
+                        style={{ width: `${voiceUsage?.percentage || 0}%` }}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex justify-between text-[10px] font-medium">
+                        <span className="text-muted-foreground">Minutes Used</span>
+                        <span className="text-foreground">{voiceUsage?.used.toFixed(1) || 0}m</span>
+                      </div>
+                      <div className="flex justify-between text-[10px] font-medium">
+                        <span className="text-muted-foreground">Remaining</span>
+                        <span className="text-emerald-500 font-bold">{voiceUsage?.remaining.toFixed(1) || 0}m</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </CardContent>
           </Card>

@@ -125,7 +125,7 @@ router.post('/webhook/stripe', async (req: Request, res: Response): Promise<void
     }
 
     const event = verifyWebhookSignature(
-      req.body as string | Buffer,
+      (req as any).rawBody,
       sig
     );
 
@@ -282,7 +282,7 @@ router.post('/webhook/lemonsqueezy', async (req: Request, res: Response): Promis
 
     const hash = crypto
       .createHmac('sha256', secret)
-      .update(JSON.stringify(req.body))
+      .update((req as any).rawBody)
       .digest('hex');
 
     if (hash !== signature) {
@@ -388,8 +388,7 @@ router.post('/webhook/payment', async (req: Request, res: Response): Promise<voi
 
 async function getUserIdFromStripeCustomer(customerId: string): Promise<string | null> {
   try {
-    const users = await storage.getAllUsers();
-    const user = users.find(u => u.stripeCustomerId === customerId);
+    const user = await storage.getUserByStripeCustomerId(customerId);
     return user?.id || null;
   } catch (error: unknown) {
     console.error('Error finding user by Stripe customer ID:', error);
@@ -410,9 +409,9 @@ function getPlanFromSubscription(subscription: Stripe.Subscription): string {
 
 function mapLemonSqueezyToPlan(productId: string, variantId: string): string {
   const mapping: Record<string, string> = {
-    '12345_starter': 'starter',
-    '12345_pro': 'pro',
-    '12345_enterprise': 'enterprise',
+    [process.env.LEMONSQUEEZY_STARTER_VARIANT_ID || '']: 'starter',
+    [process.env.LEMONSQUEEZY_PRO_VARIANT_ID || '']: 'pro',
+    [process.env.LEMONSQUEEZY_ENTERPRISE_VARIANT_ID || '']: 'enterprise',
   };
 
   return mapping[`${productId}_${variantId}`] || 'trial';
@@ -462,8 +461,7 @@ router.post('/outlook/push', async (req: Request, res: Response) => {
           // we might need to look it up or rely on the clientState to store userId
           // For simplicity, we assume we find the user by looking at active subscriptions 
           const subId = notification.subscriptionId;
-          const users = await storage.getAllUsers();
-          const user = users.find(u => (u.metadata as any)?.outlook_subscription_id === subId);
+          const user = await storage.getUserByOutlookSubscriptionId(subId);
           
           if (user) {
               await PushNotificationService.handleOutlookPush(user.id, resourceData.id);

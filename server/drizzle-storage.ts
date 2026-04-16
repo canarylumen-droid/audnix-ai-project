@@ -252,9 +252,102 @@ export class DrizzleStorage implements IStorage {
   }
 
 
+  async getUsersNeedingWeeklyInsights(): Promise<User[]> {
+    checkDatabase();
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    return await db
+      .select()
+      .from(users)
+      .where(or(
+        isNull(users.lastInsightGeneratedAt),
+        lte(users.lastInsightGeneratedAt, sevenDaysAgo)
+      ));
+  }
+
+  async getUsersWithActiveVideoMonitors(): Promise<User[]> {
+    checkDatabase();
+    // This query finds users who have at least one active video monitor
+    const results = await db
+      .select({ user: users })
+      .from(users)
+      .where(exists(
+        db.select()
+          .from(videoMonitors)
+          .where(and(
+            eq(videoMonitors.userId, users.id),
+            eq(videoMonitors.isActive, true)
+          ))
+      ));
+    return results.map((r: { user: User }) => r.user);
+  }
+
+  async getPaymentStats(): Promise<Record<string, number>> {
+    checkDatabase();
+    const results = await db
+      .select({
+        plan: users.plan,
+        count: sql<number>`count(*)`
+      })
+      .from(users)
+      .groupBy(users.plan);
+    
+    const stats: Record<string, number> = {};
+    results.forEach((r: { plan: string | null; count: number }) => {
+      if (r.plan) {
+        stats[r.plan] = Number(r.count);
+      }
+    });
+    
+    // Add pending approval count
+    const [pendingResult] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(users)
+      .where(eq(users.paymentStatus, 'pending'));
+    
+    stats['pending_approvals'] = Number(pendingResult?.count || 0);
+
+    // Add approved count
+    const [approvedResult] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(users)
+      .where(eq(users.paymentStatus, 'approved'));
+    
+    stats['approved_payments'] = Number(approvedResult?.count || 0);
+    
+    return stats;
+  }
+
+  async getPendingLegacyPayments(): Promise<any[]> {
+    checkDatabase();
+    return await db
+      .select()
+      .from(users)
+      .where(eq(users.paymentStatus, 'pending'));
+  }
+
+  async getUserByStripeCustomerId(customerId: string): Promise<User | undefined> {
+    checkDatabase();
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.stripeCustomerId, customerId))
+      .limit(1);
+    return user;
+  }
+
+  async getUserByOutlookSubscriptionId(subscriptionId: string): Promise<User | undefined> {
+    checkDatabase();
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(sql`metadata->>'outlook_subscription_id' = ${subscriptionId}`)
+      .limit(1);
+    return user;
+  }
+
   async getAllUsers(): Promise<User[]> {
     checkDatabase();
-    return await db.select().from(users);
+    return await db.select().from(users).orderBy(desc(users.createdAt));
   }
 
   async getUsers(): Promise<User[]> {
@@ -1031,6 +1124,20 @@ export class DrizzleStorage implements IStorage {
       .select()
       .from(oauthAccounts)
       .where(eq(oauthAccounts.provider, oauthProvider as any));
+  }
+
+  async getOAuthAccountByProviderAccountId(provider: string, providerAccountId: string): Promise<OAuthAccount | undefined> {
+    checkDatabase();
+    const oauthProvider = provider === 'gmail' ? 'google' : provider;
+    const [account] = await db
+      .select()
+      .from(oauthAccounts)
+      .where(and(
+        eq(oauthAccounts.provider, oauthProvider as any),
+        eq(oauthAccounts.providerAccountId, providerAccountId)
+      ))
+      .limit(1);
+    return account;
   }
 
   async createIntegration(

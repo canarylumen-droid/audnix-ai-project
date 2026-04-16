@@ -36,17 +36,7 @@ export class MeetingReminderWorker {
       return;
     }
     
-    // Global AI Engine Toggle
-    try {
-      const userResult = await db.select({ config: users.config }).from(users).limit(1);
-      if (userResult[0]) {
-        const config = (userResult[0].config as any) || {};
-        if (config.autonomousMode === false) {
-           console.log('[MeetingReminder] AI Engine is OFF. Skipping reminders.');
-           return;
-        }
-      }
-    } catch (e) { }
+    // Moved autonomous check to per-user inside loop below
 
     try {
       const now = new Date();
@@ -70,14 +60,21 @@ export class MeetingReminderWorker {
       );
 
       for (const booking of upcomingBookings) {
-        const metadata = booking.metadata as any || {};
-        const reminder24h = metadata.reminder24h_sent;
-        const reminder45m = metadata.reminder45m_sent;
-        const reminder5m = metadata.reminder5m_sent;
-        const noShowHandled = metadata.no_show_handled;
+        try {
+          // Check if this specific user has autonomous mode enabled
+          const [user] = await db.select().from(users).where(eq(users.id, booking.userId)).limit(1);
+          if (!user || (user.config as any)?.autonomousMode === false) {
+             continue;
+          }
 
-        const minutesUntil = Math.round((new Date(booking.startTime).getTime() - now.getTime()) / 60000);
-        const minutesSince = Math.round((now.getTime() - new Date(booking.startTime).getTime()) / 60000);
+          const metadata = booking.metadata as any || {};
+          const reminder24h = metadata.reminder24h_sent;
+          const reminder45m = metadata.reminder45m_sent;
+          const reminder5m = metadata.reminder5m_sent;
+          const noShowHandled = metadata.no_show_handled;
+
+          const minutesUntil = Math.round((new Date(booking.startTime).getTime() - now.getTime()) / 60000);
+          const minutesSince = Math.round((now.getTime() - new Date(booking.startTime).getTime()) / 60000);
 
         // 24-Hour Reminder (1380-1500 mins before = 23h-25h)
         if (minutesUntil <= 1500 && minutesUntil >= 1380 && !reminder24h && booking.status === 'scheduled') {
@@ -103,10 +100,13 @@ export class MeetingReminderWorker {
           await this.markReminderSent(booking.id, 'no_show_handled');
         }
 
-        // Post-Meeting Autonomous Action via Fathom (Checks completed meetings)
-        if (booking.status === 'scheduled' && now.getTime() > new Date(booking.endTime).getTime() && !metadata.post_meeting_handled) {
-          await this.processPostMeetingSummary(booking);
-          await this.markReminderSent(booking.id, 'post_meeting_handled');
+          // Post-Meeting Autonomous Action via Fathom (Checks completed meetings)
+          if (booking.status === 'scheduled' && now.getTime() > new Date(booking.endTime).getTime() && !metadata.post_meeting_handled) {
+            await this.processPostMeetingSummary(booking);
+            await this.markReminderSent(booking.id, 'post_meeting_handled');
+          }
+        } catch (bookingError: any) {
+          console.error(`[MeetingReminder] Error processing booking ${booking.id}:`, bookingError);
         }
       }
 
