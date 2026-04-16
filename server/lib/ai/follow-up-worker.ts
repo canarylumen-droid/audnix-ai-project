@@ -184,7 +184,7 @@ export class FollowUpWorker {
             )
           );
           
-        const uniqueUsers = [...new Set(activeRules.map(r => r.userId))];
+        const uniqueUsers = Array.from(new Set<string>(activeRules.map((r: any) => String(r.userId))));
         for (const userId of uniqueUsers) {
           await AutomationRuleEngine.processProactiveRules(userId);
         }

@@ -442,7 +442,7 @@ export async function executeCommentFollowUps(): Promise<void> {
       );
 
     // Filter in JS to safely check JSON metadata
-    const dueNotifications = allNotifications.filter(n => {
+    const dueNotifications = allNotifications.filter((n: any) => {
       const meta = n.metadata as any;
       if (!meta || meta.followUpType !== 'comment_automation' || !meta.scheduledFor) return false;
       return new Date(meta.scheduledFor) <= now;
