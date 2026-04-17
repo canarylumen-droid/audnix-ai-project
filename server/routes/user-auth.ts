@@ -291,6 +291,12 @@ router.post('/signup/direct', authLimiter, async (req: Request, res: Response): 
       req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
     }
 
+    // Defensive check: Ensure session store is available before saving
+    if (!req.sessionStore) {
+      console.error('🚨 [Direct Signup] No session store available');
+      throw new Error('Internal session error: Store unavailable');
+    }
+
     await new Promise<void>((resolve, reject) => {
       req.session.save((err) => {
         if (err) {
@@ -401,6 +407,12 @@ router.post('/signup/verify-otp', authLimiter, async (req: Request, res: Respons
       req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
     }
 
+    // Defensive check: Ensure session store is available before saving
+    if (!req.sessionStore) {
+      console.error('🚨 [OTP Verify] No session store available');
+      throw new Error('Internal session error: Store unavailable');
+    }
+
     // Save session explicitly for serverless environments
     await new Promise<void>((resolve, reject) => {
       req.session.save((err) => {
@@ -495,6 +507,12 @@ router.post('/login', authLimiter, async (req: Request, res: Response): Promise<
     req.session.isAdmin = false;
     if (req.session.cookie) {
       req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+    }
+
+    // Defensive check: Ensure session store is available before saving
+    if (!req.sessionStore) {
+      console.error('🚨 [Login] No session store available');
+      throw new Error('Internal session error: Store unavailable');
     }
 
     // Save session explicitly and wait for completion

@@ -30,15 +30,19 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   const sessionID = req.sessionID;
 
   if (!userId) {
+    const cookies = req.headers.cookie || '';
+    const sidCookie = cookies.split(';').find(c => c.trim().startsWith('audnix.sid='));
+    
     console.warn(`[AUTH] Rejected 401: No userId in session.
       - Method: ${req.method}
       - Path: ${req.path}
-      - SessionID: ${sessionID?.slice(0, 8)}...
-      - Has Cookie: ${Boolean(req.headers.cookie)}
-      - Cookie Length: ${req.headers.cookie?.length || 0}
-      - Session Object Present: ${Boolean(req.session)}
-      - Session Keys: ${Object.keys(req.session || {}).join(', ')}
+      - SessionID: ${sessionID ? sessionID.slice(0, 8) + '...' : 'NONE'}
+      - Cookie Header Present: ${Boolean(req.headers.cookie)}
+      - audnix.sid Present: ${Boolean(sidCookie)}
+      - Session Object Valid: ${Boolean(req.session)}
+      - Session Store Type: ${req.sessionStore?.constructor?.name || 'Unknown'}
       - Referer: ${req.get('referer')}
+      - Current Time: ${new Date().toISOString()}
     `);
 
     // Security: Add small delay to prevent timing attacks

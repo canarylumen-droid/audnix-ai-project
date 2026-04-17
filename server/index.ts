@@ -142,6 +142,7 @@ function log(message: string, source = "express") {
 
 const nodeEnv = process.env.NODE_ENV || "development";
 app.set("env", nodeEnv);
+// Trust one hop of proxy (Railway/Load Balancers)
 app.set("trust proxy", 1);
 
 if (process.env.NODE_ENV === "production") {
@@ -209,7 +210,7 @@ app.use(
   }),
 );
 
-app.set("trust proxy", 1);
+// Trust proxy already set globally above
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
@@ -287,6 +288,10 @@ if (process.env.DATABASE_URL) {
     quotaService.reportDbError(err);
   });
 
+  pool.on('connect', (client) => {
+    log("🔗 [SESSION] New client connected to session pool", "session");
+  });
+
   sessionStore = new PgSession({
     pool: pool,
     tableName: "user_sessions",
@@ -301,7 +306,14 @@ if (process.env.DATABASE_URL) {
     quotaService.reportDbError(err);
   });
   
-  console.log("✅ Using PostgreSQL session store with SSL (optimized)");
+  // [NEW] Startup connectivity check
+  pool.query('SELECT 1').then(() => {
+    log("✅ PostgreSQL session store connectivity verified", "session");
+  }).catch(err => {
+    console.error("🚨 [SESSION] Failed initial connectivity check:", err);
+  });
+  
+  console.log("✅ Using PostgreSQL session store with SSL (configured)");
 }
 
 const sessionConfig: session.SessionOptions = {
