@@ -25,8 +25,8 @@ CREATE TABLE "prospect_objections" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "leads" ADD COLUMN "bant" jsonb DEFAULT '{}'::jsonb;--> statement-breakpoint
-ALTER TABLE "outreach_campaigns" ADD COLUMN "metadata" jsonb DEFAULT '{}'::jsonb NOT NULL;--> statement-breakpoint
+ALTER TABLE "leads" ADD COLUMN IF NOT EXISTS "bant" jsonb DEFAULT '{}'::jsonb;--> statement-breakpoint
+ALTER TABLE "outreach_campaigns" ADD COLUMN IF NOT EXISTS "metadata" jsonb DEFAULT '{}'::jsonb NOT NULL;--> statement-breakpoint
 ALTER TABLE "fathom_calls" ADD CONSTRAINT "fathom_calls_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fathom_calls" ADD CONSTRAINT "fathom_calls_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "prospect_objections" ADD CONSTRAINT "prospect_objections_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

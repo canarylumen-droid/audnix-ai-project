@@ -96,6 +96,11 @@ export async function runDatabaseMigrations() {
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='messages' AND column_name='integration_id') THEN
                     ALTER TABLE messages ADD COLUMN integration_id UUID REFERENCES integrations(id) ON DELETE SET NULL;
                 END IF;
+
+                -- Leads: bant
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='leads' AND column_name='bant') THEN
+                    ALTER TABLE leads ADD COLUMN bant jsonb DEFAULT '{}'::jsonb;
+                END IF;
                 
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='notifications' AND column_name='integration_id') THEN
                     ALTER TABLE notifications ADD COLUMN integration_id UUID REFERENCES integrations(id) ON DELETE SET NULL;

@@ -25,8 +25,8 @@ CREATE TABLE "pending_payments" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "users" ADD COLUMN "default_payment_link" text;--> statement-breakpoint
-ALTER TABLE "users" ADD COLUMN "ai_sticker_followups_enabled" boolean DEFAULT true NOT NULL;--> statement-breakpoint
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "default_payment_link" text;--> statement-breakpoint
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "ai_sticker_followups_enabled" boolean DEFAULT true NOT NULL;--> statement-breakpoint
 ALTER TABLE "ai_sticker_metrics" ADD CONSTRAINT "ai_sticker_metrics_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "pending_payments" ADD CONSTRAINT "pending_payments_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "pending_payments" ADD CONSTRAINT "pending_payments_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

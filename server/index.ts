@@ -318,18 +318,18 @@ if (process.env.DATABASE_URL) {
 
 const sessionConfig: session.SessionOptions = {
   secret: sessionSecret,
-  resave: false, // Changed to false for better performance if store supports touch
+  resave: true, // HARDENED: Re-save session even if unmodified to ensure store and memory sync
   saveUninitialized: false,
   name: "audnix.sid",
   cookie: {
     secure: process.env.NODE_ENV === "production",
     httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 24 * 30,
+    maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
     sameSite: "lax",
     path: "/",
   },
   store: sessionStore,
-  rolling: false, // Changed to false to avoid updating cookie/store on every request unless needed
+  rolling: true, // HARDENED: Reset maxAge on every response to keep session alive during active use
   proxy: true,
 };
 

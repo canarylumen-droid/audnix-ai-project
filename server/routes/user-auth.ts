@@ -300,7 +300,7 @@ router.post('/signup/direct', authLimiter, async (req: Request, res: Response): 
     await new Promise<void>((resolve, reject) => {
       req.session.save((err) => {
         if (err) {
-          console.error('Session save error:', err);
+          console.error('?? [Login] Session save error (SID: ' + req.sessionID + '):', err);
           reject(err);
         } else {
           console.log('✅ Session saved for direct signup user:', user.id);
@@ -519,7 +519,7 @@ router.post('/login', authLimiter, async (req: Request, res: Response): Promise<
     await new Promise<void>((resolve, reject) => {
       req.session.save((err) => {
         if (err) {
-          console.error('Session save error:', err);
+          console.error('?? [Login] Session save error (SID: ' + req.sessionID + '):', err);
           reject(err);
         } else {
           console.log('✅ Session saved successfully for user:', user.id);
