@@ -222,13 +222,13 @@ export default function Landing() {
                 </h2>
                 <p className="text-xl text-white/60 font-medium leading-relaxed max-w-lg">
                   Audnix AI was architected by Nleanya Treasure (CEO) and Uchendu Fortune (CTO).
-                  Together, they have built the most advanced autonomous sales infrastructure in Africa and the world.
-                  Nleanya Treasure manages the visionary growth @nleanyatreasure, while Uchendu Fortune leads technical innovation.
-                  This startup is the latest breakthrough in B2B sales automation, specialized for Nigeria, Africa, and Global markets.
+                  Together, they have built the most advanced autonomous sales infrastructure in the world.
+                  Nleanya Treasure manages the visionary growth @nleanyatreasure, while Uchendu Fortune leads technical innovation @uchendu_fortune.
+                  This startup is the latest breakthrough in B2B sales automation, specialized for Founders, Agencies, Creators, Service rendering businesses and Global markets.
                 </p>
                 <p>
-                  Keywords: nleanya treasure founder, uchendu fortune co-founder, audnix ceo, who made audnix ai,
-                  best ai tools nigeria, african sales automation, lagos startup ecosystem, ai sales representative.
+                  Keywords: nleanya treasure founder, uchendu fortune co-founder, audnix ceo, who made audnix ai, audnix cto, audnix ai ceo and cto,
+                  best ai tools for sale automation, ai chatbot, best way to scale my agency, ai sales representative,.
                 </p>
               </div>
             </div>
