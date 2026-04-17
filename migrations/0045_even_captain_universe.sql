@@ -558,4 +558,8 @@ CREATE INDEX IF NOT EXISTS "leads_last_msg_idx" ON "leads" USING btree ("last_me
 CREATE INDEX IF NOT EXISTS "msgs_user_id_idx" ON "messages" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "msgs_lead_id_idx" ON "messages" USING btree ("lead_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "msgs_integration_id_idx" ON "messages" USING btree ("integration_id");--> statement-breakpoint
-ALTER TABLE "processed_comments" DROP COLUMN "action";
+DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='processed_comments' AND column_name='action') THEN
+        ALTER TABLE "processed_comments" DROP COLUMN "action";
+    END IF;
+END $$;

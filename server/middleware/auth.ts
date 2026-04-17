@@ -41,6 +41,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       - audnix.sid Present: ${Boolean(sidCookie)}
       - Session Object Valid: ${Boolean(req.session)}
       - Session Store Type: ${req.sessionStore?.constructor?.name || 'Unknown'}
+      - Session Keys: ${req.session ? JSON.stringify(Object.keys(req.session)) : 'null'}
       - Referer: ${req.get('referer')}
       - Current Time: ${new Date().toISOString()}
     `);

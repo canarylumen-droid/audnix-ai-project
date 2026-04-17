@@ -522,7 +522,7 @@ router.post('/login', authLimiter, async (req: Request, res: Response): Promise<
           console.error('?? [Login] Session save error (SID: ' + req.sessionID + '):', err);
           reject(err);
         } else {
-          console.log('✅ Session saved successfully for user:', user.id);
+          console.log('[Login] Session saved successfully (SID: ' + req.sessionID + ') for user:', user.id, '| userId in session:', req.session.userId);
           resolve();
         }
       });
@@ -537,8 +537,12 @@ router.post('/login', authLimiter, async (req: Request, res: Response): Promise<
       console.error('Error fetching leads on login:', e);
     }
 
-    // Add small delay to ensure session is written to PostgreSQL
-    await new Promise(resolve => setTimeout(resolve, 150));
+    // Add delay to ensure session is committed to PostgreSQL before client makes follow-up requests.
+    // Increased to 500ms for high-latency Railway multi-replica environments.
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Final safety check - verify session still has userId after save
+    console.log(`[Login] Pre-response session check: userId=${req.session.userId}, SID=${req.sessionID}`);
 
     // Check if account setup is incomplete and restore state
     const isTemporaryUsername = user.username && /\d{13}$/.test(user.username); // Ends with timestamp
