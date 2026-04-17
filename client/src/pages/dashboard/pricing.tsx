@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { getActivePlanId } from "@shared/plan-utils";
 import { Check, Loader2, Zap, ShieldCheck, Activity, TrendingUp, Sparkles, Mail } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -25,7 +26,7 @@ export default function PricingPage() {
     retry: false,
   });
 
-  const currentPlan = user?.subscriptionTier || user?.plan || 'trial';
+  const currentPlan = getActivePlanId(user);
   const isPaidUser = currentPlan !== 'trial' && currentPlan !== '';
 
   const handleUpgrade = async (planId: string) => {

@@ -2,6 +2,16 @@ import { PRICING_TIERS, PricingTier } from './pricing-config';
 
 export type PlanId = 'free' | 'trial' | 'starter' | 'pro' | 'enterprise';
 
+export function getActivePlanId(user: any): string {
+  if (!user) return 'starter';
+  const tier = typeof user.subscriptionTier === 'string' ? user.subscriptionTier.toLowerCase() : null;
+  const plan = typeof user.plan === 'string' ? user.plan.toLowerCase() : null;
+  const altPlan = typeof user.subscription_tier === 'string' ? user.subscription_tier.toLowerCase() : null;
+  
+  const active = (tier && tier !== 'free' && tier !== 'none' ? tier : (plan || altPlan)) || 'starter';
+  return active;
+}
+
 export function isPaidPlan(planId: string | undefined): boolean {
   if (!planId) return false;
   return planId !== 'free' && planId !== 'trial';

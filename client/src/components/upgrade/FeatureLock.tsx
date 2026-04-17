@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { isPaidPlan, getActivePlanId } from "@shared/plan-utils";
 
 interface FeatureLockProps {
   featureName: string;
@@ -32,7 +33,7 @@ export function FeatureLock({
 }: FeatureLockProps) {
   const [, setLocation] = useLocation();
   const { data: userData } = useQuery<UserData>({ queryKey: ["/api/user"] });
-  const isPaid = userData?.user?.subscriptionTier && userData.user.subscriptionTier !== "free";
+  const isPaid = isPaidPlan(getActivePlanId(userData?.user));
 
   const handleUpgrade = () => {
     setLocation("/dashboard/pricing");

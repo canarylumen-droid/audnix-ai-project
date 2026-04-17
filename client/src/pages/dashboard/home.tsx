@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { getActivePlanId } from "@shared/plan-utils";
 import { apiRequest } from "@/lib/queryClient";
 import { useMailbox } from "@/hooks/use-mailbox";
 import {
@@ -265,8 +266,10 @@ export default function DashboardHome() {
   const userData = user;
 
   const getNextPlan = () => {
-    const tier = (userData?.subscriptionTier || (userData as any)?.plan || 'starter').toLowerCase();
-    return tier;
+    const tier = getActivePlanId(userData);
+    if (tier === 'starter') return 'Pro';
+    if (tier === 'pro') return 'Enterprise';
+    return null;
   };
 
   const getTrialDaysLeft = () => {
