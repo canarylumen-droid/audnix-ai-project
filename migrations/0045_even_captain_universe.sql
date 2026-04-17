@@ -347,67 +347,215 @@ ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "calendly_access_token" text;--> st
 ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "calendly_refresh_token" text;--> statement-breakpoint
 ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "calendly_expires_at" timestamp;--> statement-breakpoint
 ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "calendly_user_uri" text;--> statement-breakpoint
-ALTER TABLE "ai_learning_patterns" ADD CONSTRAINT "ai_learning_patterns_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "ai_process_logs" ADD CONSTRAINT "ai_process_logs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "brand_pdf_cache" ADD CONSTRAINT "brand_pdf_cache_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "campaign_emails" ADD CONSTRAINT "campaign_emails_campaign_id_outreach_campaigns_id_fk" FOREIGN KEY ("campaign_id") REFERENCES "public"."outreach_campaigns"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "campaign_emails" ADD CONSTRAINT "campaign_emails_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "campaign_emails" ADD CONSTRAINT "campaign_emails_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "campaign_leads" ADD CONSTRAINT "campaign_leads_campaign_id_outreach_campaigns_id_fk" FOREIGN KEY ("campaign_id") REFERENCES "public"."outreach_campaigns"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "campaign_leads" ADD CONSTRAINT "campaign_leads_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "campaign_leads" ADD CONSTRAINT "campaign_leads_integration_id_integrations_id_fk" FOREIGN KEY ("integration_id") REFERENCES "public"."integrations"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "domain_verifications" ADD CONSTRAINT "domain_verifications_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "email_messages" ADD CONSTRAINT "email_messages_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "email_messages" ADD CONSTRAINT "email_messages_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "email_messages" ADD CONSTRAINT "email_messages_campaign_id_outreach_campaigns_id_fk" FOREIGN KEY ("campaign_id") REFERENCES "public"."outreach_campaigns"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "email_reply_store" ADD CONSTRAINT "email_reply_store_campaign_id_outreach_campaigns_id_fk" FOREIGN KEY ("campaign_id") REFERENCES "public"."outreach_campaigns"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "email_reply_store" ADD CONSTRAINT "email_reply_store_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "email_reply_store" ADD CONSTRAINT "email_reply_store_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "email_tracking" ADD CONSTRAINT "email_tracking_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "email_tracking" ADD CONSTRAINT "email_tracking_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "lead_insights" ADD CONSTRAINT "lead_insights_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "lead_insights" ADD CONSTRAINT "lead_insights_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "lead_social_details" ADD CONSTRAINT "lead_social_details_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "lead_timezone_profiles" ADD CONSTRAINT "lead_timezone_profiles_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "lead_timezone_profiles" ADD CONSTRAINT "lead_timezone_profiles_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "outreach_campaigns" ADD CONSTRAINT "outreach_campaigns_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "push_subscriptions" ADD CONSTRAINT "push_subscriptions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "smtp_settings" ADD CONSTRAINT "smtp_settings_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "threads" ADD CONSTRAINT "threads_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "threads" ADD CONSTRAINT "threads_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "user_outreach_settings" ADD CONSTRAINT "user_outreach_settings_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-CREATE UNIQUE INDEX "user_pattern_idx" ON "ai_learning_patterns" USING btree ("user_id","pattern_key");--> statement-breakpoint
-CREATE UNIQUE INDEX "brand_pdf_cache_user_id_hash_idx" ON "brand_pdf_cache" USING btree ("user_id","file_hash");--> statement-breakpoint
-CREATE UNIQUE INDEX "campaign_lead_idx" ON "campaign_leads" USING btree ("campaign_id","lead_id");--> statement-breakpoint
-CREATE INDEX "campaign_leads_next_action_idx" ON "campaign_leads" USING btree ("campaign_id","status","next_action_at");--> statement-breakpoint
-CREATE INDEX "campaign_leads_integration_idx" ON "campaign_leads" USING btree ("integration_id","status");--> statement-breakpoint
-CREATE INDEX "email_msgs_user_id_idx" ON "email_messages" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "email_msgs_lead_id_idx" ON "email_messages" USING btree ("lead_id");--> statement-breakpoint
-CREATE INDEX "email_msgs_thread_id_idx" ON "email_messages" USING btree ("thread_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "lead_platform_idx" ON "lead_social_details" USING btree ("lead_id","platform");--> statement-breakpoint
-CREATE INDEX "tz_profile_lead_idx" ON "lead_timezone_profiles" USING btree ("lead_id");--> statement-breakpoint
-CREATE INDEX "tz_profile_user_idx" ON "lead_timezone_profiles" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "campaigns_user_id_idx" ON "outreach_campaigns" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "campaigns_status_idx" ON "outreach_campaigns" USING btree ("status");--> statement-breakpoint
-ALTER TABLE "audit_trail" ADD CONSTRAINT "audit_trail_integration_id_integrations_id_fk" FOREIGN KEY ("integration_id") REFERENCES "public"."integrations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "bounce_tracker" ADD CONSTRAINT "bounce_tracker_integration_id_integrations_id_fk" FOREIGN KEY ("integration_id") REFERENCES "public"."integrations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "leads" ADD CONSTRAINT "leads_integration_id_integrations_id_fk" FOREIGN KEY ("integration_id") REFERENCES "public"."integrations"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "messages" ADD CONSTRAINT "messages_integration_id_integrations_id_fk" FOREIGN KEY ("integration_id") REFERENCES "public"."integrations"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "notifications" ADD CONSTRAINT "notifications_integration_id_integrations_id_fk" FOREIGN KEY ("integration_id") REFERENCES "public"."integrations"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "processed_comments" ADD CONSTRAINT "processed_comments_video_monitor_id_video_monitors_id_fk" FOREIGN KEY ("video_monitor_id") REFERENCES "public"."video_monitors"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "processed_comments" ADD CONSTRAINT "processed_comments_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "prospects" ADD CONSTRAINT "prospects_integration_id_integrations_id_fk" FOREIGN KEY ("integration_id") REFERENCES "public"."integrations"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX "cal_events_start_time_idx" ON "calendar_events" USING btree ("start_time");--> statement-breakpoint
-CREATE INDEX "cal_events_user_id_idx" ON "calendar_events" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "follow_up_scheduled_status_idx" ON "follow_up_queue" USING btree ("scheduled_at","status");--> statement-breakpoint
-CREATE INDEX "follow_up_user_id_idx" ON "follow_up_queue" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "leads_user_id_idx" ON "leads" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "leads_integration_id_idx" ON "leads" USING btree ("integration_id");--> statement-breakpoint
-CREATE INDEX "leads_status_idx" ON "leads" USING btree ("status");--> statement-breakpoint
-CREATE INDEX "leads_archived_idx" ON "leads" USING btree ("archived");--> statement-breakpoint
-CREATE INDEX "leads_user_status_idx" ON "leads" USING btree ("user_id","status");--> statement-breakpoint
-CREATE INDEX "leads_last_msg_idx" ON "leads" USING btree ("last_message_at");--> statement-breakpoint
-CREATE INDEX "msgs_user_id_idx" ON "messages" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "msgs_lead_id_idx" ON "messages" USING btree ("lead_id");--> statement-breakpoint
-CREATE INDEX "msgs_integration_id_idx" ON "messages" USING btree ("integration_id");--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ai_learning_patterns_user_id_users_id_fk') THEN
+        ALTER TABLE "ai_learning_patterns" ADD CONSTRAINT "ai_learning_patterns_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ai_process_logs_user_id_users_id_fk') THEN
+        ALTER TABLE "ai_process_logs" ADD CONSTRAINT "ai_process_logs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'brand_pdf_cache_user_id_users_id_fk') THEN
+        ALTER TABLE "brand_pdf_cache" ADD CONSTRAINT "brand_pdf_cache_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'campaign_emails_campaign_id_outreach_campaigns_id_fk') THEN
+        ALTER TABLE "campaign_emails" ADD CONSTRAINT "campaign_emails_campaign_id_outreach_campaigns_id_fk" FOREIGN KEY ("campaign_id") REFERENCES "public"."outreach_campaigns"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'campaign_emails_lead_id_leads_id_fk') THEN
+        ALTER TABLE "campaign_emails" ADD CONSTRAINT "campaign_emails_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'campaign_emails_user_id_users_id_fk') THEN
+        ALTER TABLE "campaign_emails" ADD CONSTRAINT "campaign_emails_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'campaign_leads_campaign_id_outreach_campaigns_id_fk') THEN
+        ALTER TABLE "campaign_leads" ADD CONSTRAINT "campaign_leads_campaign_id_outreach_campaigns_id_fk" FOREIGN KEY ("campaign_id") REFERENCES "public"."outreach_campaigns"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'campaign_leads_lead_id_leads_id_fk') THEN
+        ALTER TABLE "campaign_leads" ADD CONSTRAINT "campaign_leads_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'campaign_leads_integration_id_integrations_id_fk') THEN
+        ALTER TABLE "campaign_leads" ADD CONSTRAINT "campaign_leads_integration_id_integrations_id_fk" FOREIGN KEY ("integration_id") REFERENCES "public"."integrations"("id") ON DELETE set null ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'domain_verifications_user_id_users_id_fk') THEN
+        ALTER TABLE "domain_verifications" ADD CONSTRAINT "domain_verifications_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'email_messages_user_id_users_id_fk') THEN
+        ALTER TABLE "email_messages" ADD CONSTRAINT "email_messages_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'email_messages_lead_id_leads_id_fk') THEN
+        ALTER TABLE "email_messages" ADD CONSTRAINT "email_messages_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'email_messages_campaign_id_outreach_campaigns_id_fk') THEN
+        ALTER TABLE "email_messages" ADD CONSTRAINT "email_messages_campaign_id_outreach_campaigns_id_fk" FOREIGN KEY ("campaign_id") REFERENCES "public"."outreach_campaigns"("id") ON DELETE set null ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'email_reply_store_campaign_id_outreach_campaigns_id_fk') THEN
+        ALTER TABLE "email_reply_store" ADD CONSTRAINT "email_reply_store_campaign_id_outreach_campaigns_id_fk" FOREIGN KEY ("campaign_id") REFERENCES "public"."outreach_campaigns"("id") ON DELETE set null ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'email_reply_store_lead_id_leads_id_fk') THEN
+        ALTER TABLE "email_reply_store" ADD CONSTRAINT "email_reply_store_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE set null ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'email_reply_store_user_id_users_id_fk') THEN
+        ALTER TABLE "email_reply_store" ADD CONSTRAINT "email_reply_store_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'email_tracking_user_id_users_id_fk') THEN
+        ALTER TABLE "email_tracking" ADD CONSTRAINT "email_tracking_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'email_tracking_lead_id_leads_id_fk') THEN
+        ALTER TABLE "email_tracking" ADD CONSTRAINT "email_tracking_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE set null ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'lead_insights_lead_id_leads_id_fk') THEN
+        ALTER TABLE "lead_insights" ADD CONSTRAINT "lead_insights_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'lead_insights_user_id_users_id_fk') THEN
+        ALTER TABLE "lead_insights" ADD CONSTRAINT "lead_insights_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'lead_social_details_lead_id_leads_id_fk') THEN
+        ALTER TABLE "lead_social_details" ADD CONSTRAINT "lead_social_details_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'lead_timezone_profiles_lead_id_leads_id_fk') THEN
+        ALTER TABLE "lead_timezone_profiles" ADD CONSTRAINT "lead_timezone_profiles_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'lead_timezone_profiles_user_id_users_id_fk') THEN
+        ALTER TABLE "lead_timezone_profiles" ADD CONSTRAINT "lead_timezone_profiles_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'outreach_campaigns_user_id_users_id_fk') THEN
+        ALTER TABLE "outreach_campaigns" ADD CONSTRAINT "outreach_campaigns_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'push_subscriptions_user_id_users_id_fk') THEN
+        ALTER TABLE "push_subscriptions" ADD CONSTRAINT "push_subscriptions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'smtp_settings_user_id_users_id_fk') THEN
+        ALTER TABLE "smtp_settings" ADD CONSTRAINT "smtp_settings_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'threads_user_id_users_id_fk') THEN
+        ALTER TABLE "threads" ADD CONSTRAINT "threads_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'threads_lead_id_leads_id_fk') THEN
+        ALTER TABLE "threads" ADD CONSTRAINT "threads_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_outreach_settings_user_id_users_id_fk') THEN
+        ALTER TABLE "user_outreach_settings" ADD CONSTRAINT "user_outreach_settings_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "user_pattern_idx" ON "ai_learning_patterns" USING btree ("user_id","pattern_key");--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "brand_pdf_cache_user_id_hash_idx" ON "brand_pdf_cache" USING btree ("user_id","file_hash");--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "campaign_lead_idx" ON "campaign_leads" USING btree ("campaign_id","lead_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "campaign_leads_next_action_idx" ON "campaign_leads" USING btree ("campaign_id","status","next_action_at");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "campaign_leads_integration_idx" ON "campaign_leads" USING btree ("integration_id","status");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "email_msgs_user_id_idx" ON "email_messages" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "email_msgs_lead_id_idx" ON "email_messages" USING btree ("lead_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "email_msgs_thread_id_idx" ON "email_messages" USING btree ("thread_id");--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "lead_platform_idx" ON "lead_social_details" USING btree ("lead_id","platform");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "tz_profile_lead_idx" ON "lead_timezone_profiles" USING btree ("lead_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "tz_profile_user_idx" ON "lead_timezone_profiles" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "campaigns_user_id_idx" ON "outreach_campaigns" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "campaigns_status_idx" ON "outreach_campaigns" USING btree ("status");--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'audit_trail_integration_id_integrations_id_fk') THEN
+        ALTER TABLE "audit_trail" ADD CONSTRAINT "audit_trail_integration_id_integrations_id_fk" FOREIGN KEY ("integration_id") REFERENCES "public"."integrations"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'bounce_tracker_integration_id_integrations_id_fk') THEN
+        ALTER TABLE "bounce_tracker" ADD CONSTRAINT "bounce_tracker_integration_id_integrations_id_fk" FOREIGN KEY ("integration_id") REFERENCES "public"."integrations"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'leads_integration_id_integrations_id_fk') THEN
+        ALTER TABLE "leads" ADD CONSTRAINT "leads_integration_id_integrations_id_fk" FOREIGN KEY ("integration_id") REFERENCES "public"."integrations"("id") ON DELETE set null ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'messages_integration_id_integrations_id_fk') THEN
+        ALTER TABLE "messages" ADD CONSTRAINT "messages_integration_id_integrations_id_fk" FOREIGN KEY ("integration_id") REFERENCES "public"."integrations"("id") ON DELETE set null ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'notifications_integration_id_integrations_id_fk') THEN
+        ALTER TABLE "notifications" ADD CONSTRAINT "notifications_integration_id_integrations_id_fk" FOREIGN KEY ("integration_id") REFERENCES "public"."integrations"("id") ON DELETE set null ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'processed_comments_video_monitor_id_video_monitors_id_fk') THEN
+        ALTER TABLE "processed_comments" ADD CONSTRAINT "processed_comments_video_monitor_id_video_monitors_id_fk" FOREIGN KEY ("video_monitor_id") REFERENCES "public"."video_monitors"("id") ON DELETE cascade ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'processed_comments_lead_id_leads_id_fk') THEN
+        ALTER TABLE "processed_comments" ADD CONSTRAINT "processed_comments_lead_id_leads_id_fk" FOREIGN KEY ("lead_id") REFERENCES "public"."leads"("id") ON DELETE set null ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'prospects_integration_id_integrations_id_fk') THEN
+        ALTER TABLE "prospects" ADD CONSTRAINT "prospects_integration_id_integrations_id_fk" FOREIGN KEY ("integration_id") REFERENCES "public"."integrations"("id") ON DELETE set null ON UPDATE no action;
+    END IF;
+END $$;--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "cal_events_start_time_idx" ON "calendar_events" USING btree ("start_time");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "cal_events_user_id_idx" ON "calendar_events" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "follow_up_scheduled_status_idx" ON "follow_up_queue" USING btree ("scheduled_at","status");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "follow_up_user_id_idx" ON "follow_up_queue" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "leads_user_id_idx" ON "leads" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "leads_integration_id_idx" ON "leads" USING btree ("integration_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "leads_status_idx" ON "leads" USING btree ("status");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "leads_archived_idx" ON "leads" USING btree ("archived");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "leads_user_status_idx" ON "leads" USING btree ("user_id","status");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "leads_last_msg_idx" ON "leads" USING btree ("last_message_at");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "msgs_user_id_idx" ON "messages" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "msgs_lead_id_idx" ON "messages" USING btree ("lead_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "msgs_integration_id_idx" ON "messages" USING btree ("integration_id");--> statement-breakpoint
 ALTER TABLE "processed_comments" DROP COLUMN "action";
