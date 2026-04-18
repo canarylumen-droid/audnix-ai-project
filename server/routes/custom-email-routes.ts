@@ -292,7 +292,7 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
       return true;
     };
 
-    const smtpHost = credentials.smtp_host!;
+    const smtpHostStr = credentials.smtp_host!;
     const userPort = credentials.smtp_port || 587;
     // Deduplicated, user-preferred port first
     const smtpPorts = Array.from(new Set([userPort, 465, 587, 2525]));
@@ -303,8 +303,8 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
     let isAuthError = false;
 
     for (const port of smtpPorts) {
-      console.log(`[Email Connect] TCP probing ${smtpHost}:${port}...`);
-      const tcpOpen = await tcpProbe(smtpHost, port);
+      console.log(`[Email Connect] TCP probing ${smtpHostStr}:${port}...`);
+      const tcpOpen = await tcpProbe(smtpHostStr, port);
 
       if (!tcpOpen) {
         console.warn(`[Email Connect] Port ${port} TCP closed/unreachable - skipping`);
@@ -316,7 +316,7 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
       console.log(`[Email Connect] Port ${port} TCP open — attempting SMTP auth...`);
 
       try {
-        await trySmtpAuth(smtpHost, port);
+        await trySmtpAuth(smtpHostStr, port);
         verifiedSmtpPort = port;
         console.log(`[Email Connect] ✅ SMTP auth verified on port ${port}`);
         break;
@@ -334,14 +334,14 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
     // ─── DECISION LOGIC ─────────────────────────────────────────────────────
     if (isAuthError) {
       // Credentials are definitely wrong — don't save
-      const errInfo = getSmtpErrorDetails(lastError, smtpHost);
+      const errInfo = getSmtpErrorDetails(lastError, smtpHostStr);
       res.status(400).json(errInfo);
       return;
     }
 
     if (!verifiedSmtpPort && !tcpReachablePort) {
       // No port was reachable at all — DNS or firewall hard block
-      const errInfo = getSmtpErrorDetails(lastError || { code: 'ETIMEDOUT' }, smtpHost);
+      const errInfo = getSmtpErrorDetails(lastError || { code: 'ETIMEDOUT' }, smtpHostStr);
       res.status(400).json(errInfo);
       return;
     }
@@ -360,21 +360,21 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
 
     // ─── IMAP VERIFICATION ─────────────────────────────────────────────────
     // Also use TCP probe first, then full IMAP auth
-    const imapPort = credentials.imap_port ?? 993;
-    const imapHost = credentials.imap_host!;
-    console.log(`[Email Connect] TCP probing IMAP ${imapHost}:${imapPort}...`);
-    const imapTcpOpen = await tcpProbe(imapHost, imapPort, 8000);
+    const imapPortNum = credentials.imap_port ?? 993;
+    const imapHostStr = credentials.imap_host!;
+    console.log(`[Email Connect] TCP probing IMAP ${imapHostStr}:${imapPortNum}...`);
+    const imapTcpOpen = await tcpProbe(imapHostStr, imapPortNum, 8000);
 
     if (imapTcpOpen) {
       try {
-        await tryImapVerify(imapHost, imapPort);
-        console.log(`[Email Connect] ✅ IMAP verified on port ${imapPort}`);
+        await tryImapVerify(imapHostStr, imapPortNum);
+        console.log(`[Email Connect] ✅ IMAP verified on port ${imapPortNum}`);
       } catch (imapErr: any) {
         console.warn(`[Email Connect] IMAP auth failed (TCP was open): ${imapErr.message}`);
         // IMAP failure is non-fatal if we got SMTP — just warn
       }
     } else {
-      console.warn(`[Email Connect] IMAP port ${imapPort} TCP closed — skipping IMAP verify (non-fatal)`);
+      console.warn(`[Email Connect] IMAP port ${imapPortNum} TCP closed — skipping IMAP verify (non-fatal)`);
     }
     // ───────────────────────────────────────────────────────────────────────
 
