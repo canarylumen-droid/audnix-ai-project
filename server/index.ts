@@ -1,5 +1,15 @@
 // server/index.ts snippet for context
 import "dotenv/config";
+
+// ─── GLOBAL DNS FIX ──────────────────────────────────────────────────────────
+// Cloud environments (Railway, AWS, GCP) often have broken or slow IPv6 DNS
+// resolution which causes EDNS / EAI_AGAIN errors on all outbound TCP connections
+// including SMTP. Force all DNS lookups to prefer IPv4 globally before any
+// other code runs, so nodemailer/imap/fetch all benefit automatically.
+import dns from "dns";
+dns.setDefaultResultOrder("ipv4first");
+// ─────────────────────────────────────────────────────────────────────────────
+
 import * as Sentry from "@sentry/node";
 
 // Initialize Sentry before any other imports if possible

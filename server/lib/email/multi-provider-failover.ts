@@ -191,7 +191,14 @@ class MultiProviderEmailFailover {
       auth: {
         user: smtpConfig.smtp_user,
         pass: smtpConfig.smtp_pass
-      }
+      },
+      // Force IPv4 to avoid EDNS / EAI_AGAIN DNS failures in cloud environments
+      // that have misconfigured or restricted IPv6 DNS resolution.
+      family: 4,
+      tls: { rejectUnauthorized: false },
+      connectionTimeout: 20000,
+      greetingTimeout: 20000,
+      socketTimeout: 25000
     });
 
     const result: SentMessageInfo = await transporter.sendMail({
