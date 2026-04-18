@@ -6,8 +6,6 @@ import { pagedEmailImport } from '../lib/imports/paged-email-importer.js';
 import { smtpAbuseProtection } from '../lib/email/smtp-abuse-protection.js';
 import { bounceHandler } from '../lib/email/bounce-handler.js';
 import { EmailDiscoveryService } from '../lib/email/email-discovery.js';
-import Imap from 'imap';
-import net from 'net';
 
 const router = Router();
 
@@ -190,13 +188,39 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
     const userId = getCurrentUserId(req)!;
     const { smtpHost, smtpPort, imapHost, imapPort, email, password, fromName } = req.body as ConnectRequestBody;
 
+    // ── Basic format validation only — no network calls ──────────────────────
+    // Railway and many cloud providers block all outbound SMTP ports (25/465/587/2525)
+    // at the infrastructure level. Doing a live TCP/SMTP check from the server will
+    // ALWAYS fail regardless of whether the user's credentials are correct.
+    // The real credential test happens on first send (same as Thunderbird / Apple Mail).
     if (!smtpHost || !email || !password) {
       console.warn(`[Email Connect] Missing required fields for user ${userId}`);
       res.status(400).json({ error: 'Missing required fields (SMTP host, email, password)' });
       return;
     }
 
-    // --- ENFORCE MAILBOX LIMITS ---
+    // Basic email format check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      res.status(400).json({ error: 'Invalid email address format.' });
+      return;
+    }
+
+    // Basic hostname check — must look like a domain
+    const hostRegex = /^[a-zA-Z0-9]([a-zA-Z0-9\-\.]+)?[a-zA-Z0-9]$/;
+    if (!hostRegex.test(smtpHost)) {
+      res.status(400).json({ error: `"${smtpHost}" does not look like a valid SMTP hostname.` });
+      return;
+    }
+
+    // Validate port range
+    const parsedSmtpPort = parseInt(smtpPort) || 587;
+    if (parsedSmtpPort < 1 || parsedSmtpPort > 65535) {
+      res.status(400).json({ error: `SMTP port ${smtpPort} is not valid. Common values: 465, 587, 2525.` });
+      return;
+    }
+
+    // ── Enforce mailbox limits ────────────────────────────────────────────────
     const limitCheck = await storage.checkMailboxLimit(userId);
     if (!limitCheck.allowed) {
       console.warn(`[Email Connect] User ${userId} reached mailbox limit (${limitCheck.current}/${limitCheck.limit}) for plan ${limitCheck.plan}`);
@@ -207,176 +231,23 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
       });
       return;
     }
-    // ----------------------------
 
-    const effectiveImapHost = imapHost || smtpHost.replace('smtp.', 'imap.');
-    console.log(`[Email Connect] Connecting ${email} via SMTP ${smtpHost}:${smtpPort || 587}`);
+    // ── Build and save credentials ────────────────────────────────────────────
+    const effectiveImapHost = imapHost || smtpHost.replace(/^smtp\./i, 'imap.');
+    const parsedImapPort = parseInt(imapPort) || 993;
 
     const credentials: EmailConfig = {
-      smtp_host: smtpHost,
-      smtp_port: parseInt(smtpPort) || 587,
-      imap_host: effectiveImapHost,
-      imap_port: parseInt(imapPort) || 993,
-      smtp_user: email,
-      smtp_pass: password,
-      from_name: fromName || '',
-      provider: 'custom'
+      smtp_host:  smtpHost,
+      smtp_port:  parsedSmtpPort,
+      imap_host:  effectiveImapHost,
+      imap_port:  parsedImapPort,
+      smtp_user:  email,
+      smtp_pass:  password,
+      from_name:  fromName || '',
+      provider:   'custom'
     };
 
-
-
-    const tryImapVerify = async (host: string, port: number): Promise<boolean> => {
-      return new Promise((resolve, reject) => {
-        const imap = new Imap({
-          user: credentials.smtp_user!,
-          password: credentials.smtp_pass!,
-          host: host,
-          port: port,
-          tls: true,
-          tlsOptions: { rejectUnauthorized: false },
-          connTimeout: 15000,
-          authTimeout: 15000
-        });
-
-        imap.once('ready', () => {
-          imap.end();
-          resolve(true);
-        });
-
-        imap.once('error', (err: any) => {
-          imap.end();
-          reject(err);
-        });
-
-        imap.connect();
-      });
-    };
-
-    // ─── STAGE 1: Raw TCP socket probe to find an open port ─────────────────
-    // This is more reliable than nodemailer.verify() which can be tripped by
-    // STARTTLS banners or firewalls that accept the TCP SYN but drop the SMTP
-    // handshake. If the TCP connection opens, the port is reachable.
-    const tcpProbe = (host: string, port: number, timeoutMs = 8000): Promise<boolean> =>
-      new Promise((resolve) => {
-        const sock = new net.Socket();
-        let settled = false;
-        const done = (result: boolean) => { if (!settled) { settled = true; sock.destroy(); resolve(result); } };
-        sock.setTimeout(timeoutMs);
-        sock.once('connect', () => done(true));
-        sock.once('timeout', () => done(false));
-        sock.once('error', () => done(false));
-        // Force IPv4 — belt-and-suspenders alongside the global dns setting
-        sock.connect({ host, port, family: 4 });
-      });
-
-    // ─── STAGE 2: Nodemailer auth verify on the open port ───────────────────
-    // Only run this after we KNOW the port is TCP-reachable so we don't burn
-    // time waiting on a dead port.
-    const trySmtpAuth = async (host: string, port: number): Promise<boolean> => {
-      const nodemailer = await import('nodemailer');
-      const isSecure = port === 465;
-      const transporter = nodemailer.createTransport({
-        host,
-        port,
-        secure: isSecure,
-        auth: { user: credentials.smtp_user, pass: credentials.smtp_pass },
-        // family: 4 is belt-and-suspenders; global dns.setDefaultResultOrder handles it
-        family: 4,
-        tls: { rejectUnauthorized: false },
-        requireTLS: port === 587 || port === 2525,
-        connectionTimeout: 20000,
-        greetingTimeout: 20000,
-        socketTimeout: 25000,
-      });
-      await transporter.verify();
-      return true;
-    };
-
-    const smtpHostStr = credentials.smtp_host!;
-    const userPort = credentials.smtp_port || 587;
-    // Deduplicated, user-preferred port first
-    const smtpPorts = Array.from(new Set([userPort, 465, 587, 2525]));
-
-    let verifiedSmtpPort: number | null = null;
-    let tcpReachablePort: number | null = null; // port that TCP-opened even if auth failed
-    let lastError: any = null;
-    let isAuthError = false;
-
-    for (const port of smtpPorts) {
-      console.log(`[Email Connect] TCP probing ${smtpHostStr}:${port}...`);
-      const tcpOpen = await tcpProbe(smtpHostStr, port);
-
-      if (!tcpOpen) {
-        console.warn(`[Email Connect] Port ${port} TCP closed/unreachable - skipping`);
-        continue;
-      }
-
-      // Port is open — record it in case auth fails
-      if (tcpReachablePort === null) tcpReachablePort = port;
-      console.log(`[Email Connect] Port ${port} TCP open — attempting SMTP auth...`);
-
-      try {
-        await trySmtpAuth(smtpHostStr, port);
-        verifiedSmtpPort = port;
-        console.log(`[Email Connect] ✅ SMTP auth verified on port ${port}`);
-        break;
-      } catch (err: any) {
-        console.warn(`[Email Connect] SMTP auth failed on port ${port}: ${err.code || err.message}`);
-        lastError = err;
-        // Auth errors mean credentials are wrong — no point trying other ports
-        if (err.code === 'EAUTH' || err.responseCode === 535) {
-          isAuthError = true;
-          break;
-        }
-      }
-    }
-
-    // ─── DECISION LOGIC ─────────────────────────────────────────────────────
-    if (isAuthError) {
-      // Credentials are definitely wrong — don't save
-      const errInfo = getSmtpErrorDetails(lastError, smtpHostStr);
-      res.status(400).json(errInfo);
-      return;
-    }
-
-    if (!verifiedSmtpPort && !tcpReachablePort) {
-      // No port was reachable at all — DNS or firewall hard block
-      const errInfo = getSmtpErrorDetails(lastError || { code: 'ETIMEDOUT' }, smtpHostStr);
-      res.status(400).json(errInfo);
-      return;
-    }
-
-    // At this point: either full auth succeeded (verifiedSmtpPort) OR
-    // the port is TCP-open but the SMTP handshake failed (tcpReachablePort).
-    // In both cases we save the credentials so the user isn't blocked.
-    // The actual send will confirm auth at send-time.
-    const chosenPort = verifiedSmtpPort ?? tcpReachablePort!;
-    const smtpFullyVerified = verifiedSmtpPort !== null;
-    credentials.smtp_port = chosenPort;
-
-    if (!smtpFullyVerified) {
-      console.warn(`[Email Connect] ⚠️ Port ${chosenPort} TCP-open but SMTP auth handshake timed out. Saving credentials optimistically.`);
-    }
-
-    // ─── IMAP VERIFICATION ─────────────────────────────────────────────────
-    // Also use TCP probe first, then full IMAP auth
-    const imapPortNum = credentials.imap_port ?? 993;
-    const imapHostStr = credentials.imap_host!;
-    console.log(`[Email Connect] TCP probing IMAP ${imapHostStr}:${imapPortNum}...`);
-    const imapTcpOpen = await tcpProbe(imapHostStr, imapPortNum, 8000);
-
-    if (imapTcpOpen) {
-      try {
-        await tryImapVerify(imapHostStr, imapPortNum);
-        console.log(`[Email Connect] ✅ IMAP verified on port ${imapPortNum}`);
-      } catch (imapErr: any) {
-        console.warn(`[Email Connect] IMAP auth failed (TCP was open): ${imapErr.message}`);
-        // IMAP failure is non-fatal if we got SMTP — just warn
-      }
-    } else {
-      console.warn(`[Email Connect] IMAP port ${imapPortNum} TCP closed — skipping IMAP verify (non-fatal)`);
-    }
-    // ───────────────────────────────────────────────────────────────────────
+    console.log(`[Email Connect] Saving ${email} — SMTP ${smtpHost}:${parsedSmtpPort} / IMAP ${effectiveImapHost}:${parsedImapPort}`);
 
     let encryptedMeta: string;
     try {
@@ -403,35 +274,28 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
       return;
     }
 
-    console.log(`[Email Connect] Email account saved for user ${userId}`);
+    console.log(`[Email Connect] ✅ Email account saved for user ${userId}`);
 
-    // Trigger background sync — the emailSyncWorker and imapIdleManager
-    // will handle the full IMAP import asynchronously. We do NOT do it
-    // inline because it can take 60-120s and would timeout the serverless function.
+    // ── Trigger background sync (fire-and-forget) ────────────────────────────
     try {
       const { imapIdleManager } = await import('../lib/email/imap-idle-manager.js');
-      // Fire-and-forget: triggers background IMAP connection
       imapIdleManager.syncConnections();
-      
-      // Implement background, real-time fetching of full inbox history (quietly)
+
       setTimeout(() => {
-          const integrations = storage.getIntegrations(userId) as any;
-          integrations.then((ints: any[]) => {
-              const customEmail = ints.find((i: any) => i.provider === 'custom_email' && i.accountType === email);
-              if (customEmail) {
-                  imapIdleManager.syncHistoricalEmails(userId, customEmail.id, 30).catch(console.error);
-              }
-          });
-      }, 5000); // Give connection time to establish
+        const integrations = storage.getIntegrations(userId) as any;
+        integrations.then((ints: any[]) => {
+          const customEmail = ints.find((i: any) => i.provider === 'custom_email' && i.accountType === email);
+          if (customEmail) {
+            imapIdleManager.syncHistoricalEmails(userId, customEmail.id, 30).catch(console.error);
+          }
+        });
+      }, 5000);
 
-      console.log(`[Email Connect] Background sync triggered for user ${userId}`);
-
-      // Distribute leads from the Inventory pool to this new mailbox
       const { distributeLeadsFromPool } = await import('../lib/sales-engine/outreach-engine.js');
       const integrations = await storage.getIntegrations(userId);
       const customEmail = integrations.find((i: any) => i.provider === 'custom_email' && i.accountType === email);
       if (customEmail) {
-        distributeLeadsFromPool(userId, customEmail.id).catch(err => 
+        distributeLeadsFromPool(userId, customEmail.id).catch(err =>
           console.error('[Email Connect] Lead distribution failed:', err)
         );
       }
@@ -441,10 +305,8 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
 
     res.json({
       success: true,
-      smtpVerified: smtpFullyVerified,
-      message: smtpFullyVerified
-        ? 'Custom email connected and verified successfully. Emails will be imported in the background.'
-        : 'Custom email saved. Your SMTP port is reachable but the handshake timed out (common with some cloud providers). Your settings are saved — test by sending a message.',
+      smtpVerified: false, // verified at send-time, not connection-time
+      message: `${email} connected successfully. Your first outbound email will confirm the credentials are working.`,
       leadsImported: 0,
       leadsSkipped: 0,
       backgroundImport: true
@@ -458,6 +320,8 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
     });
   }
 });
+
+
 
 /**
  * Import emails from custom domain (paged + abuse protection)
