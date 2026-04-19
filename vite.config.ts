@@ -6,18 +6,6 @@ import path from "path";
 export default defineConfig({
   plugins: [
     react(),
-    // Disable plugins on Vercel to avoid interference with API responses
-    ...(process.env.VERCEL === undefined && process.env.NODE_ENV !== "production" &&
-      process.env.REPL_ID !== undefined
-      ? [
-        await import("@replit/vite-plugin-cartographer").then((m) =>
-          m.cartographer(),
-        ),
-        await import("@replit/vite-plugin-dev-banner").then((m) =>
-          m.devBanner(),
-        ),
-      ]
-      : []),
   ],
   resolve: {
     alias: {

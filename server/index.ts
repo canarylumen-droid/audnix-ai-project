@@ -350,12 +350,6 @@ const ALLOWED_ORIGINS = [
   "https://audnixai.com",
   "http://localhost:5173",
   "http://localhost:5000",
-  process.env.REPLIT_DEV_DOMAIN
-    ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-    : null,
-  process.env.REPLIT_DOMAINS
-    ? process.env.REPLIT_DOMAINS.split(",").map((d) => `https://${d.trim()}`)
-    : [],
   process.env.RAILWAY_STATIC_URL
     ? `https://${process.env.RAILWAY_STATIC_URL}`
     : null,
