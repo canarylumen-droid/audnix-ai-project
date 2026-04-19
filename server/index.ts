@@ -670,15 +670,33 @@ async function runMigrations() {
                 import("./lib/queues/email-sync-queue.js").catch(() => {})
               ]);
 
-              // START WORKERS: Follow-up and Outreach engines
+              console.log("🚀 Starting background workers suite...");
+
+              // [WATCHDOG] Initialize global watchdog to monitor for silent stalls
+              const spawnWatchdog = async () => {
+                setInterval(async () => {
+                  try {
+                    const { imapIdleManager } = await import("./lib/email/imap-idle-manager.js");
+                    if (imapIdleManager.getRunningStatus() === false) {
+                       console.warn("🛡️ [WATCHDOG] IMAP Idle Manager stopped. Restarting...");
+                       imapIdleManager.start();
+                    }
+                  } catch (e) {}
+                }, 5 * 60_000); // Check every 5m
+              };
+              spawnWatchdog();
+
+              // START ALL WORKERS
               startWorker("Follow-up", () => followUpWorker.start());
-              startWorker("Outreach", () => outreachEngine.start());
-              startWorker("Video comment", () => startVideoCommentMonitoring());
-              startWorker("Email sync", () => emailSyncWorker.start());
-              startWorker("Payment approval", () => paymentAutoApprovalWorker.start());
-              startWorker("Email warmup", () => emailWarmupWorker.start());
-              startWorker("Reputation", () => (reputationWorker as any).start());
+              startWorker("Outreach Engine", () => outreachEngine.start());
+              startWorker("Video Comment", () => startVideoCommentMonitoring());
+              startWorker("EmailSync", () => emailSyncWorker.start());
+              startWorker("Payment Auto-Approval", () => paymentAutoApprovalWorker.start());
+              startWorker("Email Warmup", () => emailWarmupWorker.start());
+              startWorker("Reputation", () => reputationWorker.start());
               startWorker("Meeting Reminders", () => meetingReminderWorker.start());
+              startWorker("Mailbox Health", () => mailboxHealthService.start());
+              startWorker("Lead Redistribution", () => redistributionWorker.start());
               startWorker("Lead Expiry", () => leadExpiryWorker.start());
               startWorker("Emoji Follow-up", () => emojiFollowupWorker.start());
 
@@ -693,16 +711,15 @@ async function runMigrations() {
                 log("⚠️ Real-time managers could not be started", "error");
               }
 
-              // Mailbox Health Monitoring & Lead Redistribution
-              startWorker("Mailbox Health", () => mailboxHealthService.start());
-              startWorker("Lead Redistribution", () => redistributionWorker.start());
-
               // [PHASE 2 HARDENING] Global Outreach Queue Worker
-              try {
-                const { startOutreachWorker } = await import("./lib/queues/outreach-queue.js");
-                startWorker("Outreach Queue", () => startOutreachWorker());
-              } catch (e) {
-                log("⚠️ Outreach Worker could not be started", "error");
+              const { hasRedis } = await import("./lib/queues/redis-config.js");
+              if (hasRedis) {
+                try {
+                  const { startOutreachWorker } = await import("./lib/queues/outreach-queue.js");
+                  startWorker("Outreach Queue", () => startOutreachWorker());
+                } catch (e) {
+                  log("⚠️ Outreach Worker could not be started", "error");
+                }
               }
 
               // AI Provider Smoke Test

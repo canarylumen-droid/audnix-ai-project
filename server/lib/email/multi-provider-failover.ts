@@ -199,7 +199,7 @@ class MultiProviderEmailFailover {
       connectionTimeout: 20000,
       greetingTimeout: 20000,
       socketTimeout: 25000
-    });
+    } as any);
 
     const result: SentMessageInfo = await transporter.sendMail({
       from: email.from || smtpConfig.smtp_user,

@@ -78,6 +78,13 @@ class ImapIdleManager {
     }
 
     /**
+     * Check if the IMAP manager is currently running
+     */
+    public getRunningStatus(): boolean {
+        return this.isRunning;
+    }
+
+    /**
      * Get discovered folders for a specific integration
      */
     public getDiscoveredFolders(integrationId: string): { inbox: string[], sent: string[], spam: string[] } | undefined {
@@ -142,87 +149,113 @@ class ImapIdleManager {
      * Discover special folders (Inbox, Sent) using IMAP attributes
      */
     private async discoverFolders(integrationId: string, imap: Imap): Promise<void> {
-        return new Promise((resolve) => {
-            imap.getBoxes((err, boxes) => {
-                if (err) {
-                    console.warn(`[IMAP] Could not list boxes for integration ${integrationId}:`, err.message);
-                    this.folders.set(integrationId, {
-                        inbox: ['INBOX'],
-                        sent: ['Sent', 'Sent Items', '[Gmail]/Sent Mail'],
-                        spam: ['Spam', 'Junk', '[Gmail]/Spam']
-                    });
-                    resolve();
-                    return;
-                }
+        try {
+            const boxes = await this.executeImapCommand<any>(imap, (cb) => imap.getBoxes(cb));
+            
+            const inboxFolders: string[] = [];
+            const sentFolders: string[] = [];
+            const spamFolders: string[] = [];
 
-                const inboxFolders: string[] = [];
-                const sentFolders: string[] = [];
-                const spamFolders: string[] = [];
+            const processBoxes = (obj: any, prefix = '') => {
+                for (const key in obj) {
+                    const box = obj[key];
+                    const fullName = prefix + key;
+                    const attribs = box.attribs || [];
 
-                const processBoxes = (obj: any, prefix = '') => {
-                    for (const key in obj) {
-                        const box = obj[key];
-                        const fullName = prefix + key;
-                        const attribs = box.attribs || [];
+                    // 1. Check standard IMAP attributes (Most Reliable)
+                    // Attributes like \Sent, \Junk, etc. are standard in RFC 6154
+                    const isInbox = attribs.some((a: string) => a.toLowerCase() === '\\inbox');
+                    const isSent = attribs.some((a: string) => 
+                        a.toLowerCase() === '\\sent' || 
+                        a.toLowerCase() === '\\sentmail' || 
+                        a.toLowerCase() === '\\sentitems'
+                    );
+                    const isSpam = attribs.some((a: string) => 
+                        a.toLowerCase() === '\\spam' || 
+                        a.toLowerCase() === '\\junk'
+                    );
 
-                        // 1. Check standard IMAP attributes (best way)
-                        if (attribs.includes('\\Inbox')) {
+                    if (isInbox) {
+                        inboxFolders.push(fullName);
+                    } else if (isSent) {
+                        sentFolders.push(fullName);
+                    } else if (isSpam) {
+                        spamFolders.push(fullName);
+                    } else {
+                        // 2. Fallback to name patterns (Localized)
+                        const lowerKey = key.toLowerCase();
+                        if (lowerKey === 'inbox') {
                             inboxFolders.push(fullName);
-                        } else if (attribs.includes('\\Sent') || attribs.includes('\\SentMail') || attribs.includes('\\SentItems')) {
+                        } else if ([
+                            'sent', 'sent items', 'sent messages', 'sent mails', 'sent-mail',
+                            'gesendet', 'enviados', 'envoyés', 'outbox', 'verzonden', 
+                            'posta inviata', 'skickat', 'elementos enviados'
+                        ].some(s => lowerKey === s || lowerKey === `inbox.${s}`)) {
                             sentFolders.push(fullName);
-                        } else if (attribs.includes('\\Spam') || attribs.includes('\\Junk')) {
+                        } else if ([
+                            'spam', 'junk', 'bulk', 'junk-email', 'junk email', 'spam-messages'
+                        ].some(s => lowerKey === s || lowerKey.includes(s))) {
                             spamFolders.push(fullName);
-                        } else {
-                            // 2. Fallback to name patterns
-                            const lowerKey = key.toLowerCase();
-                            const standardInboxes = ['inbox'];
-                            const standardSents = [
-                                'sent-mail', 'sent mail', 'sent items',
-                                'gesendet', 'enviados', 'envoyés', 'outbox',
-                                'inbox.sent', 'inbox.sent items', 'inbox.sent mail',
-                                'verzonden', 'posta inviata', 'skickat', 'elementos enviados',
-                                'sent messages', 'sent mails'
-                            ];
-
-                            if (standardInboxes.includes(lowerKey)) {
-                                if (!inboxFolders.includes(fullName)) inboxFolders.push(fullName);
-                            } else if (standardSents.some(s => lowerKey === s || lowerKey.includes('sent'))) {
-                                if (!sentFolders.includes(fullName)) sentFolders.push(fullName);
-                            } else if (lowerKey.includes('spam') || lowerKey.includes('junk') || lowerKey.includes('bulk')) {
-                                if (!spamFolders.includes(fullName)) spamFolders.push(fullName);
-                            }
-                        }
-
-                        if (box.children) {
-                            processBoxes(box.children, fullName + (box.delimiter || '/'));
                         }
                     }
-                };
 
-                processBoxes(boxes);
-
-                // Default fallbacks if none found
-                if (inboxFolders.length === 0) inboxFolders.push('INBOX');
-                if (sentFolders.length === 0) {
-                    // Commonly used names if discovery fails
-                    sentFolders.push('Sent');
-                    sentFolders.push('Sent Items');
+                    if (box.children) {
+                        processBoxes(box.children, fullName + (box.delimiter || '/'));
+                    }
                 }
+            };
 
-                if (spamFolders.length === 0) {
-                    spamFolders.push('Spam');
-                    spamFolders.push('Junk');
-                    spamFolders.push('[Gmail]/Spam');
-                }
+            processBoxes(boxes);
 
-                console.log(`[IMAP] Discovered folders for integration ${integrationId}: Inbox=[${inboxFolders.join(',')}], Sent=[${sentFolders.join(',')}], Spam=[${spamFolders.join(',')}]`);
-                this.folders.set(integrationId, {
-                    inbox: [...new Set(inboxFolders)],
-                    sent: [...new Set(sentFolders)],
-                    spam: [...new Set(spamFolders)]
-                });
-                resolve();
+            // Defaults if none found
+            if (inboxFolders.length === 0) inboxFolders.push('INBOX');
+            if (sentFolders.length === 0) sentFolders.push('Sent'); 
+            if (spamFolders.length === 0) spamFolders.push('Spam');
+
+            console.log(`[IMAP] Discovered folders for ${integrationId}: Inbox=[${inboxFolders}], Sent=[${sentFolders}], Spam=[${spamFolders}]`);
+            this.folders.set(integrationId, {
+                inbox: [...new Set(inboxFolders)],
+                sent: [...new Set(sentFolders)],
+                spam: [...new Set(spamFolders)]
             });
+        } catch (err: any) {
+            console.warn(`[IMAP] Folder discovery failed for ${integrationId}:`, err.message);
+            // Minimal fallbacks
+            this.folders.set(integrationId, {
+                inbox: ['INBOX'],
+                sent: ['Sent', 'Sent Items', '[Gmail]/Sent Mail'],
+                spam: ['Spam', 'Junk', '[Gmail]/Spam']
+            });
+        }
+    }
+
+    /**
+     * Helper to execute IMAP commands safely by stopping IDLE if active, 
+     * running the command, and then restarting IDLE if appropriate.
+     */
+    private async executeImapCommand<T>(imap: Imap, commandFn: (cb: (err: any, result: T) => void) => void): Promise<T | undefined> {
+        if (!imap || imap.state === 'disconnected') return undefined;
+
+        return new Promise((resolve, reject) => {
+            const wasIdling = !!(imap as any)._idleWaiter;
+            
+            const runCommand = () => {
+                commandFn((err, result) => {
+                    if (wasIdling && imap.state === 'authenticated') {
+                        try { (imap as any).idle(); } catch (e) {}
+                    }
+                    if (err) return reject(err);
+                    resolve(result);
+                });
+            };
+
+            if (wasIdling && imap.state === 'authenticated') {
+                imap.once('update', () => { /* wait for idle stop */ });
+                (imap as any).stopIdle();
+                setTimeout(runCommand, 20); // Give it a moment to stop
+            } else {
+                runCommand();
+            }
         });
     }
 
@@ -316,51 +349,56 @@ class ImapIdleManager {
             };
 
             imap.once('ready', async () => {
-                await this.discoverFolders(integrationId, imap);
-                const folders = this.folders.get(integrationId);
-                
-                // This first connection handles INBOX discovery and IDLE
-                const primaryInbox = folders?.inbox[0] || 'INBOX';
-                this.setupPersistentListener(integrationId, primaryInbox, integration, 'inbound');
+                try {
+                    await this.discoverFolders(integrationId, imap);
+                    const folders = this.folders.get(integrationId);
+                    
+                    // This first connection handles INBOX discovery and IDLE
+                    const primaryInbox = folders?.inbox[0] || 'INBOX';
+                    this.setupPersistentListener(integrationId, primaryInbox, integration, 'inbound');
 
-                // If we have a Sent folder, spawn a second persistent listener for "Real Mail App" 0s discovery
-                const primarySent = folders?.sent[0];
-                if (primarySent) {
-                    this.setupPersistentListener(integrationId, primarySent, integration, 'outbound');
+                    // If we have a Sent folder, spawn a second persistent listener for "Real Mail App" 0s discovery
+                    const primarySent = folders?.sent[0];
+                    if (primarySent) {
+                        this.setupPersistentListener(integrationId, primarySent, integration, 'outbound');
+                    }
+
+                    // Close this discovery connection as we now have specific persistent ones
+                    imap.end();
+                } catch (readyErr) {
+                    console.error(`[IMAP] CRITICAL: Discovery/setup failed for integration ${integrationId}:`, readyErr);
+                    imap.end();
                 }
-
-                // Close this discovery connection as we now have specific persistent ones
-                imap.end();
             });
 
             imap.once('error', async (err: any) => {
-                console.error(`IMAP Error for integration ${integrationId} (User: ${integration.userId}):`, err.message);
+                try {
+                    console.error(`IMAP Error for integration ${integrationId} (User: ${integration.userId}):`, err.message);
 
-                if (err.code === 'EPIPE' || err.code === 'ECONNRESET') {
-                    safeEnd();
-                    return;
-                }
+                    const fatalErrors = ['AUTHENTICATIONFAILED', 'Not authenticated', 'Invalid credentials', 'Login failed', 'BAD', 'NO'];
+                    const retryableErrors = ['ETIMEDOUT', 'ECONNRESET', 'EPIPE', 'ECONNREFUSED', 'ENOTFOUND'];
+                    
+                    const errorStr = (err.code || err.message || '').toLowerCase();
+                    const isFatal = fatalErrors.some(code => errorStr.includes(code.toLowerCase()));
+                    const isRetryable = retryableErrors.some(code => errorStr.includes(code.toLowerCase()));
 
-                const fatalErrors = ['ENOTFOUND', 'ECONNREFUSED', 'ETIMEDOUT', 'AUTHENTICATIONFAILED', 'Not authenticated', 'Invalid credentials', 'Login failed'];
-                const isFatal = fatalErrors.some(code => String(err.code) === code || String(err.message).toLowerCase().includes(code.toLowerCase()));
+                    if (isFatal) {
+                        console.warn(`🛑 Fatal IMAP error for integration ${integrationId}. Stopping retries.`);
+                        this.cleanupIntegration(integrationId);
 
-                if (isFatal) {
-                    console.warn(`🛑 Fatal IMAP error for integration ${integrationId}. Stopping retries.`);
-                    this.connections.delete(integrationId);
-                    this.folders.delete(integrationId);
-
-                    try {
-                        const integrationLatest = await storage.getIntegration(integration.userId, integrationId);
-                        if (integrationLatest) {
-                            // Update core health status via centralized service 
-                            // (This will also return leads to the pool)
-                            await mailboxHealthService.handleMailboxFailure(integrationLatest, err.message || 'Authentication Failed');
+                        try {
+                            const integrationLatest = await storage.getIntegration(integration.userId, integrationId);
+                            if (integrationLatest) {
+                                await mailboxHealthService.handleMailboxFailure(integrationLatest, err.message || 'Authentication Failed');
+                            }
+                        } catch (e) {
+                            console.error('Failed to update integration with IMAP error:', e);
                         }
-                    } catch (e) {
-                        console.error('Failed to update integration with IMAP error:', e);
+                    } else if (isRetryable || !this.connections.has(integrationId)) {
+                        this.reconnect(integrationId, integration);
                     }
-                } else {
-                    this.reconnect(integrationId, integration);
+                } catch (fatalErr) {
+                    console.error('[IMAP] CRITICAL: Exception in error handler:', fatalErr);
                 }
             });
 
@@ -436,19 +474,16 @@ class ImapIdleManager {
 
                     console.log(`✅ Real-time IDLE active on '${folderName}' for integration ${integrationId} (${direction})`);
                     
-                    // Instant notify UI that sync is active
                     wsSync.notifyActivityUpdated(integration.userId, {
                         type: 'sync_active',
                         title: '⚡ Real-time Sync Active',
                         message: `Monitoring ${direction} on ${folderName}`
                     });
 
-                    // Initial sync for this folder
                     this.fetchNewEmails(integrationId, integration.userId, imap, folderName, direction);
 
                     imap.on('mail', (num: number) => {
                         console.log(`📬 [${folderName}] Integration ${integrationId} received ${num} new messages (IDLE push)`);
-                        // Millisecond fetch and notify
                         this.fetchNewEmails(integrationId, integration.userId, imap, folderName, direction);
                     });
 
@@ -459,13 +494,12 @@ class ImapIdleManager {
 
                     if (typeof (imap as any).idle === 'function') (imap as any).idle();
 
-                    // Safety heartbeat (10m instead of 60s since we have real-time IDLE)
                     if (!this.syncIntervals.has(integrationId)) this.syncIntervals.set(integrationId, new Map());
                     const interval = setInterval(async () => {
                         if (this.connections.get(integrationId)?.get(folderName) === imap) {
                             this.fetchNewEmails(integrationId, integration.userId, imap, folderName, direction);
                         }
-                    }, 10 * 60 * 1000);
+                    }, 5 * 60 * 1000); // 5m heartbeat
                     this.syncIntervals.get(integrationId)!.set(folderName, interval);
                 });
             });
@@ -507,324 +541,221 @@ class ImapIdleManager {
     }
 
     private async fetchNewEmails(integrationId: string, userId: string, imap: Imap, folderName: string = 'INBOX', direction: 'inbound' | 'outbound' = 'inbound', isSpam = false): Promise<void> {
-        return new Promise((resolve) => {
-            const folders = this.folders.get(integrationId) || { inbox: ['INBOX'], sent: [] };
-            const primaryInbox = folders.inbox[0] || 'INBOX';
-
+        try {
             wsSync.notifySyncStatus(userId, { syncing: true, folder: folderName, integrationId });
 
-            const safeResolve = () => {
-                wsSync.notifySyncStatus(userId, { syncing: false, folder: folderName, integrationId });
-                resolve();
-            };
+            await this.executeImapCommand(imap, (cb) => {
+                imap.openBox(folderName, true, (err, box) => {
+                    if (err) return cb(err, null);
 
-            if (imap.state !== 'authenticated') {
-                console.warn(`[IMAP] Connection state is ${imap.state}, skipping openBox for ${folderName}`);
-                safeResolve();
-                return;
-            }
-            imap.openBox(folderName, true, (err: any, box: any) => {
-                if (err) {
-                    console.warn(`[IMAP] Could not open folder ${folderName} for integration ${integrationId}:`, err.message);
-                    safeResolve();
-                    return;
-                }
-
-                if (!box || !box.messages || box.messages.total === 0) {
-                    if (folderName !== primaryInbox) {
-                        imap.openBox(primaryInbox, false, (openErr) => {
-                            if (!openErr) {
-                                try {
-                                    if (imap.state === 'authenticated' && typeof (imap as any).idle === 'function') (imap as any).idle();
-                                } catch (e) { }
-                            }
-                            safeResolve();
-                        });
-                    } else {
-                        try {
-                            if (imap.state === 'authenticated' && typeof (imap as any).idle === 'function') (imap as any).idle();
-                        } catch (e) { }
-                        safeResolve();
+                    if (!box || !box.messages || box.messages.total === 0) {
+                        return cb(null, null);
                     }
-                    return;
-                }
 
-                const total = box.messages.total;
-                if (total === 0) {
-                    try {
-                        if (imap.state === 'authenticated' && typeof (imap as any).idle === 'function') (imap as any).idle();
-                    } catch (e) { }
-                    safeResolve();
-                    return;
-                }
+                    const total = box.messages.total;
+                    const fetchLimit = total < 20 ? 1 : total - 19;
+                    const fetch = imap.seq.fetch(`${fetchLimit}:*`, { bodies: '', struct: true });
+                    const emails: any[] = [];
 
-                const fetchRange = total < 20 ? '1:*' : `${total - 19}:*`;
-
-                const fetch = imap.seq.fetch(fetchRange, { bodies: '', struct: true });
-                const emails: any[] = [];
-                let fetchError: any = null;
-
-                fetch.on('message', (msg: any, seqno: number) => {
-                    let flags: string[] = [];
-                    msg.on('attributes', (attrs: any) => flags = attrs.flags || []);
-                    msg.on('body', (stream: any) => {
-                        simpleParser(stream, async (err: any, parsed: any) => {
-                            if (!err && parsed) {
-                                emails.push({
-                                    from: parsed.from?.text,
-                                    to: parsed.to?.text,
-                                    subject: parsed.subject,
-                                    text: parsed.text || parsed.html || '',
-                                    date: parsed.date,
-                                    html: parsed.html,
-                                    flags,
-                                    uid: seqno,
-                                    messageId: parsed.messageId,
-                                    inReplyTo: parsed.inReplyTo,
-                                    isSpam: isSpam
-                                });
-                            }
+                    fetch.on('message', (msg: any, seqno: number) => {
+                        let flags: string[] = [];
+                        msg.on('attributes', (attrs: any) => flags = attrs.flags || []);
+                        msg.on('body', (stream: any) => {
+                            simpleParser(stream, async (err: any, parsed: any) => {
+                                if (!err && parsed) {
+                                    emails.push({
+                                        from: parsed.from?.text,
+                                        to: parsed.to?.text,
+                                        subject: parsed.subject,
+                                        text: parsed.text || parsed.html || '',
+                                        date: parsed.date,
+                                        html: parsed.html,
+                                        flags,
+                                        uid: seqno,
+                                        messageId: parsed.messageId,
+                                        inReplyTo: parsed.inReplyTo,
+                                        isSpam: isSpam
+                                    });
+                                }
+                            });
                         });
                     });
-                });
 
-                fetch.once('error', (err: any) => fetchError = err);
-
-                fetch.once('end', async () => {
-                    if (fetchError) {
-                        console.error(`[IMAP] Fetch error for ${folderName}:`, fetchError.message);
-                    } else if (emails.length > 0) {
-                        console.log(`📥 Processing ${emails.length} ${direction} emails from ${folderName} for integration ${integrationId} (Spam: ${isSpam})`);
-                        const importRes = await pagedEmailImport(userId, emails.map(e => ({
-                            from: e.from?.split('<')[1]?.split('>')[0] || e.from,
-                            to: e.to?.split('<')[1]?.split('>')[0] || e.to,
-                            subject: e.subject,
-                            text: e.text,
-                            date: e.date,
-                            html: e.html,
-                            isRead: e.flags?.includes('\\Seen') || false,
-                            messageId: e.messageId,
-                            inReplyTo: e.inReplyTo,
-                            integrationId: integrationId,
-                            isSpam: isSpam
-                        })), undefined, direction);
-
-                        if (importRes.imported > 0 && direction === 'inbound') {
-                            const { wsSync } = await import('../websocket-sync.js');
-                            wsSync.notifyMessagesUpdated(userId, { event: 'INSERT', count: importRes.imported });
-
-                            // Phase 5: Wire the monitor into imap-idle-manager
-                            if (isSpam) {
-                                try {
-                                    const { calculateReputationScore } = await import('./reputation-monitor.js');
-                                    calculateReputationScore(integrationId).catch(console.error);
-                                } catch (err) {
-                                    console.error('[IMAP/Spam] Failed to trigger reputation monitor:', err);
-                                }
-                            }
-
-                            // Trigger autonomous AI reply for new inbound messages
-                            try {
-                                const { scheduleAutomatedEmailReply } = await import('../ai/email-automation.js');
-                                const { analyzeLeadIntent } = await import('../ai/intent-analyzer.js');
-                                const { users } = await import('../../../shared/schema.js');
-                                const { eq } = await import('drizzle-orm');
-                                const { db } = await import('../../db.js');
-
-                                const userResult = await db.select({ config: users.config }).from(users).where(eq(users.id, userId)).limit(1);
-                                const config = (userResult[0]?.config as any) || {};
-                                const isAutonomousMode = config.autonomousMode !== false;
-
-                                for (const email of emails) {
-                                  if (email.direction === 'inbound' && !email.isSpam) {
-                                      const lead = await storage.getLeadByEmail(email.from?.split('<')[1]?.split('>')[0] || email.from, userId);
-                                      if (lead) {
-                                          if (!isAutonomousMode || lead.aiPaused) {
-                                              console.log(`[IMAP] ${!isAutonomousMode ? 'AI Engine OFF' : 'Lead AI Paused'}. Skipping autonomous analysis/reply for ${lead.email}`);
-                                              
-                                              // Still notify UI even if AI is off so the message appears!
-                                              wsSync.notifyMessagesUpdated(userId, { 
-                                                  leadId: lead.id, 
-                                                  message: { id: email.id, content: email.text, direction: 'inbound', createdAt: email.date },
-                                                  integrationId: integrationId 
-                                              });
-                                              continue;
-                                          }
-
-                                          // 🚀 CENTRAL SDR MANAGER LOOP: Analyze arrival immediately!
-                                          console.log(`[IMAP] 🧠 Triggering SDR Arrival Analysis for ${lead.id}`);
-                                          const { processInboundMessageWithAnalysis } = await import('../ai/inbound-message-analyzer.js');
-                                          
-                                          const analysis = await processInboundMessageWithAnalysis(lead.id, email.text, 'email');
-
-                                          // Push Granular Data for "Zero Refresh" UI
-                                          wsSync.notifyMessagesUpdated(userId, { 
-                                              leadId: lead.id, 
-                                              message: { 
-                                                id: email.id, 
-                                                content: email.text, 
-                                                direction: 'inbound', 
-                                                createdAt: email.date,
-                                                intent: analysis?.urgencyLevel,
-                                                status: lead.status // Status might have been updated by analyzer
-                                              },
-                                              integrationId: integrationId
-                                          });
-                                          
-                                          // Also notify that leads list needs refresh (for status/tags)
-                                          wsSync.notifyLeadsUpdated(userId, { event: 'UPDATE', leadId: lead.id });
-
-                                          if (analysis?.shouldAutoReply) {
-                                              const { scheduleAutomatedEmailReply } = await import('../ai/email-automation.js');
-                                              await scheduleAutomatedEmailReply(
-                                                  userId,
-                                                  lead.id,
-                                                  email.from,
-                                                  email.subject,
-                                                  email.text,
-                                                  analysis.intent as any,
-                                                  email.threadId
-                                              );
-                                          }
-
-                                          // 🚀 ZERO REFRESH: Notify Activity Feed of the analysis/audit log
-                                          wsSync.notifyActivityUpdated(userId, {
-                                              type: 'message_received',
-                                              leadId: lead.id,
-                                              title: 'New SDR Analysis',
-                                              message: analysis?.suggestedAction || 'Message analyzed and status updated.'
-                                          });
-                                      }
-                                  }
-                                }
-                            } catch (aiErr) {
-                                console.error('[IMAP] AI trigger error:', aiErr);
-                            }
-                        }
-
-                        // Real-time propagation to UI
-                        wsSync.notifyMessagesUpdated(userId);
-                        wsSync.notifyStatsUpdated(userId); // Trigger total bounce/spam refresh
-
-                        if (direction === 'inbound' && !isSpam) {
-                            wsSync.notifyActivityUpdated(userId, {
-                                type: 'email_received',
-                                title: 'New Email Received',
-                                message: `Received ${emails.length} new message(s)`
-                            });
-                        }
-                    }
-
-                    if (folderName !== primaryInbox) {
-                        imap.openBox(primaryInbox, false, (openErr) => {
-                            if (!openErr) {
-                                try {
-                                    if (imap.state === 'authenticated' && typeof (imap as any).idle === 'function') (imap as any).idle();
-                                } catch (e) { }
-                            }
-                            safeResolve();
-                        });
-                    } else {
+                    fetch.once('error', (err: any) => cb(err, null));
+                    fetch.once('end', async () => {
                         try {
-                            if (imap.state === 'authenticated' && typeof (imap as any).idle === 'function') (imap as any).idle();
-                        } catch (e) { }
-                        safeResolve();
-                    }
+                            if (emails.length > 0) {
+                                console.log(`📥 Processing ${emails.length} ${direction} emails from ${folderName}`);
+                                const importRes = await pagedEmailImport(userId, emails.map(e => ({
+                                    from: e.from?.split('<')[1]?.split('>')[0] || e.from,
+                                    to: e.to?.split('<')[1]?.split('>')[0] || e.to,
+                                    subject: e.subject,
+                                    text: e.text,
+                                    date: e.date,
+                                    html: e.html,
+                                    isRead: e.flags?.includes('\\Seen') || false,
+                                    messageId: e.messageId,
+                                    inReplyTo: e.inReplyTo,
+                                    integrationId: integrationId,
+                                    isSpam: isSpam
+                                })), undefined, direction);
+
+                                if (importRes.imported > 0) {
+                                    wsSync.notifyMessagesUpdated(userId, { event: 'INSERT', count: importRes.imported });
+                                    if (isSpam) {
+                                        const { calculateReputationScore } = await import('./reputation-monitor.js');
+                                        calculateReputationScore(integrationId).catch(console.error);
+                                    }
+                                    
+                                    // Trigger autonomous AI reply for new inbound messages
+                                    if (direction === 'inbound' && !isSpam) {
+                                        try {
+                                            const { users } = await import('../../../shared/schema.js');
+                                            const { eq } = await import('drizzle-orm');
+                                            const { db } = await import('../../db.js');
+
+                                            const userRow = await db.select({ config: users.config }).from(users).where(eq(users.id, userId)).limit(1);
+                                            const config = (userRow[0]?.config as any) || {};
+                                            const isAutonomousMode = config.autonomousMode !== false;
+
+                                            for (const email of emails) {
+                                                const lead = await storage.getLeadByEmail(email.from?.split('<')[1]?.split('>')[0] || email.from, userId);
+                                                if (lead) {
+                                                    if (!isAutonomousMode || lead.aiPaused) continue;
+
+                                                    const { processInboundMessageWithAnalysis } = await import('../ai/inbound-message-analyzer.js');
+                                                    const analysis = await processInboundMessageWithAnalysis(lead.id, email.text, 'email');
+
+                                                    wsSync.notifyMessagesUpdated(userId, { 
+                                                        leadId: lead.id, 
+                                                        message: { 
+                                                            id: email.id, 
+                                                            content: email.text, 
+                                                            direction: 'inbound', 
+                                                            createdAt: email.date,
+                                                            intent: analysis?.urgencyLevel
+                                                        },
+                                                        integrationId
+                                                    });
+                                                    
+                                                    if (analysis?.shouldAutoReply) {
+                                                        const { scheduleAutomatedEmailReply } = await import('../ai/email-automation.js');
+                                                        await scheduleAutomatedEmailReply(
+                                                            userId, lead.id, email.from, email.subject, email.text, analysis.intent as any, email.threadId
+                                                        );
+                                                    }
+                                                }
+                                            }
+                                        } catch (aiErr) {
+                                            console.error('[IMAP] AI trigger error:', aiErr);
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (importError) {
+                            console.error(`[IMAP] CRITICAL: Failed to import emails from ${folderName}:`, importError);
+                        } finally {
+                            cb(null, null);
+                        }
+                    });
                 });
             });
-        });
+        } catch (error: any) {
+            console.warn(`[IMAP] fetchNewEmails failed for ${folderName}:`, error.message);
+        } finally {
+            wsSync.notifySyncStatus(userId, { syncing: false, folder: folderName, integrationId });
+        }
     }
 
     private async syncDeletedMessages(integrationId: string, imap: Imap, userId: string, folderName: string): Promise<void> {
-        if (imap.state !== 'authenticated') return;
         try {
-            const { db } = await import('../../db.js');
-            const { messages } = await import('../../../shared/schema.js');
-            const { eq, and, desc, inArray } = await import('drizzle-orm');
+            await this.executeImapCommand(imap, (cb) => {
+                imap.openBox(folderName, true, (err, box) => {
+                    if (err || !box || box.messages.total === 0) return cb(err, null);
 
-            // Find recent messages in our DB for this user that MIGHT have been deleted
-            const recentDbMessages = await db.select()
-                .from(messages)
-                .where(and(eq(messages.userId, userId), eq(messages.integrationId, integrationId)))
-                .orderBy(desc(messages.createdAt))
-                .limit(100);
+                    const fetchRange = box.messages.total < 500 ? '1:*' : `${box.messages.total - 499}:*`;
+                    const fetch = imap.seq.fetch(fetchRange, { struct: false, bodies: 'HEADER.FIELDS (MESSAGE-ID)' });
+                    const imapMessageIds = new Set<string>();
 
-            if (recentDbMessages.length === 0) return;
-
-            imap.openBox(folderName, true, (err: any, box: any) => {
-                if (err || !box || box.messages.total === 0) {
-                    try { if (typeof (imap as any).idle === 'function') (imap as any).idle(); } catch (e) { }
-                    return;
-                }
-
-                // Fetch UIDs and Message-IDs for the last 500 messages to ensure deep sync
-                const fetchRange = box.messages.total < 500 ? '1:*' : `${box.messages.total - 499}:*`;
-                const fetch = imap.seq.fetch(fetchRange, { struct: false, bodies: 'HEADER.FIELDS (MESSAGE-ID)' });
-                const imapMessageIds = new Set<string>();
-
-                fetch.on('message', (msg: any) => {
-                    msg.on('body', (stream: any) => {
-                        let buffer = '';
-                        stream.on('data', (chunk: any) => buffer += chunk.toString());
-                        stream.on('end', () => {
-                            const match = buffer.match(/Message-ID:\s*(<[^>]+>)/i);
-                            if (match && match[1]) {
-                                imapMessageIds.add(match[1]);
-                            }
+                    fetch.on('message', (msg: any) => {
+                        msg.on('body', (stream: any) => {
+                            let buffer = '';
+                            stream.on('data', (chunk: any) => buffer += chunk.toString());
+                            stream.on('end', () => {
+                                const match = buffer.match(/Message-ID:\s*(<[^>]+>)/i);
+                                if (match && match[1]) imapMessageIds.add(match[1]);
+                            });
                         });
                     });
-                });
 
-                fetch.once('end', async () => {
-                    const toDelete: string[] = [];
-                    for (const dbMsg of recentDbMessages) {
-                        // If we have a Message-ID but it's not in the folder anymore, it's likely deleted
-                        if (dbMsg.provider === 'email' && dbMsg.metadata && (dbMsg.metadata as any).messageId) {
-                            const mid = (dbMsg.metadata as any).messageId;
-                            if (!imapMessageIds.has(mid)) {
-                                console.log(`🧹 Sync deletion: ${mid} not found in ${folderName}. Remote deletion detected.`);
-                                toDelete.push(dbMsg.id);
+                    fetch.once('error', (err: any) => cb(err, null));
+                    fetch.once('end', async () => {
+                        try {
+                            const { db } = await import('../../db.js');
+                            const { messages } = await import('../../../shared/schema.js');
+                            const { eq, and, desc, inArray } = await import('drizzle-orm');
+
+                            const recentDbMessages = await db.select()
+                                .from(messages)
+                                .where(and(eq(messages.userId, userId), eq(messages.integrationId, integrationId)))
+                                .orderBy(desc(messages.createdAt))
+                                .limit(100);
+
+                            const toDelete: string[] = [];
+                            for (const dbMsg of recentDbMessages) {
+                                if (dbMsg.provider === 'email' && dbMsg.metadata && (dbMsg.metadata as any).messageId) {
+                                    const mid = (dbMsg.metadata as any).messageId;
+                                    if (!imapMessageIds.has(mid)) toDelete.push(dbMsg.id);
+                                }
                             }
-                        }
-                    }
 
-                    if (toDelete.length > 0) {
-                        await db.delete(messages).where(inArray(messages.id, toDelete));
-                        console.log(`✅ Synced ${toDelete.length} remote deletions for user ${userId}`);
-                        wsSync.notifyMessagesUpdated(userId, { event: 'DELETE', messageIds: toDelete });
-                        wsSync.notifyStatsUpdated(userId);
-                        wsSync.notifyLeadsUpdated(userId);
-                        
-                        // Notify activity feed as requested
-                        wsSync.notifyActivityUpdated(userId, {
-                            type: 'email_deleted_externally',
-                            title: 'Emails Deleted Externally',
-                            message: `${toDelete.length} message(s) removed from server sync.`
-                        });
-                    }
-                    try { if (typeof (imap as any).idle === 'function') (imap as any).idle(); } catch (e) { }
+                            if (toDelete.length > 0) {
+                                await db.delete(messages).where(inArray(messages.id, toDelete));
+                                wsSync.notifyMessagesUpdated(userId, { event: 'DELETE', messageIds: toDelete });
+                                wsSync.notifyStatsUpdated(userId);
+                                console.log(`[IMAP] Synced ${toDelete.length} deletions.`);
+                            }
+                        } catch (e) {}
+                        cb(null, null);
+                    });
                 });
             });
-        } catch (error) {
-            console.error(`[IMAP] Sync deleted messages failed for ${integrationId}:`, error);
+        } catch (error: any) {
+            console.error(`[IMAP] syncDeletedMessages failed for ${integrationId}:`, error.message);
         }
+    }
+
+    private cleanupIntegration(integrationId: string): void {
+        const folderMap = this.connections.get(integrationId);
+        if (folderMap) {
+            for (const imap of folderMap.values()) {
+                try { 
+                    if ((imap as any)._idleWaiter) (imap as any).stopIdle();
+                    imap.end(); 
+                } catch (e) {}
+            }
+        }
+        this.connections.delete(integrationId);
+        
+        const intervals = this.syncIntervals.get(integrationId);
+        if (intervals) {
+            for (const interval of intervals.values()) clearInterval(interval);
+            this.syncIntervals.delete(integrationId);
+        }
+        
+        this.folders.delete(integrationId);
+        this.syncing.delete(integrationId);
     }
 
     private reconnect(integrationId: string, integration: Integration): void {
         if (!this.isRunning) return;
 
+        console.log(`🔄 Preparation for IMAP reconnection: ${integrationId}`);
+        this.cleanupIntegration(integrationId);
+
         const currentDelay = this.backoffDelays.get(integrationId) || this.MIN_BACKOFF;
         const nextDelay = Math.min(currentDelay * 2, this.MAX_BACKOFF);
         this.backoffDelays.set(integrationId, nextDelay);
-
-        // Close all current connections for this integration
-        const folderMap = this.connections.get(integrationId);
-        if (folderMap) {
-            for (const imap of folderMap.values()) {
-                try { imap.end(); } catch (e) {}
-            }
-        }
-        this.connections.delete(integrationId);
 
         console.log(`🔄 Attempting to reconnect IMAP for ${integrationId} in ${Math.round(currentDelay / 1000)}s...`);
 
@@ -1030,36 +961,23 @@ class ImapIdleManager {
 
     public async syncHistoricalEmails(userId: string, integrationId: string, limit: number = 5000): Promise<{ success: boolean; count: number; error?: string }> {
         const folderMap = this.connections.get(integrationId);
-        const imap = folderMap?.values().next().value; // Use any active connection
-        if (!imap || imap.state !== 'authenticated') {
-            return { success: false, count: 0, error: 'IMAP connection not active' };
-        }
+        const imap = folderMap?.values().next().value;
+        if (!imap || imap.state !== 'authenticated') return { success: false, count: 0, error: 'IMAP not active' };
 
         const folders = this.folders.get(integrationId);
-        if (!folders) return { success: false, count: 0, error: 'Folders not discovered yet' };
+        if (!folders) return { success: false, count: 0, error: 'Folders not discovered' };
 
-        console.log(`📜 Starting historical sync for integration ${integrationId} (Up to ${limit} emails per folder)`);
         let totalImported = 0;
-
-        // Instant notify UI
         wsSync.notifySyncStatus(userId, { syncing: true, integrationId });
 
         try {
-            const syncFolder = async (folderName: string, direction: 'inbound' | 'outbound') => {
-                return new Promise<number>((resolve) => {
+            const syncFolder = async (folderName: string, direction: 'inbound' | 'outbound'): Promise<number> => {
+                const result = await this.executeImapCommand<number>(imap, (cb) => {
                     imap.openBox(folderName, true, (err, box) => {
-                        if (err || !box || box.messages.total === 0) {
-                            resolve(0);
-                            return;
-                        }
-                        
-                        const total = box.messages.total;
-                        const fetchLimit = Math.min(total, limit);
-                        const startSeq = Math.max(1, total - fetchLimit + 1);
-                        const fetchRange = `${startSeq}:*`;
-                        
-                        console.log(`[Historical Sync] Fetching ${folderName} (${fetchRange})`);
+                        if (err || !box || box.messages.total === 0) return cb(null, 0);
 
+                        const total = box.messages.total;
+                        const fetchRange = `${Math.max(1, total - Math.min(total, limit) + 1)}:*`;
                         const fetch = imap.seq.fetch(fetchRange, { bodies: '', struct: true });
                         const emails: any[] = [];
                         
@@ -1085,41 +1003,40 @@ class ImapIdleManager {
                             });
                         });
                         
+                        fetch.once('error', (err: any) => cb(err, 0));
                         fetch.once('end', async () => {
-                            if (emails.length > 0) {
-                                console.log(`[Historical Sync] Passing ${emails.length} emails to pagedEmailImport`);
-                                const res = await pagedEmailImport(userId, emails.map(e => ({
-                                    from: e.from?.split('<')[1]?.split('>')[0] || e.from,
-                                    to: e.to?.split('<')[1]?.split('>')[0] || e.to,
-                                    subject: e.subject,
-                                    text: e.text,
-                                    date: e.date,
-                                    html: e.html,
-                                    isRead: e.flags?.includes('\\Seen') || false,
-                                    messageId: e.messageId,
-                                    inReplyTo: e.inReplyTo,
-                                    integrationId
-                                })), undefined, direction);
-                                resolve(res.imported);
-                            } else resolve(0);
+                            try {
+                                if (emails.length > 0) {
+                                    const res = await pagedEmailImport(userId, emails.map(e => ({
+                                        from: e.from?.split('<')[1]?.split('>')[0] || e.from,
+                                        to: e.to?.split('<')[1]?.split('>')[0] || e.to,
+                                        subject: e.subject,
+                                        text: e.text,
+                                        date: e.date,
+                                        html: e.html,
+                                        isRead: e.flags?.includes('\\Seen') || false,
+                                        messageId: e.messageId,
+                                        inReplyTo: e.inReplyTo,
+                                        integrationId
+                                    })), undefined, direction);
+                                    cb(null, res.imported);
+                                } else {
+                                    cb(null, 0);
+                                }
+                            } catch (error) {
+                                console.error(`[IMAP] Historical sync error for folder ${folderName}:`, error);
+                                cb(null, 0); // Still return 0 so the chain doesn't break
+                            } finally {
+                                // Guaranteed safety for the IMAP connection pool
+                            }
                         });
                     });
                 });
+                return result || 0;
             };
 
-            for (const inbox of folders.inbox) totalImported += await syncFolder(inbox, 'inbound');
-            for (const sent of folders.sent) totalImported += await syncFolder(sent, 'outbound');
-            // We usually skip spam for historical syncs to save quota/space
-            // for (const spam of folders.spam) totalImported += await syncFolder(spam, 'inbound');
-
-            const primaryInbox = folders.inbox[0] || 'INBOX';
-            imap.openBox(primaryInbox, false, (err) => {
-                if (!err) {
-                    try {
-                        if (typeof (imap as any).idle === 'function') (imap as any).idle();
-                    } catch (e) { }
-                }
-            });
+            for (const inbox of (folders?.inbox || [])) totalImported += await syncFolder(inbox, 'inbound');
+            for (const sent of (folders?.sent || [])) totalImported += await syncFolder(sent, 'outbound');
 
             return { success: true, count: totalImported };
         } catch (error: any) {

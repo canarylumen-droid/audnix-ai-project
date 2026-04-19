@@ -34,8 +34,8 @@ export class ReputationWorker {
             const { db } = await import('../../db.js');
             const { integrations, users } = await import('../../../shared/schema.js');
             const { eq, and, inArray } = await import('drizzle-orm');
+            const { mailboxHealthService } = await import('../email/mailbox-health-service.js');
 
-            // Optimisation: Fetch integrations directly instead of scanning all users
             const emailIntegrations = await db.select({
                 integration: integrations,
                 user: users
@@ -49,6 +49,7 @@ export class ReputationWorker {
             );
 
             for (const { integration, user } of emailIntegrations) {
+                try {
                     const meta = tryDecryptToJSON(integration.encryptedMeta) || ({} as any);
                     const email = meta.email || meta.user || (integration as any).email;
                     if (!email) continue;
@@ -56,30 +57,31 @@ export class ReputationWorker {
                     const domain = email.split('@')[1];
                     if (!domain) continue;
 
-                    // REAL-TIME: Always check every 2 minutes as requested
                     console.log(`📡 Autonomous DNS Check for ${domain} (${user.email})`);
                     const result = await verifyDomainDns(domain, undefined, true);
 
-                        try {
-                            await storage.createAuditLog({
-                                userId: user.id,
-                                leadId: undefined, // No longer using invalid "system" string
-                                integrationId: integration.id,
-                                action: 'domain_reputation_check',
-                                details: { domain, result, autonomous: true },
-                                createdAt: new Date()
-                            });
+                    await storage.createAuditLog({
+                        userId: user.id,
+                        leadId: undefined,
+                        integrationId: integration.id,
+                        action: 'domain_reputation_check',
+                        details: { domain, result, autonomous: true },
+                        createdAt: new Date()
+                    });
 
-                            const { calculateReputationScore } = await import('../email/reputation-monitor.js');
-                            await calculateReputationScore(integration.id);
+                    const { calculateReputationScore } = await import('../email/reputation-monitor.js');
+                    await calculateReputationScore(integration.id);
 
-                            wsSync.notifyStatsUpdated(user.id);
-                        } catch (e) {
-                            console.error(`Failed to save reputation for ${domain}:`, e);
-                        }
+                    wsSync.notifyStatsUpdated(user.id);
+                } catch (innerError: any) {
+                    console.error(`[ReputationWorker] Failed for integration ${integration.id}:`, innerError.message);
+                    if (mailboxHealthService.isMailboxError(innerError.message)) {
+                        await mailboxHealthService.handleMailboxFailure(integration, `Reputation check failed: ${innerError.message}`);
+                    }
                 }
+            }
         } catch (error: any) {
-            console.error('Reputation Worker Error:', error);
+            console.error('[ReputationWorker] Fatal loop error:', error);
             quotaService.reportDbError(error);
         } finally {
             this.isProcessing = false;

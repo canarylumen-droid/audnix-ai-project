@@ -6,6 +6,7 @@ import { pagedEmailImport } from '../lib/imports/paged-email-importer.js';
 import { smtpAbuseProtection } from '../lib/email/smtp-abuse-protection.js';
 import { bounceHandler } from '../lib/email/bounce-handler.js';
 import { EmailDiscoveryService } from '../lib/email/email-discovery.js';
+import validator from 'validator';
 
 const router = Router();
 
@@ -200,8 +201,7 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
     }
 
     // Basic email format check
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!validator.isEmail(email)) {
       res.status(400).json({ error: 'Invalid email address format.' });
       return;
     }
@@ -281,14 +281,16 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
       const { imapIdleManager } = await import('../lib/email/imap-idle-manager.js');
       imapIdleManager.syncConnections();
 
-      setTimeout(() => {
-        const integrations = storage.getIntegrations(userId) as any;
-        integrations.then((ints: any[]) => {
-          const customEmail = ints.find((i: any) => i.provider === 'custom_email' && i.accountType === email);
+      setTimeout(async () => {
+        try {
+          const integrations = await storage.getIntegrations(userId);
+          const customEmail = integrations.find((i: any) => i.provider === 'custom_email' && i.accountType === email);
           if (customEmail) {
             imapIdleManager.syncHistoricalEmails(userId, customEmail.id, 30).catch(console.error);
           }
-        });
+        } catch (err: any) {
+          console.error('[Email Connect] CRITICAL: Failed to load integrations for background sync:', err);
+        }
       }, 5000);
 
       const { distributeLeadsFromPool } = await import('../lib/sales-engine/outreach-engine.js');
@@ -433,7 +435,7 @@ router.post('/test', requireAuth, async (req: Request, res: Response): Promise<v
       connectionTimeout: 20000,
       greetingTimeout: 20000,
       socketTimeout: 25000
-    });
+    } as any);
 
     // Verify connection
     await transporter.verify();

@@ -139,7 +139,7 @@ ${payment.readyToGoEmail ? `- Notes/context captured from the call: ${payment.re
       
       return true;
     } catch (error) {
-      console.error(`[CheckoutWorker] ❌ Failed to process pending payment ${paymentId}:`, error);
+      console.error('[CheckoutWorker] ❌ Failed to process pending payment:', paymentId, error);
       return false;
     }
   }

@@ -119,7 +119,11 @@ export class OutreachEngine {
           });
         } else {
           // Fallback to inline processing if Redis is disabled
-          await this.processUserOutreach(userId).catch(console.error);
+          try {
+            await this.processUserOutreach(userId);
+          } catch (err: any) {
+             console.error(`[OutreachEngine] Fallback failed for user ${userId}:`, err.message);
+          }
         }
       }
 
@@ -159,9 +163,6 @@ export class OutreachEngine {
         console.warn(`[OutreachEngine] skipping user ${userId} - Plan expired/inactive`);
         return;
       }
-
-      // --- PART 0: Inventory Distribution ---
-      // ... (rest same)
 
       // --- PART 0: Inventory Distribution ---
       // Automatically distribute leads from the Inventory pool to mailboxes with capacity.

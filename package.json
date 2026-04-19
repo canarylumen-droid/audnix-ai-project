@@ -188,6 +188,8 @@
     "fsevents": "~2.3.2"
   },
   "overrides": {
+    "follow-redirects": "^1.16.0",
+    "protobufjs": "^7.3.2",
     "tough-cookie": "^5.0.0",
     "semver": "^7.6.3",
     "cookie": "^0.7.2",

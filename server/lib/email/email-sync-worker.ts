@@ -93,7 +93,7 @@ class EmailSyncWorker {
     try {
       // 24/7 MODE: Sync logic moved to ImapIdleManager for real-time IDLE sync. 
       // This worker now primarily handles maintenance and secondary sync checks.
-      const providers = ['gmail', 'outlook']; 
+      const providers = ['gmail', 'outlook', 'custom_email']; // <--- ADDED 'custom_email'
       let integrations: Integration[] = [];
 
       // Renew real-time push subscriptions (Google/Outlook)
@@ -139,6 +139,11 @@ class EmailSyncWorker {
         result.imported += syncRes.imported || 0;
         result.skipped += syncRes.skipped || 0;
         result.errors += syncRes.errors || 0;
+      } else if (integration.provider === 'custom_email') {
+        const { imapIdleManager } = await import('./imap-idle-manager.js');
+        const syncRes = await imapIdleManager.syncHistoricalEmails(userId, integration.id, limit);
+        result.imported += syncRes.count || 0;
+        if (!syncRes.success) result.errors++;
       }
 
       if (result.imported > 0) {

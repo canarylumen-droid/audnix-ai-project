@@ -88,6 +88,7 @@ export const campaignQueue = hasRedis ? new Queue<CampaignJobData>('campaign-eng
 // ─── Campaign Queue Manager ──────────────────────────────────────────────────
 
 export class CampaignQueueManager {
+  private fallbackIntervals: Map<string, NodeJS.Timeout> = new Map();
 
   /**
    * Start all repeatable jobs for a campaign.
@@ -113,32 +114,42 @@ export class CampaignQueueManager {
     // Create a repeatable send-batch job for EACH mailbox independently
     for (const mbId of mailboxIds) {
       const dailyLimit = mailboxLimits[mbId] || 50;
-
-      // 24/7 MODE: Spread sends evenly across full 24h window
       const businessHours = 24; 
-      const repeatMs = Math.max(
-        60_000, // Never faster than 1 per minute
-        Math.floor((businessHours * 60 * 60 * 1000) / dailyLimit)
-      );
-
-      // Add random jitter to avoid all mailboxes firing at the exact same cadence
+      const repeatMs = Math.max(60_000, Math.floor((businessHours * 60 * 60 * 1000) / dailyLimit));
       const jitteredRepeatMs = repeatMs + Math.floor(Math.random() * 30_000);
-
       const jobKey = `send-batch:${campaign.id}:${mbId}`;
 
-      await campaignQueue.add(jobKey, {
-        type: 'campaign:send-batch',
-        campaignId: campaign.id,
-        userId: campaign.userId,
-        integrationId: mbId,
-        dailyLimit,
-      }, {
-        repeat: { every: jitteredRepeatMs }, // Dynamically calculated for performance
-        jobId: jobKey,
-        priority: 2 // Initial outreach is P2
-      });
-
-      console.log(`[CampaignQueue]   📮 Mailbox ${mbId}: ${dailyLimit}/day → every 5m`);
+      if (campaignQueue) {
+        await campaignQueue.add(jobKey, {
+          type: 'campaign:send-batch',
+          campaignId: campaign.id,
+          userId: campaign.userId,
+          integrationId: mbId,
+          dailyLimit,
+        }, {
+          repeat: { every: jitteredRepeatMs },
+          jobId: jobKey,
+          priority: 2
+        });
+      } else {
+        // [FALLBACK] No Redis — Start a local setInterval loop
+        if (this.fallbackIntervals.has(jobKey)) clearInterval(this.fallbackIntervals.get(jobKey));
+        const interval = setInterval(async () => {
+          try {
+            await processSendBatch({
+              type: 'campaign:send-batch',
+              campaignId: campaign.id,
+              userId: campaign.userId,
+              integrationId: mbId,
+              dailyLimit,
+            });
+          } catch (err) {
+            console.error(`[CampaignFallback] Batch failed for ${mbId}:`, err);
+          }
+        }, jitteredRepeatMs);
+        this.fallbackIntervals.set(jobKey, interval);
+        console.log(`[CampaignFallback] ⚡ Interval started for ${mbId} (${Math.round(jitteredRepeatMs/60000)}m)`);
+      }
     }
 
     // Stats aggregation job (every 30s)
@@ -158,10 +169,17 @@ export class CampaignQueueManager {
    * Pause a campaign: remove all repeatable jobs but keep delayed follow-ups intact.
    */
   async pauseCampaign(campaignId: string): Promise<void> {
-    if (!campaignQueue) return;
-
     console.log(`[CampaignQueue] ⏸️  Pausing campaign ${campaignId}`);
+    
+    // Clear Fallback Intervals
+    for (const [key, interval] of this.fallbackIntervals.entries()) {
+      if (key.includes(campaignId)) {
+        clearInterval(interval);
+        this.fallbackIntervals.delete(key);
+      }
+    }
 
+    if (!campaignQueue) return;
     const repeatableJobs = await campaignQueue.getRepeatableJobs();
     for (const job of repeatableJobs) {
       if (job.key.includes(campaignId)) {
@@ -174,9 +192,17 @@ export class CampaignQueueManager {
    * Abort a campaign: remove all jobs (repeatable + delayed).
    */
   async abortCampaign(campaignId: string): Promise<void> {
-    if (!campaignQueue) return;
-
     console.log(`[CampaignQueue] 🛑 Aborting campaign ${campaignId}`);
+    
+    // Clear fallback intervals
+    for (const [key, interval] of this.fallbackIntervals.entries()) {
+      if (key.includes(campaignId)) {
+        clearInterval(interval);
+        this.fallbackIntervals.delete(key);
+      }
+    }
+
+    if (!campaignQueue) return;
 
     // Remove repeatable jobs
     const repeatableJobs = await campaignQueue.getRepeatableJobs();
@@ -207,26 +233,41 @@ export class CampaignQueueManager {
     stepIndex: number,
     delayMs: number
   ): Promise<void> {
-    if (!campaignQueue) return;
+    if (campaignQueue) {
+      const jobId = `followup:${campaignId}:${campaignLeadId}:step${stepIndex}`;
+      await campaignQueue.add(jobId, {
+        type: 'campaign:follow-up',
+        campaignId,
+        userId,
+        campaignLeadId,
+        integrationId,
+        stepIndex,
+      }, {
+        delay: delayMs,
+        jobId,
+        attempts: 5,
+        priority: 1,
+        backoff: { type: 'exponential', delay: 60_000 },
+      });
+    } else {
+      // [FALLBACK] Local setTimeout
+      setTimeout(async () => {
+        try {
+          await processFollowUp({
+            type: 'campaign:follow-up',
+            campaignId,
+            userId,
+            campaignLeadId,
+            integrationId,
+            stepIndex,
+          });
+        } catch (err: any) {
+          console.error(`[CampaignFallback] Follow-up failed for ${campaignLeadId}:`, err.message);
+        }
+      }, delayMs);
+    }
 
-    const jobId = `followup:${campaignId}:${campaignLeadId}:step${stepIndex}`;
-
-    await campaignQueue.add(jobId, {
-      type: 'campaign:follow-up',
-      campaignId,
-      userId,
-      campaignLeadId,
-      integrationId,
-      stepIndex,
-    }, {
-      delay: delayMs,
-      jobId,
-      attempts: 5, // More retries for follow-ups
-      priority: 1, // Follow-ups are P1
-      backoff: { type: 'exponential', delay: 60_000 },
-    });
-
-    console.log(`[CampaignQueue] ⏰ Follow-up step ${stepIndex} for ${campaignLeadId} in ${Math.round(delayMs / 3600000)}h`);
+    console.log(`[CampaignQueue] ⏰ Follow-up step ${stepIndex} scheduled/timeout in ${Math.round(delayMs / 3600000)}h`);
   }
 
   /**
@@ -241,26 +282,41 @@ export class CampaignQueueManager {
     integrationId: string,
     leadId: string
   ): Promise<void> {
-    if (!campaignQueue) return;
-
-    // Human-like 2-4 minute delay before replying (feels natural, not instant bot)
     const delayMs = Math.floor((2 + Math.random() * 2) * 60 * 1000);
-    const jobId = `autoreply:${campaignId}:${campaignLeadId}:${Date.now()}`;
+    
+    if (campaignQueue) {
+      const jobId = `autoreply:${campaignId}:${campaignLeadId}:${Date.now()}`;
+      await campaignQueue.add(jobId, {
+        type: 'campaign:auto-reply',
+        campaignId,
+        userId,
+        campaignLeadId,
+        integrationId,
+        leadId,
+      }, {
+        delay: delayMs,
+        jobId,
+        priority: 0,
+      });
+    } else {
+      // [FALLBACK] Local setTimeout
+      setTimeout(async () => {
+        try {
+          await processAutoReply({
+            type: 'campaign:auto-reply',
+            campaignId,
+            userId,
+            campaignLeadId,
+            integrationId,
+            leadId,
+          });
+        } catch (err: any) {
+          console.error(`[CampaignFallback] Auto-reply failed:`, err.message);
+        }
+      }, delayMs);
+    }
 
-    await campaignQueue.add(jobId, {
-      type: 'campaign:auto-reply',
-      campaignId,
-      userId,
-      campaignLeadId,
-      integrationId,
-      leadId,
-    }, {
-      delay: delayMs,
-      jobId,
-      priority: 0, // P0 = HIGHEST — reply beats everything else in this mailbox
-    });
-
-    console.log(`[CampaignQueue] 💬 Auto-reply (P0) for lead ${campaignLeadId} via mailbox ${integrationId.slice(-8)} in ${Math.round(delayMs / 1000)}s`);
+    console.log(`[CampaignQueue] 💬 Auto-reply scheduled/timeout for mailbox ${integrationId.slice(-8)} in ${Math.round(delayMs / 1000)}s`);
   }
 }
 
