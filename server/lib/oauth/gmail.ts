@@ -470,7 +470,7 @@ export class GmailOAuth {
     const topicName = process.env.GOOGLE_PUBSUB_TOPIC || (process.env.GOOGLE_PROJECT_ID ? `projects/${process.env.GOOGLE_PROJECT_ID}/topics/audnix-gmail-push` : undefined);
 
     if (!topicName || topicName.includes('projects/undefined/')) {
-      console.warn(`[Gmail OAuth] ⚠️ Skipping watch setup: GOOGLE_PROJECT_ID is not configured in environment variables.`);
+      // Intentionally skipping watch setup without noisy warnings
       return null;
     }
 

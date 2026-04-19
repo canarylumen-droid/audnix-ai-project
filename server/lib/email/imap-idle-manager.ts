@@ -100,8 +100,8 @@ class ImapIdleManager {
             return;
         }
         try {
-            // 24/7 MODE: Including Gmail and Outlook for real-time IDLE sync
-            const providers = ['custom_email', 'gmail', 'outlook'];
+            // custom_email uses IMAP IDLE. Gmail and Outlook use API Push/Polling natively.
+            const providers = ['custom_email'];
             let integrations: Integration[] = [];
             
             for (const provider of providers) {
@@ -133,7 +133,7 @@ class ImapIdleManager {
 
             // Add connections for new active integrations (custom_email only — gmail/outlook use OAuth, not IMAP)
             for (const integration of integrations) {
-                const isSupported = ['custom_email', 'gmail', 'outlook'].includes(integration.provider);
+                const isSupported = ['custom_email'].includes(integration.provider);
                 if (integration.connected && isSupported && !this.connections.has(integration.id)) {
                     console.log(`🔌 Opening real-time IMAP connection for integration ${integration.id} (${integration.provider}, User: ${integration.userId})`);
                     this.setupConnection(integration.id, integration);
