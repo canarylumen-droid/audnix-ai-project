@@ -507,14 +507,16 @@ router.get('/status', requireAuth, async (req: Request, res: Response): Promise<
     const allIntegrations = await storage.getIntegrations(userId);
 
     // Include ALL email-capable providers in the unified mailbox view
+    // showing both connected and recently disconnected for cleanup
     const emailProviders = ['custom_email', 'gmail', 'outlook'];
     const mailboxes = allIntegrations
-      .filter(i => emailProviders.includes(i.provider) && i.connected)
+      .filter(i => emailProviders.includes(i.provider))
       .map(i => ({
         id: i.id,
         email: i.accountType,
         connected: i.connected,
         provider: i.provider, // 'custom_email' | 'gmail' | 'outlook'
+        healthStatus: (i as any).healthStatus || 'connected',
         lastSync: i.lastSync,
       }));
 

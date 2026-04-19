@@ -7,7 +7,7 @@ import { isValidUUID } from './lib/utils/validation.js';
 import crypto from 'crypto';
 import process from 'process';
 import { wsSync } from './lib/websocket-sync.js';
-import { getPlanCapabilities } from '../shared/plan-utils.js';
+import { getPlanCapabilities, getActivePlanId } from '../shared/plan-utils.js';
 
 // Function to check if the database connection is available
 function checkDatabase() {
@@ -1238,9 +1238,9 @@ export class DrizzleStorage implements IStorage {
   async checkMailboxLimit(userId: string): Promise<{ allowed: boolean; current: number; limit: number; plan: string }> {
     checkDatabase();
     
-    // 1. Get user plan
+    // 1. Get user plan using robust centralized logic
     const user = await this.getUser(userId);
-    const plan = (user?.subscriptionTier || user?.plan || 'free').toLowerCase();
+    const plan = getActivePlanId(user);
     const capabilities = getPlanCapabilities(plan);
     const limit = capabilities.mailboxLimit || 1;
 
@@ -1250,6 +1250,7 @@ export class DrizzleStorage implements IStorage {
       .from(integrations)
       .where(and(
         eq(integrations.userId, userId),
+        eq(integrations.connected, true),
         inArray(integrations.provider, ['custom_email', 'gmail', 'outlook'])
       ));
     

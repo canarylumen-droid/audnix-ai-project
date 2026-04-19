@@ -1,5 +1,6 @@
 import { drizzleStorage } from "./drizzle-storage.js";
 import { type User, type InsertUser, type Lead, type InsertLead, type Message, type InsertMessage, type Integration, type InsertIntegration, type Deal, type InsertDeal, type FollowUpQueue, type InsertFollowUpQueue, type OAuthAccount, type InsertOAuthAccount, type CalendarEvent, type InsertCalendarEvent, type AuditTrail, type InsertAuditTrail, type Organization, type InsertOrganization, type TeamMember, type InsertTeamMember, type Payment, type InsertPayment, type AiLearningPattern, type InsertAiLearningPattern, type SmtpSettings, type InsertSmtpSettings, type EmailMessage, type InsertEmailMessage, type Notification, type InsertNotification, type Thread, type InsertThread, type LeadInsight, type InsertLeadInsight, type OutreachCampaign, type InsertOutreachCampaign, type CampaignLead, type InsertCampaignLead, type FathomCall, type InsertFathomCall, type PendingPayment, type InsertPendingPayment, smtpSettings, users, leads, messages, integrations, deals, followUpQueue, aiLearningPatterns, notifications, threads, leadInsights, outreachCampaigns, campaignLeads, fathomCalls, pendingPayments } from "../shared/schema.js";
+import { getPlanCapabilities, getActivePlanId } from "../shared/plan-utils.js";
 import { randomUUID } from "crypto";
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "./db.js";
@@ -1015,10 +1016,22 @@ export class MemStorage implements IStorage {
 
   async checkMailboxLimit(userId: string): Promise<{ allowed: boolean; current: number; limit: number; plan: string }> {
     const user = this.users.get(userId);
-    const plan = user?.plan || 'free';
-    const limit = plan === 'enterprise' ? 10 : 3;
-    const current = Array.from(this.integrations.values()).filter(i => i.userId === userId && ['custom_email', 'gmail', 'outlook'].includes(i.provider)).length;
-    return { allowed: current < limit, current, limit, plan };
+    const plan = getActivePlanId(user);
+    const capabilities = getPlanCapabilities(plan);
+    const limit = capabilities.mailboxLimit || 1;
+    
+    const current = Array.from(this.integrations.values()).filter(i => 
+      i.userId === userId && 
+      i.connected && 
+      ['custom_email', 'gmail', 'outlook'].includes(i.provider)
+    ).length;
+    
+    return { 
+      allowed: limit === -1 ? true : current < limit, 
+      current, 
+      limit, 
+      plan 
+    };
   }
 
   async getIntegrationSentCount(userId: string, integrationId: string, since: Date): Promise<number> {

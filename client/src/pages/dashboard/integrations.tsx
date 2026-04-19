@@ -224,7 +224,7 @@ export default function IntegrationsPage() {
 
   const getDailyLimit = () => {
     const tier = (getActivePlanId(userData)).toLowerCase();
-    if (tier === 'enterprise') return 10000; // Scalable / Unlimited in UI
+    if (tier === 'enterprise') return 1000000; // Effectively Unlimited in UI
     if (tier === 'pro') return 400;
     return 300; // Default / Starter
   };
@@ -863,12 +863,12 @@ export default function IntegrationsPage() {
                           <Badge variant="outline" className={cn(
                             "rounded-full text-[10px] font-black tracking-widest px-2",
                             getActivePlanId(userData) === 'enterprise' 
-                              ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/5" 
+                              ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/5 shadow-inner" 
                               : isAtMailboxLimit 
                                 ? "text-amber-500 border-amber-500/20 bg-amber-500/5"
                                 : "text-primary border-primary/20 bg-primary/5"
                           )}>
-                            {connectedMailboxesCount} / {limit === -1 ? 'Unlimited' : limit}
+                            {getActivePlanId(userData) === 'enterprise' ? "∞ UNLIMITED" : `${connectedMailboxesCount} / ${limit}`}
                           </Badge>
                         </div>
                         {limit !== -1 && (
@@ -940,7 +940,8 @@ export default function IntegrationsPage() {
                       <div key={mailbox.id} className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 rounded-2xl bg-muted/20 border border-border/40 hover:border-primary/30 transition-all group">
                         <div className="flex items-center gap-4">
                           <div className={cn(
-                            "h-12 w-12 rounded-xl flex items-center justify-center border",
+                            "h-12 w-12 rounded-xl flex items-center justify-center border transition-all duration-300",
+                            !mailbox.connected ? "bg-muted/10 border-dashed border-muted grayscale" :
                             mailbox.provider === 'gmail' ? "bg-red-500/10 border-red-500/20 text-red-500" :
                             mailbox.provider === 'outlook' ? "bg-blue-500/10 border-blue-500/20 text-blue-500" :
                             "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
@@ -951,10 +952,14 @@ export default function IntegrationsPage() {
                           </div>
                           <div className="space-y-0.5">
                             <div className="flex items-center gap-2">
-                              <h4 className="text-sm font-bold text-foreground">
+                              <h4 className={cn("text-sm font-bold transition-colors", !mailbox.connected ? "text-muted-foreground" : "text-foreground")}>
                                 {mailbox.email}
                               </h4>
-                              <Badge className="bg-emerald-500/10 text-emerald-500 border-0 text-[8px] font-black uppercase tracking-widest px-1.5 py-0">Active</Badge>
+                              {mailbox.connected ? (
+                                <Badge className="bg-emerald-500/10 text-emerald-500 border-0 text-[8px] font-black uppercase tracking-widest px-1.5 py-0">Active</Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-muted-foreground border-muted text-[8px] font-black uppercase tracking-widest px-1.5 py-0">Disconnected</Badge>
+                              )}
                             </div>
                             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                               {mailbox.provider === 'gmail' ? "Google Workspace" :
@@ -965,11 +970,18 @@ export default function IntegrationsPage() {
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2 mt-4 md:mt-0 transition-opacity">
-                          <Button variant="outline" size="sm" className="h-8 rounded-lg text-[10px] px-3 w-full sm:w-auto" onClick={() => setIsTestEmailOpen(true)}>
-                            <Mail className="h-3 w-3 mr-1.5" /> Test Connection
-                          </Button>
-                          <Button variant="ghost" size="sm" className="h-8 rounded-lg text-[10px] px-3 font-bold text-destructive hover:bg-destructive/10 w-full sm:w-auto" onClick={() => confirmDisconnect(mailbox.provider, mailbox.id)}>
-                            <Unplug className="h-3 w-3 mr-1.5" /> Disconnect
+                          {mailbox.connected && (
+                            <Button variant="outline" size="sm" className="h-8 rounded-lg text-[10px] px-3 w-full sm:w-auto" onClick={() => setIsTestEmailOpen(true)}>
+                              <Mail className="h-3 w-3 mr-1.5" /> Test Connection
+                            </Button>
+                          )}
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 rounded-lg text-[10px] px-3 font-bold text-destructive hover:bg-destructive/10 w-full sm:w-auto" 
+                            onClick={() => confirmDisconnect(mailbox.provider, mailbox.id)}
+                          >
+                            <Unplug className="h-3 w-3 mr-1.5" /> {mailbox.connected ? "Disconnect" : "Remove Record"}
                           </Button>
                         </div>
                       </div>
