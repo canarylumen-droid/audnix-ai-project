@@ -15,7 +15,8 @@ const router = Router();
  */
 router.post('/discover', requireAuth, async (req: Request, res: Response) => {
   try {
-    const { email } = req.body;
+    let { email } = req.body;
+    email = email?.trim();
     if (!email) return res.status(400).json({ error: 'Email is required' });
 
     const result: any = await EmailDiscoveryService.discoverSettings(email);
@@ -187,7 +188,14 @@ interface ConnectRequestBody {
 router.post('/connect', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    const { smtpHost, smtpPort, imapHost, imapPort, email, password, fromName } = req.body as ConnectRequestBody;
+    let { smtpHost, smtpPort, imapHost, imapPort, email, password, fromName } = req.body as ConnectRequestBody;
+
+    // Sanitize inputs to prevent trailing copy-paste spaces from failing validation
+    smtpHost = smtpHost?.trim();
+    imapHost = imapHost?.trim() || '';
+    email = email?.trim();
+    password = password?.trim();
+    fromName = fromName?.trim();
 
     // ── Basic format validation only — no network calls ──────────────────────
     // Railway and many cloud providers block all outbound SMTP ports (25/465/587/2525)
@@ -466,6 +474,14 @@ router.post('/disconnect', requireAuth, async (req: Request, res: Response): Pro
     } else {
       await storage.deleteIntegration(userId, 'custom_email');
     }
+
+    // Notify frontend to refresh the UI immediately
+    const { wsSync } = await import('../lib/websocket-sync.js');
+    wsSync.notifySettingsUpdated(userId);
+    
+    // Stop any active IMAP listeners for the disconnected account
+    const { imapIdleManager } = await import('../lib/email/imap-idle-manager.js');
+    imapIdleManager.syncConnections();
 
     res.json({
       success: true,

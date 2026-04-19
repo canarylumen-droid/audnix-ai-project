@@ -111,73 +111,64 @@ router.post('/:provider/disconnect', requireAuth, async (req: Request, res: Resp
 
     console.log(`[Integrations] Disconnect request: provider=${provider}, integrationId=${integrationId || 'none'}, userId=${userId}`);
 
-    // --- Step 1: Find the integration record ---
+    // --- Step 1: Find the integration record and verify ownership ---
     let integration = null;
     if (integrationId) {
       integration = await storage.getIntegrationById(integrationId);
+      if (integration && integration.userId !== userId) {
+        console.warn(`[Integrations] 🚨 Unauthorized disconnect attempt by user ${userId} for integration owned by ${integration.userId}`);
+        res.status(403).json({ error: 'Unauthorized: You do not own this integration' });
+        return;
+      }
     } else {
       // Fallback: find the first connected integration for this provider
       const allInts = await storage.getIntegrations(userId);
       integration = allInts.find(i => i.provider === provider && i.connected) || null;
     }
 
+    if (!integration && integrationId) {
+       console.warn(`[Integrations] No integration found with ID: ${integrationId}`);
+       res.status(404).json({ error: 'Integration not found' });
+       return;
+    }
+
     // --- Step 2: Provider-specific OAuth token revocation ---
-    if (provider === 'gmail' && integration) {
+    // We wrap these in try-catch to ensure we always proceed to database deletion
+    if (integration) {
+      const emailAddress = integration.accountType || undefined;
+      
       try {
-        const { gmailOAuth } = await import('../lib/oauth/gmail.js');
-        const emailAddress = integration.accountType || undefined;
-        console.log(`[Integrations] Revoking Gmail OAuth token for: ${emailAddress || 'unknown'}`);
-        // revokeToken handles both the Google API call AND deleting from oauth_accounts
-        await gmailOAuth.revokeToken(userId, emailAddress);
+        if (provider === 'gmail') {
+          const { gmailOAuth } = await import('../lib/oauth/gmail.js');
+          console.log(`[Integrations] Revoking Gmail OAuth token for: ${emailAddress || 'unknown'}`);
+          await gmailOAuth.revokeToken(userId, emailAddress);
+        } else if (provider === 'outlook') {
+          const { outlookOAuth } = await import('../lib/oauth/outlook.js');
+          console.log(`[Integrations] Revoking Outlook OAuth token for: ${emailAddress || 'unknown'}`);
+          await outlookOAuth.revokeToken(userId, emailAddress);
+        } else if (provider === 'instagram') {
+          const { InstagramOAuth } = await import('../lib/oauth/instagram.js');
+          const instagramOAuth = new InstagramOAuth();
+          await instagramOAuth.revokeToken(userId);
+        } else if (provider === 'calendly') {
+          const { calendlyOAuth } = await import('../lib/oauth/calendly.js');
+          await calendlyOAuth.revokeToken(userId);
+        } else if (provider === 'google_calendar') {
+          const { googleCalendarOAuth } = await import('../lib/oauth/google-calendar.js');
+          await googleCalendarOAuth.revokeToken(userId);
+        }
       } catch (e: any) {
-        // Non-fatal: token may have already expired or been revoked on Google's side
-        console.warn(`[Integrations] Gmail token revocation failed (non-fatal): ${e.message}`);
-      }
-    } else if (provider === 'outlook' && integration) {
-      try {
-        const { OutlookOAuth } = await import('../lib/oauth/outlook.js');
-        const outlookOAuth = new OutlookOAuth();
-        console.log(`[Integrations] Revoking Outlook OAuth token for integration: ${integration.id}`);
-        await outlookOAuth.revokeToken(userId);
-      } catch (e: any) {
-        console.warn(`[Integrations] Outlook token revocation failed (non-fatal): ${e.message}`);
-      }
-    } else if (provider === 'instagram' && integration) {
-      try {
-        const { InstagramOAuth } = await import('../lib/oauth/instagram.js');
-        const instagramOAuth = new InstagramOAuth();
-        console.log(`[Integrations] Revoking Instagram OAuth token`);
-        await instagramOAuth.revokeToken(userId);
-      } catch (e: any) {
-        console.warn(`[Integrations] Instagram token revocation failed (non-fatal): ${e.message}`);
-      }
-    } else if (provider === 'calendly' && integration) {
-      try {
-        const { calendlyOAuth } = await import('../lib/oauth/calendly.js');
-        console.log(`[Integrations] Revoking Calendly OAuth token`);
-        await calendlyOAuth.revokeToken(userId);
-      } catch (e: any) {
-        console.warn(`[Integrations] Calendly token revocation failed (non-fatal): ${e.message}`);
-      }
-    } else if (provider === 'google_calendar' && integration) {
-      try {
-        const { googleCalendarOAuth } = await import('../lib/oauth/google-calendar.js');
-        console.log(`[Integrations] Revoking Google Calendar OAuth token`);
-        await googleCalendarOAuth.revokeToken(userId);
-      } catch (e: any) {
-        console.warn(`[Integrations] Google Calendar token revocation failed (non-fatal): ${e.message}`);
+        // Non-fatal: token may have already expired or been revoked on provider side
+        console.warn(`[Integrations] ${provider} token revocation failed (non-fatal): ${e.message}`);
       }
     }
 
     // --- Step 3: Delete the integration record from the database ---
-    if (integration && integrationId) {
-      console.log(`[Integrations] Deleting integration by ID: ${integrationId}`);
-      await storage.deleteIntegrationById(integrationId);
-    } else if (integration) {
-      console.log(`[Integrations] Disconnecting ${provider} integration (no ID provided) for user: ${userId}`);
+    if (integration) {
+      console.log(`[Integrations] Deleting integration record: ${integration.id} (${provider})`);
       await storage.deleteIntegrationById(integration.id);
     } else {
-      console.log(`[Integrations] No specific integration found. Performing bulk disconnect for ${provider} for user: ${userId}`);
+      console.log(`[Integrations] Performing bulk disconnect for ${provider} for user: ${userId}`);
       await storage.disconnectIntegration(userId, provider);
     }
 

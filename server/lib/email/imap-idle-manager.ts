@@ -297,6 +297,8 @@ class ImapIdleManager {
                 host: imapHost,
                 port: imapPort,
                 tls: imapPort === 993,
+                // Force IPv4 for cloud environment stability
+                family: 4,
                 tlsOptions: { rejectUnauthorized: false },
                 connTimeout: 45000,
                 authTimeout: 45000,
@@ -443,6 +445,8 @@ class ImapIdleManager {
                 host: imapHost,
                 port: imapPort,
                 tls: imapPort === 993,
+                // Force IPv4 for cloud environment stability
+                family: 4,
                 tlsOptions: { rejectUnauthorized: false },
                 keepalive: { interval: 10000, idleInterval: 300000, forceNoop: true }
             };

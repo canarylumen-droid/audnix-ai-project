@@ -3,6 +3,7 @@ import { OutlookOAuth } from '../lib/oauth/outlook.js';
 import { storage } from '../storage.js';
 import { encrypt, decryptState } from '../lib/crypto/encryption.js';
 import { wsSync } from '../lib/websocket-sync.js';
+import { emailSyncWorker } from '../lib/email/email-sync-worker.js';
 
 const router = Router();
 const outlookOAuth = new OutlookOAuth();
@@ -132,6 +133,11 @@ router.get('/outlook/callback', async (req: Request, res: Response): Promise<voi
         i => i.provider === 'outlook' && i.accountType === emailAddress
       );
       if (outlookInt) {
+        console.log(`[Outlook Redirect] 🔄 Triggering immediate email sync for mailbox: ${outlookInt.id}`);
+        emailSyncWorker.syncUserEmails(userId, outlookInt as any).catch(err => {
+          console.error('[Outlook Redirect] Background sync failed:', err);
+        });
+
         distributeLeadsFromPool(userId, outlookInt.id).catch(err =>
           console.error('[Outlook Redirect] Lead distribution failed:', err)
         );

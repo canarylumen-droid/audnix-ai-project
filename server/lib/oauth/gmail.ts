@@ -226,6 +226,20 @@ export class GmailOAuth {
           tokenType: newTokens.token_type
         });
 
+        // Sync back to integrations table so health checks and outreach engine have the latest token
+        const allIntegrations = await storage.getIntegrations(userId);
+        const gmailInt = allIntegrations.find(i => i.provider === 'gmail' && i.accountType === tokenData.providerAccountId);
+        if (gmailInt) {
+          const decryptedMeta = JSON.parse(decrypt(gmailInt.encryptedMeta));
+          const updatedMeta = encrypt(JSON.stringify({
+            ...decryptedMeta,
+            access_token: newTokens.access_token,
+            refresh_token: newTokens.refresh_token || decryptedMeta.refresh_token,
+            expiry_date: newTokens.expiry_date || newExpiresAt.getTime(),
+          }));
+          await storage.updateIntegrationById(gmailInt.id, { encryptedMeta: updatedMeta });
+        }
+
         return newTokens.access_token;
       } catch (error) {
         console.error('Error refreshing Gmail token:', error);
@@ -313,6 +327,21 @@ export class GmailOAuth {
           scope: newTokens.scope,
           tokenType: newTokens.token_type
       });
+
+      // Sync back to integrations table
+      const allIntegrations = await storage.getIntegrations(userId);
+      const gmailInt = allIntegrations.find(i => i.provider === 'gmail' && i.accountType === tokenData.providerAccountId);
+      if (gmailInt) {
+        const decryptedMeta = JSON.parse(decrypt(gmailInt.encryptedMeta));
+        const updatedMeta = encrypt(JSON.stringify({
+          ...decryptedMeta,
+          access_token: newTokens.access_token,
+          refresh_token: newTokens.refresh_token || decryptedMeta.refresh_token,
+          expiry_date: newTokens.expiry_date || (newTokens.expiry_date || Date.now() + 3600 * 1000),
+        }));
+        await storage.updateIntegrationById(gmailInt.id, { encryptedMeta: updatedMeta });
+      }
+
       return newTokens.access_token;
     } catch {
       return null;

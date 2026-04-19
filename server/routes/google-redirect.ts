@@ -4,6 +4,7 @@ import { googleCalendarOAuth } from '../lib/oauth/google-calendar.js';
 import { storage } from '../storage.js';
 import { encrypt, decryptState } from '../lib/crypto/encryption.js';
 import { wsSync } from '../lib/websocket-sync.js';
+import { emailSyncWorker } from '../lib/email/email-sync-worker.js';
 
 const router = Router();
 
@@ -132,6 +133,9 @@ router.get('/gmail/callback', async (req: Request, res: Response): Promise<void>
     // 9. Notify frontend to refresh integration state via WebSocket
     wsSync.notifySettingsUpdated(userId);
 
+    // 10. Notify frontend to refresh integration state via WebSocket
+    wsSync.notifySettingsUpdated(userId);
+
     // 10. Background: distribute leads from inventory pool to this new mailbox
     try {
       const { distributeLeadsFromPool } = await import('../lib/sales-engine/outreach-engine.js');
@@ -140,6 +144,11 @@ router.get('/gmail/callback', async (req: Request, res: Response): Promise<void>
         i => i.provider === 'gmail' && i.accountType === emailAddress
       );
       if (gmailInt) {
+        console.log(`[Google Redirect] 🔄 Triggering immediate email sync for mailbox: ${gmailInt.id}`);
+        emailSyncWorker.syncUserEmails(userId, gmailInt as any).catch(err => {
+          console.error('[Google Redirect] Background sync failed:', err);
+        });
+
         console.log(`[Google Redirect] Launching lead distribution for mailbox: ${gmailInt.id}`);
         distributeLeadsFromPool(userId, gmailInt.id).catch(err =>
           console.error('[Google Redirect] Lead distribution failed (non-fatal):', err)

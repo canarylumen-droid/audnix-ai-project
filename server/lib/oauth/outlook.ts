@@ -315,6 +315,20 @@ export class OutlookOAuth {
           tokenType: newTokens.token_type
         });
 
+        // Sync back to integrations table
+        const allIntegrations = await storage.getIntegrations(userId);
+        const outlookInt = allIntegrations.find(i => i.provider === 'outlook' && (i as any).accountType === tokenData.providerAccountId);
+        if (outlookInt) {
+          const decryptedMeta = JSON.parse(decrypt(outlookInt.encryptedMeta));
+          const updatedMeta = encrypt(JSON.stringify({
+            ...decryptedMeta,
+            access_token: newTokens.access_token,
+            refresh_token: newTokens.refresh_token || decryptedMeta.refresh_token,
+            expiry_date: newExpiresAt.getTime(),
+          }));
+          await storage.updateIntegrationById(outlookInt.id, { encryptedMeta: updatedMeta });
+        }
+
         return newTokens.access_token;
       } catch (error) {
         console.error('Error refreshing Outlook token:', error);

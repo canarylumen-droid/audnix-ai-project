@@ -21,6 +21,8 @@ import { wsSync } from '../websocket-sync.js';
 import { getPlanCapabilities } from '../../../shared/plan-utils.js';
 import { sendSystemEmail } from '../channels/email.js';
 import { quotaService } from '../monitoring/quota-service.js';
+import { gmailOAuth } from '../oauth/gmail.js';
+import { outlookOAuth } from '../oauth/outlook.js';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -266,9 +268,14 @@ class MailboxHealthService {
         user: config.smtp_user,
         pass: config.smtp_pass,
       },
+      // Force IPv4 and skip cert validation for resilience
+      family: 4,
+      tls: {
+        rejectUnauthorized: false
+      },
       connectionTimeout: 15000,
       greetingTimeout: 15000,
-    });
+    } as any);
 
     // verify() tests connection + auth
     await transporter.verify();
@@ -278,16 +285,20 @@ class MailboxHealthService {
    * Test Gmail OAuth token validity
    */
   private async testGmailToken(integration: any): Promise<void> {
-    const credentialsStr = await decrypt(integration.encryptedMeta);
-    const credentials = JSON.parse(credentialsStr);
+    const token = await gmailOAuth.getValidToken(integration.userId, integration.accountType);
+    
+    if (!token) {
+      throw new Error('Gmail connection lost: Could not refresh access token. Please reconnect.');
+    }
 
+    // Secondary verify with Google API
     const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
-      headers: { 'Authorization': `Bearer ${credentials.access_token}` }
+      headers: { 'Authorization': `Bearer ${token}` }
     });
 
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
-      throw new Error(`Gmail token invalid: ${(data as any)?.error?.message || response.statusText}`);
+      throw new Error(`Gmail API Error: ${(data as any)?.error?.message || response.statusText}`);
     }
   }
 
@@ -295,16 +306,19 @@ class MailboxHealthService {
    * Test Outlook OAuth token validity
    */
   private async testOutlookToken(integration: any): Promise<void> {
-    const credentialsStr = await decrypt(integration.encryptedMeta);
-    const credentials = JSON.parse(credentialsStr);
+    const token = await outlookOAuth.getValidToken(integration.userId);
+    
+    if (!token) {
+      throw new Error('Outlook connection lost: Could not refresh access token. Please reconnect.');
+    }
 
     const response = await fetch('https://graph.microsoft.com/v1.0/me', {
-      headers: { 'Authorization': `Bearer ${credentials.access_token}` }
+      headers: { 'Authorization': `Bearer ${token}` }
     });
 
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
-      throw new Error(`Outlook token invalid: ${(data as any)?.error?.message || response.statusText}`);
+      throw new Error(`Outlook API Error: ${(data as any)?.error?.message || response.statusText}`);
     }
   }
 

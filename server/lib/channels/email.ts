@@ -172,11 +172,15 @@ async function sendCustomSMTP(
       user: config.smtp_user,
       pass: config.smtp_pass,
     },
-    // Increased timeouts for reliability (especially for Hostinger)
+    // Increased timeouts and IPv4 forcing for reliability (especially for Cloud/Hostinger)
+    family: 4,
+    tls: {
+      rejectUnauthorized: false
+    },
     connectionTimeout: 30000,
     greetingTimeout: 30000,
     socketTimeout: 60000,
-  });
+  } as any);
 
   const messageId = `<${import.meta.url ? (await import('crypto')).randomUUID() : Date.now() + Math.random()}@audnixai.com>`;
 
@@ -273,6 +277,8 @@ export async function importCustomEmails(
           host: imapHost,
           port: imapPort,
           tls: imapPort === 993,
+          // Force IPv4 to avoid EDNS / EAI_AGAIN DNS failures in cloud environments
+          family: 4,
           tlsOptions: { rejectUnauthorized: false },
           connTimeout: 45000, // Increased to 45s
           authTimeout: 45000, // Increased to 45s
@@ -281,7 +287,7 @@ export async function importCustomEmails(
             if (msg.includes('ENOTFOUND') || msg.includes('EAI_AGAIN')) return;
             // console.log(`[IMAP DEBUG] ${msg}`); // Uncomment for debugging
           }
-        });
+        } as any);
 
         const safeEnd = () => {
           try {
