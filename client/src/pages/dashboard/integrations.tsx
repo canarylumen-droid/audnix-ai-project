@@ -309,6 +309,7 @@ export default function IntegrationsPage() {
       return response.json();
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/custom-email/status"] });
       queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
       toast({ title: "Disconnected", description: "Integration removed successfully." });
     }
