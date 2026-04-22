@@ -500,11 +500,15 @@ class ImapIdleManager {
                             console.error('Failed to update integration with IMAP error:', e);
                         }
                     } else if (isRetryable) {
-                        console.warn(`⏳ Retryable IMAP error for ${integrationId} (${err.code}). Reconnecting...`);
+                        // Phase 20: Hardened Reconnection. 
+                        // If we just set a 5-minute cooldown (at line 480), we should NOT immediately reconnect.
+                        // We will let the background syncConnections loop (every 2m) pick it up only after the cooldown.
+                        console.warn(`⏳ Retryable IMAP error for ${integrationId} (${err.code}). Error is throttled for 5m. Waiting for periodic sync.`);
                         try { imap.destroy(); } catch (e) {}
-                        this.reconnect(integrationId, integration);
+                        this.cleanupIntegration(integrationId);
                     } else {
                         try { imap.destroy(); } catch (e) {}
+                        this.cleanupIntegration(integrationId);
                     }
                 } catch (fatalErr) {
                     console.error('[IMAP] CRITICAL: Exception in error handler:', fatalErr);
