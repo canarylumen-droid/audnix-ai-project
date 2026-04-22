@@ -195,7 +195,8 @@ class MailboxHealthService {
         await this.handleMailboxFailure(integration, err.message);
         await this.trackFailureBurst(integration);
       } else {
-        console.warn(`[MailboxHealth] Non-fatal check error for ${integration.id}:`, err.message);
+        const meta = decryptToJSON(integration.encryptedMeta) || {};
+        console.warn(`[MailboxHealth] Non-fatal check error for ${integration.id} (Host: ${meta.smtp_host || 'unknown'}):`, err.message);
       }
     }
 
@@ -241,7 +242,7 @@ class MailboxHealthService {
       'Invalid login', 'authentication failed', 'token expired', 'token invalid',
       'Invalid credentials', 'socket hang up', 'credentials missing',
       'Unauthorized', '401', 'Rate limit exceeded', 'bad decrypt', 'decryption failed',
-      'invalid encrypted data format'
+      'invalid encrypted data format', 'ENETUNREACH'
     ];
     return patterns.some(p => errorMessage.toLowerCase().includes(p.toLowerCase()));
   }
@@ -292,7 +293,12 @@ class MailboxHealthService {
       // Force IPv4 and skip cert validation for resilience
       family: 4,
       lookup: (hostname: string, options: any, callback: any) => {
-        return dns.lookup(hostname, { family: 4 }, callback);
+        dns.resolve4(hostname, (err, addresses) => {
+          if (err || !addresses || addresses.length === 0) {
+            return callback(err || new Error('No IPv4 found'), null, 4);
+          }
+          callback(null, addresses[0], 4);
+        });
       },
       tls: {
         rejectUnauthorized: false

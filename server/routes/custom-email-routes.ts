@@ -313,6 +313,15 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
       console.warn('[Email Connect] Could not trigger background sync:', idleErr);
     }
 
+    // ── Real-time frontend update ────────────────────────────
+    try {
+      const { wsSync } = await import('../lib/websocket-sync.js');
+      wsSync.notifySettingsUpdated(userId);
+      wsSync.notifySyncStatus(userId, { syncing: true });
+    } catch (e) {
+      console.warn('[Email Connect] Could not notify frontend via websocket:', e);
+    }
+
     res.json({
       success: true,
       smtpVerified: false, // verified at send-time, not connection-time

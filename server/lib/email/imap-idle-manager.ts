@@ -389,6 +389,14 @@ class ImapIdleManager {
                 tls: imapPort === 993,
                 // Force IPv4 for cloud environment stability
                 family: 4,
+                lookup: (hostname: string, options: any, callback: any) => {
+                    dns.resolve4(hostname, (err, addresses) => {
+                        if (err || !addresses || addresses.length === 0) {
+                            return callback(err || new Error('No IPv4 found'), null, 4);
+                        }
+                        callback(null, addresses[0], 4);
+                    });
+                },
                 tlsOptions: { 
                     rejectUnauthorized: false
                 },
@@ -483,7 +491,7 @@ class ImapIdleManager {
                     this.failureCooldowns.set(integrationId, Date.now() + 5 * 60 * 1000);
 
                     const fatalErrors = ['AUTHENTICATIONFAILED', 'Not authenticated', 'Invalid credentials', 'Login failed', 'BAD', 'NO'];
-                    const retryableErrors = ['ETIMEDOUT', 'ECONNRESET', 'EPIPE', 'ECONNREFUSED', 'ENOTFOUND'];
+                    const retryableErrors = ['ETIMEDOUT', 'ECONNRESET', 'EPIPE', 'ECONNREFUSED', 'ENOTFOUND', 'ENETUNREACH'];
                     
                     const errorStr = (err.code || err.message || '').toLowerCase();
                     const isFatal = fatalErrors.some(code => errorStr.includes(code.toLowerCase()));
@@ -1149,7 +1157,12 @@ class ImapIdleManager {
                         // Force IPv4 and use global DNS lock for reliability
                         family: 4,
                         lookup: (hostname: string, options: any, callback: any) => {
-                          return dns.lookup(hostname, { family: 4 }, callback);
+                            dns.resolve4(hostname, (err, addresses) => {
+                                if (err || !addresses || addresses.length === 0) {
+                                    return callback(err || new Error('No IPv4 found'), null, 4);
+                                }
+                                callback(null, addresses[0], 4);
+                            });
                         },
                         tlsOptions: { rejectUnauthorized: false },
                         authTimeout: 10000,
@@ -1320,7 +1333,7 @@ class ImapIdleManager {
             } catch (resErr) {
                 console.error('[WATCHDOG] Resurrection scan failed:', resErr);
             }
-        }, 1 * 60 * 1000); // Check every 1 minute
+        }, 60 * 1000 + Math.floor(Math.random() * 10000)); // 1-minute frequency + randomized jitter (up to 10s)
     }
 
     private forceRecycleConnection(integrationId: string, folderName: string): void {
