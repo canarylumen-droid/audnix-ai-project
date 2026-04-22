@@ -2,20 +2,25 @@
 import dns from "dns";
 // Force all lookups to prefer IPv4
 dns.setDefaultResultOrder("ipv4first");
+
 // Monkey-patch dns.lookup to strictly filter for IPv4
 const originalLookup = dns.lookup;
 const patchedLookup = ((hostname: string, options: any, callback: any) => {
-  if (typeof options === 'function') {
-    callback = options;
-    options = { family: 4 };
-  } else if (typeof options === 'object') {
-    options = { ...options, family: 4 };
-  } else {
-    options = { family: 4 };
-  }
-  return originalLookup(hostname, options, callback);
+  const opt = typeof options === 'function' ? { family: 4 } : { ...options, family: 4 };
+  const cb = typeof options === 'function' ? options : callback;
+  return originalLookup(hostname, opt, cb);
 }) as any;
 dns.lookup = patchedLookup;
+
+// Also override promises.lookup
+if (dns.promises && dns.promises.lookup) {
+    const originalPromisesLookup = dns.promises.lookup;
+    dns.promises.lookup = ((hostname: string, options: any) => {
+        const opt = typeof options === 'object' ? { ...options, family: 4 } : { family: 4 };
+        return originalPromisesLookup(hostname, opt);
+    }) as any;
+}
+
 // Also override resolve4/resolve6 to prevent bypass
 const nativeResolve4 = dns.resolve4;
 (dns as any).resolve = nativeResolve4;

@@ -583,7 +583,9 @@ router.post('/send-test', requireAuth, async (req: Request, res: Response): Prom
 
     const { sendEmail } = await import('../lib/channels/email.js');
 
-    await sendEmail(
+    // Increase timeout for custom SMTP handshakes (e.g. Privatemail, Hostinger)
+    // to prevent premature 503 Gateway Timeout from frontend
+    const sendPromise = sendEmail(
       userId,
       recipientEmail,
       content || 'This is a test email from Audnix AI to verify your email connection.',
@@ -591,20 +593,26 @@ router.post('/send-test', requireAuth, async (req: Request, res: Response): Prom
       { isHtml: false, isRaw: true, integrationId: integrationId || undefined }
     );
 
+    // Manual timeout wrapper to ensure we don't hang the worker
+    const result = await Promise.race([
+      sendPromise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP Handshake Timeout (60s)')), 60000))
+    ]);
+
     if (res.headersSent) return;
 
     res.json({
       success: true,
       message: `Test email sent to ${recipientEmail}`
     });
-  } catch (error: unknown) {
+  } catch (error: any) {
     if (res.headersSent) return;
     
-    const errorMsg = error instanceof Error ? error.message : 'Send failed';
+    const errorMsg = error?.message || 'Send failed';
     console.error('[Email Send Test] Failed:', error);
     res.status(500).json({
-      error: 'Failed to send test email',
-      details: errorMsg
+      error: errorMsg,
+      details: error instanceof Error ? error.stack : undefined
     });
   }
 });

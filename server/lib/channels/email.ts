@@ -166,32 +166,21 @@ async function sendCustomSMTP(
 
   const emailBody = body;
 
-  // Phase 21: Absolute IPv4 Force - Pre-resolve host to IP
-  let resolvedHost = config.smtp_host;
-  try {
-    const lookup = await dns.promises.lookup(config.smtp_host || '', { family: 4 });
-    resolvedHost = lookup.address;
-    console.log(`[Network] Pre-resolved SMTP host ${config.smtp_host} to ${resolvedHost} (IPv4)`);
-  } catch (lookupErr) {
-    console.warn(`[Network] DNS Pre-resolution failed for ${config.smtp_host}, falling back to hostname:`, lookupErr);
-  }
-
   const transporter = nodemailer.createTransport({
-    host: resolvedHost,
+    host: config.smtp_host,
     port: config.smtp_port || 587,
     secure: config.smtp_port === 465,
     auth: {
       user: config.smtp_user,
       pass: config.smtp_pass,
     },
-    // Increased timeouts and IPv4 forcing for reliability (especially for Cloud/Hostinger)
+    // Forced IPv4 at the library level for extra safety
     family: 4,
     lookup: (hostname: string, options: any, callback: any) => {
       return dns.lookup(hostname, { family: 4 }, callback);
     },
     tls: {
-      rejectUnauthorized: false,
-      servername: config.smtp_host // Crucial for SSL/TLS validation when using IP as host
+      rejectUnauthorized: false
     },
     connectionTimeout: 30000,
     greetingTimeout: 30000,
@@ -227,18 +216,28 @@ async function sendCustomSMTP(
       // If we reach here, it worked!
       console.log(`[CustomSMTP] ✅ Successfully sent to ${to} (Attempt ${attempt + 1}) - Message-ID: ${info.messageId}`);
 
-      // Attempt to save to "Sent" folder via persistent IMAP connection
+      // Attempt to save to "Sent" folder via background IMAP connection
+      // We DO NOT await this because it can be slow and shouldn't block the actual email delivery
       try {
         const rawMessage = createMimeMessage(fromAddress || '', to, subject, emailBody, isHtml, messageId);
-        if (integrationId) {
-          await imapIdleManager.appendSentMessage(userId, integrationId, rawMessage, config);
-        } else {
-          // Fallback searching for integration if id not passed
-          const int = await storage.getIntegration(userId, 'custom_email');
-          if (int) await imapIdleManager.appendSentMessage(userId, int.id, rawMessage, config);
-        }
+        
+        const backgroundAppend = async () => {
+          try {
+            if (integrationId) {
+              await imapIdleManager.appendSentMessage(userId, integrationId, rawMessage, config);
+            } else {
+              const int = await storage.getIntegration(userId, 'custom_email');
+              if (int) await imapIdleManager.appendSentMessage(userId, int.id, rawMessage, config);
+            }
+          } catch (err) {
+            console.error(`[CustomSMTP/Background] ❌ Background Sent Folder sync failed:`, err);
+          }
+        };
+
+        // Fire and forget
+        backgroundAppend().catch(e => console.error('[CustomSMTP/Background] Primary failure:', e));
       } catch (error) {
-        console.error(`[CustomSMTP] ❌ Failed to save to Sent folder:`, error);
+        console.error(`[CustomSMTP] ❌ Failed to prepare background sync:`, error);
       }
 
       return { messageId: info.messageId }; // Exit function successfully

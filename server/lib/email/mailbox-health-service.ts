@@ -281,18 +281,8 @@ class MailboxHealthService {
     const nodemailer = await import('nodemailer');
     const dns = await import('dns');
 
-    // Phase 21: Absolute IPv4 Force - Pre-resolve host to IP
-    let resolvedHost = config.smtp_host;
-    try {
-      const lookup = await dns.promises.lookup(config.smtp_host || '', { family: 4 });
-      resolvedHost = lookup.address;
-      console.log(`[MailboxHealth] Pre-resolved ${config.smtp_host} to ${resolvedHost} (IPv4)`);
-    } catch (lookupErr) {
-      console.warn(`[MailboxHealth] DNS Pre-resolution failed for ${config.smtp_host}:`, lookupErr);
-    }
-
     const transporter = nodemailer.createTransport({
-      host: resolvedHost,
+      host: config.smtp_host,
       port: config.smtp_port || 587,
       secure: config.smtp_port === 465,
       auth: {
@@ -305,8 +295,7 @@ class MailboxHealthService {
         return dns.lookup(hostname, { family: 4 }, callback);
       },
       tls: {
-        rejectUnauthorized: false,
-        servername: config.smtp_host
+        rejectUnauthorized: false
       },
       connectionTimeout: 15000,
       greetingTimeout: 15000,

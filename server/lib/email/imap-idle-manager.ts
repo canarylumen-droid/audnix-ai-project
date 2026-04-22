@@ -10,6 +10,7 @@ import { quotaService } from '../monitoring/quota-service.js';
 import { gmailOAuth } from '../oauth/gmail.js';
 import { outlookOAuth } from '../oauth/outlook.js';
 import { workerHealthMonitor } from '../monitoring/worker-health.js';
+import dns from 'dns';
 
 interface EmailConfig {
     smtp_host?: string;
@@ -381,27 +382,15 @@ class ImapIdleManager {
                 return;
             }
 
-            // Phase 21: Absolute IPv4 Force - Pre-resolve host to IP
-            let resolvedImapHost = imapHost;
-            try {
-                const dns = await import('dns');
-                const lookup = await dns.promises.lookup(imapHost, { family: 4 });
-                resolvedImapHost = lookup.address;
-                console.log(`[IMAP] Pre-resolved ${imapHost} to ${resolvedImapHost} (IPv4)`);
-            } catch (lookupErr) {
-                console.warn(`[IMAP] DNS Pre-resolution failed for ${imapHost}:`, lookupErr);
-            }
-
             const imapOptions: any = {
                 user: config.smtp_user || integration.accountType || '',
-                host: resolvedImapHost,
+                host: imapHost,
                 port: imapPort,
                 tls: imapPort === 993,
                 // Force IPv4 for cloud environment stability
                 family: 4,
                 tlsOptions: { 
-                    rejectUnauthorized: false,
-                    servername: imapHost // Essential for SNI verification when connecting by IP
+                    rejectUnauthorized: false
                 },
                 connTimeout: 45000,
                 authTimeout: 45000,
@@ -513,16 +502,13 @@ class ImapIdleManager {
                         } catch (e) {
                             console.error('Failed to update integration with IMAP error:', e);
                         }
-                    } else if (isRetryable) {
-                        // Phase 20: Hardened Reconnection. 
-                        // If we just set a 5-minute cooldown (at line 480), we should NOT immediately reconnect.
-                        // We will let the background syncConnections loop (every 2m) pick it up only after the cooldown.
-                        console.warn(`⏳ Retryable IMAP error for ${integrationId} (${err.code}). Error is throttled for 5m. Waiting for periodic sync.`);
-                        try { imap.destroy(); } catch (e) {}
-                        this.cleanupIntegration(integrationId);
                     } else {
+                        // Phase 20: Hardened Reconnection. 
+                        // Transient errors (timeouts, resets) no longer trigger a 5-minute freeze.
+                        console.warn(`⏳ Transient IMAP error for ${integrationId} (${err.code || 'unknown'}). Triggering fast reconnect...`);
+                        this.failureCooldowns.delete(integrationId); // Clear cooldown for transient errors
                         try { imap.destroy(); } catch (e) {}
-                        this.cleanupIntegration(integrationId);
+                        this.reconnect(integrationId, integration); // Trigger fast reconnect backoff (starts at 5s)
                     }
                 } catch (fatalErr) {
                     console.error('[IMAP] CRITICAL: Exception in error handler:', fatalErr);
@@ -676,6 +662,10 @@ class ImapIdleManager {
 
             imap.once('close', (hadError: boolean) => {
                 workerHealthMonitor.recordError('IMAP IDLE', `Connection closed (hadError: ${hadError})`);
+                // Phase 22: Infinite Persistence
+                // Always trigger reconnect() for active mailboxes, even if no explicit error occurred.
+                console.log(`🔌 [IMAP] Connection closed for ${integrationId} (${folderName}). Had error: ${hadError}. Triggering resurrection...`);
+                this.reconnect(integrationId, integration);
             });
 
             imap.connect();
@@ -1150,16 +1140,23 @@ class ImapIdleManager {
                         return;
                     }
 
-                    const appendImap = new Imap({
+                    const imapOptions: any = {
                         user: config.smtp_user!,
                         password: config.smtp_pass!,
                         host: imapHost,
                         port: imapPort,
                         tls: imapPort === 993,
+                        // Force IPv4 and use global DNS lock for reliability
+                        family: 4,
+                        lookup: (hostname: string, options: any, callback: any) => {
+                          return dns.lookup(hostname, { family: 4 }, callback);
+                        },
                         tlsOptions: { rejectUnauthorized: false },
                         authTimeout: 10000,
                         connTimeout: 10000
-                    });
+                    };
+
+                    const appendImap = new Imap(imapOptions);
 
                     const cleanup = () => {
                         try {
@@ -1293,7 +1290,8 @@ class ImapIdleManager {
     private startWatchdog(): void {
         if (this.watchdogInterval) clearInterval(this.watchdogInterval);
         
-        this.watchdogInterval = setInterval(() => {
+        this.watchdogInterval = setInterval(async () => {
+            // Phase 11: Zombie detection
             const now = new Date().getTime();
             for (const [key, lastSeen] of this.lastActivity.entries()) {
                 const idleTime = now - lastSeen.getTime();
@@ -1303,7 +1301,26 @@ class ImapIdleManager {
                     this.forceRecycleConnection(integrationId, folderName);
                 }
             }
-        }, 15 * 60 * 1000); // Check every 15 minutes
+
+            // Phase 21: Active Resurrection
+            // Proactively scan for any mailbox that SHOULD be connected but has dropped.
+            try {
+                const providers = ['gmail', 'outlook', 'custom_email'];
+                for (const provider of providers) {
+                    const integrations = await storage.getIntegrationsByProvider(provider);
+                    for (const integration of integrations) {
+                        if (integration.connected && !this.connections.has(integration.id)) {
+                            // If it's missing from our active map, it's a drop. Bring it back instantly.
+                            console.log(`🔦 [WATCHDOG] Active resurrection for ${integration.provider} integration ${integration.id} (User: ${integration.userId})`);
+                            this.failureCooldowns.delete(integration.id); // Clear any cooldown to allow instant recovery
+                            this.setupConnection(integration.id, integration);
+                        }
+                    }
+                }
+            } catch (resErr) {
+                console.error('[WATCHDOG] Resurrection scan failed:', resErr);
+            }
+        }, 1 * 60 * 1000); // Check every 1 minute
     }
 
     private forceRecycleConnection(integrationId: string, folderName: string): void {
