@@ -161,12 +161,23 @@ async function sendCustomSMTP(
   integrationId?: string
 ): Promise<{ messageId: string }> {
   const nodemailer = await import('nodemailer');
+  const dns = await import('dns');
   const { imapIdleManager } = await import('../email/imap-idle-manager.js');
 
   const emailBody = body;
 
+  // Phase 21: Absolute IPv4 Force - Pre-resolve host to IP
+  let resolvedHost = config.smtp_host;
+  try {
+    const lookup = await dns.promises.lookup(config.smtp_host || '', { family: 4 });
+    resolvedHost = lookup.address;
+    console.log(`[Network] Pre-resolved SMTP host ${config.smtp_host} to ${resolvedHost} (IPv4)`);
+  } catch (lookupErr) {
+    console.warn(`[Network] DNS Pre-resolution failed for ${config.smtp_host}, falling back to hostname:`, lookupErr);
+  }
+
   const transporter = nodemailer.createTransport({
-    host: config.smtp_host,
+    host: resolvedHost,
     port: config.smtp_port || 587,
     secure: config.smtp_port === 465,
     auth: {
@@ -179,7 +190,8 @@ async function sendCustomSMTP(
       return dns.lookup(hostname, { family: 4 }, callback);
     },
     tls: {
-      rejectUnauthorized: false
+      rejectUnauthorized: false,
+      servername: config.smtp_host // Crucial for SSL/TLS validation when using IP as host
     },
     connectionTimeout: 30000,
     greetingTimeout: 30000,

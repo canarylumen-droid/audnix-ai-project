@@ -381,14 +381,28 @@ class ImapIdleManager {
                 return;
             }
 
+            // Phase 21: Absolute IPv4 Force - Pre-resolve host to IP
+            let resolvedImapHost = imapHost;
+            try {
+                const dns = await import('dns');
+                const lookup = await dns.promises.lookup(imapHost, { family: 4 });
+                resolvedImapHost = lookup.address;
+                console.log(`[IMAP] Pre-resolved ${imapHost} to ${resolvedImapHost} (IPv4)`);
+            } catch (lookupErr) {
+                console.warn(`[IMAP] DNS Pre-resolution failed for ${imapHost}:`, lookupErr);
+            }
+
             const imapOptions: any = {
                 user: config.smtp_user || integration.accountType || '',
-                host: imapHost,
+                host: resolvedImapHost,
                 port: imapPort,
                 tls: imapPort === 993,
                 // Force IPv4 for cloud environment stability
                 family: 4,
-                tlsOptions: { rejectUnauthorized: false },
+                tlsOptions: { 
+                    rejectUnauthorized: false,
+                    servername: imapHost // Essential for SNI verification when connecting by IP
+                },
                 connTimeout: 45000,
                 authTimeout: 45000,
                 keepalive: {

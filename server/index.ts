@@ -1,13 +1,8 @@
-// server/index.ts snippet for context
-import "dotenv/config";
-
-// ─── GLOBAL DNS FIX ──────────────────────────────────────────────────────────
-// Cloud environments (Railway, AWS, GCP) often have broken or slow IPv6 DNS
-// resolution which causes EDNS / EAI_AGAIN or ENETUNREACH errors.
+// ─── GLOBAL DNS FIX (ABSOLUTE FIRST LINE) ────────────────────────────────────
 import dns from "dns";
 // Force all lookups to prefer IPv4
 dns.setDefaultResultOrder("ipv4first");
-// Nuclear Option: Monkey-patch dns.lookup to strictly filter for IPv4
+// Monkey-patch dns.lookup to strictly filter for IPv4
 const originalLookup = dns.lookup;
 const patchedLookup = ((hostname: string, options: any, callback: any) => {
   if (typeof options === 'function') {
@@ -21,8 +16,17 @@ const patchedLookup = ((hostname: string, options: any, callback: any) => {
   return originalLookup(hostname, options, callback);
 }) as any;
 dns.lookup = patchedLookup;
+// Also override resolve4/resolve6 to prevent bypass
+const nativeResolve4 = dns.resolve4;
+(dns as any).resolve = nativeResolve4;
+(dns as any).resolve6 = (hostname: string, options: any, callback: any) => {
+    const cb = typeof options === 'function' ? options : callback;
+    if (cb) cb(new Error('IPv6 is disabled for production stability'), []);
+    return Promise.reject(new Error('IPv6 is disabled'));
+};
 // ─────────────────────────────────────────────────────────────────────────────
 
+import "dotenv/config";
 import * as Sentry from "@sentry/node";
 
 // Initialize Sentry before any other imports if possible
