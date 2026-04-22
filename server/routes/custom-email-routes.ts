@@ -591,11 +591,15 @@ router.post('/send-test', requireAuth, async (req: Request, res: Response): Prom
       { isHtml: false, isRaw: true, integrationId: integrationId || undefined }
     );
 
+    if (res.headersSent) return;
+
     res.json({
       success: true,
       message: `Test email sent to ${recipientEmail}`
     });
   } catch (error: unknown) {
+    if (res.headersSent) return;
+    
     const errorMsg = error instanceof Error ? error.message : 'Send failed';
     console.error('[Email Send Test] Failed:', error);
     res.status(500).json({

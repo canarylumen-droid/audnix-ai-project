@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS email_tracking (
     first_clicked_at TIMESTAMP,
     open_count INTEGER DEFAULT 0,
     click_count INTEGER DEFAULT 0,
+    target_url TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 

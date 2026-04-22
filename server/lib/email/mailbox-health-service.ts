@@ -292,6 +292,7 @@ class MailboxHealthService {
       },
       connectionTimeout: 15000,
       greetingTimeout: 15000,
+      socketTimeout: 30000,
     } as any);
 
     // verify() tests connection + auth
