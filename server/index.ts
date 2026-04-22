@@ -508,7 +508,11 @@ async function runMigrations() {
     try {
       if (process.env.DATABASE_URL) {
         // Perform a lightweight database ping
-        await db.execute(sql`SELECT 1`);
+        // Perform a lightweight database ping with a strict timeout
+        await Promise.race([
+          db.execute(sql`SELECT 1`),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('DB Timeout')), 5000))
+        ]);
       }
       
       const workerStatus = workerHealthMonitor.getDetailedStatus();

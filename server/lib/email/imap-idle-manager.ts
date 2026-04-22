@@ -30,6 +30,7 @@ class ImapIdleManager {
     private backoffDelays: Map<string, number> = new Map(); // Key: integrationId
     private lastActivity: Map<string, Date> = new Map(); // Key: `${integrationId}:${folderName}`
     private reconnectTimers: Map<string, NodeJS.Timeout> = new Map(); // Key: integrationId
+    private failureCooldowns: Map<string, number> = new Map(); // Key: integrationId -> timestamp to retry
     private watchdogInterval: NodeJS.Timeout | null = null;
     private readonly MIN_BACKOFF = 5000; // 5s initial retry
     private readonly MAX_BACKOFF = 15 * 60 * 1000; // 15m max
@@ -335,6 +336,16 @@ class ImapIdleManager {
      * Setup a persistent IMAP connection with IDLE support
      */
     private async setupConnection(integrationId: string, integration: Integration): Promise<void> {
+        if (this.connections.has(integrationId)) return;
+
+        // Phase 19 Hardening: Connection Failure Throttling
+        const nextRetry = this.failureCooldowns.get(integrationId) || 0;
+        if (Date.now() < nextRetry) {
+            // Silently skip if we are in cooldown (already logged the error once)
+            return;
+        }
+
+        console.log(`🔌 [IMAP] Initializing real-time connection for integration ${integrationId} (User: ${integration.userId})`);
         try {
             // For OAuth providers (gmail/outlook), we do NOT need encryptedMeta.
             // They authenticate via a live access token (XOAUTH2).
@@ -453,8 +464,20 @@ class ImapIdleManager {
 
             imap.once('error', async (err: any) => {
                 try {
-                    console.error(`IMAP Error for integration ${integrationId} (User: ${integration.userId}):`, err.message);
-                    workerHealthMonitor.recordError('IMAP IDLE', err.message);
+                    // Phase 19: Full Error Diagnostics. Log everything to debug production loops.
+                    const errorDetails = {
+                        code: err.code,
+                        message: err.message || 'No explicit message',
+                        stack: err.stack ? 'present' : 'none',
+                        integrationId,
+                        userId: integration.userId
+                    };
+                    console.error(`IMAP Error for integration ${integrationId} (User: ${integration.userId}):`, JSON.stringify(errorDetails));
+                    
+                    workerHealthMonitor.recordError('IMAP IDLE', err.message || 'Unknown IMAP error');
+
+                    // Set cooldown to prevent loop (5 minutes)
+                    this.failureCooldowns.set(integrationId, Date.now() + 5 * 60 * 1000);
 
                     const fatalErrors = ['AUTHENTICATIONFAILED', 'Not authenticated', 'Invalid credentials', 'Login failed', 'BAD', 'NO'];
                     const retryableErrors = ['ETIMEDOUT', 'ECONNRESET', 'EPIPE', 'ECONNREFUSED', 'ENOTFOUND'];
