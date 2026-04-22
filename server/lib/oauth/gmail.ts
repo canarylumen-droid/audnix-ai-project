@@ -191,66 +191,79 @@ export class GmailOAuth {
     if (expiresAt <= new Date(now.getTime() + 5 * 60 * 1000)) {
       if (!tokenData.refreshToken) return null;
 
-      const lockKey = `${userId}:${emailAddress || 'default'}`;
+      const lockKey = `oauth:gmail:${userId}:${emailAddress || 'default'}`;
       
-      // If a refresh is already in progress, wait for it
-      const existingLock = GmailOAuth.refreshLocks.get(lockKey);
-      if (existingLock) {
-        console.log(`[Gmail OAuth] 🔒 Refresh already in progress for ${lockKey}, waiting...`);
-        return existingLock;
+      // Phase 12: Distributed Lock to prevent refresh race conditions
+      const { acquireLock, releaseLock } = await import('../redis.js');
+      const hasLock = await acquireLock(lockKey, 30);
+      
+      if (!hasLock) {
+        console.log(`[Gmail OAuth] 🔒 Refresh already in progress for ${lockKey} (on another node), waiting...`);
+        // Poll for 5 seconds to see if the other node updated the DB
+        for (let i = 0; i < 10; i++) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          const updatedToken = await storage.getOAuthAccount(userId, 'google', emailAddress);
+          if (updatedToken && updatedToken.expiresAt && new Date(updatedToken.expiresAt) > new Date(Date.now() + 2 * 60 * 1000)) {
+            console.log(`[Gmail OAuth] ✨ Token was refreshed by another node for ${lockKey}`);
+            return updatedToken.accessToken ? decrypt(updatedToken.accessToken) : null;
+          }
+        }
+        // If we still don't have it, we'll try to steal the lock or fail
+        console.warn(`[Gmail OAuth] ⚠️ Wait timeout for ${lockKey}, proceeding to steal lock.`);
       }
 
       const refreshPromise = (async () => {
         try {
           const decryptedRefreshToken = decrypt(tokenData.refreshToken!);
-        const newTokens = await this.refreshAccessToken(decryptedRefreshToken);
-        const encryptedNewAccessToken = encrypt(newTokens.access_token);
+          const newTokens = await this.refreshAccessToken(decryptedRefreshToken);
+          const encryptedNewAccessToken = encrypt(newTokens.access_token);
         
-        // Use new refresh token if provided by Google, otherwise keep the old one
-        const encryptedNewRefreshToken = newTokens.refresh_token 
-          ? encrypt(newTokens.refresh_token) 
-          : tokenData.refreshToken;
+          // Use new refresh token if provided by Google, otherwise keep the old one
+          const encryptedNewRefreshToken = newTokens.refresh_token 
+            ? encrypt(newTokens.refresh_token) 
+            : tokenData.refreshToken;
 
-        const newExpiresAt = newTokens.expiry_date
-          ? new Date(newTokens.expiry_date)
-          : new Date(Date.now() + (newTokens as any).expires_in * 1000 || Date.now() + 3600 * 1000);
+          const newExpiresAt = newTokens.expiry_date
+            ? new Date(newTokens.expiry_date)
+            : new Date(Date.now() + (newTokens as any).expires_in * 1000 || Date.now() + 3600 * 1000);
 
-        await storage.saveOAuthAccount({
-          userId,
-          provider: 'google',
-          providerAccountId: tokenData.providerAccountId,
-          accessToken: encryptedNewAccessToken,
-          refreshToken: encryptedNewRefreshToken,
-          expiresAt: newExpiresAt,
-          scope: newTokens.scope,
-          tokenType: newTokens.token_type
-        });
+          await storage.saveOAuthAccount({
+            userId,
+            provider: 'google',
+            providerAccountId: tokenData.providerAccountId,
+            accessToken: encryptedNewAccessToken,
+            refreshToken: encryptedNewRefreshToken,
+            expiresAt: newExpiresAt,
+            scope: newTokens.scope,
+            tokenType: newTokens.token_type
+          });
 
-        // Sync back to integrations table so health checks and outreach engine have the latest token
-        const allIntegrations = await storage.getIntegrations(userId);
-        const gmailInt = allIntegrations.find(i => i.provider === 'gmail' && i.accountType === tokenData.providerAccountId);
-        if (gmailInt) {
-          const decryptedMeta = JSON.parse(decrypt(gmailInt.encryptedMeta));
-          const updatedMeta = encrypt(JSON.stringify({
-            ...decryptedMeta,
-            access_token: newTokens.access_token,
-            refresh_token: newTokens.refresh_token || decryptedMeta.refresh_token,
-            expiry_date: newTokens.expiry_date || newExpiresAt.getTime(),
-          }));
-          await storage.updateIntegrationById(gmailInt.id, { encryptedMeta: updatedMeta });
+          // Sync back to integrations table so health checks and outreach engine have the latest token
+          const allIntegrations = await storage.getIntegrations(userId);
+          const gmailInt = allIntegrations.find(i => i.provider === 'gmail' && i.accountType === tokenData.providerAccountId);
+          if (gmailInt) {
+            const decryptedMeta = JSON.parse(decrypt(gmailInt.encryptedMeta));
+            const updatedMeta = encrypt(JSON.stringify({
+              ...decryptedMeta,
+              access_token: newTokens.access_token,
+              refresh_token: newTokens.refresh_token || decryptedMeta.refresh_token,
+              expiry_date: newTokens.expiry_date || newExpiresAt.getTime(),
+            }));
+            await storage.updateIntegrationById(gmailInt.id, { encryptedMeta: updatedMeta });
+          }
+
+          return newTokens.access_token;
+        } catch (error) {
+          console.error('Error refreshing Gmail token:', error);
+          return null;
+        } finally {
+          await releaseLock(lockKey);
+          GmailOAuth.refreshLocks.delete(lockKey);
         }
+      })();
 
-        return newTokens.access_token;
-      } catch (error) {
-        console.error('Error refreshing Gmail token:', error);
-        return null;
-      } finally {
-        GmailOAuth.refreshLocks.delete(lockKey);
-      }
-    })();
-
-    GmailOAuth.refreshLocks.set(lockKey, refreshPromise);
-    return refreshPromise;
+      GmailOAuth.refreshLocks.set(lockKey, refreshPromise);
+      return refreshPromise;
     }
 
     if (!tokenData.accessToken) return null;

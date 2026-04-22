@@ -125,7 +125,7 @@ export const leads = pgTable("leads", {
   email: text("email"),
   replyEmail: text("reply_email"),
   phone: text("phone"),
-  status: text("status", { enum: ["new", "open", "replied", "converted", "not_interested", "cold", "hardened", "recovered", "bouncy", "booked", "warm"] }).notNull().default("new"),
+  status: text("status", { enum: ["new", "open", "replied", "converted", "not_interested", "unsubscribed", "no_show", "cold", "hardened", "recovered", "bouncy", "booked", "warm"] }).notNull().default("new"),
   verified: boolean("verified").notNull().default(false),
   verifiedAt: timestamp("verified_at"),
   score: integer("score").notNull().default(0),
@@ -153,6 +153,9 @@ export const leads = pgTable("leads", {
   leadsIntegrationIdIdx: index("leads_integration_id_idx").on(table.integrationId),
   leadsStatusIdx: index("leads_status_idx").on(table.status),
   leadsArchivedIdx: index("leads_archived_idx").on(table.archived),
+  leadsEmailIdx: index("leads_email_idx").on(table.email),
+  leadsExternalIdIdx: index("leads_external_id_idx").on(table.externalId),
+  leadsUserIdChannelIdx: index("leads_user_id_channel_idx").on(table.userId, table.channel),
   // Phase 15: Composite indices for sub-100ms dashboard queries
   leadsUserStatusIdx: index("leads_user_status_idx").on(table.userId, table.status),
   leadsLastMsgIdx: index("leads_last_msg_idx").on(table.lastMessageAt),
@@ -364,11 +367,15 @@ export const calendarEvents = pgTable("calendar_events", {
   startTime: timestamp("start_time").notNull(),
   endTime: timestamp("end_time").notNull(),
   meetingUrl: text("meeting_url"),
-  provider: text("provider", { enum: ["google", "outlook"] }).notNull(),
+  provider: text("provider", { enum: ["google", "outlook", "calendly"] }).notNull(),
   externalId: text("external_id").notNull(),
   attendees: jsonb("attendees").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  attendeeEmail: text("attendee_email"),
+  attendeeName: text("attendee_name"),
+  status: text("status", { enum: ["scheduled", "cancelled", "no_show", "completed"] }).notNull().default("scheduled"),
   isAiBooked: boolean("is_ai_booked").notNull().default(false),
   preCallNote: text("pre_call_note"),
+  metadata: jsonb("metadata").$type<Record<string, any>>().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => ({
   // Phase 15: Fast calendar range queries
@@ -467,9 +474,10 @@ export const outreachCampaigns = pgTable("outreach_campaigns", {
   config: jsonb("config").$type<{
     dailyLimit: number;
     minDelayMinutes: number;
+    maxDelayMinutes?: number;
     isManual?: boolean;
     replyEmail?: string;
-  }>().notNull().default(sql`'{"dailyLimit": 50, "minDelayMinutes": 2}'::jsonb`),
+  }>().notNull().default(sql`'{"dailyLimit": 50, "minDelayMinutes": 2, "maxDelayMinutes": 10}'::jsonb`),
   replyEmail: text("reply_email"),
   aiAutonomousMode: boolean("ai_autonomous_mode").notNull().default(false),
   metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
@@ -545,7 +553,7 @@ export const followUpQueue = pgTable("follow_up_queue", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
-  channel: text("channel", { enum: ["instagram", "email"] }).notNull(),
+  channel: text("channel", { enum: ["email", "linkedin", "sms", "voice", "whatsapp", "instagram"] }).notNull(),
   scheduledAt: timestamp("scheduled_at").notNull(),
   status: text("status", { enum: ["pending", "processing", "completed", "failed"] }).notNull().default("pending"),
   processedAt: timestamp("processed_at"),

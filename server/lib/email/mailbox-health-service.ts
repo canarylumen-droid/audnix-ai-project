@@ -44,6 +44,7 @@ interface HealthCheckResult {
 class MailboxHealthService {
   private checkInterval: NodeJS.Timeout | null = null;
   private readonly CHECK_INTERVAL_MS = 2 * 60 * 1000; // Every 2 minutes
+  private isChecking = false;
   private readonly SPAM_BOUNCE_THRESHOLD = 0.10; // 10% bounce rate = warning
   private readonly SPAM_BOUNCE_CRITICAL = 0.20; // 20% bounce rate = pause
   private readonly MAX_FAILURES_BEFORE_REMOVE = 3;
@@ -55,10 +56,13 @@ class MailboxHealthService {
   /**
    * Start the health monitoring service
    */
-  start(): void {
+  async start(): Promise<void> {
     if (this.checkInterval) return;
 
-    console.log('🏥 Mailbox Health Monitoring Service started (5m interval)');
+    console.log('🏥 Mailbox Health Monitoring Service started (2m interval)');
+    
+    const { workerHealthMonitor } = await import('../monitoring/worker-health.js');
+    workerHealthMonitor.registerWorker('MailboxHealth');
 
     // Initial check after 30s
     setTimeout(() => this.runHealthChecks(), 30_000);
@@ -85,10 +89,19 @@ class MailboxHealthService {
    * Run health checks for all connected email mailboxes
    */
   async runHealthChecks(): Promise<void> {
+    if (this.isChecking) {
+      console.log('[MailboxHealth] Check already in progress. Skipping.');
+      return;
+    }
+
     if (quotaService.isRestricted()) {
       console.log('[MailboxHealth] Skipping checks: Database quota restricted');
       return;
     }
+
+    const { workerHealthMonitor } = await import('../monitoring/worker-health.js');
+    this.isChecking = true;
+
     try {
       const emailProviders = ['gmail', 'outlook', 'custom_email'];
       let allIntegrations: any[] = [];
@@ -115,10 +128,14 @@ class MailboxHealthService {
       // Run spam risk detection
       await this.detectSpamRisk();
 
+      workerHealthMonitor.recordSuccess('MailboxHealth');
     } catch (err: any) {
       console.error('[MailboxHealth] Global health check error:', err.message);
+      workerHealthMonitor.recordError('MailboxHealth', err.message);
       quotaService.reportDbError(err);
       // Never crash
+    } finally {
+      this.isChecking = false;
     }
   }
 
@@ -326,11 +343,38 @@ class MailboxHealthService {
    * Handle mailbox failure: mark as failed, notify user, remove from pool
    */
   async handleMailboxFailure(integration: any, errorMessage: string): Promise<void> {
-    const currentFailures = (integration.failureCount || 0) + 1;
+    // Phase 14: Provider-Specific Rate Limit Detection (429 handling)
+    const lowerError = errorMessage.toLowerCase();
+    const isRateLimited = lowerError.includes('429') || lowerError.includes('rate limit') || lowerError.includes('quota exceeded') || lowerError.includes('too many requests');
 
-    if (currentFailures >= this.MAX_FAILURES_BEFORE_REMOVE) {
+    if (isRateLimited) {
+      console.warn(`[MailboxHealth] ⏳ Rate Limit detected for ${integration.id} (${integration.provider}). Cooling down for 15m.`);
+      const cooldownUntil = new Date(Date.now() + 15 * 60 * 1000); // 15 minute cooldown
+      
+      await db.update(integrations)
+        .set({
+          mailboxPauseUntil: cooldownUntil,
+          lastHealthError: `Rate Limited: ${errorMessage}`,
+          updatedAt: new Date()
+        })
+        .where(eq(integrations.id, integration.id));
+        
+      wsSync.notifyActivityUpdated(integration.userId, {
+        type: 'mailbox_warning',
+        integrationId: integration.id,
+        message: `Mailbox rate limited. Cooling down until ${cooldownUntil.toLocaleTimeString()}`
+      });
+      return; // Do not increment failureCount for transient rate limits
+    }
+
+    const currentFailures = (integration.failureCount || 0) + 1;
+    const failureThreshold = integration.provider === 'custom_email' ? 10 : this.MAX_FAILURES_BEFORE_REMOVE;
+
+    if (currentFailures >= failureThreshold) {
       // CRITICAL: Mark as FAILED and remove from sending pool
-      console.error(`[MailboxHealth] 🚨 Mailbox ${integration.id} FAILED after ${currentFailures} failures: ${errorMessage}`);
+      // Note: We NEVER set connected: false automatically for custom_email to ensure persistence.
+      // It stays in the database until the user manually disconnects.
+      console.error(`[MailboxHealth] 🚨 Mailbox ${integration.id} (${integration.provider}) FAILED after ${currentFailures} failures: ${errorMessage}`);
 
       await db.update(integrations)
         .set({
@@ -339,6 +383,7 @@ class MailboxHealthService {
           lastHealthCheckAt: new Date(),
           failureCount: currentFailures,
           updatedAt: new Date(),
+          // connected remains true to allow background reconnect attempts
         })
         .where(eq(integrations.id, integration.id));
 
@@ -374,6 +419,14 @@ class MailboxHealthService {
       wsSync.notifyActivityUpdated(integration.userId, {
         type: 'mailbox_failure',
         integrationId: integration.id,
+        message: `Mailbox failed: ${errorMessage}`
+      });
+
+      // Phase 5 Fix: Push dedicated integration_error payload so the UI can pop a toast
+      wsSync.notifyIntegrationError(integration.userId, {
+        integrationId: integration.id,
+        provider: integration.provider,
+        errorType: errorMessage.toLowerCase().includes('auth') || errorMessage.toLowerCase().includes('credential') ? 'auth_failure' : 'connection_lost',
         message: `Mailbox failed: ${errorMessage}`
       });
 
@@ -564,7 +617,7 @@ class MailboxHealthService {
           const finalScore = await calculateReputationScore(integration.id);
           const bounceRate = sentCount > 0 ? bounceCount / sentCount : 0;
 
-          if (finalScore < 40) {
+          if (finalScore < 45) {
             // Unpause handled by reputation-monitor itself or we can force it here
             const pauseUntil = new Date();
             pauseUntil.setHours(pauseUntil.getHours() + 24);

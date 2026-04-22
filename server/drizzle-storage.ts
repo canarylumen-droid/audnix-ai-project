@@ -19,10 +19,34 @@ function checkDatabase() {
 export class DrizzleStorage implements IStorage {
   async toggleAi(leadId: string, paused: boolean): Promise<void> {
     checkDatabase();
+    await db.update(leads).set({ aiPaused: paused, updatedAt: new Date() }).where(eq(leads.id, leadId));
+  }
+
+  async incrementAIFailureCount(leadId: string): Promise<boolean> {
+    checkDatabase();
     const [lead] = await db.select().from(leads).where(eq(leads.id, leadId)).limit(1);
-    if (!lead) return;
-    const metadata = { ...((lead.metadata as any) || {}), aiPaused: paused };
-    await db.update(leads).set({ metadata }).where(eq(leads.id, leadId));
+    if (!lead) return false;
+
+    const currentFailCount = (lead.metadata as any)?.aiFailCount || 0;
+    const newFailCount = currentFailCount + 1;
+    let shouldPause = false;
+
+    const metadata = {
+      ...(lead.metadata as any || {}),
+      aiFailCount: newFailCount,
+    };
+
+    const updateData: any = { metadata, updatedAt: new Date() };
+
+    if (newFailCount >= 3) {
+      updateData.aiPaused = true;
+      metadata.aiPausedAt = new Date().toISOString();
+      metadata.aiPauseReason = 'Consecutive generation failures';
+      shouldPause = true;
+    }
+
+    await db.update(leads).set(updateData).where(eq(leads.id, leadId));
+    return shouldPause;
   }
   async getIntegrationSentCount(userId: string, integrationId: string, since: Date): Promise<number> {
     checkDatabase();
@@ -69,7 +93,7 @@ export class DrizzleStorage implements IStorage {
     if (!isValidUUID(id)) return undefined;
     const [result] = await db
       .update(followUpQueue)
-      .set({ ...updates, updatedAt: new Date() })
+      .set(updates)
       .where(eq(followUpQueue.id, id))
       .returning();
     return result;
@@ -529,7 +553,7 @@ export class DrizzleStorage implements IStorage {
       );
     }
 
-    let query = db.select({
+    let query: any = db.select({
         lead: leads,
         provider: integrations.provider
       })
@@ -793,11 +817,13 @@ export class DrizzleStorage implements IStorage {
 
   async getMessagesByLeadId(leadId: string): Promise<Message[]> {
     checkDatabase();
+    // Phase 8: Cap history to latest 50 messages to prevent payload bloat/OOM
     return await db
       .select()
       .from(messages)
       .where(eq(messages.leadId, leadId))
-      .orderBy(messages.createdAt);
+      .orderBy(desc(messages.createdAt))
+      .limit(50);
   }
 
   async getMessages(leadId: string): Promise<Message[]> {
@@ -841,10 +867,12 @@ export class DrizzleStorage implements IStorage {
       direction: "inbound" | "outbound";
       body: string;
       threadId?: string;
-    }
+    },
+    tx?: any
   ): Promise<Message> {
     checkDatabase();
-    const result = await db
+    const client = tx || db;
+    const result = await client
       .insert(messages)
       .values({
         userId: message.userId,
@@ -1289,9 +1317,11 @@ export class DrizzleStorage implements IStorage {
       await db.update(messages).set({ integrationId: null as any }).where(eq(messages.integrationId, id));
     } catch (e) {}
     
-    await db
+    const result = await db
       .delete(integrations)
       .where(eq(integrations.id, id));
+      
+    console.log(`🗑️ [Storage] Successfully deleted integration ${id} from database.`);
   }
 
 
@@ -1328,6 +1358,8 @@ export class DrizzleStorage implements IStorage {
     checkDatabase();
     await db.insert(processedComments).values({
       commentId,
+      commenterUsername: "system",
+      commentText: "[System Processed]",
       status: status as any,
       intentType,
       processedAt: new Date()
@@ -1958,7 +1990,7 @@ export class DrizzleStorage implements IStorage {
       conditions.push(gte(auditTrail.createdAt, cutOff));
     }
     
-    let query = db
+    let query: any = db
       .select()
       .from(auditTrail)
       .where(and(...conditions))
@@ -2615,7 +2647,7 @@ export class DrizzleStorage implements IStorage {
     const values = leadsList.map(item => ({
       campaignId,
       leadId: item.leadId,
-      status: 'pending' as const,
+      status: 'pending' as any,
     }));
 
     // Using onConflictDoNothing to avoid duplicates if leads are already in the campaign
@@ -2671,7 +2703,7 @@ export class DrizzleStorage implements IStorage {
   async scheduleNextCampaignStep(campaignLeadId: string, nextActionAt: Date): Promise<void> {
     checkDatabase();
     await db.update(campaignLeads)
-      .set({ scheduledAt: nextActionAt, updatedAt: new Date() })
+      .set({ nextActionAt: nextActionAt })
       .where(eq(campaignLeads.id, campaignLeadId));
   }
 

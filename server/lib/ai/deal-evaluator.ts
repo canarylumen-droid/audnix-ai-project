@@ -1,6 +1,7 @@
 import { storage } from "../../storage.js";
 import { generateReply } from "./ai-service.js";
 import { wsSync } from "../websocket-sync.js";
+import { RevenueIntelligence } from "./revenue-intelligence.js";
 
 /**
  * Analyzes the conversation history of a lead to determine the deal's value
@@ -65,12 +66,24 @@ Return only the JSON output: {"dealValue": number, "currency": "USD", "reasoning
       temperature: 0.1,
       model: "sales-reasoning" // Use high-reasoning model for pipeline analysis
     });
-    if (!aiRes || !aiRes.text) return 0;
+    
+    let dealValue = 0;
+    let reasoning = "Default prediction based on company size";
 
-    const parsed = JSON.parse(aiRes.text);
-    const dealValue = typeof parsed.dealValue === 'number' ? parsed.dealValue : 
-                      typeof parsed.deal_value === 'number' ? parsed.deal_value : 
-                      parseFloat(parsed.dealValue) || 0;
+    if (aiRes && aiRes.text) {
+      const parsed = JSON.parse(aiRes.text);
+      dealValue = typeof parsed.dealValue === 'number' ? parsed.dealValue : 
+                  typeof parsed.deal_value === 'number' ? parsed.deal_value : 
+                  parseFloat(parsed.dealValue) || 0;
+      reasoning = parsed.reasoning || reasoning;
+    }
+
+    // PHASE 45: Predictive Fallback Logic
+    // If AI fails or deal is still nascent, use RevenueIntelligence for baseline attribution
+    if (dealValue === 0) {
+      dealValue = RevenueIntelligence.estimateDealValue(lead);
+      console.log(`📊 [Pipeline] Using predictive attribution for lead ${leadId}: $${dealValue}`);
+    }
 
     // Save or update the deal in the pipeline
     const existingDeals = await storage.getDeals(userId);

@@ -74,6 +74,16 @@ router.post('/:provider/connect', requireAuth, async (req: Request, res: Respons
       connected: true,
     });
 
+    // For all email providers, trigger immediate discovery/sync so it feels like a real email app
+    if (['custom_email', 'gmail', 'outlook'].includes(provider)) {
+      try {
+        const { imapIdleManager } = await import('../lib/email/imap-idle-manager.ts');
+        await imapIdleManager.syncConnections();
+      } catch (syncErr) {
+        console.warn('[Integrations] Failed to trigger immediate sync:', syncErr);
+      }
+    }
+
     res.json({
       id: integration.id,
       provider: integration.provider,
@@ -172,9 +182,19 @@ router.post('/:provider/disconnect', requireAuth, async (req: Request, res: Resp
       await storage.disconnectIntegration(userId, provider);
     }
 
-    // --- Step 4: Notify frontend to refresh ---
+    // --- Step 4: Notify frontend and cleanup real-time connections ---
     const { wsSync } = await import('../lib/websocket-sync.js');
     wsSync.notifySettingsUpdated(userId);
+
+    // If it's an email provider, kill the permanent IMAP socket instantly
+    if (['custom_email', 'gmail', 'outlook'].includes(provider)) {
+      try {
+        const { imapIdleManager } = await import('../lib/email/imap-idle-manager.ts');
+        await imapIdleManager.syncConnections();
+      } catch (e) {
+        console.warn('[Integrations] Failed to cleanup IMAP connections:', e);
+      }
+    }
 
     console.log(`[Integrations] ✅ ${provider} disconnected successfully`);
     res.json({ success: true, message: `${provider} disconnected` });

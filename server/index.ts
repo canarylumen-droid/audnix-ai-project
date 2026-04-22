@@ -57,6 +57,11 @@ import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import pg from "pg";
 import { registerRoutes } from "./routes/index.js";
+import { leadEnrichmentWorker } from "./lib/workers/lead-enrichment-worker.js";
+import { closingWorker } from "./lib/workers/closing-worker.js";
+import { postMortemWorker } from "./lib/workers/post-mortem-worker.js";
+import { objectionService } from "./lib/ai/objection-service.js";
+import { reEngagementWorker } from "./lib/workers/re-engagement-worker.js";
 import { workerHealthMonitor } from "./lib/monitoring/worker-health.js";
 import { quotaService } from "./lib/monitoring/quota-service.js";
 import { apiLimiter, authLimiter } from "./middleware/rate-limit.js";
@@ -69,7 +74,7 @@ import hpp from "hpp";
 import csrf from "csurf";
 import { sql } from "drizzle-orm";
 import { users } from "../shared/schema.js";
-import { db } from "./db.js";
+import { db, pool } from "./db.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -240,17 +245,19 @@ app.use((req, res, next) => {
   next();
 });
 
-// The Quota Sentinel is already at the top, so this is redundant but kept for safety
+// Phase 9: Global Request Timeout Middleware (15s)
+// Prevents slow DB queries or hanging AI streams from exhausting active sockets
 app.use((req, res, next) => {
-  if (quotaService.isRestricted()) {
-    const remaining = Math.round(quotaService.getRemainingCooldownMs() / 1000);
-    return res.status(503).json({
-      error: "Service Temporarily Unavailable",
-      message: "The database is currently undergoing maintenance or has reached its temporary capacity limits. Please try again in a few minutes.",
-      code: "QUOTA_EXCEEDED",
-      retryAfter: remaining
-    });
-  }
+  res.setTimeout(15000, () => {
+    if (!res.headersSent) {
+      console.warn(`[TIMEOUT] ${req.method} ${req.path} timed out after 15s`);
+      res.status(503).json({
+        error: "Service Temporarily Unavailable",
+        message: "The request took too long to complete. This may be due to high database load.",
+        code: "GATEWAY_TIMEOUT"
+      });
+    }
+  });
   next();
 });
 
@@ -258,50 +265,7 @@ const sessionSecret = process.env.SESSION_SECRET || "audnix-stable-dev-fallback-
 const PgSession = connectPgSimple(session);
 let sessionStore: session.Store | undefined;
 
-if (process.env.DATABASE_URL) {
-  // Normalize connection string for SSL compatibility
-  let connectionString: string;
-  try {
-    const dbUrl = new URL(process.env.DATABASE_URL);
-    const isNeon = process.env.DATABASE_URL.includes('neon.tech');
-
-    if (isNeon) {
-      // Neon requires uselibpqcompat + require for libpq-standard behavior
-      dbUrl.searchParams.set('uselibpqcompat', 'true');
-      if (!dbUrl.searchParams.has('sslmode')) {
-        dbUrl.searchParams.set('sslmode', 'require');
-      }
-    } else if (process.env.NODE_ENV === 'production') {
-      // Standard PostgreSQL: use explicit verify-full to silence pg v9 deprecation warning
-      if (!dbUrl.searchParams.has('sslmode')) {
-        dbUrl.searchParams.set('sslmode', 'verify-full');
-      }
-    }
-
-    connectionString = dbUrl.toString();
-  } catch (urlError) {
-    console.error('❌ Invalid DATABASE_URL format:', process.env.DATABASE_URL);
-    connectionString = process.env.DATABASE_URL;
-  }
-
-  const isProduction = process.env.DATABASE_URL.includes('neon.tech') || process.env.NODE_ENV === 'production';
-  const pool = new pg.Pool({
-    connectionString,
-    ssl: isProduction ? { rejectUnauthorized: false } : false,
-    max: 20,
-    idleTimeoutMillis: 10000,
-    connectionTimeoutMillis: 5000,
-  });
-
-  pool.on('error', (err) => {
-    console.error('🚨 [SESSION POOL ERROR]:', err);
-    quotaService.reportDbError(err);
-  });
-
-  pool.on('connect', (client) => {
-    log("🔗 [SESSION] New client connected to session pool", "session");
-  });
-
+if (process.env.DATABASE_URL && pool) {
   sessionStore = new PgSession({
     pool: pool,
     tableName: "user_sessions",
@@ -309,26 +273,26 @@ if (process.env.DATABASE_URL) {
     pruneSessionInterval: 60 * 30, // Less frequent pruning
     schemaName: "public",
   });
-  
+
   // Handle session store errors to prevent server-wide 500s
   (sessionStore as any).on('error', (err: any) => {
     console.error("🚨 [SESSION STORE ERROR]", err);
     quotaService.reportDbError(err);
   });
-  
+
   // [NEW] Startup connectivity check
   pool.query('SELECT 1').then(() => {
     log("✅ PostgreSQL session store connectivity verified", "session");
-  }).catch(err => {
+  }).catch((err: any) => {
     console.error("🚨 [SESSION] Failed initial connectivity check:", err);
   });
-  
-  console.log("✅ Using PostgreSQL session store with SSL (configured)");
+
+  console.log("✅ Using PostgreSQL session store (Shared Pool)");
 }
 
 const sessionConfig: session.SessionOptions = {
   secret: sessionSecret,
-  resave: true, // HARDENED: Re-save session even if unmodified to ensure store and memory sync
+  resave: false, // HARDENED: Only save session if modified to reduce DB pressure
   saveUninitialized: false,
   name: "audnix.sid",
   cookie: {
@@ -546,7 +510,21 @@ async function runMigrations() {
         // Perform a lightweight database ping
         await db.execute(sql`SELECT 1`);
       }
-      res.status(200).json({ status: "ok", database: "connected" });
+      
+      const workerStatus = workerHealthMonitor.getDetailedStatus();
+      if (!workerStatus.healthy) {
+        return res.status(503).json({
+          status: "error",
+          message: "Critical workers failing",
+          workers: workerStatus
+        });
+      }
+
+      res.status(200).json({ 
+        status: "ok", 
+        database: "connected",
+        workers: workerStatus
+      });
     } catch (error) {
       console.error("🚨 Health Check Failed:", error);
       res.status(503).json({ status: "error", message: "Database unreachable" });
@@ -613,6 +591,7 @@ async function runMigrations() {
             // Worker error wrapper for graceful degradation
             const startWorker = async (name: string, startFn: () => any) => {
               try {
+                workerHealthMonitor.registerWorker(name);
                 const result = startFn();
                 if (result instanceof Promise) {
                   result.catch((error) => {
@@ -640,8 +619,10 @@ async function runMigrations() {
                 { meetingReminderWorker },
                 { mailboxHealthService },
                 { redistributionWorker },
-                { leadExpiryWorker },
-                { emojiFollowupWorker }
+                { leadGovernanceWorker },
+                { emojiFollowupWorker },
+                { instagramSyncWorker },
+                { aiBudgetWorker }
               ] = await Promise.all([
                 import("./lib/ai/follow-up-worker.js"),
                 import("./lib/ai/video-comment-monitor.js"),
@@ -653,8 +634,10 @@ async function runMigrations() {
                 import("./lib/workers/meeting-reminder-worker.js"),
                 import("./lib/email/mailbox-health-service.js"),
                 import("./lib/email/redistribution-worker.js"),
-                import("./lib/workers/lead-expiry-worker.js"),
-                import("./lib/workers/emoji-followup-worker.js")
+                import("./lib/workers/lead-governance-worker.js"),
+                import("./lib/workers/emoji-followup-worker.js"),
+                import("./lib/workers/instagram-sync-worker.js"),
+                import("./lib/workers/ai-budget-worker.js")
               ]);
 
               // Background workers for side-effect initializations (BullMQ, etc.)
@@ -691,8 +674,25 @@ async function runMigrations() {
               startWorker("Meeting Reminders", () => meetingReminderWorker.start());
               startWorker("Mailbox Health", () => mailboxHealthService.start());
               startWorker("Lead Redistribution", () => redistributionWorker.start());
-              startWorker("Lead Expiry", () => leadExpiryWorker.start());
+              startWorker("Lead Governance", () => leadGovernanceWorker.start());
               startWorker("Emoji Follow-up", () => emojiFollowupWorker.start());
+              startWorker("Instagram DM Sync", () => instagramSyncWorker.start());
+              startWorker("AI Budget Monitor", () => aiBudgetWorker.start());
+              
+              postMortemWorker.tick(); // Run initially
+              setInterval(() => postMortemWorker.tick(), 60 * 60 * 1000); // Hourly
+              
+              // Objection intelligence - run every 4 hours
+              setInterval(() => {
+                // Collect for all active users
+                db.select({ id: users.id }).from(users).then((allUsers: any[]) => {
+                  for (const u of allUsers) objectionService.extractWinningHandles(u.id);
+                });
+              }, 4 * 60 * 60 * 1000);
+
+              startWorker("Lead Enrichment", () => leadEnrichmentWorker.start());
+              startWorker("Autonomous Closing", () => closingWorker.start());
+              startWorker("Cold Re-engagement", () => reEngagementWorker.start());
 
               // Real-time Push & IMAP IDLE Managers
               try {
@@ -754,6 +754,11 @@ async function runMigrations() {
       try {
         const { mailboxHealthService } = await import("./lib/email/mailbox-health-service.js");
         mailboxHealthService.stop();
+      } catch (e) { /* service may not have started */ }
+
+      try {
+        const { instagramSyncWorker } = await import("./lib/workers/instagram-sync-worker.js");
+        instagramSyncWorker.stop();
       } catch (e) { /* service may not have started */ }
 
       // 3. Force exit after 10s if graceful shutdown fails

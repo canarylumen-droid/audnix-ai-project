@@ -32,6 +32,7 @@ import { mapCSVColumnsToSchema, extractLeadFromRow, extractExtraFieldsAsMetadata
 import { parseEmailBody } from "../lib/ai/body-parser.js";
 import { checkGrammar, generateReply } from "../lib/ai/ai-service.js";
 import { evaluateLeadDealValue } from "../lib/ai/deal-evaluator.js";
+import { leadEnrichmentWorker } from "../lib/workers/lead-enrichment-worker.js";
 
 const verifier = new EmailVerifier();
 // Robust verification of key presence and format
@@ -613,6 +614,38 @@ router.get("/:leadId", requireAuth, async (req: Request, res: Response): Promise
   } catch (error: unknown) {
     console.error("Get lead error:", error);
     res.status(500).json({ error: "Failed to fetch lead" });
+  }
+});
+
+/**
+ * Phase 39: Manually trigger deep research for a lead
+ * POST /api/leads/:leadId/research
+ */
+router.post("/:leadId/research", requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const { leadId } = req.params;
+
+    const lead = await storage.getLeadById(leadId as string);
+    if (!lead || lead.userId !== userId) {
+      res.status(404).json({ error: "Lead not found" });
+      return;
+    }
+
+    // Trigger enrichment immediately (bypass worker tick)
+    await leadEnrichmentWorker.enrichLead(lead);
+    
+    // Fetch updated lead
+    const updatedLead = await storage.getLeadById(leadId as string);
+
+    res.json({
+      success: true,
+      message: "Lead research initiated and completed",
+      lead: updatedLead
+    });
+  } catch (error: unknown) {
+    console.error("Lead research error:", error);
+    res.status(500).json({ error: "Failed to perform lead research" });
   }
 });
 
@@ -1349,7 +1382,8 @@ router.post("/brand-info", requireAuth, async (req: Request, res: Response): Pro
       await db.insert(brandEmbeddings).values({
         userId,
         snippet,
-        embedding,
+        source: "brand_guidelines",
+        embedding: JSON.stringify(embedding),
         metadata: {
           promotions: promotions || [],
           siteUrl: siteUrl || null,

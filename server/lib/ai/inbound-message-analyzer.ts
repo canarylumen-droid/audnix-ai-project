@@ -60,7 +60,7 @@ export async function analyzeInboundMessage(
   /* Synchronous call moved out of Promise.all for type safety and wrapped in try-catch if needed (though it's robust) */
   let competitorMention: CompetitorMentionResult | null = null;
   try {
-    competitorMention = detectCompetitorMention(messageBody);
+    competitorMention = await detectCompetitorMention(messageBody);
   } catch (err) {
     console.error("Competitor detection failed:", err);
   }
@@ -244,7 +244,7 @@ function determineUrgency(
   if (objection && objection.confidence > 0.7) return "high";
   if (churnRisk?.churnRiskLevel === "high") return "high";
 
-  if (intent?.isInterested && intent.confidence > 0.7) return "medium";
+  if (intent?.isInterested && (intent.confidence || 0) > 0.7) return "medium";
   if (deepIntent?.intentLevel === "medium") return "medium";
 
   return "low";
@@ -256,12 +256,16 @@ function determineShouldAutoReply(
   urgency: string
 ): boolean {
   if (lead.aiPaused) return false;
-
   if (intent?.isNegative) return false;
 
+  // HARDENING: Only auto-reply if urgency is high or critical, 
+  // or if the lead is warm/interested with high confidence.
   if (urgency === "critical" || urgency === "high") return true;
+  
+  if (intent?.isInterested && (intent.confidence || 0) > 0.85) return true;
 
-  return true;
+  // Default to false for low urgency/low confidence to prevent "AI hallucination" noise
+  return false;
 }
 
 function determineBestAction(

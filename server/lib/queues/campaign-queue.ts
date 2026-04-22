@@ -60,6 +60,8 @@ interface AutoReplyJobData {
 interface AutonomousJobData {
   type: 'autonomous';
   userId: string;
+  integrationId?: string;
+  isAutonomous?: boolean;
 }
 
 interface StatsUpdateJobData {
@@ -343,7 +345,15 @@ async function processCampaignJob(job: Job<CampaignJobData>): Promise<void> {
     case 'autonomous':
       try {
         const { outreachEngine } = await import('../workers/outreach-engine.js');
-        await outreachEngine.processUserOutreach(data.userId);
+        const { storage } = await import('../../storage.js');
+        
+        let integration = null;
+        if (data.integrationId) {
+          integration = await storage.getIntegrationById(data.integrationId);
+        }
+        
+        // signature: processUserOutreach(userId, integration, isAutonomousExplicit)
+        await outreachEngine.processUserOutreach(data.userId, integration as any, data.isAutonomous);
       } catch (err: any) {
         console.error(`[CampaignWorker] Autonomous outreach failed for user ${data.userId}:`, err.message);
       }
@@ -414,8 +424,9 @@ function calcMailboxInterval(sentToday: number, dailyLimit: number): number {
   if (isNightWatch) {
     // Increase delay to at least 45 minutes during night watch
     // (approx 10-11 sends per 8hr night window max)
-    baseIntervalMs = Math.max(baseIntervalMs, 45 * 60_000);
-    console.log(`[CampaignWorker] 🌙 Night Watch active: Throttling mailbox to ${Math.round(baseIntervalMs / 60000)}m intervals`);
+    const nightDelay = Math.max(baseIntervalMs, 45 * 60_000);
+    console.log(`[CampaignWorker] 🌙 Night Watch active (Hour: ${currentHour}): Throttling mailbox to ${Math.round(nightDelay / 60000)}m intervals`);
+    baseIntervalMs = nightDelay;
   }
 
   // Clamp: at least 30s, at most 60 minutes for better 24/7 distribution
@@ -576,20 +587,34 @@ async function processSendBatch(data: SendBatchJobData): Promise<void> {
     const errorMsg = sendError.message || 'Unknown send error';
     console.error(`[CampaignWorker] ❌ Send failed for ${lead.email} via ${integrationId}: ${errorMsg}`);
 
+    // Phase 19: Dead-Lead Circuit Breaker
+    const metadata = { ...(leadEntry.metadata as Record<string, any> || {}) };
+    const failCount = (metadata.failCount || 0) + 1;
+    metadata.failCount = failCount;
+    metadata.lastError = errorMsg;
+
+    if (failCount >= 3) {
+      console.error(`[CampaignWorker] 🛑 Lead ${lead.email} reached max failure threshold (3). Killing lead.`);
+      await db.update(campaignLeads)
+        .set({ status: 'failed', error: `Max failures (3) exceeded: ${errorMsg}`, metadata })
+        .where(eq(campaignLeads.id, leadEntry.id));
+      return;
+    }
+
     if (mailboxHealthService.isMailboxError(errorMsg)) {
       // Mark this mailbox as having issues
       await mailboxHealthService.handleMailboxFailure(integration, errorMsg);
 
       // Re-queue the lead so another mailbox can pick it up
       await db.update(campaignLeads)
-        .set({ integrationId: null, status: 'queued', error: errorMsg })
+        .set({ integrationId: null, status: 'queued', error: errorMsg, metadata })
         .where(eq(campaignLeads.id, leadEntry.id));
 
-      console.warn(`[CampaignWorker] 🔄 Lead ${lead.email} re-queued after mailbox failure`);
+      console.warn(`[CampaignWorker] 🔄 Lead ${lead.email} re-queued after mailbox failure (Attempt ${failCount}/3)`);
     } else {
       // Non-mailbox error (e.g. invalid recipient) — mark lead as failed
       await db.update(campaignLeads)
-        .set({ status: 'failed', error: errorMsg })
+        .set({ status: 'failed', error: errorMsg, metadata })
         .where(eq(campaignLeads.id, leadEntry.id));
     }
     return; // Don't schedule follow-ups on failure
@@ -654,7 +679,7 @@ async function processFollowUp(data: FollowUpJobData): Promise<void> {
   const sentToday = await getMailboxSentCount(userId, integrationId);
 
   // Pull limits from campaign config or mailbox metadata
-  const config = campaign.config || {};
+  const config = (campaign.config as any) || {};
   const mailboxLimits: Record<string, number> = config.mailboxLimits || {};
   const baseLimit = mailboxLimits[integrationId] || 50;
 
@@ -684,23 +709,51 @@ async function processFollowUp(data: FollowUpJobData): Promise<void> {
   }
 
   // 6. Deliver the follow-up email
-  await deliverCampaignEmail(userId, campaign, lead, { ...leadEntry, currentStep: stepIndex }, integrationId);
+  try {
+    await deliverCampaignEmail(userId, campaign, lead, { ...leadEntry, currentStep: stepIndex }, integrationId);
 
-  // 7. Schedule NEXT follow-up step if there are more
-  const followupsArr = (campaign.template as any)?.followups || [];
-  const nextStep = stepIndex + 1;
-  if (nextStep <= followupsArr.length) {
-    const delayDays = followupsArr[nextStep - 1]?.delayDays || 3;
+    // 7. Schedule NEXT follow-up step if there are more
+    const followupsArr = (campaign.template as any)?.followups || [];
+    const nextStep = stepIndex + 1;
+    if (nextStep <= followupsArr.length) {
+      const delayDays = followupsArr[nextStep - 1]?.delayDays || 3;
+      await campaignQueueManager.scheduleFollowUp(
+        campaignId, userId, campaignLeadId, integrationId, nextStep,
+        delayDays * 24 * 60 * 60 * 1000
+      );
+    }
+
+    // 8. Real-time KPI push
+    wsSync.notifyLeadsUpdated(userId, { leadId: lead.id, action: 'followup_sent' });
+    wsSync.notifyCampaignStatsUpdated(userId, campaignId);
+    wsSync.notifyStatsUpdated(userId);
+  } catch (err: any) {
+    const errorMsg = err.message || 'Follow-up send failed';
+    console.error(`[CampaignWorker] ❌ Follow-up failed for ${lead.email}: ${errorMsg}`);
+
+    // Phase 19: Circuit Breaker for follow-ups
+    const metadata = { ...(leadEntry.metadata as Record<string, any> || {}) };
+    const failCount = (metadata.failCount || 0) + 1;
+    metadata.failCount = failCount;
+
+    if (failCount >= 3) {
+      console.error(`[CampaignWorker] 🛑 Follow-up reached max failure (3) for ${lead.email}. Killing lead.`);
+      await db.update(campaignLeads)
+        .set({ status: 'failed', error: `Max follow-up failures: ${errorMsg}`, metadata })
+        .where(eq(campaignLeads.id, leadEntry.id));
+      return;
+    }
+
+    // Re-queue for another attempt in 1 hour
+    await db.update(campaignLeads)
+      .set({ metadata })
+      .where(eq(campaignLeads.id, leadEntry.id));
+
     await campaignQueueManager.scheduleFollowUp(
-      campaignId, userId, campaignLeadId, integrationId, nextStep,
-      delayDays * 24 * 60 * 60 * 1000
+      campaignId, userId, campaignLeadId, integrationId, stepIndex,
+      1 * 60 * 60 * 1000
     );
   }
-
-  // 8. Real-time KPI push
-  wsSync.notifyLeadsUpdated(userId, { leadId: lead.id, action: 'followup_sent' });
-  wsSync.notifyCampaignStatsUpdated(userId, campaignId);
-  wsSync.notifyStatsUpdated(userId);
 }
 
 /**
@@ -817,7 +870,15 @@ async function processStatsUpdate(data: StatsUpdateJobData): Promise<void> {
 
   // Update campaign stats in DB
   await db.update(outreachCampaigns)
-    .set({ stats, updatedAt: new Date() })
+    .set({ 
+      stats: {
+        total: stats.total || 0,
+        sent: stats.sent || 0,
+        replied: stats.replied || 0,
+        bounced: (stats as any).bounced || 0
+      }, 
+      updatedAt: new Date() 
+    })
     .where(eq(outreachCampaigns.id, campaignId));
 
   // Check if campaign is complete (no more pending leads)
@@ -894,75 +955,97 @@ async function deliverCampaignEmail(
 
   const trackingId = Math.random().toString(36).substring(2, 11);
 
-  await sendEmail(userId, lead.email, body, subject, {
-    isRaw: true,
-    isHtml: true,
-    trackingId: campaign.config?.isManual ? undefined : trackingId,
-    campaignId: campaign.id,
-    leadId: lead.id,
-    integrationId,
-  });
+  // Phase 16: Send Guard (Idempotency)
+  // Prevents duplicate sends if a job is retried by BullMQ after a partial timeout
+  const { acquireLock, releaseLock } = await import('../redis.js');
+  const lockKey = `send_guard:${campaign.id}:${lead.id}:${leadEntry.currentStep}`;
+  const hasLock = await acquireLock(lockKey, 300); // 5 minute guard
 
-  // Update lead integrationId if not set
-  if (!lead.integrationId) {
-    await db!.update(leads)
-      .set({ integrationId, updatedAt: new Date() })
-      .where(eq(leads.id, lead.id));
+  if (!hasLock) {
+    console.warn(`[CampaignWorker] 🛡️ Send Guard triggered for campaign ${campaign.id}, lead ${lead.id}. Already sending...`);
+    return;
   }
 
-  // Save message
-  await storage.createMessage({
-    userId,
-    leadId: lead.id,
-    provider: 'email',
-    direction: 'outbound',
-    subject,
-    body,
-    trackingId,
-    metadata: { campaignId: campaign.id, step: leadEntry.currentStep, integrationId }
-  });
-
-  // Detailed campaign email tracking
-  await db!.insert(campaignEmails).values({
-    campaignId: campaign.id,
-    leadId: lead.id,
-    userId,
-    messageId: trackingId,
-    subject,
-    body,
-    stepIndex: leadEntry.currentStep,
-    status: 'sent'
-  });
-
-  // Update campaign lead status
-  const nextStep = leadEntry.currentStep + 1;
-  const followupsArr = (campaign.template as any)?.followups || [];
-  const hasMore = nextStep <= followupsArr.length;
-  let nextActionAt = null;
-
-  if (hasMore) {
-    const delayDays = followupsArr[nextStep - 1]?.delayDays || 3;
-    nextActionAt = new Date();
-    nextActionAt.setDate(nextActionAt.getDate() + delayDays);
+  try {
+    await sendEmail(userId, lead.email, body, subject, {
+      isRaw: true,
+      isHtml: true,
+      trackingId: campaign.config?.isManual ? undefined : trackingId,
+      campaignId: campaign.id,
+      leadId: lead.id,
+      integrationId,
+    });
+  } catch (err) {
+    // Release lock only on error if we want to allow immediate retry
+    // Actually, BullMQ handles retries. If we release the lock, the retry will work.
+    await releaseLock(lockKey);
+    throw err;
   }
 
-  await db!.update(campaignLeads)
-    .set({
-      status: 'sent',
-      currentStep: nextStep,
-      nextActionAt,
-      sentAt: new Date(),
-      error: null,
-    })
-    .where(eq(campaignLeads.id, leadEntry.id));
+  // Phase 17: Atomic Post-Send Transaction
+  // Ensures that message creation, lead status update, and stats all succeed together
+  await db!.transaction(async (tx: any) => {
+    // Update lead integrationId if not set
+    if (!lead.integrationId) {
+      await tx.update(leads)
+        .set({ integrationId, updatedAt: new Date() })
+        .where(eq(leads.id, lead.id));
+    }
 
-  // Increment campaign sent count
-  await db!.update(outreachCampaigns)
-    .set({
-      stats: sql`jsonb_set(stats, '{sent}', (COALESCE((stats->>'sent')::int, 0) + 1)::text::jsonb)`,
-      updatedAt: new Date()
-    })
-    .where(eq(outreachCampaigns.id, campaign.id));
+    // Save message
+    await storage.createMessage({
+      userId,
+      leadId: lead.id,
+      provider: 'email',
+      direction: 'outbound',
+      subject,
+      body,
+      trackingId,
+      metadata: { campaignId: campaign.id, step: leadEntry.currentStep, integrationId }
+    }, tx as any); // Pass transaction client to storage
+
+    // Detailed campaign email tracking
+    await tx.insert(campaignEmails).values({
+      campaignId: campaign.id,
+      leadId: lead.id,
+      userId,
+      messageId: trackingId,
+      subject,
+      body,
+      stepIndex: leadEntry.currentStep,
+      status: 'sent'
+    });
+
+    // Update campaign lead status
+    const nextStep = leadEntry.currentStep + 1;
+    const followupsArr = (campaign.template as any)?.followups || [];
+    const hasMore = nextStep <= followupsArr.length;
+    let nextActionAt = null;
+
+    if (hasMore) {
+      const delayDays = followupsArr[nextStep - 1]?.delayDays || 3;
+      nextActionAt = new Date();
+      nextActionAt.setDate(nextActionAt.getDate() + delayDays);
+    }
+
+    await tx.update(campaignLeads)
+      .set({
+        status: 'sent',
+        currentStep: nextStep,
+        nextActionAt,
+        sentAt: new Date(),
+        error: null,
+      })
+      .where(eq(campaignLeads.id, leadEntry.id));
+
+    // Increment campaign sent count
+    await tx.update(outreachCampaigns)
+      .set({
+        stats: sql`jsonb_set(stats, '{sent}', (COALESCE((stats->>'sent')::int, 0) + 1)::text::jsonb)`,
+        updatedAt: new Date()
+      })
+      .where(eq(outreachCampaigns.id, campaign.id));
+  });
 
   console.log(`[CampaignWorker] ✅ Campaign "${campaign.name}" step ${leadEntry.currentStep} → ${lead.email} via ${integrationId}`);
 }
@@ -994,52 +1077,71 @@ async function deliverCampaignInstagram(
     .replace(/{{lead_name}}/g, lead.name?.trim() || firstName)
     .replace(/{{company}}/g, company);
 
-  const result = await sendInstagramOutreach(userId, lead.id, body, {
-    isAutonomous: true,
-    metadata: { campaignId: campaign.id, step: leadEntry.currentStep, integrationId }
-  });
+  // Phase 16: Send Guard (Idempotency)
+  const { acquireLock, releaseLock } = await import('../redis.js');
+  const lockKey = `send_guard:ig:${campaign.id}:${lead.id}:${leadEntry.currentStep}`;
+  const hasLock = await acquireLock(lockKey, 300); // 5 minute guard
 
-  // Track Instagram message in campaign history
-  await db!.insert(campaignEmails).values({
-    campaignId: campaign.id,
-    leadId: lead.id,
-    userId,
-    messageId: result.messageId,
-    subject: 'Instagram DM',
-    body,
-    stepIndex: leadEntry.currentStep,
-    status: 'sent'
-  });
-
-  // Update lead status
-  const nextStep = leadEntry.currentStep + 1;
-  const followupsArr = (campaign.template as any)?.followups || [];
-  const hasMore = nextStep <= followupsArr.length;
-  let nextActionAt = null;
-
-  if (hasMore) {
-    const delayDays = followupsArr[nextStep - 1]?.delayDays || 3;
-    nextActionAt = new Date();
-    nextActionAt.setDate(nextActionAt.getDate() + delayDays);
+  if (!hasLock) {
+    console.warn(`[CampaignWorker] 🛡️ IG Send Guard triggered for campaign ${campaign.id}, lead ${lead.id}. Already sending...`);
+    return;
   }
 
-  await db!.update(campaignLeads)
-    .set({
-      status: 'sent',
-      currentStep: nextStep,
-      nextActionAt,
-      sentAt: new Date(),
-      error: null,
-    })
-    .where(eq(campaignLeads.id, leadEntry.id));
+  let result;
+  try {
+    result = await sendInstagramOutreach(userId, lead.id, body, {
+      isAutonomous: true,
+      metadata: { campaignId: campaign.id, step: leadEntry.currentStep, integrationId }
+    });
+  } catch (err) {
+    await releaseLock(lockKey);
+    throw err;
+  }
 
-  // Stats
-  await db!.update(outreachCampaigns)
-    .set({
-      stats: sql`jsonb_set(stats, '{sent}', (COALESCE((stats->>'sent')::int, 0) + 1)::text::jsonb)`,
-      updatedAt: new Date()
-    })
-    .where(eq(outreachCampaigns.id, campaign.id));
+  // Phase 17: Atomic Post-Send Transaction
+  await db!.transaction(async (tx: any) => {
+    // Track Instagram message in campaign history
+    await tx.insert(campaignEmails).values({
+      campaignId: campaign.id,
+      leadId: lead.id,
+      userId,
+      messageId: result.messageId,
+      subject: 'Instagram DM',
+      body,
+      stepIndex: leadEntry.currentStep,
+      status: 'sent'
+    });
+
+    // Update lead status
+    const nextStep = leadEntry.currentStep + 1;
+    const followupsArr = (campaign.template as any)?.followups || [];
+    const hasMore = nextStep <= followupsArr.length;
+    let nextActionAt = null;
+
+    if (hasMore) {
+      const delayDays = followupsArr[nextStep - 1]?.delayDays || 3;
+      nextActionAt = new Date();
+      nextActionAt.setDate(nextActionAt.getDate() + delayDays);
+    }
+
+    await tx.update(campaignLeads)
+      .set({
+        status: 'sent',
+        currentStep: nextStep,
+        nextActionAt,
+        sentAt: new Date(),
+        error: null,
+      })
+      .where(eq(campaignLeads.id, leadEntry.id));
+
+    // Stats
+    await tx.update(outreachCampaigns)
+      .set({
+        stats: sql`jsonb_set(stats, '{sent}', (COALESCE((stats->>'sent')::int, 0) + 1)::text::jsonb)`,
+        updatedAt: new Date()
+      })
+      .where(eq(outreachCampaigns.id, campaign.id));
+  });
 
   console.log(`[CampaignWorker] 📸 Instagram sent for campaign "${campaign.name}" to ${lead.externalId}`);
 }

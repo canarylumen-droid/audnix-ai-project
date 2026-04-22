@@ -20,7 +20,12 @@ export async function runOutreachCampaignQueued(userId: string, campaignId: stri
   if (!campaign) throw new Error(`Campaign ${campaignId} not found`);
 
   // Force an immediate tick for this user
-  await engine.processUserOutreach(userId);
+  const userIntegrations = await storage.getIntegrations(userId);
+  const integration = userIntegrations.find(i => i.connected && !['google_calendar', 'calendly'].includes(i.provider));
+  
+  if (integration) {
+    await engine.processUserOutreach(userId, integration);
+  }
   
   // Return current stats after the tick
   const updatedCampaign = await storage.getOutreachCampaign(campaignId);

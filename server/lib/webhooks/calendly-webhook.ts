@@ -1,6 +1,6 @@
 import { storage } from "../../storage.js";
 import { wsSync } from "../websocket-sync.js";
-import { users, integrations, calendarBookings, notifications, leads } from "../../../shared/schema.js";
+import { users, integrations, calendarEvents, notifications, leads } from "../../../shared/schema.js";
 import { socketService } from "../realtime/socket-service.js";
 import { db } from "../../db.js";
 import { eq, and, sql } from "drizzle-orm";
@@ -145,10 +145,10 @@ async function handleMeetingBooked(event: CalendlyWebhookEvent): Promise<void> {
 
     const attendeeEmail = invitee.email;
 
-    const [booking] = await db.insert(calendarBookings).values({
+    const [booking] = await db.insert(calendarEvents).values({
       userId,
       provider: 'calendly',
-      externalEventId: scheduledEvent.uri,
+      externalId: scheduledEvent.uri,
       title: scheduledEvent.name || 'Discovery Call',
       startTime: new Date(scheduledEvent.start_time),
       endTime: new Date(scheduledEvent.end_time),
@@ -182,7 +182,7 @@ async function handleMeetingBooked(event: CalendlyWebhookEvent): Promise<void> {
       // 🚀 SDR MANAGER: Run autonomous analysis on the booking notes/intent
       try {
         const { generateLeadIntelligenceDashboard } = await import('../ai/lead-intelligence.js');
-        const { messages } = await db.select().from(require("../../../shared/schema.js").messages).where(eq(require("../../../shared/schema.js").messages.leadId, updatedLead.id));
+        const messages = await db.select().from(require("../../../shared/schema.js").messages).where(eq(require("../../../shared/schema.js").messages.leadId, updatedLead.id));
         
         await generateLeadIntelligenceDashboard(updatedLead as any, messages as any);
         console.log(`✓ SDR Analysis updated for booked lead: ${updatedLead.id}`);
@@ -228,9 +228,9 @@ async function handleMeetingCancelled(event: CalendlyWebhookEvent): Promise<void
     const invitee = event.payload.invitee;
     if (!scheduledEvent) return;
 
-    const [booking] = await db.update(calendarBookings)
-      .set({ status: 'cancelled', updatedAt: new Date() })
-      .where(eq(calendarBookings.externalEventId, scheduledEvent.uri))
+    const [booking] = await db.update(calendarEvents)
+      .set({ status: 'cancelled' })
+      .where(eq(calendarEvents.externalId, scheduledEvent.uri))
       .returning();
 
     if (booking) {
@@ -238,7 +238,7 @@ async function handleMeetingCancelled(event: CalendlyWebhookEvent): Promise<void
       const { leads } = await import("../../../shared/schema.js");
       const [updatedLead] = await db.update(leads)
         .set({ status: 'open', updatedAt: new Date() })
-        .where(and(eq(leads.userId, booking.userId), eq(leads.email, booking.attendeeEmail)))
+        .where(and(eq(leads.userId, booking.userId), eq(leads.email, booking.attendeeEmail || '')))
         .returning();
 
       if (updatedLead) {
@@ -248,7 +248,7 @@ async function handleMeetingCancelled(event: CalendlyWebhookEvent): Promise<void
         socketService.notifyCalendarUpdate(booking.userId, {
           bookingId: booking.id,
           status: 'cancelled',
-          attendeeEmail: booking.attendeeEmail,
+          attendeeEmail: booking.attendeeEmail || undefined,
         });
         socketService.notifyLeadUpdate(booking.userId, {
           leadId: updatedLead.id,
@@ -292,9 +292,9 @@ async function handleMeetingNoShow(event: CalendlyWebhookEvent): Promise<void> {
     }
 
     if (typeof eventUri === 'string' && eventUri.startsWith('https://api.calendly.com')) {
-      const [booking] = await db.update(calendarBookings)
-        .set({ status: 'no_show', updatedAt: new Date() })
-        .where(eq(calendarBookings.externalEventId, eventUri))
+      const [booking] = await db.update(calendarEvents)
+        .set({ status: 'no_show' })
+        .where(eq(calendarEvents.externalId, eventUri))
         .returning();
 
       if (booking) {
@@ -304,7 +304,7 @@ async function handleMeetingNoShow(event: CalendlyWebhookEvent): Promise<void> {
         socketService.notifyCalendarUpdate(booking.userId, {
           bookingId: booking.id,
           status: 'no_show',
-          attendeeEmail: booking.attendeeEmail,
+          attendeeEmail: booking.attendeeEmail || undefined,
           startTime: booking.startTime?.toISOString(),
         });
 
@@ -316,7 +316,7 @@ async function handleMeetingNoShow(event: CalendlyWebhookEvent): Promise<void> {
         const { leads } = await import("../../../shared/schema.js");
         const [updatedLead] = await db.update(leads)
           .set({ status: 'no_show', updatedAt: new Date() })
-          .where(and(eq(leads.userId, booking.userId), eq(leads.email, booking.attendeeEmail)))
+          .where(and(eq(leads.userId, booking.userId), eq(leads.email, booking.attendeeEmail || '')))
           .returning();
 
         if (updatedLead) {

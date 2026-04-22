@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { GoogleGenAI } from "@google/genai";
-import { MODELS, OPENAI_INTELLIGENCE_MODEL } from "./model-config.js";
+import { MODELS, OPENAI_INTELLIGENCE_MODEL, GENAI_STABLE_MODEL, OPENAI_FAST_MODEL } from "./model-config.js";
+import { storage } from "../../storage.js";
 
 // Initialize OpenAI conditionally
 const openai = process.env.OPENAI_API_KEY
@@ -37,22 +38,31 @@ const PROVIDER_STATUS = {
   genai: { cooldownUntil: 0, consecutiveErrors: 0 },
 };
 
-const COOLDOWN_BASE_MS = 60000; // 1 minute
+const COOLDOWN_BASE_MS = 30000; // Start with 30s for 429s
 const MAX_COOLDOWN_MS = 3600000; // 1 hour
 
-function updateProviderHealth(provider: 'openai' | 'genai' | 'zai', isSuccess: boolean, errorStatus?: number) {
+function updateProviderHealth(provider: 'openai' | 'genai' | 'zai', isSuccess: boolean, error?: any) {
   const status = PROVIDER_STATUS[provider];
   if (isSuccess) {
     status.consecutiveErrors = 0;
     status.cooldownUntil = 0;
   } else {
     status.consecutiveErrors++;
-    const isRateLimit = errorStatus === 429;
-    const cooldownMultiplier = isRateLimit ? Math.pow(2, status.consecutiveErrors) : 1;
-    const cooldownDuration = Math.min(COOLDOWN_BASE_MS * cooldownMultiplier, MAX_COOLDOWN_MS);
-    status.cooldownUntil = Date.now() + cooldownDuration;
+    const status_code = error?.status || error?.response?.status;
+    const isRateLimit = status_code === 429;
+    
+    // Phase 24: Adaptive Exponential Backoff
+    let delay = Math.min(COOLDOWN_BASE_MS * Math.pow(2, status.consecutiveErrors - 1), MAX_COOLDOWN_MS);
+    
+    // Honor Retry-After if provided
+    const retryAfter = error?.headers?.['retry-after'];
+    if (isRateLimit && retryAfter) {
+      const waitSec = parseInt(retryAfter, 10);
+      if (!isNaN(waitSec)) delay = waitSec * 1000;
+    }
 
-    console.warn(`[AI Service] Provider ${provider} entered cooldown for ${Math.round(cooldownDuration / 1000)}s due to ${isRateLimit ? '429 Quota' : 'Error'}`);
+    status.cooldownUntil = Date.now() + delay;
+    console.warn(`[AI Service] ⚠️ Provider ${provider} failed (${status_code || 'Error'}). Backing off for ${Math.round(delay/1000)}s. Errors: ${status.consecutiveErrors}`);
   }
 }
 
@@ -166,6 +176,32 @@ export async function embedBatch(texts: string[]): Promise<number[][]> {
 }
 
 /**
+ * Phase 47: Select the most appropriate model based on task priority and user budget.
+ * Downgrades to 'flash' models if quota is endangered.
+ */
+async function selectBestModelForBudget(userId: string, requestedModel: string): Promise<string> {
+  try {
+    const user = await storage.getUserById(userId);
+    const metadata = (user?.intelligenceMetadata as any) || {};
+    const dailyUsage = metadata.dailyTokenUsage || 0;
+    const limit = metadata.customDailyTokenLimit || 500000; // Default 500k
+
+    // Budget Mode: > 80% usage
+    if (dailyUsage > limit * 0.8) {
+      console.warn(`💸 [Budget Mode] User ${userId} at ${Math.round((dailyUsage/limit)*100)}% quota. Downgrading model.`);
+      
+      // Map reasoning models to their flash/budget equivalents
+      if (requestedModel === MODELS.sales_reasoning) return GENAI_STABLE_MODEL;
+      if (requestedModel === MODELS.intent_classification) return OPENAI_FAST_MODEL;
+      return GENAI_STABLE_MODEL;
+    }
+  } catch (e) {
+    console.error("[AiService] Budget selection error:", e);
+  }
+  return requestedModel;
+}
+
+/**
  * Generate AI reply using chat completion
  * prioritized by PREFERRED_PROVIDER with robust fallback
  */
@@ -177,9 +213,12 @@ export async function generateReply(
     maxTokens?: number;
     jsonMode?: boolean;
     model?: string;
+    userId?: string;
     history?: Array<{ role: "user" | "assistant"; content: string }>;
   }
 ): Promise<{ text: string; tokensUsed: number }> {
+
+  const model = options?.userId ? await selectBestModelForBudget(options.userId, options?.model || AI_MODEL) : (options?.model || AI_MODEL);
 
   const tryOpenAI = async () => {
     if (!isProviderAvailable('openai')) return null;
@@ -203,7 +242,7 @@ export async function generateReply(
       };
     } catch (error: any) {
       console.error("[AI Service] OpenAI error:", error.message);
-      updateProviderHealth('openai', false, error.status);
+      updateProviderHealth('openai', false, error);
       return null;
     }
   };
@@ -233,7 +272,7 @@ export async function generateReply(
       };
     } catch (error: any) {
       console.error("[AI Service] GenAI error:", error.message);
-      updateProviderHealth('genai', false, error.status);
+      updateProviderHealth('genai', false, error);
       return null;
     }
   };
@@ -260,7 +299,7 @@ export async function generateReply(
       };
     } catch (error: any) {
       console.error("[AI Service] Z-AI error:", error.message);
-      updateProviderHealth('zai', false, error.status);
+      updateProviderHealth('zai', false, error);
       return null;
     }
   };
@@ -457,4 +496,13 @@ export async function checkGrammar(text: string): Promise<{ correctedText: strin
   } catch (e) {
     return { correctedText: text, errors: [] };
   }
+}
+
+/**
+ * Phase 23 Utility: Rough token estimation
+ * 1 token ~= 4 chars in English
+ */
+export function estimateTokens(text: string | null | undefined): number {
+  if (!text) return 0;
+  return Math.ceil(text.length / 4);
 }

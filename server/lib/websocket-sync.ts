@@ -1,7 +1,7 @@
 import { Server, Socket } from 'socket.io';
 import http from 'http';
 
-type MessageType = 'leads_updated' | 'messages_updated' | 'deals_updated' | 'settings_updated' | 'ping' | 'pong' | 'PROSPECTING_LOG' | 'PROSPECT_FOUND' | 'PROSPECT_UPDATED' | 'notification' | 'calendar_updated' | 'TERMINATE_SESSION' | 'insights_updated' | 'activity_updated' | 'stats_updated' | 'campaigns_updated' | 'campaign_stats_updated' | 'desktop_notification' | 'SECURITY_ALERT' | 'sync_status';
+type MessageType = 'leads_updated' | 'messages_updated' | 'deals_updated' | 'settings_updated' | 'ping' | 'pong' | 'PROSPECTING_LOG' | 'PROSPECT_FOUND' | 'PROSPECT_UPDATED' | 'notification' | 'calendar_updated' | 'TERMINATE_SESSION' | 'insights_updated' | 'activity_updated' | 'stats_updated' | 'campaigns_updated' | 'campaign_stats_updated' | 'desktop_notification' | 'SECURITY_ALERT' | 'sync_status' | 'integration_error';
 
 interface SyncMessage {
   type: MessageType;
@@ -58,39 +58,74 @@ class WebSocketSyncServer {
   }
 
   private lastEmissions = new Map<string, number>();
+  private debouncers = new Map<string, NodeJS.Timeout>();
 
   private emitToUser(userId: string, event: MessageType, data: any) {
     if (!this.io) return;
 
-    // Simple throttling: Don't emit the same event to the same user twice within 500ms
-    // Exception: leads_updated, messages_updated, and campaign_stats_updated are usually critical and infrequent enough
-    const bypassThrottle = ['leads_updated', 'messages_updated', 'campaign_stats_updated', 'notification', 'TERMINATE_SESSION'];
     const throttleKey = `${userId}:${event}`;
     const now = Date.now();
 
-    if (!bypassThrottle.includes(event)) {
-      const lastTime = this.lastEmissions.get(throttleKey) || 0;
-      if (now - lastTime < 500) {
-        return;
-      }
-      this.lastEmissions.set(throttleKey, now);
+    // Phase 18: Adaptive Throttling & Debouncing
+    const throttleEvents = ['leads_updated', 'messages_updated', 'activity_updated', 'sync_status'];
+    const debounceEvents = ['stats_updated', 'insights_updated', 'campaign_stats_updated', 'campaigns_updated'];
+    const priorityEvents = ['notification', 'TERMINATE_SESSION', 'integration_error', 'SECURITY_ALERT'];
+
+    // 1. Priority events: Always fire immediately
+    if (priorityEvents.includes(event)) {
+      this.executeEmit(userId, event, data, now);
+      return;
     }
 
+    // 2. Debounce events: High frequency stats that should settle before pushing
+    if (debounceEvents.includes(event)) {
+      const existing = this.debouncers.get(throttleKey);
+      if (existing) clearTimeout(existing);
+
+      const timeout = setTimeout(() => {
+        this.executeEmit(userId, event, data, Date.now());
+        this.debouncers.delete(throttleKey);
+      }, 1000); // 1s settle time
+
+      this.debouncers.set(throttleKey, timeout);
+      return;
+    }
+
+    // 3. Throttle events: Critical updates that need a cooldown
+    if (throttleEvents.includes(event)) {
+      const lastTime = this.lastEmissions.get(throttleKey) || 0;
+      if (now - lastTime < 1000) return; // 1s cooldown
+      
+      this.lastEmissions.set(throttleKey, now);
+      this.executeEmit(userId, event, data, now);
+      return;
+    }
+
+    // Default: 500ms throttle
+    const lastTime = this.lastEmissions.get(throttleKey) || 0;
+    if (now - lastTime < 500) return;
+    this.lastEmissions.set(throttleKey, now);
+    this.executeEmit(userId, event, data, now);
+  }
+
+  private executeEmit(userId: string, event: MessageType, data: any, now: number) {
+    if (!this.io) return;
+    
     const message: SyncMessage = {
       type: event,
       data,
       timestamp: new Date(now).toISOString()
     };
 
-    // Emit 'message' event for generic listeners (legacy support)
-    this.io.to(`user:${userId}`).emit('message', message);
+    setImmediate(() => {
+      if (!this.io) return;
+      this.io.to(`user:${userId}`).emit('message', message);
+      this.io.to(`user:${userId}`).emit(event, data);
+    });
 
-    // Emit specific event for precise listeners
-    this.io.to(`user:${userId}`).emit(event, data);
-
-    // Cleanup old entries from lastEmissions periodically (roughly every 100 emissions)
+    // Cleanup emissions map
     if (this.lastEmissions.size > 1000) {
-      const expiry = now - 10000; // 10s
+      const expiry = now - 60000;
       for (const [key, time] of this.lastEmissions.entries()) {
         if (time < expiry) this.lastEmissions.delete(key);
       }
@@ -137,7 +172,7 @@ class WebSocketSyncServer {
     this.emitToUser(userId, 'stats_updated', { ...data, timestamp: new Date().toISOString() });
   }
 
-  notifySyncStatus(userId: string, data: { syncing: boolean; folder?: string; integrationId?: string }) {
+  notifySyncStatus(userId: string, data: { syncing: boolean; folder?: string; integrationId?: string; disconnected?: boolean }) {
     this.emitToUser(userId, 'sync_status', data);
   }
 
@@ -156,6 +191,23 @@ class WebSocketSyncServer {
 
   notifyNotification(userId: string, data: any) {
     this.emitToUser(userId, 'notification', data);
+  }
+
+  /**
+   * Phase 5 Fix: Real-time integration error propagation.
+   * Called by background workers when a mailbox or social connection fails,
+   * so the user sees an actionable toast in the dashboard immediately.
+   */
+  notifyIntegrationError(userId: string, data: {
+    integrationId: string;
+    provider: string;
+    errorType: 'auth_failure' | 'connection_lost' | 'token_expiring' | 'send_failure';
+    message: string;
+  }) {
+    this.emitToUser(userId, 'integration_error', {
+      ...data,
+      timestamp: new Date().toISOString(),
+    });
   }
 
   // Generic broadcast

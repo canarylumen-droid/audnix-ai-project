@@ -13,6 +13,7 @@ interface NegotiationHistory {
   discountsOffered: number[];
   acceptedDiscount?: number;
   finalPrice?: number;
+  stage: number; // 0: None, 1: Initial Hook, 2: Manager Escalation, 3: Last Chance
 }
 
 const PRICE_OBJECTION_KEYWORDS = {
@@ -68,44 +69,39 @@ export async function detectPriceObjection(message: string): Promise<PriceObject
 }
 
 /**
- * Calculate optimal discount based on lead score and objection severity
+ * Calculate optimal discount based on lead score, objection severity, and current negotiation stage.
  */
 export async function calculateOptimalDiscount(
   severity: 'low' | 'medium' | 'high',
   leadId: string | null
 ): Promise<number> {
   let baseDiscount = 0;
+  let stage = 1;
 
-  // Base discount by severity
-  switch (severity) {
-    case 'high':
-      baseDiscount = 15; // 15%
+  if (leadId) {
+    const history = await getNegotiationHistory(leadId);
+    stage = (history.stage || 0) + 1;
+  }
+
+  // --- PHASE 41: TIERED STAGING LOGIC ---
+  switch (stage) {
+    case 1: // Initial Hook
+      baseDiscount = severity === 'high' ? 10 : 5;
       break;
-    case 'medium':
-      baseDiscount = 10; // 10%
+    case 2: // Manager Escalation
+      baseDiscount = severity === 'high' ? 18 : 12;
       break;
-    case 'low':
-      baseDiscount = 5; // 5%
+    case 3: // Last Chance
+    default:
+      baseDiscount = 25; // Hard cap
       break;
   }
 
-  // Adjust based on lead score
+  // Adjust based on lead score for "VIP" leads
   if (leadId) {
     const lead = await storage.getLeadById(leadId);
-    if (lead?.score) {
-      if (lead.score >= 80) {
-        baseDiscount += 5; // Hot lead - offer more
-      } else if (lead.score < 40) {
-        baseDiscount -= 3; // Cold lead - offer less
-      }
-    }
-
-    // Check negotiation history
-    const history = await getNegotiationHistory(leadId);
-    if (history.discountsOffered.length > 0) {
-      // Don't offer more than previous offer
-      const maxOffered = Math.max(...history.discountsOffered);
-      baseDiscount = Math.min(baseDiscount, maxOffered + 2);
+    if (lead?.score && lead.score >= 85) {
+      baseDiscount += 3; // Give high-value leads a tiny bit more to close the deal
     }
   }
 
@@ -113,33 +109,35 @@ export async function calculateOptimalDiscount(
 }
 
 /**
- * Generate negotiation response
+ * Generate negotiation response with stage-aware psychology
  */
 export async function generateNegotiationResponse(
   severity: 'low' | 'medium' | 'high',
   leadId: string | null
 ): Promise<string> {
   const discount = await calculateOptimalDiscount(severity, leadId);
+  const history = leadId ? await getNegotiationHistory(leadId) : { stage: 0 };
+  const stage = (history.stage || 0) + 1;
 
   const responses = {
-    high: [
-      `I totally understand! Let me see what I can do... I can offer you ${discount}% off if you decide today! 🎉`,
-      `I hear you! This is a premium product, but I can give you ${discount}% off to make it work for your budget 💰`,
-      `Fair point! How about this - I'll give you ${discount}% off + free shipping if you order now? 📦`
+    1: [ // Stage 1: Peer-to-Peer Friendly deal
+      `I totally understand. I can offer you a ${discount}% "welcome" discount to get you started today! 🎉`,
+      `Fair point! I actually have a ${discount}% off promo running this week. Would that help? 💰`,
+      `I hear you. How about I give you ${discount}% off for your first 3 months to make it work? 🚀`
     ],
-    medium: [
-      `I get it! Good news - I can offer you ${discount}% off this week only 🔥`,
-      `Let me help with that - I can give you ${discount}% off as a first-time customer deal!`,
-      `Great timing! We actually have a ${discount}% discount running right now 🎁`
+    2: [ // Stage 2: Manager Escalation
+      `I checked with my manager, and since we'd love to work with you, I got approval for a ${discount}% discount. Does that bridge the gap? 🛡️`,
+      `Understandable. I've been given an exception to offer ${discount}% off for ${severity === 'high' ? 'VIP' : 'highly engaged'} leads. Ready to roll?`,
+      `I really want to make this work for you. I've secured a ${discount}% discount—this is the highest I can go without a partner sign-off. 💪`
     ],
-    low: [
-      `You're in luck! I can offer ${discount}% off today 😊`,
-      `I can give you ${discount}% off as a special welcome discount!`,
-      `How about ${discount}% off to get you started? 🚀`
+    3: [ // Stage 3: The Final "Last Chance"
+      `I've gone all the way to my CEO on this. I can offer a final ${discount}% discount, but I have to prioritize this for leads ready to start now. Are you in? 🏁`,
+      `This is genuinely the best I can do. I can lock in ${discount}% off for you, but only if we finalize the booking today. Shall we?`,
+      `I've pushed this as far as possible! I can offer ${discount}% off one-time. After this, I'll have to pass the spot to the next lead in line. ⏳`
     ]
   };
 
-  const options = responses[severity];
+  const options = responses[stage as keyof typeof responses] || responses[1];
   return options[Math.floor(Math.random() * options.length)];
 }
 
@@ -149,7 +147,7 @@ export async function generateNegotiationResponse(
 async function getNegotiationHistory(leadId: string): Promise<NegotiationHistory> {
   const lead = await storage.getLeadById(leadId);
   if (!lead?.metadata?.negotiationHistory) {
-    return { discountsOffered: [] };
+    return { discountsOffered: [], stage: 0 };
   }
   return lead.metadata.negotiationHistory as NegotiationHistory;
 }
@@ -167,6 +165,7 @@ export async function saveNegotiationAttempt(
 
   const history = await getNegotiationHistory(leadId);
   history.discountsOffered.push(discountOffered);
+  history.stage = (history.stage || 0) + 1;
 
   if (accepted) {
     history.acceptedDiscount = discountOffered;

@@ -74,12 +74,13 @@ export interface IStorage {
   getTotalLeadsCount(): Promise<number>;
   createAuditLog(data: InsertAuditTrail): Promise<AuditTrail>;
   getAuditLogs(userId: string, options?: { integrationId?: string, daysFilter?: number, limit?: number }): Promise<AuditTrail[]>;
+  incrementAIFailureCount(leadId: string): Promise<boolean>;
 
   // Message methods
   getMessagesByLeadId(leadId: string): Promise<Message[]>;
   getMessages(leadId: string): Promise<Message[]>; // Alias for getMessagesByLeadId
   getAllMessages(userId: string, options?: { limit?: number; channel?: string; integrationId?: string }): Promise<Message[]>;
-  createMessage(message: Partial<InsertMessage> & { leadId: string; userId: string; direction: "inbound" | "outbound"; body: string; threadId?: string }): Promise<Message>;
+  createMessage(message: Partial<InsertMessage> & { leadId: string; userId: string; direction: "inbound" | "outbound"; body: string; threadId?: string }, tx?: any): Promise<Message>;
   updateMessage(id: string, updates: Partial<Message>): Promise<Message | undefined>;
   getMessageByTrackingId(trackingId: string): Promise<Message | undefined>;
 
@@ -281,6 +282,9 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
+  async incrementAIFailureCount(leadId: string): Promise<boolean> {
+    return false;
+  }
   private users: Map<string, User>;
   private leads: Map<string, Lead>;
   private messages: Map<string, Message>;
@@ -629,7 +633,7 @@ export class MemStorage implements IStorage {
     if (options?.limit) msgs = msgs.slice(0, options.limit);
     return msgs;
   }
-  async createMessage(message: Partial<InsertMessage> & { leadId: string; userId: string; direction: "inbound" | "outbound"; body: string; threadId?: string }): Promise<Message> {
+  async createMessage(message: Partial<InsertMessage> & { leadId: string; userId: string; direction: "inbound" | "outbound"; body: string; threadId?: string }, tx?: any): Promise<Message> {
     const id = randomUUID();
     const now = new Date();
     const newMessage: Message = {
@@ -1003,8 +1007,12 @@ export class MemStorage implements IStorage {
       provider: data.provider,
       externalId: data.externalId,
       attendees: data.attendees || [],
+      attendeeEmail: data.attendeeEmail || null,
+      attendeeName: data.attendeeName || null,
+      status: data.status || "scheduled",
       isAiBooked: data.isAiBooked || false,
       preCallNote: data.preCallNote || null,
+      metadata: (data.metadata as Record<string, any>) || {},
       createdAt: new Date(),
     };
     this.calendarEvents.set(id, event);

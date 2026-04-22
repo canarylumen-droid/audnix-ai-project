@@ -7,7 +7,7 @@ import {
   type User,
   type Lead
 } from '../../../shared/schema.js';
-import { eq, and, lt } from 'drizzle-orm';
+import { eq, and, lt, sql } from 'drizzle-orm';
 import { sendEmail } from '../channels/email.js';
 import { wsSync } from '../websocket-sync.js';
 import { generateReply, generateEmailSubject } from '../ai/ai-service.js';
@@ -60,6 +60,12 @@ export class PaymentFollowupWorker {
   }
 
   async tick() {
+    // Stage 1: Global AI Policy Enforcement
+    if (process.env.GLOBAL_AI_PAUSE === 'true') {
+      console.warn("[PaymentFollowupWorker] 🛑 GLOBAL AI PAUSE ACTIVE. Skipping tick.");
+      return;
+    }
+
     try {
       const now = new Date();
       const fortyEightHoursAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000);
@@ -76,7 +82,9 @@ export class PaymentFollowupWorker {
       .where(
         and(
           eq(pendingPayments.status, 'sent'),
-          lt(pendingPayments.updatedAt, fortyEightHoursAgo)
+          lt(pendingPayments.updatedAt, fortyEightHoursAgo),
+          // --- GLOBAL AI ENGINE TOGGLE CHECK (SQL LEVEL) ---
+          sql`(${users.config}->>'autonomousMode')::boolean IS NOT FALSE`
         )
       );
 

@@ -30,10 +30,10 @@ export function generateTrackingPixel(baseUrl: string, token: string): string {
   return `<img src="${baseUrl}/api/email-tracking/track/open/${token}" width="1" height="1" style="display:none;" alt="" />`;
 }
 
-export function wrapLinksWithTracking(html: string, baseUrl: string, messageToken: string): { html: string; urls: string[] } {
+export async function wrapLinksWithTracking(html: string, baseUrl: string, messageToken: string): Promise<{ html: string; urls: string[] }> {
   const isDocument = html.toLowerCase().includes('<html');
-  const cheerio = require('cheerio');
-  const $ = cheerio.load(html);
+  const { load } = await import('cheerio');
+  const $ = load(html);
   const urls: string[] = [];
 
   $('a').each((_: any, el: any) => {
@@ -277,10 +277,10 @@ export async function getEmailStats(userId: string, days: number = 30): Promise<
   }
 }
 
-export function injectTrackingIntoEmail(html: string, token: string): { html: string; urls: string[] } {
+export async function injectTrackingIntoEmail(html: string, token: string): Promise<{ html: string; urls: string[] }> {
   const baseUrl = (globalThis as any).process?.env?.BASE_URL || 'https://audnixai.com';
 
-  const { html: trackedHtml, urls } = wrapLinksWithTracking(html, baseUrl, token);
+  const { html: trackedHtml, urls } = await wrapLinksWithTracking(html, baseUrl, token);
 
   const trackingPixel = generateTrackingPixel(baseUrl, token);
 

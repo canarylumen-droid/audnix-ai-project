@@ -1,18 +1,23 @@
-import { drizzle } from "drizzle-orm/node-postgres";
+import { drizzle, NodePgDatabase } from "drizzle-orm/node-postgres";
 import pgPkg from "pg";
 const { Pool } = pgPkg;
 import * as schema from "../shared/schema.js";
 import { quotaService } from "./lib/monitoring/quota-service.js";
 
-let _db: any = null;
-let _pool: any = null;
+// Database singleton instances
+let _db: NodePgDatabase<typeof schema> | null = null;
+let _pool: pgPkg.Pool | null = null;
 
-function initializeDb() {
-  if (_db) return { db: _db, pool: _pool };
+/**
+ * Initializes and returns the database connection pool.
+ * Implements a strict singleton pattern to prevent connection exhaustion.
+ */
+export function initializeDb() {
+  if (_db && _pool) return { db: _db, pool: _pool };
 
   const url = process.env.DATABASE_URL;
   if (!url) {
-    console.warn('⚠️ DATABASE_URL not set. Running in demo mode.');
+    console.warn('⚠️ [DB] DATABASE_URL not set. Database operations will fail.');
     return { db: null, pool: null };
   }
 
@@ -23,13 +28,11 @@ function initializeDb() {
     const isNeon = url.includes('neon.tech');
 
     if (isNeon) {
-      // Neon requires uselibpqcompat + require for libpq-standard behavior
       dbUrl.searchParams.set('uselibpqcompat', 'true');
       if (!dbUrl.searchParams.has('sslmode')) {
         dbUrl.searchParams.set('sslmode', 'require');
       }
-    } else if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
-      // Standard PostgreSQL: use explicit verify-full to silence pg v9 deprecation warning
+    } else if (process.env.NODE_ENV === "production") {
       if (!dbUrl.searchParams.has('sslmode')) {
         dbUrl.searchParams.set('sslmode', 'verify-full');
       }
@@ -37,49 +40,49 @@ function initializeDb() {
 
     connectionString = dbUrl.toString();
   } catch (urlError) {
-    console.error('❌ Invalid DATABASE_URL format:', url);
+    console.error('❌ [DB] Invalid DATABASE_URL format');
     connectionString = url;
   }
 
   const isProduction = url.includes('neon.tech') || process.env.NODE_ENV === "production";
+  
   try {
     _pool = new Pool({
       connectionString,
       ssl: isProduction ? { rejectUnauthorized: false } : false,
-      max: 20,
-      idleTimeoutMillis: 10000,
+      max: process.env.NODE_ENV === "production" ? 10 : 20, // Strict capping in production to avoid hitting Neon limits
+      idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 5000,
+      maxUses: 7500, // Periodically recycle old connections to clear leaks
     });
 
     _pool.on('error', (err: any) => {
       const errorMessage = (err?.message || String(err)).toLowerCase();
       console.error('🚨 [DB POOL ERROR]', errorMessage);
-      
-      // Proactively trigger the global emergency pause if the pool itself hits a limit
-      if (errorMessage.includes('quota') || errorMessage.includes('maintenance') || errorMessage.includes('capacity limit')) {
-        quotaService.reportDbError(err);
-      }
+      quotaService.reportDbError(err);
     });
 
     _db = drizzle(_pool, { schema });
-    console.log('✅ PostgreSQL database initialized (Neon Serverless)');
+    console.log('✅ [DB] PostgreSQL initialized (Singleton Pool)');
+    
     return { db: _db, pool: _pool };
   } catch (error: any) {
-    const errorMsg = error.message || error;
-    console.error('❌ Database initialization failed:', errorMsg);
-    
-    // Even if init fails (e.g. initial connection hit quota), report it
+    console.error('❌ [DB] Initialization failed:', error.message || error);
     quotaService.reportDbError(error);
-    
     return { db: null, pool: null };
   }
 }
 
-const result = initializeDb();
-export const db = result.db;
-export const pool = result.pool;
+// Immediate initialization for top-level exports
+const { db, pool } = initializeDb() as { db: NodePgDatabase<typeof schema>, pool: pgPkg.Pool };
 
-export function getDatabase() {
-  if (!_db) return initializeDb().db;
+export { db, pool };
+
+/**
+ * Safe accessor for the database instance.
+ */
+export function getDatabase(): NodePgDatabase<typeof schema> {
+  if (!_db) return (initializeDb().db as NodePgDatabase<typeof schema>);
   return _db;
 }
+

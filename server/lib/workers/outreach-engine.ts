@@ -12,7 +12,7 @@ import {
   type Integration
 } from '../../../shared/schema.js';
 import { getPlanCapabilities } from '../../../shared/plan-utils.js';
-import { eq, and, or, sql, lte, desc, ne, isNull, lt } from 'drizzle-orm';
+import { eq, and, or, sql, lte, desc, ne, isNull, lt, notInArray } from 'drizzle-orm';
 import { storage } from '../../storage.js';
 import { sendEmail } from '../channels/email.js';
 import { generateExpertOutreach } from '../ai/conversation-ai.js';
@@ -26,6 +26,7 @@ import { mailboxHealthService } from '../email/mailbox-health-service.js';
 import { quotaService } from '../monitoring/quota-service.js';
 import { warmupService } from '../outreach/warmup-service.js';
 import { ReputationGuard } from '../email/reputation-guard.js';
+import { objectionService } from '../ai/objection-service.js';
 
 export class OutreachEngine {
   private isRunning: boolean = false;
@@ -86,43 +87,49 @@ export class OutreachEngine {
       const { outreachQueue } = await import('../queues/outreach-queue.js');
 
       // 1. Find all users with active and connected email integrations
-      const activeIntegrations = await db
-        .select({
-          userId: integrations.userId,
-          provider: integrations.provider,
-        })
-        .from(integrations)
+      const activeIntegrations = await db.select({
+        id: integrations.id,
+        userId: integrations.userId,
+        provider: integrations.provider,
+        encryptedMeta: integrations.encryptedMeta,
+        warmupStatus: integrations.warmupStatus,
+        autonomousMode: sql<boolean>`(${users.config}->>'autonomousMode')::boolean`
+      }).from(integrations)
+        .innerJoin(users, eq(integrations.userId, users.id))
         .where(
           and(
             eq(integrations.connected, true),
-            or(
-              eq(integrations.provider, 'custom_email'),
-              eq(integrations.provider, 'gmail'),
-              eq(integrations.provider, 'outlook'),
-              eq(integrations.provider, 'instagram')
-            )
+            notInArray(integrations.provider, ['google_calendar', 'calendly']),
+            isNull(integrations.mailboxPauseUntil)
           )
         );
 
-      const uniqueUserIds = [...new Set((activeIntegrations as any).map((i: any) => i.userId))] as string[];
+      // Create a map for quick user configuration lookup during tick()
+      const uniqueUserMap = new Map<string, boolean>();
+      for (const i of activeIntegrations) {
+        uniqueUserMap.set(i.id, i.autonomousMode !== false);
+      }
 
-      // 2. Enqueue jobs into BullMQ for highly-concurrent processing
-      const userBatch = uniqueUserIds.slice(0, this.MAX_CONCURRENT_USERS);
-
-      for (const userId of userBatch) {
+      for (const integration of activeIntegrations) {
+        const isAutonomous = uniqueUserMap.get(integration.id) ?? true;
+        
         if (outreachQueue) {
           // Enqueue ONLY autonomous tasks for the user.
-          // Campaigns are now handled independently by campaign-queue.ts (repeatable per mailbox)
-          await outreachQueue.add(`outreach-autonomous-${userId}`, { userId, type: 'autonomous' }, {
-            jobId: `outreach-autonomous-${userId}-${Math.floor(Date.now() / 60000)}`,
+          await outreachQueue.add(`outreach-autonomous-${integration.userId}`, { 
+            userId: integration.userId, 
+            integrationId: integration.id,
+            type: 'autonomous',
+            isAutonomous 
+          }, {
+            jobId: `outreach-autonomous-${integration.id}-${Math.floor(Date.now() / 60000)}`,
             removeOnComplete: true
           });
         } else {
           // Fallback to inline processing if Redis is disabled
           try {
-            await this.processUserOutreach(userId);
+            await this.processUserOutreach(integration.userId, integration as any, isAutonomous);
           } catch (err: any) {
-             console.error(`[OutreachEngine] Fallback failed for user ${userId}:`, err.message);
+             console.error(`[OutreachEngine] Fallback failed for user ${integration.userId}:`, err.message);
           }
         }
       }
@@ -154,7 +161,7 @@ export class OutreachEngine {
   /**
    * Process outreach for a specific user (Batch mode)
    */
-  public async processUserOutreach(userId: string): Promise<void> {
+  public async processUserOutreach(userId: string, integration: Integration, isAutonomousExplicit?: boolean): Promise<void> {
     this.activeUserProcessing.add(userId);
     try {
       // --- FAULT TOLERANCE: Plan Expiry Check ---
@@ -164,9 +171,43 @@ export class OutreachEngine {
         return;
       }
 
+      // --- GLOBAL AI ENGINE TOGGLE CHECK ---
+      // Use explicit status if passed from tick(), otherwise fetch (fallback for direct calls)
+      let isAutonomousMode = isAutonomousExplicit;
+      if (isAutonomousMode === undefined) {
+        const user = await storage.getUser(userId);
+        isAutonomousMode = (user as any)?.config?.autonomousMode !== false;
+      }
+
+      // Hard check for system-wide restriction or manual override
+      if (process.env.GLOBAL_AI_PAUSE === 'true') {
+        console.warn(`[OutreachEngine] 🛑 GLOBAL AI PAUSE ACTIVE. Skipping user ${userId}.`);
+        return;
+      }
+
+      if (!isAutonomousMode) {
+        // We still want to distribute leads but skip all outreach processing
+        console.log(`[OutreachEngine] AI Engine is OFF for user ${userId}. Skipping all outreach automation.`);
+        
+        // Lead distribution still runs as a low-cost prep phase
+        try {
+          const { distributeLeadsFromPool } = await import('../sales-engine/outreach-engine.js');
+          await distributeLeadsFromPool(userId);
+        } catch (e) {}
+        
+        return;
+      }
+
       // --- PART 0: Inventory Distribution ---
       // Automatically distribute leads from the Inventory pool to mailboxes with capacity.
       // This ensures mailboxes are always "primed" even without an active campaign.
+      const health = workerHealthMonitor.isSystemPaused();
+      if (health.paused) {
+        console.warn(`🛑 [OutreachEngine] System is in EMERGENCY BRAKE mode: ${health.reason}. Skipping tick.`);
+        return;
+      }
+
+      // --- PART 0: Inventory Distribution ---
       try {
         const { distributeLeadsFromPool } = await import('../sales-engine/outreach-engine.js');
         await distributeLeadsFromPool(userId);
@@ -179,12 +220,17 @@ export class OutreachEngine {
         console.error(`[OutreachEngine] tickCampaigns failed for ${userId}:`, err.message);
         return false;
       });
-      if (processedCampaign) return; // Campaign processing usually uses its own delay logic
+      if (processedCampaign) return;
 
       // --- PART 2: Autonomous AI Outreach ---
       // If no campaign was processed, check for individual "new" leads with AI enabled
       await this.tickAutonomousOutreach(userId).catch(err => {
         console.error(`[OutreachEngine] tickAutonomousOutreach failed for ${userId}:`, err.message);
+      });
+
+      // --- PART 3: [PHASE 46] Self-Healing Reputation Sweep ---
+      await this.selfHealMailboxDistribution(userId).catch(err => {
+        console.error(`[OutreachEngine] selfHealMailboxDistribution failed for ${userId}:`, err.message);
       });
 
     } finally {
@@ -212,7 +258,7 @@ export class OutreachEngine {
     // This protects daily sending limits from clashing with highly valuable payment links.
     try {
       const userResultForPause = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-      const isUserAutonomous = userResultForPause[0]?.config?.autonomousMode !== false;
+      const isUserAutonomous = (userResultForPause[0]?.config as any)?.autonomousMode !== false;
 
       if (isUserAutonomous) {
         const activeCheckouts = await db.select({ id: pendingPayments.id })
@@ -454,6 +500,12 @@ export class OutreachEngine {
       const idx = (startIndex + i) % activeMailboxes.length;
       const mailbox = activeMailboxes[idx];
 
+      // PHASE 46: Strictly avoid mailboxes with reputation < 65
+      const reputation = mailbox.reputationScore ?? 100;
+      if (reputation < 65 && mailbox.warmupStatus !== 'active') {
+        continue;
+      }
+
       if (await this.isMailboxReadyToSend(userId, mailbox, campaign)) {
         // Update rotation index for next time
         this.userMailboxIndex.set(userId, (idx + 1) % activeMailboxes.length);
@@ -508,6 +560,12 @@ export class OutreachEngine {
     // --- Autonomous Adaptive Reputation Limits ---
     let effectiveLimit = baseEffectiveLimit;
     
+    // --- EMERGENCY SUSPENSION CHECK: Instagram ---
+    if (integration.provider === 'instagram' && process.env.SUSPEND_INSTAGRAM === 'true') {
+        console.warn(`[OutreachEngine] 🛑 Instagram outreach is EMERGENCY SUSPENDED via system config. Skipping integration ${integration.id}.`);
+        return false;
+    }
+
     // Apply Warmup Service limits
     if (integration.provider !== 'instagram') {
       const warmup = warmupService.getWarmupStatus(integration, hardLimit);
@@ -727,6 +785,16 @@ export class OutreachEngine {
       const aiContent = await generateExpertOutreach(lead, userId);
       subject = aiContent.subject || subject;
       body = aiContent.body || body;
+
+      // PHASE 43: Store A/B variant for tracking
+      if (aiContent.variant) {
+        await storage.updateLead(lead.id, {
+          metadata: {
+            ...(lead.metadata as any || {}),
+            outreach_variant: aiContent.variant
+          }
+        });
+      }
     }
 
     // Variable replacement fallback (Expanded for safety)
@@ -759,20 +827,35 @@ export class OutreachEngine {
       const errorMsg = sendError.message || 'Unknown send error';
       console.error(`[OutreachEngine] ❌ Send failed for ${lead.email} via ${integrationId}: ${errorMsg}`);
 
-      if (mailboxHealthService.isMailboxError(errorMsg)) {
+      // Phase 3 Fix: Rate-Limit Backoff — never hard-fail on a 429 / throttle signal
+      const isRateLimit = sendError.status === 429 ||
+        /rate.?limit|too many|throttl|quota.*exceeded|daily.*limit/i.test(errorMsg);
+
+      if (isRateLimit) {
+        // Exponential retry: back off 30 minutes and try again — DO NOT mark as failed
+        const backoffAt = new Date(Date.now() + 30 * 60 * 1000);
+        await db.update(campaignLeads)
+          .set({
+            status: 'pending',
+            nextActionAt: backoffAt,
+            error: `[Rate-limit backoff] ${errorMsg}`,
+            retryCount: sql`${campaignLeads.retryCount} + 1`
+          })
+          .where(eq(campaignLeads.id, leadEntry.id));
+        console.warn(`[OutreachEngine] ⏳ Rate-limited on ${lead.email}. Backing off 30m (retry ${(leadEntry.retryCount || 0) + 1}).`);
+      } else if (mailboxHealthService.isMailboxError(errorMsg)) {
         const integration = await storage.getIntegrationById(integrationId);
         if (integration) {
           await mailboxHealthService.handleMailboxFailure(integration, errorMsg);
         }
 
-        // Re-queue the lead so another mailbox can pick it up (set integrationId to null and status to queued)
+        // Re-queue the lead so another mailbox can pick it up
         await db.update(campaignLeads)
           .set({ integrationId: null, status: 'queued', error: errorMsg })
           .where(eq(campaignLeads.id, leadEntry.id));
-        
         console.warn(`[OutreachEngine] 🔄 Lead ${lead.email} re-queued after mailbox failure`);
       } else {
-        // Non-mailbox error (e.g. invalid recipient) — mark lead as failed
+        // Hard non-recoverable error (e.g. invalid recipient) — mark as failed
         await db.update(campaignLeads)
           .set({ status: 'failed', error: errorMsg })
           .where(eq(campaignLeads.id, leadEntry.id));
@@ -838,10 +921,15 @@ export class OutreachEngine {
       })
       .where(eq(campaignLeads.id, leadEntry.id));
 
-    // Update campaign stats
+    // Update campaign stats atomically
+    // Using jsonb_set with a relative increment is atomic in Postgres
     await db.update(outreachCampaigns)
       .set({
-        stats: sql`jsonb_set(stats, '{sent}', (COALESCE((stats->>'sent')::int, 0) + 1)::text::jsonb)`,
+        stats: sql`jsonb_set(
+          COALESCE(stats, '{"sent":0,"total":0,"replied":0,"bounced":0}'::jsonb), 
+          '{sent}', 
+          (COALESCE((stats->>'sent')::int, 0) + 1)::text::jsonb
+        )`,
         updatedAt: new Date()
       })
       .where(eq(outreachCampaigns.id, campaign.id));
@@ -863,41 +951,82 @@ export class OutreachEngine {
     const aiContent = await generateExpertOutreach(lead, userId);
     const trackingId = Math.random().toString(36).substring(2, 11);
 
-    try {
-      await sendEmail(userId, lead.email, aiContent.body, aiContent.subject, {
-        isRaw: true,
-        isHtml: true, // Force HTML for tracking
-        trackingId,
-        leadId: lead.id,
-        integrationId
+    // PHASE 43: Store A/B variant
+    if (aiContent.variant) {
+      await storage.updateLead(lead.id, {
+        metadata: { ...(lead.metadata as any || {}), lastHookVariant: aiContent.variant }
       });
+    }
+
+    // PHASE 55: Optimization - Shift to Optimal Hour
+    const optimalHour = (lead.metadata as any)?.optimalHour || 10; // Default to 10am
+    const now = new Date();
+    const nextRun = new Date();
+    nextRun.setHours(optimalHour, Math.floor(Math.random() * 60), 0, 0);
+    
+    // If the optimal time has passed today, schedule for tomorrow
+    if (nextRun <= now) {
+      nextRun.setDate(nextRun.getDate() + 1);
+    }
+    
+    console.log(`🕒 [OutreachEngine] Scheduling initial outreach for ${lead.name} at ${nextRun.toLocaleTimeString()} (Optimal Hour: ${optimalHour})`);
+
+    await this.deliverOutreach({
+      lead,
+      userId,
+      subject: aiContent.subject,
+      body: aiContent.body,
+      channel: lead.channel,
+      scheduledAt: nextRun,
+      integrationId
+    });
+  }
+
+  /**
+   * Helper to deliver autonomous Instagram outreach
+   */
+  private async deliverOutreach(params: {
+    lead: any;
+    userId: string;
+    subject: string;
+    body: string;
+    channel: string;
+    scheduledAt?: Date;
+    integrationId?: string;
+  }) {
+    const { lead, userId, subject, body, channel, scheduledAt, integrationId } = params;
+    
+    if (scheduledAt && scheduledAt > new Date()) {
+      await storage.updateLead(lead.id, {
+        metadata: { ...(lead.metadata as any || {}), scheduledAt: scheduledAt.toISOString() }
+      });
+      return;
+    }
+
+    try {
+      if (channel === 'instagram') {
+        await sendInstagramOutreach(userId, (lead.metadata as any)?.instagramId || lead.externalId, body);
+      } else {
+        await sendEmail(userId, lead.email, body, subject, {
+          isRaw: true,
+          isHtml: true,
+          leadId: lead.id,
+          integrationId
+        });
+      }
     } catch (sendError: any) {
       const errorMsg = sendError.message || 'Unknown send error';
-      console.error(`[OutreachEngine] ❌ Autonomous send failed for ${lead.email} via ${integrationId}: ${errorMsg}`);
-
-      if (mailboxHealthService.isMailboxError(errorMsg)) {
-        const integration = await storage.getIntegrationById(integrationId);
-        if (integration) {
-          await mailboxHealthService.handleMailboxFailure(integration, errorMsg);
-        }
-      }
-      
-      // Mark lead as failed for now, won't retry in same tick
-      await db.update(leads)
-        .set({ status: 'failed', updatedAt: new Date() })
-        .where(eq(leads.id, lead.id));
-      
-      return; // Stop
+      console.error(`[OutreachEngine] ❌ Autonomous send failed for ${lead.email || lead.id}: ${errorMsg}`);
+      return;
     }
 
     await storage.createMessage({
       userId,
       leadId: lead.id,
-      provider: 'email',
+      provider: channel as "email" | "instagram" | "gmail" | "system",
       direction: 'outbound',
-      subject: aiContent.subject,
-      body: aiContent.body,
-      trackingId, // Save the tracking ID
+      subject,
+      body,
       metadata: { autonomous: true, integrationId }
     });
 
@@ -913,12 +1042,6 @@ export class OutreachEngine {
 
     wsSync.notifyLeadsUpdated(userId, { leadId: lead.id, action: 'autonomous_sent' });
     wsSync.notifyInsightsUpdated(userId);
-    wsSync.notifyActivityUpdated(userId, {
-      type: 'autonomous_outreach',
-      leadId: lead.id,
-      title: 'Autonomous Outreach Sent',
-      message: `AI sent a message to ${lead.name || lead.email}`
-    });
   }
 
   /**
@@ -981,10 +1104,14 @@ export class OutreachEngine {
       })
       .where(eq(campaignLeads.id, leadEntry.id));
 
-    // Update stats
+    // Update stats atomically
     await db.update(outreachCampaigns)
       .set({
-        stats: sql`jsonb_set(stats, '{sent}', (COALESCE((stats->>'sent')::int, 0) + 1)::text::jsonb)`,
+        stats: sql`jsonb_set(
+          COALESCE(stats, '{"sent":0,"total":0,"replied":0,"bounced":0}'::jsonb), 
+          '{sent}', 
+          (COALESCE((stats->>'sent')::int, 0) + 1)::text::jsonb
+        )`,
         updatedAt: new Date()
       })
       .where(eq(outreachCampaigns.id, campaign.id));
@@ -1005,7 +1132,6 @@ export class OutreachEngine {
 
     const aiContent = await generateExpertOutreach(lead, userId);
 
-    await sendInstagramOutreach(userId, instagramId, aiContent.body);
 
     await storage.createMessage({
       userId,
@@ -1029,6 +1155,64 @@ export class OutreachEngine {
     wsSync.notifyLeadsUpdated(userId, { leadId: lead.id, action: 'autonomous_sent' });
     wsSync.notifyStatsUpdated(userId);
     wsSync.notifyInsightsUpdated(userId);
+  }
+
+  /**
+   * Phase 46: Self-Healing Redistribution
+   * Re-assigns leads from unhealthy or paused mailboxes to healthy ones.
+   */
+  private async selfHealMailboxDistribution(userId: string): Promise<void> {
+    try {
+      const integrationsList = await storage.getIntegrations(userId);
+      const unhealthyMailboxes = integrationsList.filter(i => 
+        ['gmail', 'outlook', 'custom_email'].includes(i.provider) && 
+        (i.warmupStatus === 'paused' || (i.reputationScore !== null && i.reputationScore < 65))
+      );
+
+      if (unhealthyMailboxes.length === 0) return;
+
+      const healthyMailboxes = integrationsList.filter(i => 
+        ['gmail', 'outlook', 'custom_email'].includes(i.provider) && 
+        i.connected && 
+        i.warmupStatus !== 'paused' && 
+        (i.reputationScore === null || i.reputationScore >= 75)
+      );
+
+      if (healthyMailboxes.length === 0) {
+        console.warn(`[Self-Healing] No healthy mailboxes available for redistribution for user ${userId}`);
+        return;
+      }
+
+      for (const unhealthy of unhealthyMailboxes) {
+        // Find leads assigned to this unhealthy mailbox
+        const leadsToHeal = await db.select()
+          .from(leads)
+          .where(and(
+            eq(leads.userId, userId),
+            eq(leads.status, 'new'),
+            sql`${leads.metadata}->>'integrationId' = ${unhealthy.id}`
+          ))
+          .limit(50);
+
+        if (leadsToHeal.length === 0) continue;
+
+        console.log(`🛡️ [Self-Healing] Redistributing ${leadsToHeal.length} leads from unhealthy mailbox ${unhealthy.id}`);
+
+        for (let i = 0; i < leadsToHeal.length; i++) {
+          const targetMailbox = healthyMailboxes[i % healthyMailboxes.length];
+          await storage.updateLead(leadsToHeal[i].id, {
+            metadata: {
+              ...(leadsToHeal[i].metadata as any || {}),
+              integrationId: targetMailbox.id,
+              healedAt: new Date().toISOString(),
+              previousIntegrationId: unhealthy.id
+            }
+          });
+        }
+      }
+    } catch (error) {
+      console.error("[Self-Healing] Redistribution error:", error);
+    }
   }
 }
 

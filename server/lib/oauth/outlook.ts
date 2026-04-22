@@ -281,65 +281,78 @@ export class OutlookOAuth {
         return null;
       }
 
-      const lockKey = userId;
+      const lockKey = `oauth:outlook:${userId}`;
       
-      // If a refresh is already in progress, wait for it
-      const existingLock = OutlookOAuth.refreshLocks.get(lockKey);
-      if (existingLock) {
-        console.log(`[Outlook OAuth] 🔒 Refresh already in progress for ${lockKey}, waiting...`);
-        return existingLock;
+      // Phase 12: Distributed Lock to prevent refresh race conditions
+      const { acquireLock, releaseLock } = await import('../redis.js');
+      const hasLock = await acquireLock(lockKey, 30);
+      
+      if (!hasLock) {
+        console.log(`[Outlook OAuth] 🔒 Refresh already in progress for ${lockKey} (on another node), waiting...`);
+        // Poll for 5 seconds to see if the other node updated the DB
+        for (let i = 0; i < 10; i++) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          const updatedToken = await storage.getOAuthAccount(userId, 'outlook');
+          if (updatedToken && updatedToken.expiresAt && new Date(updatedToken.expiresAt) > new Date(Date.now() + 2 * 60 * 1000)) {
+            console.log(`[Outlook OAuth] ✨ Token was refreshed by another node for ${lockKey}`);
+            return updatedToken.accessToken ? await decrypt(updatedToken.accessToken) : null;
+          }
+        }
+        // If we still don't have it, we'll try to steal the lock or fail
+        console.warn(`[Outlook OAuth] ⚠️ Wait timeout for ${lockKey}, proceeding to steal lock.`);
       }
 
       const refreshPromise = (async () => {
         try {
           // Refresh the token
           const decryptedRefreshToken = await decrypt(tokenData.refreshToken!);
-        const newTokens = await this.refreshAccessToken(decryptedRefreshToken);
+          const newTokens = await this.refreshAccessToken(decryptedRefreshToken);
 
-        // Update stored tokens
-        const encryptedNewAccessToken = await encrypt(newTokens.access_token);
-        const encryptedNewRefreshToken = newTokens.refresh_token ?
-          await encrypt(newTokens.refresh_token) :
-          tokenData.refreshToken;
+          // Update stored tokens
+          const encryptedNewAccessToken = await encrypt(newTokens.access_token);
+          const encryptedNewRefreshToken = newTokens.refresh_token ?
+            await encrypt(newTokens.refresh_token) :
+            tokenData.refreshToken;
 
-        const newExpiresAt = new Date(Date.now() + (newTokens.expires_in * 1000));
+          const newExpiresAt = new Date(Date.now() + (newTokens.expires_in * 1000));
 
-        await storage.saveOAuthAccount({
-          userId: userId,
-          provider: 'outlook',
-          providerAccountId: tokenData.providerAccountId,
-          accessToken: encryptedNewAccessToken,
-          refreshToken: encryptedNewRefreshToken,
-          expiresAt: newExpiresAt,
-          scope: newTokens.scope,
-          tokenType: newTokens.token_type
-        });
+          await storage.saveOAuthAccount({
+            userId: userId,
+            provider: 'outlook',
+            providerAccountId: tokenData.providerAccountId,
+            accessToken: encryptedNewAccessToken,
+            refreshToken: encryptedNewRefreshToken,
+            expiresAt: newExpiresAt,
+            scope: newTokens.scope,
+            tokenType: newTokens.token_type
+          });
 
-        // Sync back to integrations table
-        const allIntegrations = await storage.getIntegrations(userId);
-        const outlookInt = allIntegrations.find(i => i.provider === 'outlook' && (i as any).accountType === tokenData.providerAccountId);
-        if (outlookInt) {
-          const decryptedMeta = JSON.parse(decrypt(outlookInt.encryptedMeta));
-          const updatedMeta = encrypt(JSON.stringify({
-            ...decryptedMeta,
-            access_token: newTokens.access_token,
-            refresh_token: newTokens.refresh_token || decryptedMeta.refresh_token,
-            expiry_date: newExpiresAt.getTime(),
-          }));
-          await storage.updateIntegrationById(outlookInt.id, { encryptedMeta: updatedMeta });
+          // Sync back to integrations table
+          const allIntegrations = await storage.getIntegrations(userId);
+          const outlookInt = allIntegrations.find(i => i.provider === 'outlook' && (i as any).accountType === tokenData.providerAccountId);
+          if (outlookInt) {
+            const decryptedMeta = JSON.parse(decrypt(outlookInt.encryptedMeta));
+            const updatedMeta = encrypt(JSON.stringify({
+              ...decryptedMeta,
+              access_token: newTokens.access_token,
+              refresh_token: newTokens.refresh_token || decryptedMeta.refresh_token,
+              expiry_date: newExpiresAt.getTime(),
+            }));
+            await storage.updateIntegrationById(outlookInt.id, { encryptedMeta: updatedMeta });
+          }
+
+          return newTokens.access_token;
+        } catch (error) {
+          console.error('Error refreshing Outlook token:', error);
+          return null;
+        } finally {
+          await releaseLock(lockKey);
+          OutlookOAuth.refreshLocks.delete(lockKey);
         }
+      })();
 
-        return newTokens.access_token;
-      } catch (error) {
-        console.error('Error refreshing Outlook token:', error);
-        return null;
-      } finally {
-        OutlookOAuth.refreshLocks.delete(lockKey);
-      }
-    })();
-
-    OutlookOAuth.refreshLocks.set(lockKey, refreshPromise);
-    return refreshPromise;
+      OutlookOAuth.refreshLocks.set(lockKey, refreshPromise);
+      return refreshPromise;
     }
 
     // Token is still valid

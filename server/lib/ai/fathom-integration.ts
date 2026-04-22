@@ -165,7 +165,7 @@ export async function processFathomWebhook(payload: FathomWebhookPayload) {
         
         // Update the call record with the analysis result
         await db.update(fathomCalls)
-          .set({ analysis })
+          .set({ analysis: analysis as any })
           .where(and(eq(fathomCalls.fathomMeetingId, fathomMeetingId), eq(fathomCalls.leadId, lead.id)));
 
         // Phase 3: Persist BANT to Leads table autonomously
@@ -214,7 +214,7 @@ export async function processFathomWebhook(payload: FathomWebhookPayload) {
             userId: lead.userId,
             leadId: lead.id,
             fathomMeetingId: fathomMeetingId,
-            status: 'pending',
+            status: 'pending' as any,
             amountDetected: parsedAmount || null,
           }).returning();
 
@@ -259,7 +259,7 @@ export async function processFathomWebhook(payload: FathomWebhookPayload) {
         console.error("Coaching analysis failed:", e);
         // Persist failure state instead of mock data
         await db.update(fathomCalls)
-          .set({ analysis: { status: 'failed_to_analyze', error: (e as Error).message } })
+          .set({ analysis: { status: 'failed_to_analyze', error: (e as Error).message } as any })
           .where(and(eq(fathomCalls.fathomMeetingId, fathomMeetingId), eq(fathomCalls.leadId, lead.id)));
       }
 

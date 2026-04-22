@@ -364,7 +364,7 @@ router.get("/analytics/revenue", async (req: express.Request, res: express.Respo
     `);
 
     // Calculate revenue per day
-    const revenueData = (subscriptionsByDate.rows as SubscriptionRow[]).reduce((acc: RevenueDataItem[], row: SubscriptionRow) => {
+    const revenueData = (subscriptionsByDate.rows as unknown as SubscriptionRow[]).reduce((acc: RevenueDataItem[], row: SubscriptionRow) => {
       const existingDay = acc.find(d => d.date === row.date);
       const revenue = (planPrices[row.plan] || 0) * parseInt(row.subscriptions);
 
@@ -447,17 +447,17 @@ router.get("/analytics/onboarding", async (req: express.Request, res: express.Re
     const totalOnboarded = Number(totalResult[0]?.count || 0);
 
     // Transform snake_case to camelCase for frontend
-    const roles = (roleStats.rows as OnboardingStatRow[]).map((row: OnboardingStatRow) => ({
+    const roles = (roleStats.rows as unknown as OnboardingStatRow[]).map((row: OnboardingStatRow) => ({
       userRole: row.user_role,
       count: Number(row.count)
     }));
 
-    const sources = (sourceStats.rows as OnboardingStatRow[]).map((row: OnboardingStatRow) => ({
+    const sources = (sourceStats.rows as unknown as OnboardingStatRow[]).map((row: OnboardingStatRow) => ({
       source: row.source,
       count: Number(row.count)
     }));
 
-    const businessSizes = (sizeStats.rows as OnboardingStatRow[]).map((row: OnboardingStatRow) => ({
+    const businessSizes = (sizeStats.rows as unknown as OnboardingStatRow[]).map((row: OnboardingStatRow) => ({
       businessSize: row.business_size,
       count: Number(row.count)
     }));

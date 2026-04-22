@@ -21,13 +21,17 @@ import { encrypt, decrypt } from '../crypto/encryption.js';
 import { db } from '../../db.js';
 import { users, integrations, notifications } from '../../../shared/schema.js';
 import { eq, and } from 'drizzle-orm';
-import { generateReply } from './ai-service.js';
+import { generateReply, estimateTokens } from './ai-service.js';
 import { getStyleMarkers, type StyleMarkers } from './personality-learner.js';
 import { getCalendlyPrefillLink } from '../integrations/calendly.js';
 import { getLeadProfile } from '../calendar/lead-timezone-intelligence.js';
-import { searchSimilarChunks } from './vector-search.js';
+import { calculateSimilarity } from './utils.js';
+import { getRegionalInstruction } from './regional-norms.js';
+import { objectionService } from './objection-service.js';
+import { videoMonitors } from '../../../shared/schema.js';
 
 const isDemoMode = false;
+const PROMPT_VERSION = 'v1.2.0-resilience';
 
 /**
  * Detect if lead is actively engaged (replying immediately)
@@ -172,6 +176,7 @@ export interface AIReplyResult {
   blocked?: boolean;
   blockedReason?: string;
   detections?: any;
+  metadata?: any;
 }
 
 export interface MemoryRetrievalResult {
@@ -250,7 +255,8 @@ export async function generateAIReply(
     throw new Error("Intelligence Engine Disconnected: System requires live API key for real-time inference.");
   }
 
-  const brandContext = await getBrandContext(lead.userId);
+  const personaId = (lead.metadata as any)?.personaId;
+  const brandContext = await getBrandContext(lead.userId, personaId);
   const user = await storage.getUserById(lead.userId);
 
   // ─── BOOKED LEAD HARD-BLOCK ───────────────────────────────────────────────
@@ -291,7 +297,11 @@ export async function generateAIReply(
   const styleMarkers = await getStyleMarkers(lead.userId);
 
   // --- OBJECTION HANDLING LOOP ---
+  // PHASE 52: Inject winning handles from Objection Service
+  const winningPlaybook = objectionService.formatPlaybookForPrompt(lead.userId);
+
   if (intent?.hasObjection || intent?.isNegative) {
+    const bestHandle = objectionService.getBestHandle(lead.userId, lastLeadMessage?.body || "");
     console.log(`🛡️ Objection detected for lead ${lead.id}. Triggering closer logic.`);
     const objectionResponse = await generateAutonomousObjectionResponse(lastLeadMessage?.body || "", {
       leadName: lead.name || "there",
@@ -311,47 +321,57 @@ export async function generateAIReply(
     };
   }
 
+  // --- OOO & WRONG PERSON HANDLING (PHASE 30) ---
+  if (intent?.isOOO) {
+    console.log(`[ConversationAI] 🌴 OOO detected for lead ${lead.id}. Blocking AI response for rescheduling.`);
+    return {
+      text: '',
+      useVoice: false,
+      blocked: true,
+      blockedReason: 'ooo',
+      detections: intent
+    };
+  }
+
+  if (intent?.isWrongPerson || (intent?.isNegative && (intent?.confidence || 0) > 0.9 && /wrong|not me|not the person/i.test(lastLeadMessage?.body || ""))) {
+    console.log(`[ConversationAI] 👤 "Wrong Person" detected for lead ${lead.id}. Closing lead.`);
+    await storage.updateLead(lead.id, { 
+      status: 'not_interested',
+      metadata: { 
+        ...(lead.metadata as any || {}), 
+        closedReason: 'wrong_person',
+        closedAt: new Date().toISOString()
+      }
+    });
+    return {
+      text: '', // In case we want to send a "sorry" message, but usually better to stop
+      useVoice: false,
+      blocked: true,
+      blockedReason: 'wrong_person',
+      detections: intent
+    };
+  }
+
   // --- STRATEGIC DECISION LOGGING ---
   if (intent) {
     await evaluateAndLogDecision({
       userId: lead.userId,
       leadId: lead.id,
       actionType: intent.wantsToSchedule ? 'calendar_booking' : 'dm_sent',
-      intentScore: intent.confidence * 100,
+      intentScore: (intent.confidence || 0) * 100,
       timingScore: 80, // Default for active conversation
-      confidence: intent.confidence,
+      confidence: intent.confidence || 0,
       metadata: { intent }
     });
   }
-
-  const messageContext: Array<{ role: 'user' | 'assistant'; content: string }> = allMessages.slice(-20).map(m => ({
-    role: m.direction === 'inbound' ? 'user' as const : 'assistant' as const,
-    content: m.body
-  }));
 
   const enrichedContext = memoryResult.context
     ? `\n\nCONVERSATION INSIGHTS:\n${memoryResult.context}`
     : '';
 
-  // --- STYLE & EMOTION INJECTION ---
-  const stylePrompt = `
-Your writing style must match these markers:
-- Tone: ${styleMarkers.tone}
-- Sentence Length: ${styleMarkers.avgSentenceLength}
-- Greetings to use: ${styleMarkers.commonGreetings.join(', ')}
-- Signoffs to use: ${styleMarkers.commonSignoffs.join(', ')}
-- Vocabulary: ${styleMarkers.vocabularyComplexity}
-- Use Emojis: ${styleMarkers.useOfEmojis ? 'Yes' : 'No'}
-- Use Exclamations: ${styleMarkers.useOfExclamation ? 'Yes' : 'No'}
-`;
-
-  const emotionPrompt = intent ? `
-Lead Emotion: ${intent.emotion}
-Lead Urgency: ${intent.urgency}
-Lead Style: ${intent.style}
-Adapt your response to match their energy. If they are frustrated, be empathetic. If they are excited, be enthusiastic. If they are blunt/urgent, be direct and fast.
-` : '';
-
+  // Phase 23: Dynamic Context Pruning based on estimated tokens (Budget: 3,000 tokens)
+  const CONTEXT_TOKEN_BUDGET = 3000;
+  
   // ─── NICHE + TIMEZONE INTELLIGENCE ───────────────────────────────────────
   const leadTzProfile = await getLeadProfile(lead.id).catch(() => null);
   const leadLocalTz   = leadTzProfile?.detectedTimezone || 'unknown local time';
@@ -378,10 +398,53 @@ KNOWN SCHEDULING INTELLIGENCE (do NOT disclose to lead):
 - Suggest times like: "How does Thursday at 5pm work for you?"
 `;
 
+  const stylePrompt = intent?.style ? `[STYLE INSTRUCTION]\nMirror their ${intent.style} style.` : '';
+  const emotionPrompt = intent?.emotion ? `[EMOTION INSTRUCTION]\nAcknowledge their ${intent.emotion} emotion.` : '';
+
+  let currentTokenCount = estimateTokens(enrichedContext + stylePrompt + emotionPrompt + leadIntelContext);
+  const messageContext: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+  
+  // Iterate backwards through history to fit within budget
+  for (let i = allMessages.length - 1; i >= 0; i--) {
+    const msg = allMessages[i];
+    const msgTokens = estimateTokens(msg.body);
+    if (currentTokenCount + msgTokens > CONTEXT_TOKEN_BUDGET) break;
+    
+    messageContext.unshift({
+      role: msg.direction === 'inbound' ? 'user' : 'assistant',
+      content: msg.body
+    });
+    currentTokenCount += msgTokens;
+  }
+
+  // --- STYLE & EMOTION INJECTION ---
   const platformTone: Record<string, string> = {
     instagram: 'casual, friendly, and conversational with emojis',
     email: 'professional yet approachable, well-structured'
   };
+
+  // ─── PHASE 53: PERSONALIZED MEDIA REFERENCE ──────────────────────────────
+  let mediaInstruction = "";
+  if (lead.score >= 90) {
+    const activeVideos = await db.select().from(videoMonitors).where(eq(videoMonitors.userId, lead.userId)).limit(3);
+    if (activeVideos.length > 0) {
+      mediaInstruction = `
+[PHASE 53] PERSONALIZED MEDIA ASSETS:
+This is a High-Value lead. Use a personalized approach. 
+If it feels natural (e.g. "I'd love to see a demo" or "How does this work?"), reference this video breakdown:
+${activeVideos.map((v: any) => `- "${v.ctaText}": ${v.videoUrl}`).join('\n')}
+Say something like: "I actually made a quick video breakdown showing exactly how we handle this: ${activeVideos[0].videoUrl}"
+`;
+    }
+  }
+
+  // ─── PHASE 51: CROSS-CHANNEL NARRATIVE ───────────────────────────────────
+  const crossChannelHistory = allMessages.filter(m => m.provider !== platform && m.provider !== 'system');
+  const narrativeSummary = crossChannelHistory.length > 0
+    ? `\n[PHASE 51] CROSS-CHANNEL NARRATIVE HISTORY:\n` +
+      crossChannelHistory.slice(-3).map(m => `- [${m.provider.toUpperCase()}]: ${m.body}`).join('\n') +
+      `\nYou MUST ensure this reply fits the narrative established on other channels.`
+    : '';
 
   // ─── STATUS-AWARE DYNAMIC PROMPT BUILDER ─────────────────────────────────
   const STATUS_PLAYBOOK: Record<string, string> = {
@@ -443,14 +506,27 @@ Only meeting reminders are authorised. Do not generate a response.`,
   const currentStatus = lead.status || 'new';
   const statusInstruction = STATUS_PLAYBOOK[currentStatus] || STATUS_PLAYBOOK['open'];
 
+  // --- GLOBAL LOCALIZATION (Phase 32) ---
+  const languageCode = intent?.languageCode || 'en';
+  const languageMap: Record<string, string> = {
+    'en': 'English', 'es': 'Spanish', 'fr': 'French', 'de': 'German',
+    'it': 'Italian', 'pt': 'Portuguese', 'zh': 'Mandarin Chinese',
+    'ar': 'Arabic', 'hi': 'Hindi'
+  };
+  const languageName = languageMap[languageCode] || 'English';
+
+  const languageInstruction = languageCode !== 'en'
+    ? `\n\n[GLOBAL LOCALIZATION]: The lead is communicating in ${languageName}. You MUST respond entirely in ${languageName}. Maintain the brand's tone, professionalism, and voice rules natively in ${languageName}. Use cultural business idioms, not literal translations.`
+    : "";
+
+  const regionalInstruction = getRegionalInstruction(intent?.detectedCountry || null);
+
   const inboundCount = conversationHistory.filter(m => m.direction === 'inbound').length;
   const shouldPushBooking = (currentStatus === 'open' && inboundCount >= 2) || currentStatus === 'replied' || currentStatus === 'warm';
 
   const systemPrompt = `You are an elite sales advisor — a real person, not a bot. You know this lead, their niche (${leadNiche}), and you behave like a sharp, experienced closer who always knows what happens next.
 
 [BRAND GUIDELINES]
-${brandGuidelines}
-
 ${brandGuidelines}
 
 ${(brandContext as any)?.brandSnippets?.length > 0
@@ -463,13 +539,19 @@ ${stylePrompt}
 
 ${emotionPrompt}
 
+${languageInstruction}
+
+${regionalInstruction}
+
+[LEAD PRIORITY]: ${lead.score >= 85 ? 'PRIMARY (A) - Ultra-High Value. Close aggressively.' : lead.score >= 60 ? 'STANDARD (B) - Good potential. Nurture with value.' : 'LOW (C) - Early stage. Build rapport.'}
+Score: ${lead.score}/100
+
 [PLATFORM]: ${platform} — Tone: ${platformTone[platform]}
 
 [CURRENT STATUS PLAYBOOK — FOLLOW THIS EXACTLY]
 Lead Status: ${currentStatus.toUpperCase()}
 ${statusInstruction}
 
-[BOOKING INTELLIGENCE]
 ${shouldPushBooking
   ? `This lead is ready. Move toward booking. Suggest a specific day+time from their niche window.
 Write copy like: "How does Thursday at 5pm work?" or "Are you free Wednesday around 6pm? — 20 minutes max."
@@ -477,18 +559,38 @@ Never say "slot available" — sound human.`
   : `Don't force a booking pitch yet. Build the relationship first.`
 }
 
+${winningPlaybook}
+
+${mediaInstruction}
+
+${narrativeSummary}
+
 [HARD RULES — NEVER BREAK]
+- NEVER use generic greetings like "Hey", "Hey there", "Hi there", or "Hi [Name]!".
+- STRICTLY follow the opening pattern and phrasing found in the [BRAND GUIDELINES] exactly.
 - NEVER mention timezone names (Africa/Lagos, America/Chicago, etc.) in replies
 - NEVER say "the following slots are available" or "your slot is confirmed" — speak like a human
 - NEVER send more than 3 sentences for DMs, never more than 2 short paragraphs for email
-- NEVER start with "Hi [name]!" followed by filler — lead with something real
+- NEVER start with a greeting followed by filler — lead with something real from the user's copy
 - If they ask what time, always write it as "X your time" without saying what timezone
 - All conflict handling: "I've got something on then — how about [day] at [time]?"
 ${enrichedContext}`;
 
   const lastMessage = conversationHistory[conversationHistory.length - 1];
   if (!lastMessage || lastMessage.direction !== 'inbound') {
-    return { text: optimizeSalesLanguage("Thanks for reaching out! How can I help you?"), useVoice: false };
+    const response = await generateReply(systemPrompt, "[No Inbound Message]", {
+      model: user?.metadata?.aiModel as string || 'gpt-4o',
+      temperature: 0.7,
+      maxTokens: 500,
+      history: messageContext
+    });
+
+    return {
+      text: response?.text?.trim().replace(/^['"]|['"]$/g, '') || "Following up.",
+      useVoice: false,
+      detections: { ...(intent || {}), channelFormatted: true },
+      metadata: { promptVersion: PROMPT_VERSION }
+    } as AIReplyResult;
   }
 
   const languageDetection: LanguageDetection = detectLanguage(lastMessage.body);
@@ -514,7 +616,7 @@ ${enrichedContext}`;
     };
   }
 
-  const competitorMention: CompetitorMentionResult = detectCompetitorMention(lastMessage.body);
+  const competitorMention: CompetitorMentionResult = await detectCompetitorMention(lastMessage.body);
   if (competitorMention.detected && competitorMention.response) {
     await trackCompetitorMention(
       lead.userId,
@@ -631,13 +733,74 @@ ${enrichedContext}`;
       }
     }
 
-    const aiResponse = await generateReply(systemPrompt, lastMessage.body, {
-      model: MODELS.sales_reasoning,
-      temperature: 0.8,
-      maxTokens: platform === 'email' ? 300 : 150,
-    });
+    // --- SEMANTIC DEDUPLICATION (PHASE 29) ---
+    const lastOutbound = conversationHistory.filter(m => m.direction === 'outbound').pop();
+    const lastOutboundBody = lastOutbound?.body || "";
+    let similarity = 0;
+    let retryCount = 0;
+    let finalAiResponse = null;
+
+    while (retryCount < 2) {
+      const currentSystemPrompt = retryCount === 0 
+        ? systemPrompt 
+        : `${systemPrompt}\n\n[DEDUPLICATION ALERT]: Your previous attempt was too similar to our last message. REPHRASE COMPLETELY. Use a different opening and a different value proposition. Do not repeat sentences.`;
+
+      finalAiResponse = await generateReply(currentSystemPrompt, lastMessage.body, {
+        model: MODELS.sales_reasoning,
+        temperature: retryCount === 0 ? 0.8 : 0.95, // Increase temperature on retry
+        maxTokens: platform === 'email' ? 300 : 150,
+        history: messageContext
+      });
+
+      similarity = calculateSimilarity(finalAiResponse.text, lastOutboundBody);
+      
+      if (similarity < 0.8) {
+        break; // Message is unique enough
+      }
+      
+      console.warn(`[Deduplication] Duplicate detected (Score: ${similarity.toFixed(2)}). Retry ${retryCount + 1}/2...`);
+      retryCount++;
+    }
+
+    if (similarity >= 0.8) {
+      console.error(`[Deduplication] 🛑 Permanent duplicate for lead ${lead.id}. Blocking message.`);
+      return {
+        text: '',
+        useVoice: false,
+        blocked: true,
+        blockedReason: 'duplicate'
+      };
+    }
+
+    const aiResponse = finalAiResponse!;
 
     let responseText = aiResponse.text;
+
+    // Phase 22 & 25: Post-generation persistence (Reset failures and track usage)
+    try {
+      await storage.updateLead(lead.id, {
+          metadata: {
+            ...(lead.metadata as any || {}),
+            aiFailCount: 0,
+            lastAIGenerationAt: new Date().toISOString(),
+            lastPromptVersion: PROMPT_VERSION
+          }
+      });
+
+      // Track usage for budget management
+      if (user) {
+        const currentUsage = (user.intelligenceMetadata as any)?.dailyTokenUsage || 0;
+        await storage.updateUser(user.id, {
+          intelligenceMetadata: {
+            ...(user.intelligenceMetadata as any || {}),
+            dailyTokenUsage: currentUsage + aiResponse.tokensUsed,
+            lastAIGenerationAt: new Date().toISOString()
+          }
+        });
+      }
+    } catch (persistErr) {
+      console.error("[ConversationAI] Metadata update failed (non-critical):", persistErr);
+    }
 
     // Conditional Link Injection: NO tracking/links in 1st email
     const isFirstTouch = conversationHistory.length <= 1;
@@ -667,14 +830,33 @@ ${enrichedContext}`;
     console.log(`📝 Channel-formatted reply for ${platform}: ${formattedReply.message.substring(0, 100)}...`);
 
     return {
-      text: formattedReply.message,
-      useVoice: detectionResult.shouldUseVoice === true && isWarm,
-      detections: { ...(intent || {}), channelFormatted: true }
-    };
+      text: optimizedText,
+      useVoice: false,
+      detections: { ...(intent || {}), channelFormatted: true },
+      metadata: { promptVersion: PROMPT_VERSION }
+    } as AIReplyResult;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error("AI reply generation error:", errorMessage);
     
+    // Phase 22: Circuit Breaker - increment failure count and auto-pause if needed
+    try {
+      const isPaused = await storage.incrementAIFailureCount(lead.id);
+      if (isPaused) {
+        console.warn(`[ConversationAI] 🛑 Lead ${lead.id} auto-paused due to repeated generation failures.`);
+        
+        await storage.createNotification({
+          userId: lead.userId,
+          type: 'system',
+          title: 'AI Auto-Paused 🛑',
+          message: `We've paused the AI for ${lead.name} because it hit consecutive generation errors. You might want to step in manually.`,
+          metadata: { leadId: lead.id }
+        });
+      }
+    } catch (trackErr) {
+      console.error("[ConversationAI] Failed to track AI failure:", trackErr);
+    }
+
     // Robust production fallback - localized and polite
     const fallbackText = await getLocalizedResponse(
       "Thanks for your message! Looking forward to connecting shortly.",
@@ -876,7 +1058,12 @@ export async function getConversationContext(
 export async function generateExpertOutreach(
   lead: Lead,
   userId: string
-): Promise<{ subject: string, body: string, alternatives: string[] }> {
+): Promise<{ 
+  subject: string, 
+  body: string, 
+  alternatives: string[],
+  variant: 'curiosity' | 'result'
+}> {
   const brandContext = await getBrandContext(userId);
   const user = await storage.getUserById(userId);
   const intelligence = (user as any)?.intelligenceMetadata || {};
@@ -889,8 +1076,9 @@ export async function generateExpertOutreach(
   // Semantically retrieve the best knowledge fragments for this specific lead/industry
   let ragContext = "";
   try {
-    const relevantChunks = await searchSimilarChunks(`${lead.company} ${industry} ${leadRole}`, userId, 5);
-    ragContext = relevantChunks.map(c => `[From ${c.fileName}]: ${c.content}`).join("\n\n");
+    // Disabled as searchSimilarChunks is not available globally yet
+    // const relevantChunks = await searchSimilarChunks(`${lead.company} ${industry} ${leadRole}`, userId, 5);
+    // ragContext = relevantChunks.map(c => `[From ${c.fileName}]: ${c.content}`).join("\n\n");
   } catch (ragError) {
     console.warn("⚠️ [RAG] Outreach retrieval error:", ragError);
   }
@@ -935,13 +1123,18 @@ export async function generateExpertOutreach(
 
     OUTPUT FORMAT (JSON):
     {
-      "subjects": [
-        "short provocative version (Fear of Missing Out / Professional)",
-        "result-oriented version",
-        "human peer-to-peer version"
-      ],
-      "best_subject_index": 0,
-      "body_html": "3-4 punchy sentences. High-contrast plain text style HTML (<p>). Focus on the 20% shift that drives 80% results. End with a curiosity-focused question."
+      "variants": [
+        {
+          "type": "curiosity",
+          "subject": "FOMO/Disruption subject",
+          "body": "Curiosity-gap focused body"
+        },
+        {
+          "type": "result",
+          "subject": "ROI/Outcome subject",
+          "body": "Result-focused transformation body"
+        }
+      ]
     }`;
 
     const aiResponse = await generateReply(systemPrompt, `Craft the opening disruption for ${lead.name} (${leadRole}) at ${lead.company || "their company"}. Use the brand offer to bridge their ${industry} gap and set up the bridge to a booked call.`, {
@@ -949,14 +1142,30 @@ export async function generateExpertOutreach(
       jsonMode: true
     });
 
-    const result = JSON.parse(aiResponse.text || '{}');
+    const rawText = aiResponse.text || '{}';
+    let result: any;
+    try {
+      result = JSON.parse(rawText);
+    } catch (parseErr) {
+      throw new Error(`[generateExpertOutreach] AI returned invalid JSON: ${rawText.substring(0, 200)}`);
+    }
 
-    if (!result.subjects || !result.body_html) throw new Error("Incomplete Intel Generation");
+    const variants = result.variants || [];
+    if (!Array.isArray(variants) || variants.length === 0) {
+       throw new Error(`[generateExpertOutreach] AI returned no variants`);
+    }
+
+    // Select variant based on lead ID (deterministic A/B split)
+    // Convert first 2 chars of UUID lead.id to int and mod 2
+    const leadSeed = lead.id ? parseInt(lead.id.substring(0, 2), 16) || 0 : 0;
+    const variantIndex = leadSeed % variants.length;
+    const selected = variants[variantIndex];
 
     return {
-      subject: result.subjects[result.best_subject_index] || result.subjects[0],
-      body: result.body_html,
-      alternatives: result.subjects
+      subject: selected.subject,
+      body: selected.body,
+      alternatives: variants.map((v: any) => v.subject),
+      variant: selected.type || (variantIndex === 0 ? 'curiosity' : 'result')
     };
   } catch (error: any) {
     const isQuotaError = error?.message?.includes('quota') || error?.status === 429;
@@ -979,7 +1188,8 @@ export async function generateExpertOutreach(
         `Disruptive question for ${lead.company || "the team"}`,
         `Regarding the ${leadRole} roadmap at ${lead.company || "the company"}`,
         `Quick theory on ${industry} scalability`
-      ]
+      ],
+      variant: 'curiosity'
     };
   }
 }
@@ -1006,10 +1216,9 @@ export async function generateCampaignTemplateSequence(
   const intelligence = (user as any)?.intelligenceMetadata || {};
   let ragContext = "Use general brand context.";
   try {
-    const ragContextChunks = await searchSimilarChunks("Campaign sequence " + (focus || ""), userId, 3);
-    if (ragContextChunks && ragContextChunks.length > 0) {
-      ragContext = ragContextChunks.map((c: any) => c.content).join("\n\n");
-    }
+    // Disabled searchSimilarChunks
+    // const ragContextChunks = await searchSimilarChunks("Campaign sequence " + (focus || ""), userId, 3);
+    // if (ragContextChunks && ragContextChunks.length > 0) { ... }
   } catch (e) {
     // Ignore, fallback to default
   }

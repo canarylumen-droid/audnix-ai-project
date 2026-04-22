@@ -16,48 +16,14 @@ function getSessionUserId(req: Request): string | undefined {
   return session?.userId;
 }
 
-if (process.env.NODE_ENV === 'production' && !process.env.REDIS_URL) {
-  console.warn('⚠️  REDIS_URL not set - rate limiting will use memory (not recommended for production)');
-  console.warn('💡 Add Redis from Replit to prevent rate limit bypass across restarts');
-}
+import { getRedisClient } from '../lib/redis.js';
 
-let redisClient: RedisClientType | null = null;
+let redisClient: any = null;
 
 async function initRedis(): Promise<void> {
-  if (!process.env.REDIS_URL) {
-    console.log('ℹ️  Redis not configured - using memory-based rate limiting');
-    return;
-  }
-
-  try {
-    let redisUrl = process.env.REDIS_URL.trim();
-
-    if (redisUrl.includes('redis-cli')) {
-      redisUrl = redisUrl.replace(/^redis-cli\s+-u\s+/, '');
-    }
-
-    const match = redisUrl.match(/redis:\/\/[^:]+:[^@]+@[^:]+:\d+/);
-    if (match) {
-      redisUrl = match[0];
-    }
-
-    console.log('📍 Connecting to Redis...');
-    const client = createClient({
-      url: redisUrl,
-      socket: {
-        connectTimeout: 5000,
-        reconnectStrategy: false
-      }
-    });
-
-    client.on('error', () => { });
-
-    await client.connect();
-    console.log('✅ Redis connected for rate limiting');
-    redisClient = client as RedisClientType;
-  } catch (err: unknown) {
-    console.warn('⚠️  Redis unavailable, using memory-based rate limiting');
-    redisClient = null;
+  const sharedClient = await getRedisClient();
+  if (sharedClient) {
+    redisClient = sharedClient;
   }
 }
 

@@ -12,18 +12,22 @@ export interface IntentAnalysis {
   hasObjection: boolean;
   wantsToSchedule: boolean;
   isAvailableForMeeting: boolean;
-  suggestedMeetingTime?: string;
-  readyToBuy: boolean;
-  needsMoreInfo: boolean;
-  confidence: number;
-  sentiment: 'positive' | 'negative' | 'neutral';
-  emotion: 'curious' | 'skeptical' | 'frustrated' | 'excited' | 'neutral' | 'urgent';
-  urgency: 'high' | 'medium' | 'low';
-  style: 'formal' | 'casual' | 'blunt' | 'warm';
-  suggestedAction: string;
   keywords: string[];
   productMentioned?: string;
   offeredPrice?: number;
+  isOOO: boolean;
+  isWrongPerson: boolean;
+  languageCode: string; // ISO 639-1 code
+  detectedCountry?: string; // ISO 3166-1 alpha-2 code
+  readyToBuy?: boolean;
+  needsMoreInfo?: boolean;
+  emotion?: string;
+  urgency?: string;
+  sentiment?: string;
+  confidence?: number;
+  style?: string;
+  suggestedAction?: string;
+  suggestedMeetingTime?: string | null;
 }
 
 export interface Lead {
@@ -68,8 +72,11 @@ export async function analyzeLeadIntent(
 
       if (fullLead && fullLead.userId) {
         const user = await storage.getUserById(fullLead.userId);
+        const replyTone = (user?.metadata as any)?.replyTone || 'professional';
+        
         brandKnowledgeCtx = [
           user?.brandGuidelinePdfText,
+          `Preferred Response Tone: ${replyTone}`,
           await storage.getBrandKnowledge(fullLead.userId)
         ].filter(Boolean).join('\n---\n') || '';
       }
@@ -104,7 +111,11 @@ Analyze the entire thread context and the latest message. Return a JSON object w
   "suggestedMeetingTime": string | null, // Extract text like "Tuesday at 2pm" or "next week"
   "readyToBuy": boolean,
   "needsMoreInfo": boolean,
-  "confidence": number,
+  "isOOO": boolean,
+  "isWrongPerson": boolean,
+  "languageCode": string, // ISO 639-1 (e.g. "en", "es", "zh", "de")
+  "detectedCountry": string | null, // ISO 3166-1 alpha-2 (e.g. "US", "ES", "DE")
+  "confidence": number (0-1),
   "sentiment": "positive" | "negative" | "neutral",
   "emotion": "curious" | "skeptical" | "frustrated" | "excited" | "neutral" | "urgent",
   "urgency": "high" | "medium" | "low",
@@ -205,21 +216,21 @@ Return ONLY valid JSON, no explanation.`;
       console.error('Failed to auto-update deal pipeline from AI intent:', e);
     }
 
-    // Store analysis, tags, and update status via Drizzle storage
-    await storage.updateLead(lead.id.toString(), {
-      tags: tags,
-      status: newStatus as any,
-      metadata: {
-        ...(lead as any).metadata,
-        lastIntensity: analysis.confidence,
-        lastIntent: analysis.sentiment,
-        suggestedAction: analysis.suggestedAction,
-        intentAnalysis: analysis
-      }
-    });
+    // --- PHASE 49: Sentiment-Based Priority Override ---
+    // If they are excited or urgent, force Category A (Score 100) immediately
+    if (analysis.emotion === 'excited' || analysis.urgency === 'high') {
+      console.log(`🔥 [Priority Boost] High intensity detected for lead ${lead.id}. Boosting to Category A.`);
+      await storage.updateLead(lead.id.toString(), {
+        score: 100, // VIP / Category A
+        metadata: {
+          ...(lead as any).metadata,
+          priority_boost_reason: `Detected ${analysis.emotion} emotion / ${analysis.urgency} urgency`
+        }
+      });
+    }
 
     // Log intent analysis to audit trail
-    await AuditTrailService.logIntentDetected(lead.id.toString(), lead.id.toString(), analysis.sentiment, analysis.confidence);
+    await AuditTrailService.logIntentDetected(lead.id.toString(), lead.id.toString(), analysis.sentiment || 'neutral', analysis.confidence || 0);
 
     return analysis;
 
@@ -274,14 +285,13 @@ function performBasicIntentAnalysis(message: string): IntentAnalysis {
     needsMoreInfo: hasQuestion && !hasNegative,
     confidence: 0.6,
     sentiment: hasNegative ? 'negative' : hasPositive ? 'positive' : 'neutral',
-    suggestedAction: hasBuying ? 'Close the deal' :
-      hasScheduling ? 'Schedule meeting' :
-        hasPositive ? 'Send more info' :
-          hasNegative ? 'Remove from list' : 'Continue nurturing',
     keywords: [],
     emotion: 'neutral',
     urgency: 'low',
     style: 'casual',
+    isOOO: false,
+    isWrongPerson: false,
+    languageCode: 'en',
     productMentioned: undefined,
     offeredPrice: undefined
   };
@@ -363,7 +373,7 @@ export async function calculateLeadQualityScore(lead: Lead): Promise<{
 
   const lastMessageDate = messages?.[0]?.createdAt ? new Date(messages[0].createdAt) : new Date(lead.created_at || Date.now());
   const daysSinceLastMessage = (Date.now() - lastMessageDate.getTime()) / (1000 * 60 * 60 * 24);
-  const timingScore = Math.max(0, 100 - (daysSinceLastMessage * 5));
+  const timingScore = Math.max(0, 100 - (daysSinceLastMessage * 12)); // Increased decay from 5 to 12
 
   const overallScore = Math.round(
     (engagementScore * 0.3) +

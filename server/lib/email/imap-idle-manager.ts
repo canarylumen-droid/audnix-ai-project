@@ -9,6 +9,7 @@ import { mailboxHealthService } from './mailbox-health-service.js';
 import { quotaService } from '../monitoring/quota-service.js';
 import { gmailOAuth } from '../oauth/gmail.js';
 import { outlookOAuth } from '../oauth/outlook.js';
+import { workerHealthMonitor } from '../monitoring/worker-health.js';
 
 interface EmailConfig {
     smtp_host?: string;
@@ -27,8 +28,12 @@ class ImapIdleManager {
     private syncing: Set<string> = new Set(); // Key: integrationId
     private isRunning = false;
     private backoffDelays: Map<string, number> = new Map(); // Key: integrationId
-    private readonly MIN_BACKOFF = 30000; // 30s
-    private readonly MAX_BACKOFF = 30 * 60 * 1000; // 30m
+    private lastActivity: Map<string, Date> = new Map(); // Key: `${integrationId}:${folderName}`
+    private reconnectTimers: Map<string, NodeJS.Timeout> = new Map(); // Key: integrationId
+    private watchdogInterval: NodeJS.Timeout | null = null;
+    private readonly MIN_BACKOFF = 5000; // 5s initial retry
+    private readonly MAX_BACKOFF = 15 * 60 * 1000; // 15m max
+    private readonly ZOMBIE_TIMEOUT_MS = 120 * 60 * 1000; // 2 hours silence = zombie
 
     /**
      * Start the IMAP IDLE manager
@@ -40,7 +45,10 @@ class ImapIdleManager {
         // Initial sync
         await this.syncConnections();
 
-        // Use BullMQ for periodic connection management instead of simple setInterval
+        // Phase 11: Start the Zombie Connection Watchdog
+        this.startWatchdog();
+
+        // Use BullMQ for periodic connection management
         // This ensures transparency and reliability across restarts
         const { emailSyncQueue } = await import('../queues/email-sync-queue.js');
         if (emailSyncQueue) {
@@ -57,8 +65,12 @@ class ImapIdleManager {
      * Gracefully stop the IMAP IDLE Manager.
      * Called during server SIGTERM/SIGINT to prevent ghost sessions on redeploy.
      */
-    stop(): void {
+    async stop(): Promise<void> {
         this.isRunning = false;
+        if (this.watchdogInterval) {
+            clearInterval(this.watchdogInterval);
+            this.watchdogInterval = null;
+        }
 
         let closed = 0;
         for (const [integrationId, folderMap] of this.connections.entries()) {
@@ -74,6 +86,7 @@ class ImapIdleManager {
 
         this.connections.clear();
         this.folders.clear();
+        this.lastActivity.clear();
         console.log(`[ImapIdleManager] Stopped. Closed ${closed} connection(s).`);
     }
 
@@ -94,14 +107,71 @@ class ImapIdleManager {
     /**
      * Sync active connections with database integrations
      */
+
+    /**
+     * Immediately and permanently kill all IMAP connections for a specific integration.
+     * Called when a user explicitly disconnects a mailbox.
+     * Clears all state, timers, and notifies the frontend in real time.
+     */
+    public forceDisconnect(integrationId: string, userId?: string): void {
+        console.log(`🔌 [IMAP] Force-disconnecting all connections for integration ${integrationId}`);
+
+        // 1. Kill all sync intervals for this integration
+        const intervals = this.syncIntervals.get(integrationId);
+        if (intervals) {
+            for (const interval of intervals.values()) clearInterval(interval);
+            this.syncIntervals.delete(integrationId);
+        }
+
+        // 2. Kill all IMAP connections (destroy, not just end — no graceful goodbye)
+        const folderMap = this.connections.get(integrationId);
+        if (folderMap) {
+            for (const imap of folderMap.values()) {
+                try {
+                    if (imap.state !== 'disconnected') imap.destroy();
+                } catch (e) { /* already gone */ }
+            }
+            this.connections.delete(integrationId);
+        }
+
+        // 3. Clear all metadata for this integration
+        this.folders.delete(integrationId);
+        this.syncing.delete(integrationId);
+        this.backoffDelays.delete(integrationId);
+
+        // 4. Clear any pending reconnection timers
+        const timer = this.reconnectTimers.get(integrationId);
+        if (timer) {
+            clearTimeout(timer);
+            this.reconnectTimers.delete(integrationId);
+        }
+
+        // 5. Clear any lastActivity entries for this integration
+        for (const key of this.lastActivity.keys()) {
+            if (key.startsWith(`${integrationId}:`)) {
+                this.lastActivity.delete(key);
+            }
+        }
+
+        // 5. Notify frontend in real time so UI updates immediately
+        if (userId) {
+            wsSync.notifySettingsUpdated(userId);
+            wsSync.notifySyncStatus(userId, { syncing: false, integrationId, disconnected: true });
+        }
+
+        console.log(`✅ [IMAP] Integration ${integrationId} fully disconnected and all state cleared.`);
+    }
+
     public async syncConnections(): Promise<void> {
         if (quotaService.isRestricted()) {
             console.log('[IMAPIdleManager] Skipping connection sync: Database quota restricted');
             return;
         }
         try {
-            // custom_email uses IMAP IDLE. Gmail and Outlook use API Push/Polling natively.
-            const providers = ['custom_email'];
+            // All providers now use permanent IMAP IDLE connections for real-time sync.
+            // Gmail & Outlook authenticate via XOAUTH2 (access token).
+            // custom_email authenticates via password from encryptedMeta.
+            const providers = ['gmail', 'outlook', 'custom_email'];
             let integrations: Integration[] = [];
             
             for (const provider of providers) {
@@ -131,11 +201,13 @@ class ImapIdleManager {
                 }
             }
 
-            // Add connections for new active integrations (custom_email only — gmail/outlook use OAuth, not IMAP)
+            // Add persistent IMAP IDLE connections for ALL active integrations:
+            // - custom_email: Password auth via encryptedMeta
+            // - gmail / outlook: XOAUTH2 via live OAuth token refresh
+            const supported = ['custom_email', 'gmail', 'outlook'];
             for (const integration of integrations) {
-                const isSupported = ['custom_email'].includes(integration.provider);
-                if (integration.connected && isSupported && !this.connections.has(integration.id)) {
-                    console.log(`🔌 Opening real-time IMAP connection for integration ${integration.id} (${integration.provider}, User: ${integration.userId})`);
+                if (integration.connected && supported.includes(integration.provider) && !this.connections.has(integration.id)) {
+                    console.log(`🔌 Opening real-time IMAP IDLE connection for integration ${integration.id} (${integration.provider}, User: ${integration.userId})`);
                     this.setupConnection(integration.id, integration);
                 }
             }
@@ -264,21 +336,27 @@ class ImapIdleManager {
      */
     private async setupConnection(integrationId: string, integration: Integration): Promise<void> {
         try {
-            // Guard: skip integrations with missing or empty encrypted config
-            if (!integration.encryptedMeta) {
-                console.warn(`[IMAP] Skipping integration ${integrationId} — encryptedMeta is missing (User: ${integration.userId})`);
-                return;
+            // For OAuth providers (gmail/outlook), we do NOT need encryptedMeta.
+            // They authenticate via a live access token (XOAUTH2).
+            // For custom_email, we require encryptedMeta to get IMAP credentials.
+            const isOAuthProvider = integration.provider === 'gmail' || integration.provider === 'outlook';
+
+            let config: EmailConfig = {};
+            if (!isOAuthProvider) {
+                if (!integration.encryptedMeta) {
+                    console.warn(`[IMAP] Skipping integration ${integrationId} — encryptedMeta is missing (User: ${integration.userId})`);
+                    return;
+                }
+                try {
+                    const credentialsStr = await decrypt(integration.encryptedMeta);
+                    config = JSON.parse(credentialsStr) as EmailConfig;
+                } catch (decryptErr) {
+                    console.warn(`[IMAP] Skipping integration ${integrationId} — failed to decrypt/parse config: ${(decryptErr as any)?.message}`);
+                    return;
+                }
             }
 
-            let config: EmailConfig;
-            try {
-                const credentialsStr = await decrypt(integration.encryptedMeta);
-                config = JSON.parse(credentialsStr) as EmailConfig;
-            } catch (decryptErr) {
-                console.warn(`[IMAP] Skipping integration ${integrationId} — failed to decrypt/parse config: ${(decryptErr as any)?.message}`);
-                return;
-            }
-
+            // Determine IMAP host - OAuth providers have well-known hosts
             let imapHost = config.imap_host || config.smtp_host?.replace('smtp', 'imap') || '';
             const imapPort = config.imap_port || 993;
 
@@ -303,8 +381,8 @@ class ImapIdleManager {
                 connTimeout: 45000,
                 authTimeout: 45000,
                 keepalive: {
-                    interval: 10000,
-                    idleInterval: 300000,
+                    interval: 15000,
+                    idleInterval: 60000, 
                     forceNoop: true
                 }
             };
@@ -376,6 +454,7 @@ class ImapIdleManager {
             imap.once('error', async (err: any) => {
                 try {
                     console.error(`IMAP Error for integration ${integrationId} (User: ${integration.userId}):`, err.message);
+                    workerHealthMonitor.recordError('IMAP IDLE', err.message);
 
                     const fatalErrors = ['AUTHENTICATIONFAILED', 'Not authenticated', 'Invalid credentials', 'Login failed', 'BAD', 'NO'];
                     const retryableErrors = ['ETIMEDOUT', 'ECONNRESET', 'EPIPE', 'ECONNREFUSED', 'ENOTFOUND'];
@@ -386,6 +465,7 @@ class ImapIdleManager {
 
                     if (isFatal) {
                         console.warn(`🛑 Fatal IMAP error for integration ${integrationId}. Stopping retries.`);
+                        try { imap.destroy(); } catch (e) {}
                         this.cleanupIntegration(integrationId);
 
                         try {
@@ -396,8 +476,12 @@ class ImapIdleManager {
                         } catch (e) {
                             console.error('Failed to update integration with IMAP error:', e);
                         }
-                    } else if (isRetryable || !this.connections.has(integrationId)) {
+                    } else if (isRetryable) {
+                        console.warn(`⏳ Retryable IMAP error for ${integrationId} (${err.code}). Reconnecting...`);
+                        try { imap.destroy(); } catch (e) {}
                         this.reconnect(integrationId, integration);
+                    } else {
+                        try { imap.destroy(); } catch (e) {}
                     }
                 } catch (fatalErr) {
                     console.error('[IMAP] CRITICAL: Exception in error handler:', fatalErr);
@@ -424,8 +508,18 @@ class ImapIdleManager {
 
     private async setupPersistentListener(integrationId: string, folderName: string, integration: Integration, direction: 'inbound' | 'outbound'): Promise<void> {
         try {
-            const credentialsStr = await decrypt(integration.encryptedMeta!);
-            const config = JSON.parse(credentialsStr) as EmailConfig;
+            // OAuth providers (gmail/outlook) authenticate via live access token — no encryptedMeta needed.
+            const isOAuthProvider = integration.provider === 'gmail' || integration.provider === 'outlook';
+
+            let config: EmailConfig = {};
+            if (!isOAuthProvider) {
+                if (!integration.encryptedMeta) {
+                    console.warn(`[IMAP Persistent] Skipping ${folderName} for ${integrationId} — encryptedMeta missing.`);
+                    return;
+                }
+                const credentialsStr = await decrypt(integration.encryptedMeta);
+                config = JSON.parse(credentialsStr) as EmailConfig;
+            }
 
             let imapHost = config.imap_host || config.smtp_host?.replace('smtp', 'imap') || '';
             const imapPort = config.imap_port || 993;
@@ -448,18 +542,25 @@ class ImapIdleManager {
                 // Force IPv4 for cloud environment stability
                 family: 4,
                 tlsOptions: { rejectUnauthorized: false },
-                keepalive: { interval: 10000, idleInterval: 300000, forceNoop: true }
+                keepalive: {
+                    interval: 15000, // NOOP interval
+                    idleInterval: 60000, // IDLE restart interval
+                    forceNoop: true
+                }
             };
 
-            if (integration.provider === 'gmail' || integration.provider === 'outlook') {
-                const token = integration.provider === 'gmail' 
+            if (isOAuthProvider) {
+                const token = integration.provider === 'gmail'
                     ? await gmailOAuth.getValidToken(integration.userId, integration.accountType || undefined)
                     : await outlookOAuth.getValidToken(integration.userId);
-                
-                if (token) {
-                    const user = integration.accountType || '';
-                    imapOptions.xoauth2 = Buffer.from(`user=${user}\x01auth=Bearer ${token}\x01\x01`).toString('base64');
+
+                if (!token) {
+                    console.warn(`[IMAP Persistent] Could not get OAuth token for ${integration.provider} integration ${integrationId}. Aborting persistent listener.`);
+                    return;
                 }
+                const user = integration.accountType || config.smtp_user || '';
+                imapOptions.user = user;
+                imapOptions.xoauth2 = Buffer.from(`user=${user}\x01auth=Bearer ${token}\x01\x01`).toString('base64');
             } else {
                 imapOptions.password = config.smtp_pass!;
             }
@@ -470,9 +571,15 @@ class ImapIdleManager {
             this.connections.get(integrationId)!.set(folderName, imap);
 
             imap.once('ready', () => {
+                workerHealthMonitor.recordSuccess('IMAP IDLE');
+                // Reset backoff on successful connect so next disconnect recovers fast (5s)
+                this.backoffDelays.delete(integrationId);
+                this.lastActivity.set(`${integrationId}:${folderName}`, new Date());
+
                 imap.openBox(folderName, false, (err: any) => {
                     if (err) {
                         console.error(`[IMAP] Failed to open ${folderName} for integration ${integrationId}:`, err.message);
+                        workerHealthMonitor.recordError('IMAP IDLE', err.message);
                         return;
                     }
 
@@ -487,6 +594,8 @@ class ImapIdleManager {
                     this.fetchNewEmails(integrationId, integration.userId, imap, folderName, direction);
 
                     imap.on('mail', (num: number) => {
+                        workerHealthMonitor.recordSuccess('IMAP IDLE');
+                        this.lastActivity.set(`${integrationId}:${folderName}`, new Date());
                         console.log(`📬 [${folderName}] Integration ${integrationId} received ${num} new messages (IDLE push)`);
                         this.fetchNewEmails(integrationId, integration.userId, imap, folderName, direction);
                     });
@@ -501,16 +610,31 @@ class ImapIdleManager {
                     if (!this.syncIntervals.has(integrationId)) this.syncIntervals.set(integrationId, new Map());
                     const interval = setInterval(async () => {
                         if (this.connections.get(integrationId)?.get(folderName) === imap) {
-                            this.fetchNewEmails(integrationId, integration.userId, imap, folderName, direction);
+                            if (imap.state === 'authenticated') {
+                                try {
+                                    // NOOP is safer than full fetch for heartbeat unless we actually expect mail signal to be lost
+                                    // imap.noop(() => {}); 
+                                    this.fetchNewEmails(integrationId, integration.userId, imap, folderName, direction);
+                                } catch (e) {}
+                            }
                         }
-                    }, 5 * 60 * 1000); // 5m heartbeat
+                    }, 5 * 60 * 1000); // 5m is enough with imap keepalive active
                     this.syncIntervals.get(integrationId)!.set(folderName, interval);
                 });
             });
 
             imap.once('error', (err: any) => {
+                workerHealthMonitor.recordError('IMAP IDLE', err.message);
                 console.error(`[IMAP Persistent] Error on ${folderName} for ${integrationId}:`, err.message);
                 this.reconnect(integrationId, integration); // This will eventually re-setup all connections
+            });
+
+            imap.once('end', () => {
+                workerHealthMonitor.recordError('IMAP IDLE', 'Connection ended unexpectedly');
+            });
+
+            imap.once('close', (hadError: boolean) => {
+                workerHealthMonitor.recordError('IMAP IDLE', `Connection closed (hadError: ${hadError})`);
             });
 
             imap.connect();
@@ -563,8 +687,27 @@ class ImapIdleManager {
 
                     fetch.on('message', (msg: any, seqno: number) => {
                         let flags: string[] = [];
-                        msg.on('attributes', (attrs: any) => flags = attrs.flags || []);
+                        let size = 0;
+                        msg.on('attributes', (attrs: any) => {
+                            flags = attrs.flags || [];
+                            size = attrs.size || 0;
+                        });
                         msg.on('body', (stream: any) => {
+                            // Phase 15: MIME Safeguard - Skip parsing for huge attachments (>5MB)
+                            if (size > 5 * 1024 * 1024) {
+                                console.warn(`[IMAP] Skipping parsing for large message (${Math.round(size/1024/1024)}MB) at seq ${seqno}`);
+                                stream.resume(); // Consume stream without parsing
+                                emails.push({
+                                    subject: `(Large Message Skipped: ${Math.round(size/1024/1024)}MB)`,
+                                    text: 'This message was too large to sync automatically. Please view it in your primary email client.',
+                                    date: new Date(),
+                                    flags,
+                                    uid: seqno,
+                                    isSpam: isSpam
+                                });
+                                return;
+                            }
+
                             simpleParser(stream, async (err: any, parsed: any) => {
                                 if (!err && parsed) {
                                     emails.push({
@@ -613,8 +756,11 @@ class ImapIdleManager {
                                     
                                     // Trigger autonomous AI reply for new inbound messages
                                     if (direction === 'inbound' && !isSpam) {
-                                        try {
-                                            const { users } = await import('../../../shared/schema.js');
+                                        if (process.env.GLOBAL_AI_PAUSE === 'true') {
+                                            console.warn("[IMAP] Global AI Pause active. Skipping automated analysis/reply.");
+                                        } else {
+                                            try {
+                                                const { users } = await import('../../../shared/schema.js');
                                             const { eq } = await import('drizzle-orm');
                                             const { db } = await import('../../db.js');
 
@@ -656,7 +802,8 @@ class ImapIdleManager {
                                     }
                                 }
                             }
-                        } catch (importError) {
+                        }
+                    } catch (importError) {
                             console.error(`[IMAP] CRITICAL: Failed to import emails from ${folderName}:`, importError);
                         } finally {
                             cb(null, null);
@@ -735,7 +882,7 @@ class ImapIdleManager {
             for (const imap of folderMap.values()) {
                 try { 
                     if ((imap as any)._idleWaiter) (imap as any).stopIdle();
-                    imap.end(); 
+                    try { imap.destroy(); } catch (e) {} 
                 } catch (e) {}
             }
         }
@@ -749,25 +896,72 @@ class ImapIdleManager {
         
         this.folders.delete(integrationId);
         this.syncing.delete(integrationId);
+        
+        // Phase 12: Clear any pending reconnection timers
+        const timer = this.reconnectTimers.get(integrationId);
+        if (timer) {
+            clearTimeout(timer);
+            this.reconnectTimers.delete(integrationId);
+        }
     }
 
     private reconnect(integrationId: string, integration: Integration): void {
         if (!this.isRunning) return;
 
-        console.log(`🔄 Preparation for IMAP reconnection: ${integrationId}`);
+        console.log(`🔄 Preparing IMAP reconnection for ${integrationId} (${integration.provider})...`);
         this.cleanupIntegration(integrationId);
 
         const currentDelay = this.backoffDelays.get(integrationId) || this.MIN_BACKOFF;
-        const nextDelay = Math.min(currentDelay * 2, this.MAX_BACKOFF);
+        // Phase 13: Exponential Backoff with Jitter (prevents synchronized thundering herd)
+        const jitter = 0.5 + Math.random(); // 0.5 to 1.5 range
+        const nextDelay = Math.min(Math.floor(currentDelay * 2 * jitter), this.MAX_BACKOFF);
         this.backoffDelays.set(integrationId, nextDelay);
 
-        console.log(`🔄 Attempting to reconnect IMAP for ${integrationId} in ${Math.round(currentDelay / 1000)}s...`);
+        console.log(`🔄 Reconnecting IMAP for ${integrationId} in ${Math.round(currentDelay / 1000)}s (Next wait: ${Math.round(nextDelay / 1000)}s)...`);
 
-        setTimeout(() => {
-            if (this.isRunning && !this.connections.has(integrationId)) {
-                this.setupConnection(integrationId, integration);
+        // Clear existing timer if any
+        const existingTimer = this.reconnectTimers.get(integrationId);
+        if (existingTimer) clearTimeout(existingTimer);
+
+        const timer = setTimeout(async () => {
+            this.reconnectTimers.delete(integrationId);
+
+            if (!this.isRunning || this.connections.has(integrationId)) return;
+
+            // Phase 14: Database Verification — ensure integration still exists before reconnecting
+            try {
+                const checkInt = await storage.getIntegrationById(integrationId);
+                if (!checkInt || !checkInt.connected) {
+                    console.log(`🔌 [IMAP Reconnect] Aborting — integration ${integrationId} is no longer connected or was deleted.`);
+                    return;
+                }
+            } catch (e) {
+                console.error(`[IMAP Reconnect] DB Check failed for ${integrationId}:`, e);
+                return;
             }
+
+            // For OAuth providers, proactively refresh token before reconnecting.
+            // This prevents an expired token causing an infinite auth-failure loop.
+            if (integration.provider === 'gmail' || integration.provider === 'outlook') {
+                try {
+                    const token = integration.provider === 'gmail'
+                        ? await gmailOAuth.getValidToken(integration.userId, integration.accountType || undefined)
+                        : await outlookOAuth.getValidToken(integration.userId);
+                    if (!token) {
+                        console.warn(`[IMAP Reconnect] Could not refresh OAuth token for ${integrationId}. Aborting reconnect.`);
+                        return;
+                    }
+                    console.log(`[IMAP Reconnect] OAuth token refreshed for ${integrationId}. Reconnecting...`);
+                } catch (tokenErr: any) {
+                    console.error(`[IMAP Reconnect] Token refresh failed for ${integrationId}:`, tokenErr.message);
+                    return;
+                }
+            }
+
+            this.setupConnection(integrationId, integration);
         }, currentDelay);
+
+        this.reconnectTimers.set(integrationId, timer);
     }
 
     /**
@@ -1047,6 +1241,43 @@ class ImapIdleManager {
             return { success: false, count: totalImported, error: error.message };
         } finally {
             wsSync.notifySyncStatus(userId, { syncing: false, integrationId });
+        }
+    }
+
+    /**
+     * Phase 11: Zombie Watchdog Logic
+     * Periodically checks all active connections to ensure they've seen activity.
+     * If a connection is 'silent' for > 2 hours, we assume it's a zombie and recycle it.
+     */
+    private startWatchdog(): void {
+        if (this.watchdogInterval) clearInterval(this.watchdogInterval);
+        
+        this.watchdogInterval = setInterval(() => {
+            const now = new Date().getTime();
+            for (const [key, lastSeen] of this.lastActivity.entries()) {
+                const idleTime = now - lastSeen.getTime();
+                if (idleTime > this.ZOMBIE_TIMEOUT_MS) {
+                    const [integrationId, folderName] = key.split(':');
+                    console.warn(`🚨 [WATCHDOG] Zombie detected on ${integrationId}:${folderName} (${Math.round(idleTime/1000/60)}m idle). Recycling...`);
+                    this.forceRecycleConnection(integrationId, folderName);
+                }
+            }
+        }, 15 * 60 * 1000); // Check every 15 minutes
+    }
+
+    private forceRecycleConnection(integrationId: string, folderName: string): void {
+        const folderMap = this.connections.get(integrationId);
+        if (!folderMap) return;
+
+        const imap = folderMap.get(folderName);
+        if (imap) {
+            try {
+                // Destroying the connection will trigger the 'error' or 'close' listener, which triggers reconnect()
+                imap.destroy();
+                this.lastActivity.delete(`${integrationId}:${folderName}`);
+            } catch (e) {
+                console.error(`[WATCHDOG] Failed to destroy zombie connection ${integrationId}:`, e);
+            }
         }
     }
 }

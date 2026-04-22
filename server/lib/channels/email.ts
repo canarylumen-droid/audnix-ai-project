@@ -598,7 +598,7 @@ export async function sendEmail(
     }
 
     const { injectTrackingIntoEmail, createTrackedEmail } = await import('../email/email-tracking.js');
-    const trackingResult = injectTrackingIntoEmail(emailBody, trackingId);
+    const trackingResult = await injectTrackingIntoEmail(emailBody, trackingId);
     emailBody = trackingResult.html;
     const firstUrl = trackingResult.urls.length > 0 ? trackingResult.urls.join(',') : null;
 
@@ -668,7 +668,7 @@ export async function sendEmail(
 
   // Apply tracking pixel and link wrapping for OAuth providers
   const { injectTrackingIntoEmail, createTrackedEmail } = await import('../email/email-tracking.js');
-  const trackingResult = injectTrackingIntoEmail(emailBody, trackingId);
+  const trackingResult = await injectTrackingIntoEmail(emailBody, trackingId);
   emailBody = trackingResult.html;
   const firstUrl = trackingResult.urls.length > 0 ? trackingResult.urls.join(',') : null;
 

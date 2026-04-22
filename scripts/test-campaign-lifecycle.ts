@@ -39,9 +39,9 @@ async function testCampaignLifecycle() {
     userId,
     name: campaignName,
     status: 'active',
-    config: { dailyLimit: 50 },
-    template: { subject: 'Hello', body: 'World' }
-  }).returning();
+    config: { dailyLimit: 50, minDelayMinutes: 2 },
+    template: { subject: 'Hello', body: 'World', followups: [] }
+  } as any).returning();
   console.log(`✅ Campaign created: ${campaign.id}`);
 
   // 4. Link Lead

@@ -10,6 +10,8 @@ interface WorkerHealth {
 class WorkerHealthMonitor {
   private workers: Map<string, WorkerHealth> = new Map();
   private checkInterval: NodeJS.Timeout | null = null;
+  private globalAiPause: boolean = false;
+  private pauseReason: string | null = null;
 
   /**
    * Register a worker for health monitoring
@@ -51,8 +53,34 @@ class WorkerHealthMonitor {
       // Alert admin if worker fails
       if (worker.status === 'failed') {
         this.alertAdmin(name, error);
+        this.evaluateEmergencyBrake();
       }
     }
+  }
+
+  /**
+   * Phase 50: Global Kill-Switch
+   * Disables all AI workers if system error density is too high.
+   */
+  private evaluateEmergencyBrake(): void {
+    const status = this.getDetailedStatus();
+    const failedRatio = status.failedCount / Math.max(1, status.total);
+
+    if (failedRatio > 0.4 || status.failedCount >= 3) {
+      this.globalAiPause = true;
+      this.pauseReason = `Critical failure density detected: ${status.failedCount} workers failed.`;
+      console.error(`🚨 [Emergency Brake] ACTIVATED. ${this.pauseReason}`);
+    }
+  }
+
+  isSystemPaused(): { paused: boolean; reason: string | null } {
+    return { paused: this.globalAiPause, reason: this.pauseReason };
+  }
+
+  resetPause(): void {
+    this.globalAiPause = false;
+    this.pauseReason = null;
+    console.log("🟢 [Emergency Brake] System reset.");
   }
 
   /**
@@ -60,6 +88,36 @@ class WorkerHealthMonitor {
    */
   getHealthStatus(): WorkerHealth[] {
     return Array.from(this.workers.values());
+  }
+
+  /**
+   * Get detailed summary of all workers
+   */
+  getDetailedStatus() {
+    const workers = Array.from(this.workers.values());
+    let healthyCount = 0;
+    let degradedCount = 0;
+    let failedCount = 0;
+    const failedWorkers: string[] = [];
+
+    for (const w of workers) {
+      if (w.status === 'healthy') healthyCount++;
+      else if (w.status === 'degraded') degradedCount++;
+      else if (w.status === 'failed') {
+        failedCount++;
+        failedWorkers.push(w.name);
+      }
+    }
+
+    return {
+      healthy: failedCount === 0,
+      total: workers.length,
+      healthyCount,
+      degradedCount,
+      failedCount,
+      failedWorkers,
+      workers
+    };
   }
 
   /**

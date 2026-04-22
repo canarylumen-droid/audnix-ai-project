@@ -30,6 +30,12 @@ export async function sendInstagramMessage(
   recipientId: string,
   message: string
 ): Promise<{ messageId: string }> {
+  // EMERGENCY SUSPENSION CHECK: Prevent server crashes if IG API is unstable
+  if (process.env.SUSPEND_INSTAGRAM === 'true') {
+    console.warn('[INSTAGRAM_SUSPENDED] Skipping network request due to active suspension flag.');
+    return { messageId: `ig_suspended_${Date.now()}` };
+  }
+
   // Instagram Direct uses Facebook Graph API, not Instagram Graph API
   const endpoint = `https://graph.facebook.com/v18.0/${instagramBusinessAccountId}/messages`;
 

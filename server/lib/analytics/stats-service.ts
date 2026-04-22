@@ -1,5 +1,5 @@
 import { db } from '../../db.js';
-import { leads, messages, calendarBookings, outreachCampaigns, insights } from '../../../shared/schema.js';
+import { leads, messages, insights } from '../../../shared/schema.js';
 import { eq, and, gte, lte, count, sql, desc } from 'drizzle-orm';
 
 export interface KPIStats {
@@ -62,15 +62,15 @@ class StatsService {
       )
       .groupBy(leads.status);
 
-    const statusMap = Object.fromEntries(
-      leadStats.map((r: { status: string | null; count: number }) => [r.status, Number(r.count)])
+    const statusMap: Record<string, number> = Object.fromEntries(
+      leadStats.map((r: { status: string | null; count: number }) => [r.status || 'unknown', Number(r.count)])
     );
 
-    const totalLeads     = Object.values(statusMap).reduce((a, b) => a + b, 0);
-    const bookedLeads    = (statusMap['booked'] || 0) + (statusMap['completed'] || 0);
-    const noShowLeads    = statusMap['no_show'] || 0;
-    const repliedLeads   = statusMap['replied'] || 0;
-    const activeLeads    = statusMap['open'] || 0;
+    const totalLeads: number = Object.values(statusMap).reduce((a: number, b: number) => a + b, 0);
+    const bookedLeads: number = (statusMap['booked'] || 0) + (statusMap['completed'] || 0);
+    const noShowLeads: number = statusMap['no_show'] || 0;
+    const repliedLeads: number = statusMap['replied'] || 0;
+    const activeLeads: number = statusMap['open'] || 0;
 
     // ── 2. Emails Sent ───────────────────────────────────────────────────
     const sentResult = await db

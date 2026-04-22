@@ -87,6 +87,12 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider
+} from "@/components/ui/tooltip";
 
 const channelIcons = {
   instagram: Instagram,
@@ -1554,32 +1560,47 @@ export default function InboxPage() {
                       const isEffectivelyPaused = !isGlobalAiEngineOn || activeLead?.aiPaused;
                       
                       return (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className={cn(
-                            "h-9 rounded-xl font-bold text-[10px] px-4 transition-all shadow-sm border",
-                            !isEffectivelyPaused
-                              ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
-                              : "bg-muted text-muted-foreground border-border/50 hover:bg-muted/80"
-                          )}
-                          onClick={() => {
-                            if (!isGlobalAiEngineOn) {
-                              toast({ title: "AI Engine is OFF", description: "Turn on the Global AI Engine in the sidebar to enable autonomous mode.", variant: "destructive" });
-                              return;
-                            }
-                            if (activeLead) {
-                              toggleAi.mutate({ id: leadId!, paused: !activeLead.aiPaused });
-                            }
-                          }}
-                        >
-                          <div className={cn("w-2 h-2 rounded-full mr-2", !isEffectivelyPaused ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground")} />
-                          <span className="hidden sm:inline">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className={cn(
+                                "h-9 rounded-xl font-bold text-[10px] px-4 transition-all shadow-sm border",
+                                !isEffectivelyPaused
+                                  ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
+                                  : "bg-muted text-muted-foreground border-border/50 hover:bg-muted/80"
+                              )}
+                              onClick={() => {
+                                if (!isGlobalAiEngineOn) {
+                                  toast({ title: "AI Engine is OFF", description: "Turn on the Global AI Engine in the sidebar to enable autonomous mode.", variant: "destructive" });
+                                  return;
+                                }
+                                if (activeLead) {
+                                  toggleAi.mutate({ id: leadId!, paused: !activeLead.aiPaused });
+                                }
+                              }}
+                            >
+                              <div className={cn("w-2 h-2 rounded-full mr-2", !isEffectivelyPaused ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground")} />
+                              <span className="hidden sm:inline">
+                                {!isGlobalAiEngineOn 
+                                  ? "SYSTEM PAUSED" 
+                                  : (!activeLead?.aiPaused ? "AUTONOMOUS MODE: ON" : "AUTONOMOUS MODE: OFF")}
+                              </span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent 
+                            side="bottom" 
+                            className="bg-black/90 text-white border-white/10 text-[10px] py-2 px-3 rounded-lg shadow-2xl"
+                          >
                             {!isGlobalAiEngineOn 
-                              ? "GLOBAL AI: OFF" 
-                              : (!activeLead?.aiPaused ? "AUTONOMOUS MODE: ON" : "AUTONOMOUS MODE: OFF")}
-                          </span>
-                        </Button>
+                              ? "Global AI Engine is disabled. Individual lead automation is paused."
+                              : (!activeLead?.aiPaused 
+                                ? "AI is fully autonomous for this lead. It will draft and respond automatically." 
+                                : "AI automation is paused for this lead. Toggle to re-enable autonomous processing.")
+                            }
+                          </TooltipContent>
+                        </Tooltip>
                       );
                     })()}
 

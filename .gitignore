@@ -14,3 +14,11 @@ vite.config.ts.*
 .wwebjs_auth/
 .wwebjs_cache/
 .wwebjs_auth.json
+
+# Temporary and Scratch files
+*.txt
+*.log
+scratch/
+.gemini/
+ts_*.txt
+tsc_*.txt

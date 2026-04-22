@@ -25,12 +25,18 @@ export interface BrandContext {
   bookingPreference?: 'link' | 'autonomous';
   signature?: string;
   brandKnowledge?: string;
+  persona?: {
+    name: string;
+    role: string;
+    bio: string;
+    style?: string;
+  };
 }
 
 /**
- * Retrieve complete brand context for a user
+ * Retrieve complete brand context for a user, optionally with a specific persona
  */
-export async function getBrandContext(userId: string): Promise<BrandContext> {
+export async function getBrandContext(userId: string, personaId?: string): Promise<BrandContext> {
   try {
     const user = await storage.getUserById(userId);
 
@@ -39,6 +45,11 @@ export async function getBrandContext(userId: string): Promise<BrandContext> {
     }
 
     const metadata = user.metadata || {};
+    let selectedPersona: any = null;
+
+    if (personaId && metadata.personas && Array.isArray(metadata.personas)) {
+      selectedPersona = metadata.personas.find((p: any) => p.id === personaId);
+    }
 
     return {
       companyName: user.businessName || user.company || "your company",
@@ -69,7 +80,13 @@ export async function getBrandContext(userId: string): Promise<BrandContext> {
       brandKnowledge: [
         user.brandGuidelinePdfText,
         await storage.getBrandKnowledge(userId)
-      ].filter(Boolean).join('\n---\n') || ''
+      ].filter(Boolean).join('\n---\n') || '',
+      persona: selectedPersona ? {
+        name: selectedPersona.name,
+        role: selectedPersona.role,
+        bio: selectedPersona.bio,
+        style: selectedPersona.style
+      } : undefined
     };
   } catch (error) {
     console.error("Error fetching brand context:", error);
@@ -169,7 +186,18 @@ Company: ${brand.companyName}`;
     prompt += `\n\n# Advanced Brand Knowledge (from PDF/Scraping):\n${brand.brandKnowledge}`;
   }
   
-  prompt += `\n\n# Tone: Always sound like ${brand.companyName}, but better.`;
+  
+  if (brand.persona) {
+    prompt += `\n\n# Your Identity (AI Persona)
+You are representing: ${brand.persona.name}
+Role: ${brand.persona.role}
+Bio/Background: ${brand.persona.bio}`;
+    if (brand.persona.style) {
+      prompt += `\nWriting Style: ${brand.persona.style}`;
+    }
+  }
+  
+  prompt += `\n\n# Tone: Always sound like ${brand.persona?.name || brand.companyName}, but better.`;
 
   return prompt;
 }

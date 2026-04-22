@@ -313,7 +313,7 @@ async function processInstagramMessage(message: InstagramMessage): Promise<void>
     let newStatus = lead.status;
     let newTags = [...(lead.tags || [])];
 
-    if (intent.isInterested && intent.confidence > 0.7) {
+    if (intent.isInterested && ((intent as any).confidence ?? 1) > 0.7) {
       newStatus = 'open'; // mapped 'interested' -> 'open' (schema enum)
       newTags.push('hot-lead');
 
@@ -333,7 +333,7 @@ async function processInstagramMessage(message: InstagramMessage): Promise<void>
           }
         });
       }
-    } else if (intent.isNegative && intent.confidence > 0.7) {
+    } else if (intent.isNegative && ((intent as any).confidence ?? 1) > 0.7) {
       newStatus = 'not_interested'; // valid enum
       newTags.push('cold');
     } else if (intent.needsMoreInfo) {

@@ -105,7 +105,7 @@ router.post("/verify-session", requireAuth, async (req: Request, res: Response):
       return;
     }
 
-    const session = result.rows[0] as PaymentSessionRow;
+    const session = result.rows[0] as unknown as PaymentSessionRow;
 
     // Check if expired
     if (new Date(session.expires_at) < new Date()) {

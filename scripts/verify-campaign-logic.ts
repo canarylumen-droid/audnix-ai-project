@@ -41,23 +41,23 @@ async function verify() {
         name: "Verification Campaign",
         status: "active",
         config: {
-            dailyLimit: 1, // sending only 1
-            minDelayMinutes: 0.05, // super fast for test
-            maxDelayMinutes: 0.1
+            dailyLimit: 10,
+            minDelayMinutes: 0.1,
+            maxDelayMinutes: 0.5
         },
         template: {
             subject: "Test",
-            body: "Hello {{name}}",
+            body: "Testing {{name}}",
             followups: []
         }
-    }).returning();
+    } as any).returning();
     console.log(`✅ Created Campaign: ${campaign.id} with Daily Limit 1`);
 
     // 4. Add Leads to Campaign
     await db.insert(campaignLeads).values(leadIds.map(lid => ({
         campaignId: campaign.id,
         leadId: lid,
-        status: 'pending'
+        status: 'pending' as any
     })));
 
     // 5. Run Worker

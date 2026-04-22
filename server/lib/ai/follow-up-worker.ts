@@ -13,6 +13,7 @@ import { wsSync } from "../websocket-sync.js";
 import { calendarBookings, notifications } from "../../../shared/schema.js";
 import { socketService } from "../realtime/socket-service.js";
 import { availabilityService } from "../calendar/availability-service.js";
+import { timezoneService } from "../calendar/timezone-service.js";
 import { workerHealthMonitor } from '../monitoring/worker-health.js';
 import { quotaService } from '../monitoring/quota-service.js';
 import MultiChannelOrchestrator from '../multi-channel-orchestrator.js';
@@ -23,6 +24,7 @@ import { multiProviderEmailFailover } from '../email/multi-provider-failover.js'
 import { decrypt, decryptToJSON } from '../crypto/encryption.js';
 import { shouldAskForFollow } from './follow-request-handler.js';
 import { searchSimilarChunks, userHasChunks } from './vector-search.js';
+import { getLeadProfile } from '../calendar/lead-timezone-intelligence.js';
 import type {
   BrandContext,
   ChannelType,
@@ -151,6 +153,11 @@ export class FollowUpWorker {
    * Process pending jobs in the queue
    */
   public async processQueue(): Promise<void> {
+    if (process.env.GLOBAL_AI_PAUSE === 'true') {
+      console.warn('[FollowUpWorker] 🛑 GLOBAL AI PAUSE ACTIVE. skipping queue.');
+      return;
+    }
+
     if (quotaService.isRestricted()) {
       console.log('[FollowUpWorker] Skipping queue: Database quota restricted');
       return;
@@ -424,6 +431,32 @@ export class FollowUpWorker {
             brandVoice: intentInstruction
           }
         );
+
+        if (aiResult.blocked) {
+          console.warn(`[FOLLOW_UP] AI blocked response for lead ${lead.id}. Reason: ${aiResult.blockedReason}`);
+          
+          if (aiResult.blockedReason === 'duplicate' || aiResult.blockedReason === 'ooo') {
+            const delayDays = aiResult.blockedReason === 'ooo' ? 7 : 5;
+            const nextScheduledAt = new Date();
+            nextScheduledAt.setDate(nextScheduledAt.getDate() + delayDays);
+            
+            await db.update(followUpQueue)
+              .set({ 
+                status: 'pending', 
+                scheduledAt: nextScheduledAt,
+                context: { ...(job.context as any || {}), blocked_retry: true, reason: aiResult.blockedReason }
+              })
+              .where(eq(followUpQueue.id, job.id));
+            
+            console.log(`[FOLLOW_UP] 📅 Rescheduled job ${job.id} for ${delayDays} days later due to ${aiResult.blockedReason}.`);
+            return;
+          }
+
+          // Other blocks (like 'booked') complete the job
+          await db.update(followUpQueue).set({ status: 'completed', processedAt: new Date() }).where(eq(followUpQueue.id, job.id));
+          return;
+        }
+
         aiReply = aiResult.text || '';
       } else {
         // Generate AI reply with day-aware context and brand personalization
@@ -879,7 +912,7 @@ REPLY:`;
       console.warn('[FollowUpWorker] Vector search failed (non-critical):', (vecError as Error).message);
     }
 
-    const existingSnippets = brandData?.map((d: BrandSnippetData) => d.snippet) || [];
+    const existingSnippets = brandData?.map((d: any) => d.snippet) || [];
 
     return {
       businessName: user?.company || 'Your Business',
@@ -1062,6 +1095,19 @@ REPLY:`;
     const creationTime = lead.createdAt?.getTime() || Date.now();
     let scheduledAt = new Date(creationTime + nextDayMarker * 24 * 60 * 60 * 1000);
 
+    // --- GLOBAL EDGE CONSISTENCY (PHASE 35) ---
+    // Fetch lead's timezone profile to ensure we land in their local morning
+    try {
+      const profile = await getLeadProfile(leadId);
+      if (profile?.detectedTimezone) {
+        // Schedule for 10:00 AM local time on the target day
+        scheduledAt = timezoneService.getScheduledWindow(nextDayMarker, profile.detectedTimezone, 10);
+        console.log(`[FOLLOW_UP] Precision scheduled for ${lead.name} at 10am ${profile.detectedTimezone}`);
+      }
+    } catch (tzErr) {
+      console.warn(`[FOLLOW_UP] Timezone adjustment failed for lead ${leadId}:`, tzErr);
+    }
+
     // Safety: ensure we don't schedule in the past
     if (scheduledAt.getTime() < Date.now()) {
       scheduledAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now if already past
@@ -1072,7 +1118,7 @@ REPLY:`;
     await db.insert(followUpQueue).values({
       userId,
       leadId,
-      channel: lead.channel,
+      channel: lead.channel as "email" | "instagram",
       scheduledAt: scheduledAt,
       context: {
         follow_up_number: followUpCount + 1,
@@ -1193,7 +1239,7 @@ export async function scheduleInitialFollowUp(
     await db.insert(followUpQueue).values({
       userId,
       leadId,
-      channel: followUpChannel,
+      channel: followUpChannel as "email" | "instagram",
       scheduledAt: scheduledAt,
       context: {
         follow_up_number: 1,

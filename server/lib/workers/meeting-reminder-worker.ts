@@ -1,5 +1,5 @@
 import { db } from '../../db.js';
-import { calendarBookings, users, leads, aiActionLogs, leadTimezoneProfiles } from '../../../shared/schema.js';
+import { calendarEvents, users, leads, aiActionLogs, leadTimezoneProfiles } from '../../../shared/schema.js';
 import { eq, and, or, gt, lt, isNull } from 'drizzle-orm';
 import { storage } from '../../storage.js';
 import { sendEmail } from '../channels/email.js';
@@ -43,18 +43,18 @@ export class MeetingReminderWorker {
       const oneHourFromNow = new Date(now.getTime() + 65 * 60 * 1000); // 65 min buffer
       
       // Find bookings starting in the next ~hour, or that were recently marked 'no_show', or just ended in the past 2 hours
-      const upcomingBookings = await db.select().from(calendarBookings).where(
+      const upcomingBookings = await db.select().from(calendarEvents).where(
         or(
           and(
-            eq(calendarBookings.status, 'scheduled'),
-            gt(calendarBookings.startTime, new Date(now.getTime() - 10 * 60 * 1000)), // up to 10 mins past start
-            lt(calendarBookings.startTime, oneHourFromNow)
+            eq(calendarEvents.status, 'scheduled'),
+            gt(calendarEvents.startTime, new Date(now.getTime() - 10 * 60 * 1000)), // up to 10 mins past start
+            lt(calendarEvents.startTime, oneHourFromNow)
           ),
-          eq(calendarBookings.status, 'no_show'),
+          eq(calendarEvents.status, 'no_show'),
           and(
-            eq(calendarBookings.status, 'scheduled'),
-            lt(calendarBookings.endTime, now),
-            gt(calendarBookings.endTime, new Date(now.getTime() - 120 * 60 * 1000))
+            eq(calendarEvents.status, 'scheduled'),
+            lt(calendarEvents.endTime, now),
+            gt(calendarEvents.endTime, new Date(now.getTime() - 120 * 60 * 1000))
           )
         )
       );
@@ -306,7 +306,7 @@ Output requirements:
       
       // Handle actual Fathom no-show status detection
       if (callData.data && callData.data[0]?.status === 'no_show') {
-         await db.update(calendarBookings).set({ status: 'no_show' }).where({ id: booking.id });
+         await db.update(calendarEvents).set({ status: 'no_show' }).where(eq(calendarEvents.id, booking.id));
          return; // The no-show handler will pick it up
       }
 
@@ -323,7 +323,7 @@ Output requirements:
       await evaluateNextBestAction(lead.id, summary);
       
       // Mark booking as completed
-      await db.update(calendarBookings).set({ status: 'completed' }).where(eq(calendarBookings.id, booking.id));
+      await db.update(calendarEvents).set({ status: 'completed' }).where(eq(calendarEvents.id, booking.id));
 
     } catch (err) {
       console.error(`[MeetingReminder] Error processing Fathom post-meeting summary:`, err);
@@ -331,15 +331,15 @@ Output requirements:
   }
 
   private async markReminderSent(id: string, field: string): Promise<void> {
-    const booking = await db.select().from(calendarBookings).where(eq(calendarBookings.id, id)).limit(1);
+    const booking = await db.select().from(calendarEvents).where(eq(calendarEvents.id, id)).limit(1);
     if (booking.length === 0) return;
 
-    const metadata = booking[0].metadata as any || {};
-    await db.update(calendarBookings)
+    const metadata = (booking[0] as any).metadata || {};
+    await db.update(calendarEvents)
       .set({ 
         metadata: { ...metadata, [field]: true, last_reminder_at: new Date().toISOString() } 
-      })
-      .where(eq(calendarBookings.id, id));
+      } as any)
+      .where(eq(calendarEvents.id, id));
   }
 }
 

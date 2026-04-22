@@ -51,6 +51,20 @@ export class TimezoneService {
     const nextSafeStr = formatInTimeZone(nextSafe, timeZone, 'yyyy-MM-dd') + ' 06:05:00';
     return toDate(nextSafeStr, { timeZone });
   }
+
+  /**
+   * Get a Date object for a specific local hour on a target date/day-offset
+   */
+  static getScheduledWindow(daysFromNow: number, timeZone: string = this.DEFAULT_USER_TZ, targetHour: number = 10): Date {
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + daysFromNow);
+    
+    // Format to yyyy-MM-dd in target TZ, then append the target hour
+    const dateStr = formatInTimeZone(futureDate, timeZone, 'yyyy-MM-dd');
+    const targetStr = `${dateStr} ${targetHour.toString().padStart(2, '0')}:00:00`;
+    
+    return toDate(targetStr, { timeZone });
+  }
 }
 
 export const timezoneService = TimezoneService;

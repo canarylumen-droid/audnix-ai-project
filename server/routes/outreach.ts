@@ -517,7 +517,7 @@ router.delete('/campaigns/:id', requireAuth, async (req, res) => {
         .set({ integrationId: null })
         .where(and(
           inArray(leadsTable.id, leadIds),
-          eq(leadsTable.integrationId, campaign.config.mailboxId) // Only clear if still assigned to this campaign's context
+          eq(leadsTable.integrationId, (campaign.config as any).mailboxId) // Only clear if still assigned to this campaign's context
           // Note: campaign.config.mailboxIds might be multiple, but we clear generally for these leads
         ));
     }

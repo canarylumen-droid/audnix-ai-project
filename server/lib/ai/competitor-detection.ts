@@ -1,5 +1,6 @@
 import { storage } from '../../storage.js';
 import type { Message } from '../../../shared/schema.js';
+import { generateReply } from './ai-service.js';
 
 export interface CompetitorMentionResult {
   detected: boolean;
@@ -65,7 +66,7 @@ const COMPETITORS = {
 /**
  * Detect competitor mentions in message
  */
-export function detectCompetitorMention(message: string): CompetitorMentionResult {
+export async function detectCompetitorMention(message: string): Promise<CompetitorMentionResult> {
   const lowerMessage = message.toLowerCase();
 
   // Find which competitor was mentioned
@@ -81,6 +82,29 @@ export function detectCompetitorMention(message: string): CompetitorMentionResul
       }
     }
     if (detectedCompetitor) break;
+  }
+
+  // --- PHASE 37: AI FALLBACK FOR UNKNOWN COMPETITORS ---
+  if (!detectedCompetitor) {
+    const aiDetection = await generateReply(
+      `Analyze this message. Is the user mentioning a specific software competitor or automation tool? Return a JSON object: { "mentioned": boolean, "competitorName": string | null, "sentiment": number }`,
+      message,
+      { model: "gpt-4-mini", jsonMode: true }
+    ).catch(() => null);
+    
+    try {
+      const parsed = JSON.parse(aiDetection?.text || '{}');
+      if (parsed.mentioned && parsed.competitorName) {
+        const dynamicResponse = await generateDynamicBattleCard(parsed.competitorName, message);
+        return {
+          detected: true,
+          competitor: parsed.competitorName,
+          context: 'comparison',
+          response: dynamicResponse,
+          sentiment: parsed.sentiment || 0
+        };
+      }
+    } catch (e) {}
   }
 
   if (!detectedCompetitor || !competitorData) {
@@ -107,6 +131,24 @@ export function detectCompetitorMention(message: string): CompetitorMentionResul
     response,
     sentiment
   };
+}
+
+/**
+ * PHASE 37: Generate a strategic comparison against a competitor we don't have static data for.
+ */
+async function generateDynamicBattleCard(competitorName: string, originalMessage: string): Promise<string> {
+  const prompt = `The lead mentioned a competitor: "${competitorName}". 
+Context: "${originalMessage}"
+
+Our Product: Audnix (AI outreach engine, voice cloning, multi-channel Instagram/Email, autonomous intent detection).
+
+Task: Generate a professional, short (1-2 sentence) "Battle Card" response. 
+Focus on 1 specific advantage of Audnix over ${competitorName} (e.g. better AI, voice personalization, multi-channel setup).
+Tone: Respectful but confident. 
+Do NOT mention you are an AI.`;
+
+  const reply = await generateReply("You are an expert sales representative.", prompt, { model: "gpt-4" });
+  return reply?.text || `Interesting! We actually handle things a bit differently than ${competitorName} by focusing on deep AI personalization and multi-channel outreach. Would you like to see how we compare?`;
 }
 
 /**

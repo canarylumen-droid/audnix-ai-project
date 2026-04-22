@@ -61,6 +61,12 @@ import {
   DropdownMenuTrigger,
   DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider
+} from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -102,6 +108,10 @@ interface UserProfile {
   trialExpiresAt?: string;
   calendlyAccessToken?: string;
   calendarLink?: string;
+  config?: {
+    autonomousMode?: boolean;
+    [key: string]: any;
+  };
   metadata?: {
     onboardingCompleted?: boolean;
     [key: string]: unknown;
@@ -162,7 +172,15 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
   });
   const [showNotificationsPanel, setShowNotificationsPanel] = useState(false);
   const [showPushPrompt, setShowPushPrompt] = useState(true);
-  const isAutonomousMode = (user as any)?.config?.autonomousMode !== false;
+
+  // Optimistic UI for AI Toggle
+  const [localAutonomousMode, setLocalAutonomousMode] = useState<boolean | null>(null);
+  const isAutonomousMode = localAutonomousMode !== null ? localAutonomousMode : (user?.config?.autonomousMode !== false);
+  
+  useEffect(() => {
+    // Sync with external updates
+    setLocalAutonomousMode(null);
+  }, [user?.config?.autonomousMode]);
   const isCalendarConnected = !!(user?.calendlyAccessToken || user?.calendarLink);
 
   const { data: aiActions } = useQuery<any[]>({
@@ -346,7 +364,8 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
 
   return (
     <RealtimeProvider userId={user?.id}>
-      <div className="flex h-[100dvh] bg-background font-sans text-foreground overflow-hidden relative">
+      <TooltipProvider delayDuration={400}>
+        <div className="flex h-[100dvh] bg-background font-sans text-foreground overflow-hidden relative">
         <InternetConnectionBanner />
         <InstallPWAPrompt />
         <GuidedTour isOpen={showTour} onComplete={completeTour} onSkip={skipTour} />
@@ -466,30 +485,43 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                                 <Zap className="h-2 w-2 text-emerald-500" />
                                 Active Sync
                               </>
-                            ) : "Manual Mode"}
+                            ) : "System Paused"}
                           </span>
                         </div>
                       )}
                       <div className={sidebarCollapsed ? "scale-75" : ""}>
-                        <Switch
-                          id="autonomous-mode"
-                          checked={isAutonomousMode}
-                          onCheckedChange={(checked) => toggleAutonomousMode.mutate(checked)}
-                          disabled={toggleAutonomousMode.isPending}
-                          className="data-[state=checked]:bg-primary"
-                        />
+                          <Switch
+                            id="autonomous-mode"
+                            checked={isAutonomousMode}
+                            onCheckedChange={(checked) => {
+                              setLocalAutonomousMode(checked);
+                              toggleAutonomousMode.mutate(checked, {
+                                onError: () => setLocalAutonomousMode(!checked)
+                              });
+                            }}
+                            disabled={toggleAutonomousMode.isPending}
+                            className="data-[state=checked]:bg-primary"
+                          />
                       </div>
                     </div>
 
                     {/* Live AI Activity Feed (Phase 13) */}
-                    {!sidebarCollapsed && isAutonomousMode && (
+                    {!sidebarCollapsed && (
                       <div className="mt-4 px-1">
                         <div className="flex items-center justify-between mb-3">
                           <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Live Activity</span>
-                          <span className="flex h-1.5 w-1.5 rounded-full bg-primary/40 animate-pulse" />
+                          <span className={cn(
+                            "flex h-1.5 w-1.5 rounded-full transition-colors",
+                            isAutonomousMode ? "bg-primary/40 animate-pulse" : "bg-muted-foreground/20"
+                          )} title={isAutonomousMode ? "System processing" : "System standby"} />
                         </div>
                         <div className="space-y-2 max-h-[120px] overflow-hidden mask-fade-bottom">
-                          {aiActions && aiActions.length > 0 ? (
+                          {!isAutonomousMode ? (
+                            <div className="py-8 px-2 text-center rounded-xl border border-dashed border-muted-foreground/20 bg-muted/5">
+                              <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 mb-1">Standby</p>
+                              <p className="text-[8px] text-muted-foreground/60 leading-tight">AI Engine paused. Manual outreach active.</p>
+                            </div>
+                          ) : aiActions && aiActions.length > 0 ? (
                             aiActions.slice(0, 3).map((log, i) => (
                               <motion.div 
                                 key={log.id} 
@@ -1018,6 +1050,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
           </motion.div>
         )}
       </AnimatePresence>
+      </TooltipProvider>
     </RealtimeProvider>
   );
 }

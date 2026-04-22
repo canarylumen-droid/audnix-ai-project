@@ -119,7 +119,7 @@ async function verifyDatabaseConnection() {
     // Check version
     try {
       const versionResult = await db.execute(sql`SELECT version()`);
-      status.version = versionResult[0]?.version;
+      status.version = versionResult.rows[0]?.version;
       status.connected = true;
       verificationLog(`✅ Database connected: ${status.version}`);
     } catch (e: any) {

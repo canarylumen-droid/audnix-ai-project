@@ -440,9 +440,9 @@ router.post('/test', requireAuth, async (req: Request, res: Response): Promise<v
       tls: {
         rejectUnauthorized: false
       },
-      connectionTimeout: 20000,
-      greetingTimeout: 20000,
-      socketTimeout: 25000
+      connectionTimeout: 45000,
+      greetingTimeout: 45000,
+      socketTimeout: 50000
     } as any);
 
     // Verify connection
@@ -456,6 +456,17 @@ router.post('/test', requireAuth, async (req: Request, res: Response): Promise<v
     });
   } catch (error: any) {
     console.error(`[Email Test] Connection failed:`, error?.message || error);
+    
+    // Specifically handle decryption failures which often cause timeout/hangs
+    if (error?.message?.includes("Unsupported state") || error?.message?.includes("unable to authenticate data")) {
+      res.status(400).json({
+        error: "Decryption Failed",
+        message: "The server failed to decrypt your credentials. This usually means the ENCRYPTION_KEY has changed or is missing. Please check your .env file.",
+        code: "CRYPTO_ERROR"
+      });
+      return;
+    }
+
     const errorInfo = getSmtpErrorDetails(error, req.body.smtpHost);
     res.status(400).json(errorInfo);
   }
@@ -469,19 +480,37 @@ router.post('/disconnect', requireAuth, async (req: Request, res: Response): Pro
     const userId = getCurrentUserId(req)!;
     const { integrationId } = req.body;
 
-    if (integrationId) {
-      await storage.deleteIntegration(userId, integrationId);
-    } else {
-      await storage.deleteIntegration(userId, 'custom_email');
+    // 1. Immediately kill the IMAP connection BEFORE deleting from DB
+    //    so we have the userId available for the forceDisconnect notification
+    const { imapIdleManager } = await import('../lib/email/imap-idle-manager.js');
+    const targetId = integrationId || null;
+
+    if (targetId) {
+      imapIdleManager.forceDisconnect(targetId, userId);
     }
 
-    // Notify frontend to refresh the UI immediately
+    // 2. Delete from database
+    if (integrationId) {
+      await storage.deleteIntegrationById(integrationId);
+    } else {
+      // No ID provided — find and disconnect all custom email integrations for this user
+      const allIntegrations = await storage.getIntegrations(userId);
+      const customEmails = allIntegrations.filter(i => i.provider === 'custom_email');
+      for (const i of customEmails) {
+        imapIdleManager.forceDisconnect(i.id, userId);
+        await storage.deleteIntegrationById(i.id);
+      }
+    }
+
+    // 3. Sync remaining connections (picks up the deletion and won't restart killed ones)
+    // REMOVED immediate sync call to avoid race conditions with DB deletion propagation.
+    // The imapIdleManager.forceDisconnect above has already killed the specific connection.
+
+    // 4. Real-time frontend update
     const { wsSync } = await import('../lib/websocket-sync.js');
     wsSync.notifySettingsUpdated(userId);
-    
-    // Stop any active IMAP listeners for the disconnected account
-    const { imapIdleManager } = await import('../lib/email/imap-idle-manager.js');
-    imapIdleManager.syncConnections();
+    wsSync.notifyLeadsUpdated(userId);
+    wsSync.notifySyncStatus(userId, { syncing: false, integrationId, disconnected: true });
 
     res.json({
       success: true,

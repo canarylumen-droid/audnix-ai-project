@@ -219,12 +219,18 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
     const disconnectedIntegrations = integrations.filter(i => !i.connected).length;
 
     // [NEW] Workspace Benchmarks (Global Comparison)
-    const allLeads = await storage.getLeads({ userId, limit: 10000 });
-    const globalAvgScore = allLeads.length > 0 ? (allLeads.reduce((sum, l) => sum + (l.score || 0), 0) / allLeads.length) : 50;
-
     const { db } = await import('../db.js');
-    const { messages: msgSchema } = await import('../../shared/schema.js');
-    const { sql: dSql } = await import('drizzle-orm');
+    const { leads: leadsSchema, messages: msgSchema } = await import('../../shared/schema.js');
+    const { sql: dSql, eq: dEq } = await import('drizzle-orm');
+
+    // Phase 7 Fix: Use SQL aggregation for average lead score to avoid OOM
+    const [scoreResult] = await db.select({
+      avgScore: dSql<number>`AVG(COALESCE(${leadsSchema.score}, 0))`
+    })
+    .from(leadsSchema)
+    .where(dEq(leadsSchema.userId, userId));
+    
+    const globalAvgScore = Number(scoreResult?.avgScore || 50);
 
     // Get global open rate for benchmark
     const [globalMsgStats] = await db.select({
@@ -254,8 +260,8 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
     });
 
     // Fetch recent AI Action Logs for the dashboard
-    const { aiActionLogs: aiActionSchema, leads: leadsSchema } = await import('../../shared/schema.js');
-    const { desc: dDesc, eq: dEq } = await import('drizzle-orm');
+    const { aiActionLogs: aiActionSchema } = await import('../../shared/schema.js');
+    const { desc: dDesc } = await import('drizzle-orm');
     
     const aiLogs = await db.select({
       id: aiActionSchema.id,

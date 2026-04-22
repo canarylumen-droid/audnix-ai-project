@@ -149,7 +149,7 @@ router.post('/worker/trigger/:leadId', async (req: Request, res: Response) => {
     await db.insert(followUpQueue).values({
       userId,
       leadId,
-      channel: lead.channel,
+      channel: lead.channel as "email" | "instagram",
       scheduledAt: new Date(),
       context: {
         manual_trigger: true,
