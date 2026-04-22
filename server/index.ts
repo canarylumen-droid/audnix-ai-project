@@ -3,11 +3,24 @@ import "dotenv/config";
 
 // ─── GLOBAL DNS FIX ──────────────────────────────────────────────────────────
 // Cloud environments (Railway, AWS, GCP) often have broken or slow IPv6 DNS
-// resolution which causes EDNS / EAI_AGAIN errors on all outbound TCP connections
-// including SMTP. Force all DNS lookups to prefer IPv4 globally before any
-// other code runs, so nodemailer/imap/fetch all benefit automatically.
+// resolution which causes EDNS / EAI_AGAIN or ENETUNREACH errors.
 import dns from "dns";
+// Force all lookups to prefer IPv4
 dns.setDefaultResultOrder("ipv4first");
+// Nuclear Option: Monkey-patch dns.lookup to strictly filter for IPv4
+const originalLookup = dns.lookup;
+const patchedLookup = ((hostname: string, options: any, callback: any) => {
+  if (typeof options === 'function') {
+    callback = options;
+    options = { family: 4 };
+  } else if (typeof options === 'object') {
+    options = { ...options, family: 4 };
+  } else {
+    options = { family: 4 };
+  }
+  return originalLookup(hostname, options, callback);
+}) as any;
+dns.lookup = patchedLookup;
 // ─────────────────────────────────────────────────────────────────────────────
 
 import * as Sentry from "@sentry/node";

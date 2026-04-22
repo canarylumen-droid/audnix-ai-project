@@ -72,23 +72,47 @@ export async function createTrackedEmail(data: EmailTrackingData): Promise<{ tok
   try {
     const validLeadId = isValidUUID(data.leadId) ? data.leadId : null;
 
-    await db.execute(sql`
-      INSERT INTO email_tracking (
-        id, user_id, lead_id, recipient_email, subject, token, sent_at, created_at, target_url
-      ) VALUES (
-        gen_random_uuid(),
-        ${data.userId},
-        ${validLeadId},
-        ${data.recipientEmail},
-        ${data.subject},
-        ${token},
-        ${data.sentAt.toISOString()},
-        NOW(),
-        ${data.targetUrl || null}
-      )
-    `);
+    try {
+      // Attempt 1: Full insert with target_url (Modern schema)
+      await db.execute(sql`
+        INSERT INTO email_tracking (
+          id, user_id, lead_id, recipient_email, subject, token, sent_at, created_at, target_url
+        ) VALUES (
+          gen_random_uuid(),
+          ${data.userId},
+          ${validLeadId},
+          ${data.recipientEmail},
+          ${data.subject},
+          ${token},
+          ${data.sentAt.toISOString()},
+          NOW(),
+          ${data.targetUrl || null}
+        )
+      `);
+    } catch (insertErr: any) {
+      // Fallback: If 'target_url' column doesn't exist (Error 42703), try without it
+      if (insertErr?.code === '42703' || insertErr?.message?.includes('target_url')) {
+        console.warn(`[Tracking Resilience] Fallback triggered: 'target_url' column missing in production DB. Retrying without it.`);
+        await db.execute(sql`
+          INSERT INTO email_tracking (
+            id, user_id, lead_id, recipient_email, subject, token, sent_at, created_at
+          ) VALUES (
+            gen_random_uuid(),
+            ${data.userId},
+            ${validLeadId},
+            ${data.recipientEmail},
+            ${data.subject},
+            ${token},
+            ${data.sentAt.toISOString()},
+            NOW()
+          )
+        `);
+      } else {
+        throw insertErr; // Re-throw other errors
+      }
+    }
   } catch (error) {
-    console.error('Failed to create email tracking record:', error);
+    console.error('Failed to create email tracking record (even with fallback):', error);
   }
 
   const pixelHtml = generateTrackingPixel(baseUrl, token);

@@ -2,6 +2,7 @@ import { generateBrandedEmail, generateMeetingEmail, type BrandColors } from '..
 import { storage } from '../../storage.js';
 import * as cheerio from 'cheerio';
 import { type Integration } from '../../../shared/schema.js';
+import dns from 'dns';
 
 /**
  * Email messaging functions with branded templates using extracted PDF brand colors
@@ -174,6 +175,9 @@ async function sendCustomSMTP(
     },
     // Increased timeouts and IPv4 forcing for reliability (especially for Cloud/Hostinger)
     family: 4,
+    lookup: (hostname: string, options: any, callback: any) => {
+      return dns.lookup(hostname, { family: 4 }, callback);
+    },
     tls: {
       rejectUnauthorized: false
     },

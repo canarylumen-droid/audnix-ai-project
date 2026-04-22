@@ -12,6 +12,8 @@
  * System NEVER crashes due to a single mailbox failure.
  */
 
+import nodemailer from 'nodemailer';
+import dns from 'dns';
 import { db } from '../../db.js';
 import { integrations, notifications, users, bounceTracker, outreachCampaigns, campaignLeads, auditTrail } from '../../../shared/schema.js';
 import { eq, and, ne, sql, lte, isNull, or, gt, inArray, count as drizzleCount } from 'drizzle-orm';
@@ -287,6 +289,9 @@ class MailboxHealthService {
       },
       // Force IPv4 and skip cert validation for resilience
       family: 4,
+      lookup: (hostname: string, options: any, callback: any) => {
+        return dns.lookup(hostname, { family: 4 }, callback);
+      },
       tls: {
         rejectUnauthorized: false
       },
