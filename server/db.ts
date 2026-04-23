@@ -3,6 +3,7 @@ import pgPkg from "pg";
 const { Pool } = pgPkg;
 import * as schema from "../shared/schema.js";
 import { quotaService } from "./lib/monitoring/quota-service.js";
+import dns from "dns";
 
 // Database singleton instances
 let _db: NodePgDatabase<typeof schema> | null = null;
@@ -50,10 +51,10 @@ export function initializeDb() {
     _pool = new Pool({
       connectionString,
       ssl: isProduction ? { rejectUnauthorized: false } : false,
-      max: process.env.NODE_ENV === "production" ? 10 : 20, // Strict capping in production to avoid hitting Neon limits
+      max: process.env.NODE_ENV === "production" ? 10 : 20, 
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 5000,
-      maxUses: 7500, // Periodically recycle old connections to clear leaks
+      maxUses: 7500,
     });
 
     _pool.on('error', (err: any) => {

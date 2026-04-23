@@ -38,7 +38,7 @@ class SocketService {
         methods: ['GET', 'POST'],
         credentials: true,
       },
-      transports: ['websocket', 'polling'],
+      transports: ['websocket'],
     });
 
     this.io.on('connection', (socket: Socket) => {

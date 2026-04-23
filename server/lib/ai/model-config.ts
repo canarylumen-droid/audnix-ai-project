@@ -17,12 +17,12 @@ export const Z_AI_FAST_MODEL = "glm-4-flash";         // Ultra-fast GLM-4-Flash
 
 // Default active models based on service
 export const MODELS = {
-    sales_reasoning: process.env.Z_AI_API_KEY ? Z_AI_STABLE_MODEL : OPENAI_INTELLIGENCE_MODEL,
-    intent_classification: process.env.Z_AI_API_KEY ? Z_AI_FAST_MODEL : OPENAI_FAST_MODEL,
-    content_generation: process.env.Z_AI_API_KEY ? Z_AI_STABLE_MODEL : GENAI_STABLE_MODEL,
-    lead_intelligence: process.env.Z_AI_API_KEY ? Z_AI_STABLE_MODEL : OPENAI_INTELLIGENCE_MODEL,
+    sales_reasoning: process.env.ZAI_API_KEY ? Z_AI_STABLE_MODEL : OPENAI_INTELLIGENCE_MODEL,
+    intent_classification: process.env.ZAI_API_KEY ? Z_AI_FAST_MODEL : OPENAI_FAST_MODEL,
+    content_generation: process.env.ZAI_API_KEY ? Z_AI_STABLE_MODEL : GENAI_STABLE_MODEL,
+    lead_intelligence: process.env.ZAI_API_KEY ? Z_AI_STABLE_MODEL : OPENAI_INTELLIGENCE_MODEL,
     voice_assistant: OPENAI_FAST_MODEL,
-    objection_handling: process.env.Z_AI_API_KEY ? Z_AI_STABLE_MODEL : OPENAI_INTELLIGENCE_MODEL,
+    objection_handling: process.env.ZAI_API_KEY ? Z_AI_STABLE_MODEL : OPENAI_INTELLIGENCE_MODEL,
     grammar_check: Z_AI_FAST_MODEL,
-    outreach_generation: process.env.Z_AI_API_KEY ? Z_AI_STABLE_MODEL : GENAI_STABLE_MODEL,
+    outreach_generation: process.env.ZAI_API_KEY ? Z_AI_STABLE_MODEL : GENAI_STABLE_MODEL,
 };

@@ -9,42 +9,12 @@
 
 import { db } from '../../db.js';
 import { sql } from 'drizzle-orm';
+import { embed as embedText } from './ai-service.js';
 
 const EMBEDDING_MODEL = 'text-embedding-3-small';
 const CHUNK_SIZE_CHARS = 1800; // ~450 tokens at ~4 chars/token
 const CHUNK_OVERLAP_CHARS = 200;
 
-/**
- * Call OpenAI embeddings API.
- * Falls back gracefully if OPENAI_API_KEY is missing.
- */
-export async function embedText(text: string): Promise<number[]> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    console.warn('[VectorSearch] OPENAI_API_KEY not set — skipping embedding, using empty vector');
-    return [];
-  }
-
-  const response = await fetch('https://api.openai.com/v1/embeddings', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: EMBEDDING_MODEL,
-      input: text.substring(0, 8000), // Max 8k chars for safety
-    }),
-  });
-
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`OpenAI embedding failed: ${err}`);
-  }
-
-  const data = await response.json() as any;
-  return data.data[0].embedding as number[];
-}
 
 /**
  * Split text into overlapping chunks for precise retrieval.
@@ -99,40 +69,51 @@ export async function indexPdfChunks(
     currentVersion = (parseInt((lastVersionRes.rows[0] as any)?.max_v || '0')) + 1;
   }
 
-  let indexedCount = 0;
+  // PHASE 1: Generate embeddings in parallel (Limit concurrency to 10 to avoid rate limits/timeouts)
+  console.log(`🧠 [VectorSearch] Generating embeddings for ${chunks.length} chunks...`);
+  const CONCURRENCY_LIMIT = 10;
+  const chunkResults: { chunk: string; embedding: number[] | null }[] = [];
 
-  for (let i = 0; i < chunks.length; i++) {
-    const chunk = chunks[i];
-    let embedding: number[] = [];
-
-    try {
-      embedding = await embedText(chunk);
-    } catch (e) {
-      console.warn(`[VectorSearch] Embedding chunk ${i} failed:`, (e as Error).message);
-    }
-
-    const embeddingStr = embedding.length > 0
-      ? `[${embedding.join(',')}]`
-      : null;
-
-    await db.execute(sql`
-      INSERT INTO brand_embeddings (user_id, document_id, source, snippet, embedding, version, created_at)
-      VALUES (
-        ${userId},
-        ${pdfId},
-        ${fileName},
-        ${chunk},
-        ${embeddingStr ? sql`${embeddingStr}::vector` : sql`NULL`},
-        ${currentVersion},
-        NOW()
-      )
-    `);
-
-    indexedCount++;
+  for (let i = 0; i < chunks.length; i += CONCURRENCY_LIMIT) {
+    const batch = chunks.slice(i, i + CONCURRENCY_LIMIT);
+    const batchPromises = batch.map(async (chunk) => {
+      try {
+        const embedding = await embedText(chunk);
+        return { chunk, embedding };
+      } catch (e) {
+        console.warn(`[VectorSearch] Embedding failed for a chunk:`, (e as Error).message);
+        return { chunk, embedding: null };
+      }
+    });
+    
+    const results = await Promise.all(batchPromises);
+    chunkResults.push(...results);
   }
 
-  console.log(`✅ [VectorSearch] Indexed ${indexedCount} chunks (v${currentVersion}) for user: ${userId}`);
-  return indexedCount;
+  // PHASE 2: Bulk insert into PostgreSQL
+  const { brandEmbeddings } = await import("../../../shared/schema.js");
+  const valuesToInsert = chunkResults.map((res) => {
+    const embeddingStr = res.embedding && res.embedding.length > 0
+      ? `[${res.embedding.join(',')}]`
+      : null;
+
+    return {
+      userId,
+      documentId: pdfId,
+      source: fileName,
+      snippet: res.chunk,
+      embedding: embeddingStr ? sql`${embeddingStr}::vector` : null,
+      version: currentVersion,
+      createdAt: new Date()
+    };
+  });
+
+  if (valuesToInsert.length > 0) {
+    await db.insert(brandEmbeddings).values(valuesToInsert);
+  }
+
+  console.log(`✅ [VectorSearch] Bulk indexed ${valuesToInsert.length} chunks (v${currentVersion}) for user: ${userId}`);
+  return valuesToInsert.length;
 }
 
 /**

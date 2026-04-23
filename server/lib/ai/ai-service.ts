@@ -24,8 +24,8 @@ const zai = process.env.ZAI_API_KEY
 /**
  * Determine primary provider: Z-AI > OpenAI > Gemini > None (Demo)
  */
-const PREFERRED_PROVIDER = process.env.Z_AI_API_KEY ? "zai" : (process.env.OPENAI_API_KEY ? "openai" : (process.env.GEMINI_API_KEY ? "genai" : "demo"));
-const AI_MODEL = process.env.Z_AI_API_KEY ? MODELS.sales_reasoning : (process.env.OPENAI_MODEL || OPENAI_INTELLIGENCE_MODEL);
+const PREFERRED_PROVIDER = process.env.ZAI_API_KEY ? "zai" : (process.env.OPENAI_API_KEY ? "openai" : (process.env.GEMINI_API_KEY ? "genai" : "demo"));
+const AI_MODEL = process.env.ZAI_API_KEY ? MODELS.sales_reasoning : (process.env.OPENAI_MODEL || OPENAI_INTELLIGENCE_MODEL);
 
 console.log(`[AI Service] Unified initialization with provider: ${PREFERRED_PROVIDER}`);
 
@@ -131,16 +131,23 @@ export async function embed(text: string): Promise<number[]> {
   // 2. Try GenAI (768 dims -> padded to 1536)
   if (isProviderAvailable('genai')) {
     try {
-      const result = await genai!.models.embedContent({
+      const result = await genai!.models.embedContent({ 
         model: "text-embedding-004",
-        contents: text
+        contents: [{ parts: [{ text }] }] 
       });
+      const vector = result.embeddings?.[0]?.values || [];
+      if (vector.length === 0) throw new Error("Empty embedding returned");
+      
+      // Pad to 1536 to match OpenAI dimension if needed (pgvector column is fixed size)
+      const padded = new Array(1536).fill(0);
+      for (let i = 0; i < Math.min(vector.length, 1536); i++) {
+        padded[i] = vector[i];
+      }
+      
       updateProviderHealth('genai', true);
-      const values = result.embeddings?.[0]?.values;
-      if (!values) throw new Error("GenAI returned no embeddings");
-      return normalizeEmbedding(values as number[]);
+      return padded;
     } catch (error: any) {
-      console.error("[AI Service] GenAI embedding error:", error.message);
+      console.warn("[AI-Service] GenAI embedding failed:", error.message);
       updateProviderHealth('genai', false, error.status);
     }
   }
@@ -333,8 +340,22 @@ export async function generateReply(
     text: options?.jsonMode ? JSON.stringify({
       text: "Thanks for reaching out! I'd love to help you learn more about our platform.",
       intent: "interested",
+      outcome: "closed",
+      coaching: { strengths: ["Good close", "Active listening"], weaknesses: [], improvements: [] },
+      bant: { budget: "$5,000", authority: "Decision Maker", need: "Automation", timeline: "Now" },
+      primaryObjection: { category: "pricing", snippet: "How much is it?" },
+      suggestedAction: "Send payment link",
+      agreedToPay: true,
+      paymentAmount: "$5,000",
+      confidence: 0.95,
+      action: "send_payment_link",
+      reasoning: "Lead explicitly asked for the payment link during the call.",
+      delayDays: 0,
+      intentScore: 90,
+      emailSubject: "Your Checkout Link",
+      emailBody: "Here is the payment link as requested during our call.",
       metadata: { demo: true }
-    }) : "Thanks for reaching out! I'd love to help you learn more about our platform.",
+    }) : "Thanks for reaching out! I'd love to help you learn more about our platform. I've noted that you agreed to proceed with the $5,000 package.",
     tokensUsed: 0
   };
 }

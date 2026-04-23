@@ -28,6 +28,7 @@ import { getLeadProfile } from '../calendar/lead-timezone-intelligence.js';
 import { calculateSimilarity } from './utils.js';
 import { getRegionalInstruction } from './regional-norms.js';
 import { objectionService } from './objection-service.js';
+import { searchSimilarChunks } from './vector-search.js';
 import { videoMonitors } from '../../../shared/schema.js';
 
 const isDemoMode = false;
@@ -292,6 +293,19 @@ export async function generateAIReply(
       tags: lead.tags || []
     })
     : null;
+    
+  // --- BRAND RAG (Semantic Retrieval) ---
+  let ragContext = "";
+  if (lastLeadMessage) {
+    try {
+      const relevantChunks = await searchSimilarChunks(lastLeadMessage.body, lead.userId, 4);
+      if (relevantChunks.length > 0) {
+        ragContext = `[RELEVANT BRAND KNOWLEDGE]:\n${relevantChunks.map(c => `- ${c.content}`).join('\n')}`;
+      }
+    } catch (ragError) {
+      console.warn("[ConversationAI] RAG search failed:", ragError);
+    }
+  }
 
   // --- STYLE LEARNING ---
   const styleMarkers = await getStyleMarkers(lead.userId);
@@ -525,6 +539,8 @@ Only meeting reminders are authorised. Do not generate a response.`,
   const shouldPushBooking = (currentStatus === 'open' && inboundCount >= 2) || currentStatus === 'replied' || currentStatus === 'warm';
 
   const systemPrompt = `You are an elite sales advisor — a real person, not a bot. You know this lead, their niche (${leadNiche}), and you behave like a sharp, experienced closer who always knows what happens next.
+
+${ragContext}
 
 [BRAND GUIDELINES]
 ${brandGuidelines}
@@ -1076,9 +1092,8 @@ export async function generateExpertOutreach(
   // Semantically retrieve the best knowledge fragments for this specific lead/industry
   let ragContext = "";
   try {
-    // Disabled as searchSimilarChunks is not available globally yet
-    // const relevantChunks = await searchSimilarChunks(`${lead.company} ${industry} ${leadRole}`, userId, 5);
-    // ragContext = relevantChunks.map(c => `[From ${c.fileName}]: ${c.content}`).join("\n\n");
+    const relevantChunks = await searchSimilarChunks(`${lead.company} ${industry} ${leadRole}`, userId, 5);
+    ragContext = relevantChunks.map(c => `[From ${c.fileName}]: ${c.content}`).join("\n\n");
   } catch (ragError) {
     console.warn("⚠️ [RAG] Outreach retrieval error:", ragError);
   }
@@ -1216,9 +1231,10 @@ export async function generateCampaignTemplateSequence(
   const intelligence = (user as any)?.intelligenceMetadata || {};
   let ragContext = "Use general brand context.";
   try {
-    // Disabled searchSimilarChunks
-    // const ragContextChunks = await searchSimilarChunks("Campaign sequence " + (focus || ""), userId, 3);
-    // if (ragContextChunks && ragContextChunks.length > 0) { ... }
+    const ragContextChunks = await searchSimilarChunks("Campaign sequence " + (focus || ""), userId, 3);
+    if (ragContextChunks && ragContextChunks.length > 0) {
+      ragContext = ragContextChunks.map(c => c.content).join("\n\n");
+    }
   } catch (e) {
     // Ignore, fallback to default
   }

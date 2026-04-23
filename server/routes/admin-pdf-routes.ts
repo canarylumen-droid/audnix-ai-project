@@ -9,6 +9,9 @@ import { MODELS } from "../lib/ai/model-config.js";
 import crypto from "crypto";
 import { detectUVP, gatherCompetitorIntelligence } from "../lib/ai/universal-sales-agent.js";
 import { indexPdfChunks, ensureVectorSetup } from "../lib/ai/vector-search.js";
+import { blobStorage } from "../lib/storage/blob-storage.js";
+import { acquireLock, releaseLock } from "../lib/redis.js";
+import { refreshPdfTtl } from "../lib/redis/brand-pdf-storage.js";
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const pdf = require('pdf-parse');
@@ -206,11 +209,20 @@ router.post(
         return;
       }
 
-      const user = await storage.getUserById(userId);
-      if (!user) {
-        res.status(404).json({ error: "User not found" });
+      // PREVENT CONCURRENCY RACES: Use a distributed lock per user
+      const lockKey = `brand-pdf-upload:${userId}`;
+      const hasLock = await acquireLock(lockKey, 300); // 5 min timeout for large PDFs
+      if (!hasLock) {
+        res.status(429).json({ error: "An upload is already in progress. Please wait." });
         return;
       }
+
+      try {
+        const user = await storage.getUserById(userId);
+        if (!user) {
+          res.status(404).json({ error: "User not found" });
+          return;
+        }
 
       // Generate hash to check if PDF was already processed
       const fileHash = generateFileHash(req.file.buffer);
@@ -230,6 +242,9 @@ router.post(
           const cachedFileSize = cached.file_size || req.file.size;
 
           console.log(`📦 Using cached brand PDF analysis for user ${userId}`);
+
+          // Refresh the Redis TTL so the binary doesn't expire while still in use
+          await refreshPdfTtl(userId).catch(() => {});
 
           // Update user metadata from cache (use cached file size, not current upload size)
           const existingMetadata = (user.metadata || {}) as DeepMergeObject;
@@ -361,7 +376,12 @@ Only include fields you can confidently extract. Return valid JSON only.`,
       ];
       analysisItems = checks;
       analysisScore = Math.round((checks.filter(c => c.present).length / checks.length) * 100);
-      // Cache in PostgreSQL (including raw PDF for re-analysis)
+      // Step 1: Store raw PDF binary in persistent storage (S3/R2 with Redis fallback)
+      const storageKey = `brand-pdf:${userId}`;
+      const savedPath = await blobStorage.store(storageKey, req.file.buffer);
+      console.log(`☁️ PDF binary stored in BlobStorage: ${savedPath}`);
+
+      // Step 2: Cache metadata + extracted text in PostgreSQL (no binary blob)
       try {
         const { brandPdfCache } = await import("../../shared/schema.js");
         await db.insert(brandPdfCache).values({
@@ -369,7 +389,6 @@ Only include fields you can confidently extract. Return valid JSON only.`,
           fileName: req.file.originalname,
           fileSize: req.file.size,
           fileHash,
-          pdfContent: req.file.buffer,
           extractedText: pdfText.substring(0, 50000),
           brandContext,
           analysisScore,
@@ -384,20 +403,19 @@ Only include fields you can confidently extract. Return valid JSON only.`,
             updatedAt: new Date()
           }
         });
-        console.log(`💾 Brand PDF cached in PostgreSQL for user ${userId} (${(req.file.size / 1024 / 1024).toFixed(2)} MB)`);
+        console.log(`💾 Brand PDF metadata cached in PostgreSQL for user ${userId} (${(req.file.size / 1024 / 1024).toFixed(2)} MB)`);
       } catch (cacheError) {
         console.warn("Failed to cache PDF using db.insert:", cacheError);
         
-        // Fallback to raw SQL if insert fails (sometimes table name quoting varies)
+        // Fallback to raw SQL (no binary blob)
         try {
           await db.execute(sql`
-            INSERT INTO brand_pdf_cache (user_id, file_name, file_size, file_hash, pdf_content, extracted_text, brand_context, analysis_score, analysis_items)
+            INSERT INTO brand_pdf_cache (user_id, file_name, file_size, file_hash, extracted_text, brand_context, analysis_score, analysis_items)
             VALUES (
               ${userId},
               ${req.file.originalname},
               ${req.file.size},
               ${fileHash},
-              ${req.file.buffer},
               ${pdfText.substring(0, 50000)},
               ${JSON.stringify(brandContext)}::jsonb,
               ${analysisScore},
@@ -410,7 +428,7 @@ Only include fields you can confidently extract. Return valid JSON only.`,
               updated_at = NOW()
           `);
         } catch (innerError) {
-          console.error("Critical: Failed to store PDF in BOTH drizzle and raw SQL:", innerError);
+          console.error("Critical: Failed to store PDF metadata in BOTH drizzle and raw SQL:", innerError);
         }
       }
 
@@ -522,8 +540,15 @@ Only include fields you can confidently extract. Return valid JSON only.`,
     } catch (error: unknown) {
       console.error("Error uploading brand PDF:", error);
       res.status(500).json({ error: getErrorMessage(error) });
+    } finally {
+      // Always release the lock
+      await releaseLock(`brand-pdf-upload:${userId}`).catch(() => {});
     }
+  } catch (outerError) {
+    console.error("Fatal error in upload route:", outerError);
+    res.status(500).json({ error: getErrorMessage(outerError) });
   }
+}
 );
 
 /**

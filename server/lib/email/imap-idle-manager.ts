@@ -576,6 +576,14 @@ class ImapIdleManager {
                 tls: imapPort === 993,
                 // Force IPv4 for cloud environment stability
                 family: 4,
+                lookup: (hostname: string, options: any, callback: any) => {
+                    dns.resolve4(hostname, (err, addresses) => {
+                        if (err || !addresses || addresses.length === 0) {
+                            return callback(err || new Error('No IPv4 found'), null, 4);
+                        }
+                        callback(null, addresses[0], 4);
+                    });
+                },
                 tlsOptions: { rejectUnauthorized: false },
                 keepalive: {
                     interval: 15000, // NOOP interval

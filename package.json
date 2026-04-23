@@ -19,6 +19,8 @@
     "node": "22.x"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1035.0",
+    "@aws-sdk/lib-storage": "^3.1035.0",
     "@google-cloud/local-auth": "^3.0.1",
     "@google/genai": "^1.44.0",
     "@gsap/react": "^2.1.2",

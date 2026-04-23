@@ -163,8 +163,15 @@ export function BrandKnowledgeBase({ onClose, embedded = false }: { onClose?: ()
       // Step 2: Upload + index
       const uploadForm = new FormData();
       uploadForm.append("pdf", file);
-      const uploadRes = await fetch("/api/brand-pdf/upload", { method: "POST", body: uploadForm, credentials: "include" });
-      if (!uploadRes.ok) throw new Error("Upload failed");
+      const uploadRes = await fetch("/api/brand-pdf/upload", {
+        method: "POST",
+        body: uploadForm,
+        credentials: "include",
+      });
+      if (!uploadRes.ok) {
+        const errData = await uploadRes.json().catch(() => ({}));
+        throw new Error(errData.error || `Upload failed (${uploadRes.status})`);
+      }
 
       const result = await uploadRes.json();
       setUploadResult(result);

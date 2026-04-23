@@ -65,6 +65,34 @@ router.post('/:provider/connect', requireAuth, async (req: Request, res: Respons
       }
     }
 
+    if (provider === 'custom_email') {
+      try {
+        const nodemailer = await import('nodemailer');
+        const dns = await import('dns');
+        const transporter = nodemailer.createTransport({
+          host: credentials.smtp_host,
+          port: credentials.smtp_port || 587,
+          secure: credentials.smtp_port === 465,
+          auth: {
+            user: credentials.smtp_user,
+            pass: credentials.smtp_pass,
+          },
+          family: 4,
+          lookup: (hostname: string, options: any, callback: any) => {
+            return dns.lookup(hostname, { family: 4 }, callback);
+          },
+          tls: { rejectUnauthorized: false }
+        } as any);
+
+        await transporter.verify();
+        console.log(`[Integrations] SMTP Handshake successful for ${credentials.smtp_user}`);
+      } catch (smtpError: any) {
+        console.error('[Integrations] SMTP Handshake failed:', smtpError.message);
+        res.status(400).json({ error: 'SMTP Verification Failed', message: smtpError.message });
+        return;
+      }
+    }
+
     const encryptedMeta = encrypt(JSON.stringify(credentials));
 
     const integration = await storage.createIntegration({

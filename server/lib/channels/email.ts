@@ -146,6 +146,8 @@ export function autoDiscoverSettings(email: string): Partial<EmailConfig> {
  * Send email via custom SMTP (for custom domain emails)
  */
 
+const smtpPools = new Map<string, any>();
+
 /**
  * Send email via custom SMTP (for custom domain emails)
  * Includes exponential backoff for transient failures
@@ -166,26 +168,36 @@ async function sendCustomSMTP(
 
   const emailBody = body;
 
-  const transporter = nodemailer.createTransport({
-    host: config.smtp_host,
-    port: config.smtp_port || 587,
-    secure: config.smtp_port === 465,
-    auth: {
-      user: config.smtp_user,
-      pass: config.smtp_pass,
-    },
-    // Forced IPv4 at the library level for extra safety
-    family: 4,
-    lookup: (hostname: string, options: any, callback: any) => {
-      return dns.lookup(hostname, { family: 4 }, callback);
-    },
-    tls: {
-      rejectUnauthorized: false
-    },
-    connectionTimeout: 30000,
-    greetingTimeout: 30000,
-    socketTimeout: 60000,
-  } as any);
+  const cacheKey = integrationId || `${config.smtp_host}:${config.smtp_user}`;
+  let transporter = smtpPools.get(cacheKey);
+
+  if (!transporter) {
+    console.log(`[CustomSMTP] Creating new persistent connection pool for ${cacheKey}`);
+    transporter = nodemailer.createTransport({
+      pool: true,
+      maxConnections: 5,
+      maxMessages: 100,
+      host: config.smtp_host,
+      port: config.smtp_port || 587,
+      secure: config.smtp_port === 465,
+      auth: {
+        user: config.smtp_user,
+        pass: config.smtp_pass,
+      },
+      // Forced IPv4 at the library level for extra safety
+      family: 4,
+      lookup: (hostname: string, options: any, callback: any) => {
+        return dns.lookup(hostname, { family: 4 }, callback);
+      },
+      tls: {
+        rejectUnauthorized: false
+      },
+      connectionTimeout: 30000,
+      greetingTimeout: 30000,
+      socketTimeout: 60000,
+    } as any);
+    smtpPools.set(cacheKey, transporter);
+  }
 
   const messageId = `<${import.meta.url ? (await import('crypto')).randomUUID() : Date.now() + Math.random()}@audnixai.com>`;
 

@@ -183,7 +183,11 @@ Company: ${brand.companyName}`;
   }
   
   if (brand.brandKnowledge) {
-    prompt += `\n\n# Advanced Brand Knowledge (from PDF/Scraping):\n${brand.brandKnowledge}`;
+    // Truncate to 20k chars to avoid bloating context window while keeping top facts
+    const truncatedKnowledge = brand.brandKnowledge.length > 20000 
+      ? brand.brandKnowledge.substring(0, 20000) + "... [truncated for brevity]"
+      : brand.brandKnowledge;
+    prompt += `\n\n# Advanced Brand Knowledge (from PDF/Scraping):\n${truncatedKnowledge}`;
   }
   
   
