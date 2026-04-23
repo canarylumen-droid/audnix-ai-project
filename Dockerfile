@@ -6,16 +6,7 @@ RUN npm install
 COPY . .
 RUN npm run build:client
 
-# --- Stage 2: Build Backend ---
-FROM node:20-alpine AS backend-builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-# Ensure we build the server code if it's TypeScript
-RUN npm run build:server || true
-
-# --- Stage 3: Production Image ---
+# --- Stage 2: Production Image ---
 FROM node:20-alpine
 WORKDIR /app
 
@@ -23,11 +14,10 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install --omit=dev
 
-# Copy built assets
+# Copy built frontend assets
 COPY --from=frontend-builder /app/dist/public ./dist/public
-COPY --from=backend-builder /app/dist ./dist
-# If server code is not in dist, copy the source (assuming it runs via tsx or similar in some cases, 
-# but for production it should be compiled)
+
+# Copy the rest of the application source
 COPY . .
 
 # Environment variables
