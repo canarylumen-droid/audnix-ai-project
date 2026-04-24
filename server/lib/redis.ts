@@ -1,4 +1,5 @@
 import { createClient, type RedisClientType } from 'redis';
+import os from 'os';
 
 let redisClient: RedisClientType | null = null;
 let pubClient: RedisClientType | null = null;
@@ -116,7 +117,7 @@ export async function releaseLock(key: string): Promise<void> {
  * Get a unique identifier for this process/worker
  */
 export function getWorkerId(): string {
-  return process.env.APP_WORKER_ID || require('os').hostname() || 'unknown-worker';
+  return process.env.APP_WORKER_ID || os.hostname() || 'unknown-worker';
 }
 
 /**

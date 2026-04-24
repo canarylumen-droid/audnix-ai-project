@@ -1044,8 +1044,13 @@ export async function sendSystemEmail(
       host,
       port,
       secure: port === 465,
-      auth: { user, pass }
-    });
+      auth: { user, pass },
+      // Force IPv4 — production environment has no IPv6 route
+      family: 4,
+      tls: { rejectUnauthorized: false },
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+    } as any);
 
     await transporter.sendMail({
       from: `"Audnix AI Support" <${user}>`,

@@ -441,6 +441,7 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
               channel: 'email' as const,
               status: (leadData as any).bouncy ? 'bouncy' as const : 'new' as const,
               aiPaused,
+              integrationId: req.body.integrationId || null,
               verified: (leadData as any).verified || false,
               metadata: {
                 ...(leadData.metadata as any),
@@ -970,10 +971,11 @@ router.post("/import/:provider", requireAuth, async (req: Request, res: Response
 router.post("/import-bulk", requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    const { leads: leadsData, channel = 'email', aiPaused = false } = req.body as {
+    const { leads: leadsData, channel = 'email', aiPaused = false, integrationId } = req.body as {
       leads: Array<{ name?: string; email?: string; phone?: string; company?: string }>;
       channel?: 'email' | 'instagram';
       aiPaused?: boolean;
+      integrationId?: string;
     };
 
     if (!Array.isArray(leadsData) || leadsData.length === 0) {
@@ -1045,6 +1047,7 @@ router.post("/import-bulk", requireAuth, async (req: Request, res: Response): Pr
           channel: channel as 'email' | 'instagram',
           status: 'new',
           aiPaused: aiPaused,
+          integrationId: integrationId || null,
           metadata: {
             ...leadData, // Preserve all original fields
             imported_from_csv: true,
@@ -1440,7 +1443,8 @@ router.post("/import-pdf", requireAuth, upload.single("pdf"), async (req: Reques
 
     const result = await processPDF(req.file.buffer, userId, {
       extractOffer: true,
-      autoReachOut: false
+      autoReachOut: false,
+      integrationId: req.body.integrationId || undefined
     });
 
     if (!result.success) {

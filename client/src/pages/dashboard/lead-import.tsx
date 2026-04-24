@@ -200,6 +200,10 @@ export default function LeadImportPage() {
 
     // Pass the aiPaused flag (inverted trigger)
     formData.append('aiPaused', (!enableAi).toString());
+    
+    if (selectedMailboxId) {
+      formData.append('integrationId', selectedMailboxId);
+    }
 
     try {
       setProgress(30);

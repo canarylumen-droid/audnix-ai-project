@@ -17,6 +17,7 @@ export async function processPDF(
   options?: {
     autoReachOut?: boolean;
     extractOffer?: boolean;
+    integrationId?: string;
   }
 ): Promise<PDFProcessingResult> {
   try {
@@ -142,6 +143,7 @@ export async function processPDF(
           status: status as any,
           verified: verified,
           verifiedAt: verified ? new Date() : null,
+          integrationId: options?.integrationId,
           metadata: {
             source: 'pdf_import',
             pdf_extracted: true,
