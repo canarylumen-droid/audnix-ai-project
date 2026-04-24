@@ -1,7 +1,35 @@
 import { createClient, type RedisClientType } from 'redis';
 
 let redisClient: RedisClientType | null = null;
+let pubClient: RedisClientType | null = null;
+let subClient: RedisClientType | null = null;
 let isInitializing = false;
+
+/**
+ * Get or initialize the shared Redis Pub client (for emitters)
+ */
+export async function getPubClient(): Promise<RedisClientType | null> {
+  if (pubClient) return pubClient;
+  const base = await getRedisClient();
+  if (!base) return null;
+  pubClient = base.duplicate();
+  await pubClient.connect();
+  console.log('⚡ Shared Redis PUB Client Connected');
+  return pubClient;
+}
+
+/**
+ * Get or initialize the shared Redis Sub client (for listeners)
+ */
+export async function getSubClient(): Promise<RedisClientType | null> {
+  if (subClient) return subClient;
+  const base = await getRedisClient();
+  if (!base) return null;
+  subClient = base.duplicate();
+  await subClient.connect();
+  console.log('⚡ Shared Redis SUB Client Connected');
+  return subClient;
+}
 
 /**
  * Get or initialize the shared Redis client
@@ -82,5 +110,65 @@ export async function releaseLock(key: string): Promise<void> {
     await client.del(`lock:${key}`);
   } catch (err) {
     // Ignore release errors
+  }
+}
+/**
+ * Get a unique identifier for this process/worker
+ */
+export function getWorkerId(): string {
+  return process.env.APP_WORKER_ID || require('os').hostname() || 'unknown-worker';
+}
+
+/**
+ * Advanced Distributed Lock with Ownership
+ */
+export async function acquireDistributedLock(key: string, ttlSeconds: number = 60): Promise<boolean> {
+  const client = await getRedisClient();
+  if (!client) return true;
+
+  const workerId = getWorkerId();
+  try {
+    const result = await client.set(`lock:${key}`, workerId, {
+      NX: true,
+      EX: ttlSeconds
+    });
+    return result === 'OK';
+  } catch (err) {
+    return true;
+  }
+}
+
+/**
+ * Check if current worker owns the lock
+ */
+export async function isLockOwner(key: string): Promise<boolean> {
+  const client = await getRedisClient();
+  if (!client) return true;
+
+  try {
+    const owner = await client.get(`lock:${key}`);
+    return owner === getWorkerId();
+  } catch (err) {
+    return true;
+  }
+}
+
+/**
+ * Extend lock TTL if owned
+ */
+export async function extendLock(key: string, ttlSeconds: number = 60): Promise<boolean> {
+  const client = await getRedisClient();
+  if (!client) return true;
+
+  try {
+    const workerId = getWorkerId();
+    const owner = await client.get(`lock:${key}`);
+    if (owner === workerId) {
+      await client.expire(`lock:${key}`, ttlSeconds);
+      return true;
+    }
+    return false;
+  } catch (err) {
+    return false;
   }
 }

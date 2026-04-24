@@ -29,8 +29,21 @@ class WebSocketSyncServer {
         methods: ["GET", "POST"],
         credentials: true
       },
-      path: '/socket.io' // Standard path
+      path: '/socket.io'
     });
+
+    // Phase 50 Fix: Multi-node scaling with Redis Adapter
+    (async () => {
+      const { getPubClient, getSubClient } = await import('./redis.js');
+      const pub = await getPubClient();
+      const sub = await getSubClient();
+      
+      if (pub && sub) {
+        const { createAdapter } = await import('@socket.io/redis-adapter');
+        this.io?.adapter(createAdapter(pub, sub));
+        console.log('⚡ Socket.IO Redis Adapter initialized (Shared Clients)');
+      }
+    })();
 
     this.io.on('connection', (socket: Socket) => {
       const userId = socket.handshake.query.userId as string;
@@ -207,6 +220,26 @@ class WebSocketSyncServer {
     this.emitToUser(userId, 'integration_error', {
       ...data,
       timestamp: new Date().toISOString(),
+    });
+  }
+
+  /**
+   * Advanced Real-time: Notify that an entire table or list needs refreshing
+   */
+  notifyTableUpdate(userId: string, tableName: string, data?: any) {
+    this.emitToUser(userId, 'activity_updated', {
+      type: 'table_refresh',
+      table: tableName,
+      ...data,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  notifyReputationUpdate(userId: string, data: { integrationId: string; score: number; status: string }) {
+    this.emitToUser(userId, 'stats_updated', {
+      type: 'reputation_change',
+      ...data,
+      timestamp: new Date().toISOString()
     });
   }
 

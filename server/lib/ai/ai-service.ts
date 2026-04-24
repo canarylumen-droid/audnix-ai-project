@@ -152,8 +152,8 @@ export async function embed(text: string): Promise<number[]> {
     }
   }
 
-  // 3. Demo Fallback: Mock 1536 dimensions
-  return Array.from({ length: 1536 }, () => Math.random() * 2 - 1);
+  // 3. Production: Throw error instead of generating random vector
+  throw new Error("All embedding providers failed or are unavailable.");
 }
 
 /**

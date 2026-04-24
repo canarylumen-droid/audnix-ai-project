@@ -86,6 +86,7 @@ export const users = pgTable("users", {
   businessLogo: text("business_logo"),
   intelligenceMetadata: jsonb("intelligence_metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
   defaultPaymentLink: text("default_payment_link"),
+  offerDescription: text("offer_description"),
   aiStickerFollowupsEnabled: boolean("ai_sticker_followups_enabled").notNull().default(true),
 }, (table) => ({
   usersStripeCustomerIdx: index("users_stripe_customer_idx").on(table.stripeCustomerId),
@@ -105,11 +106,9 @@ export const brandPdfCache = pgTable("brand_pdf_cache", {
   analysisItems: jsonb("analysis_items").$type<any[]>().default(sql`'[]'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-}, (table: any) => {
-  return {
-    userIdHashIdx: uniqueIndex("brand_pdf_cache_user_id_hash_idx").on(table.userId, table.fileHash),
-  };
-});
+}, (table) => ({
+  userIdHashIdx: uniqueIndex("brand_pdf_cache_user_id_hash_idx").on(table.userId, table.fileHash),
+}));
 
 export const leads = pgTable("leads", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -167,7 +166,9 @@ export const domainVerifications = pgTable("domain_verifications", {
   domain: text("domain").notNull(),
   verificationResult: jsonb("verification_result").$type<Record<string, any>>().notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  domainUserIdx: uniqueIndex("domain_user_idx").on(table.userId, table.domain),
+}));
 
 /**
  * Lead Timezone Intelligence – Phase v2
@@ -243,9 +244,11 @@ export const messages = pgTable("messages", {
   repliedAt: timestamp("replied_at"),
   isRead: boolean("is_read").notNull().default(false),
   integrationId: uuid("integration_id").references(() => integrations.id, { onDelete: "set null" }),
+  uid: integer("uid"),
   targetUrl: text("target_url"),
   metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => ({
   msgsUserIdIdx: index("msgs_user_id_idx").on(table.userId),
   msgsLeadIdIdx: index("msgs_lead_id_idx").on(table.leadId),
@@ -298,6 +301,8 @@ export const integrations = pgTable("integrations", {
   aiAutonomousMode: boolean("ai_autonomous_mode").notNull().default(false),
   reputationScore: integer("reputation_score").notNull().default(100),
   warmupStatus: text("warmup_status", { enum: ["active", "paused", "completed", "none"] }).notNull().default("none"),
+  syncMetadata: jsonb("sync_metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
+  workerId: text("worker_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
@@ -620,6 +625,7 @@ export const emailTracking = pgTable("email_tracking", {
   firstClickedAt: timestamp("first_clicked_at"),
   openCount: integer("open_count").notNull().default(0),
   clickCount: integer("click_count").notNull().default(0),
+  targetUrl: text("target_url"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -647,10 +653,14 @@ export const emailMessages = pgTable("email_messages", {
   htmlBody: text("html_body"),
   direction: text("direction", { enum: ["inbound", "outbound"] }).notNull(),
   provider: text("provider", { enum: ["gmail", "outlook", "custom_email"] }).notNull(),
+  uid: integer("uid"),
+  isRead: boolean("is_read").notNull().default(false),
+  integrationId: uuid("integration_id").references(() => integrations.id, { onDelete: "set null" }),
   sentAt: timestamp("sent_at").notNull(),
   targetUrl: text("target_url"),
   metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => ({
   emailMsgsUserIdIdx: index("email_msgs_user_id_idx").on(table.userId),
   emailMsgsLeadIdIdx: index("email_msgs_lead_id_idx").on(table.leadId),
@@ -926,6 +936,8 @@ export const aiLearningPatterns = pgTable("ai_learning_patterns", {
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   patternKey: text("pattern_key").notNull(),
   strength: integer("strength").notNull().default(0),
+  successCount: integer("success_count").notNull().default(0),
+  failureCount: integer("failure_count").notNull().default(0),
   lastUsedAt: timestamp("last_used_at").defaultNow(),
   metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),

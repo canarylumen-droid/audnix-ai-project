@@ -318,6 +318,7 @@ export async function generateAIReply(
     const bestHandle = objectionService.getBestHandle(lead.userId, lastLeadMessage?.body || "");
     console.log(`🛡️ Objection detected for lead ${lead.id}. Triggering closer logic.`);
     const objectionResponse = await generateAutonomousObjectionResponse(lastLeadMessage?.body || "", {
+      userId: lead.userId,
       leadName: lead.name || "there",
       leadIndustry: (lead.metadata?.industry as string) || "general",
       previousMessages: allMessages.slice(-5).map(m => ({
@@ -589,6 +590,7 @@ ${narrativeSummary}
 - NEVER send more than 3 sentences for DMs, never more than 2 short paragraphs for email
 - NEVER start with a greeting followed by filler — lead with something real from the user's copy
 - If they ask what time, always write it as "X your time" without saying what timezone
+- NEVER offer or send a payment/checkout link unless the lead explicitly agrees to buy or specifically asks for an invoice/link.
 - All conflict handling: "I've got something on then — how about [day] at [time]?"
 ${enrichedContext}`;
 
@@ -674,8 +676,9 @@ ${enrichedContext}`;
           }
        );
        
-       if (bookingResult.booked && bookingResult.bookedTime) {
-         // 1. Update Lead Status to 'booked'
+        if (bookingResult.booked && bookingResult.bookedTime) {
+          // 1. Update Lead Status to 'booked'
+
          await storage.updateLead(lead.id, { 
            status: 'booked',
             metadata: { 

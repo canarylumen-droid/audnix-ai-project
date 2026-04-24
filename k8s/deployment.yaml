@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: audnix-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: audnix-api
+  template:
+    metadata:
+      labels:
+        app: audnix-api
+    spec:
+      containers:
+      - name: api
+        image: audnix-ai:latest
+        env:
+        - name: APP_ROLE
+          value: "api"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: audnix-secrets
+              key: database-url
+        - name: REDIS_URL
+          value: "redis://redis-service:6379"
+        ports:
+        - containerPort: 5000
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: audnix-sync-worker
+spec:
+  replicas: 5 # Scale this to hundreds or thousands
+  selector:
+    matchLabels:
+      app: audnix-sync-worker
+  template:
+    metadata:
+      labels:
+        app: audnix-sync-worker
+    spec:
+      containers:
+      - name: worker
+        image: audnix-ai:latest
+        env:
+        - name: APP_ROLE
+          value: "worker"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: audnix-secrets
+              key: database-url
+        - name: REDIS_URL
+          value: "redis://redis-service:6379"
+        - name: APP_WORKER_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name

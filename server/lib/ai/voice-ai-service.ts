@@ -2,7 +2,7 @@ import { InstagramProvider } from '../providers/instagram.js';
 import { ElevenLabsProvider } from '../providers/elevenlabs.js';
 import { storage } from '../../storage.js';
 import { generateVoiceScript, assessLeadWarmth, detectConversationStatus } from './conversation-ai.js';
-import { uploadToSupabase } from '../file-upload.js';
+import { advancedStorage } from '../storage/advanced-storage.js';
 import { decrypt } from '../crypto/encryption.js';
 import type { Lead, Message, User } from '../../../shared/schema.js';
 import type { ProviderType } from '../../../shared/types.js';
@@ -210,9 +210,9 @@ export class VoiceAIService {
         };
       }
 
-      // Upload audio to storage
+      // Upload audio to storage using unified AdvancedStorageService
       const fileName = `voice_${leadId}_${Date.now()}.mp3`;
-      const audioUrl = await uploadToSupabase('voice-notes', fileName, voiceData.audioBuffer);
+      const audioUrl = await advancedStorage.upload('voice-notes', fileName, voiceData.audioBuffer, 'audio/mpeg');
 
       // Send voice message based on channel
       let messageId: string;

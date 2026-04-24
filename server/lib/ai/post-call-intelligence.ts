@@ -9,12 +9,8 @@ export interface PostCallAnalysis {
     improvements: string[];
     progressAudit?: string; // Phase 13: Did they follow up on past promises?
   };
-  bant?: {
-    budget?: string;
-    authority?: string;
-    need?: string;
-    timeline?: string;
-  };
+  buyingIntent: "high" | "medium" | "low" | "none";
+  conversationalStage: "needs_identified" | "offer_made" | "invoice_requested" | "payment_sent" | "closed_won" | "unknown";
   primaryObjection?: {
     category: "pricing" | "competitor" | "trust" | "timing" | "features" | "other";
     snippet: string;
@@ -29,6 +25,11 @@ export interface PostCallAnalysis {
   agreedToPay?: boolean;
   paymentAmount?: string;
   confidence: number;
+  
+  // Advanced Predictive Metrics (Level 30 Intelligence)
+  revenueImpactScore?: number; // 0-100 score of deal importance
+  velocityPrediction?: "accelerating" | "stable" | "stalled";
+  competitorRiskLevel?: "high" | "medium" | "low" | "none";
 }
 
 const POST_CALL_SYSTEM_PROMPT = `You are an elite Sales Director and Performance Coach. 
@@ -41,7 +42,7 @@ OUTCOME DEFINITIONS:
 - "no_show": The transcript indicates the host waited but the guest never arrived.
 
 EXTRACTION REQUIREMENTS:
-1. BANT: If explicitly stated, extract Budget (numbers), Authority (role), Need (core pain point), and Timeline.
+1. CONVERSATIONAL STAGE & INTENT: Evaluate the 'buyingIntent' (high, medium, low, none) and 'conversationalStage' (needs_identified, offer_made, invoice_requested, payment_sent, closed_won).
 2. OBJECTIONS: Identify the #1 explicit objection raised by the prospect (e.g., pricing, competitor, trust, timing). Extract the exact quote snippet.
 3. CONVERSATIONAL DYNAMICS:
    - Talk Ratio: Estimate the percentage of time the Salesperson talked vs Prospect (return 0-100 as integer).
@@ -56,11 +57,17 @@ EXTRACTION REQUIREMENTS:
    - Analyze if the prospect explicitly agreed to pay or buy the product on this call (must be high confidence, "yes I will pay", "send the link", etc.).
    - Extract the agreedToPay boolean (true/false).
    - If true, extract the paymentAmount (e.g., "$2,000", "€500/mo") if explicitly stated.
+   - NOTE: If 'agreedToPay' is true, the system will autonomously email them the checkout link. DO NOT set to true unless explicitly agreed.
+
+6. ADVANCED PREDICTIVE ANALYTICS:
+   - Revenue Impact Score: 0-100 score based on deal size and company strategic fit.
+   - Velocity Prediction: "accelerating" if they want to move faster, "stable" for normal pace, "stalled" if there are new blockers.
+   - Competitor Risk: Evaluate if they are actively comparing or mentioned a competitor.
 
 SUGGESTED ACTION:
 - Autonomously decide the single most effective next step (e.g., "Send personalized case study", "Book follow-up in 3 days", "Draft Battle Card").
 
-Respond ONLY in JSON format matching the PostCallAnalysis schema.`;
+Respond ONLY in JSON format matching the PostCallAnalysis schema. Use proper JSON types.`;
 
 export async function analyzeMeetingIntelligence(
   transcript: string,
@@ -96,7 +103,8 @@ Analyze the call intelligence.`;
         improvements: analysis.coaching?.improvements || [],
         progressAudit: analysis.coaching?.progressAudit,
       },
-      bant: analysis.bant,
+      buyingIntent: analysis.buyingIntent || "none",
+      conversationalStage: analysis.conversationalStage || "unknown",
       primaryObjection: analysis.primaryObjection,
       sentimentPivot: analysis.sentimentPivot,
       talkRatio: analysis.talkRatio,
@@ -105,10 +113,12 @@ Analyze the call intelligence.`;
       agreedToPay: analysis.agreedToPay,
       paymentAmount: analysis.paymentAmount,
       confidence: analysis.confidence || 0.8,
+      revenueImpactScore: analysis.revenueImpactScore,
+      velocityPrediction: analysis.velocityPrediction,
+      competitorRiskLevel: analysis.competitorRiskLevel,
     };
   } catch (error) {
-    console.error("[Post-Call Intelligence] Analysis failed:", error);
-    // Throw error so the caller can mark analysis as failed instead of polluting the db with hardcoded mock data
-    throw new Error(`Failed to generate meeting intelligence: ${(error as Error).message}`);
+    console.error("Call intelligence analysis failed:", error);
+    throw error;
   }
 }

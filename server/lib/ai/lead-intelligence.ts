@@ -299,65 +299,63 @@ export async function trackObjectionPattern(
   converted: boolean
 ): Promise<void> {
   console.log(`📊 Objection Pattern: ${objectionType} - ${converted ? "✅ CONVERTED" : "❌ NO CONVERT"}`);
+  try {
+    const { storage } = await import('../../storage.js');
+    await storage.recordLearningPattern(userId, `objection_${objectionType}`, converted);
+  } catch (error) {
+    console.error("Failed to record learning pattern:", error);
+  }
 }
 
 // ============ ENGINE 4: DEAL AMOUNT PREDICTION ============
 
 export async function predictDealAmount(
   lead: LeadProfile,
-  messages: ConversationMessage[] = []
+  messages: ConversationMessage[] = [],
+  user?: any // Added to access user offerDescription
 ): Promise<DealPrediction> {
-  const sizeMultiplier: Record<string, number> = {
-    "1-10": 1000,
-    "11-50": 5000,
-    "51-200": 15000,
-    "201-500": 50000,
-    "500+": 100000,
-  };
+  let baseAmount = 0;
+  let confidence = 20;
 
-  const industryMultiplier: Record<string, number> = {
-    technology: 1.5,
-    finance: 1.8,
-    healthcare: 1.4,
-    "real estate": 1.3,
-    "e-commerce": 1.2,
-  };
-
-  const companySize = (lead.metadata?.companySize as string) || "";
-  const industry = (lead.metadata?.industry as string) || "";
-
-  let baseAmount = sizeMultiplier[companySize] || 5000;
-  let confidence = 40;
-
-  const industryKey = industry.toLowerCase();
-  for (const [ind, mult] of Object.entries(industryMultiplier)) {
-    if (industryKey.includes(ind)) {
-      baseAmount *= mult;
-      confidence += 15;
-      break;
+  // Prefer the explicit offer description set by the user in settings
+  if (user && user.offerDescription) {
+    const extractedNumber = user.offerDescription.match(/\$?([\d,]+)/);
+    if (extractedNumber && extractedNumber[1]) {
+      baseAmount = parseInt(extractedNumber[1].replace(/,/g, ''), 10);
+      confidence = 80;
     }
   }
 
-  const inboundCount = messages.filter((m) => m.direction === "inbound").length;
-  if (inboundCount >= 3) {
-    baseAmount *= 1.5;
-    confidence += 20;
+  // If no offer set, check brand context (simulated via metadata or messages)
+  if (baseAmount === 0) {
+    // We no longer guess $5000 based on company size.
+    // Wait until explicit pricing is mentioned or set.
+    confidence = 10;
   }
 
-  const daysToClose = 30 + Math.random() * 60;
+  const inboundCount = messages.filter((m) => m.direction === "inbound").length;
+  if (inboundCount >= 3 && baseAmount > 0) {
+    confidence += 15;
+  }
+
+  // Deterministic estimation based on engagement (no Math.random in production)
+  let daysToClose = 45; // baseline 45 days
+  if (confidence >= 80) daysToClose = 14;
+  else if (confidence >= 50) daysToClose = 30;
+  
+  // Adjust based on inbound activity
+  if (inboundCount >= 5) daysToClose = Math.max(7, daysToClose - 14);
+
   const expectedCloseDate = new Date();
   expectedCloseDate.setDate(expectedCloseDate.getDate() + daysToClose);
 
-  // Real intelligence logic: Use lead metadata and message history to predict amount
-  // This is no longer just random, but weighted by engagement and company profile
   return {
     predictedAmount: Math.round(baseAmount),
     confidence: Math.min(100, confidence),
     factors: {
-      company_size: 0.4,
-      industry: 0.25,
-      engagement: 0.2,
-      timeline: 0.15,
+      offer_clarity: user?.offerDescription ? 0.6 : 0.1,
+      engagement: Math.min(0.5, inboundCount * 0.1),
+      timeline: confidence > 50 ? 0.3 : 0.1,
     },
     expectedCloseDate,
   };

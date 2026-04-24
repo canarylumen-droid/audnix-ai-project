@@ -269,6 +269,9 @@ export class DrizzleStorage implements IStorage {
         calendlyRefreshToken: insertUser.calendlyRefreshToken || null,
         calendlyExpiresAt: insertUser.calendlyExpiresAt || null,
         calendlyUserUri: insertUser.calendlyUserUri || null,
+        defaultPaymentLink: insertUser.defaultPaymentLink || null,
+        offerDescription: insertUser.offerDescription || null,
+        aiStickerFollowupsEnabled: insertUser.aiStickerFollowupsEnabled ?? true,
       })
       .returning();
 
@@ -750,9 +753,9 @@ export class DrizzleStorage implements IStorage {
       const result = await db.execute(sql`
         UPDATE leads 
         SET metadata = metadata || jsonb_build_object(
-          'processing_lock_at', ${now.toISOString()},
-          'processing_worker', ${workerName},
-          'processing_lock_duration', ${durationMs}
+          'processing_lock_at', ${now.toISOString()}::text,
+          'processing_worker', ${workerName}::text,
+          'processing_lock_duration', ${durationMs}::integer
         )
         WHERE id = ${leadId}
         AND (

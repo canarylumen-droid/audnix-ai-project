@@ -334,8 +334,9 @@ export async function handleLeadResponseWithLearning(
 
     // GENERATE AUTONOMOUS CLOSING RESPONSE
     autonomousResponse = await generateAutonomousObjectionResponse(theirMessage, {
+      userId: lead.userId,
       leadName: lead.name || lead.firstName || "there",
-      leadCompany: lead.company || lead.companyName,
+      leadCompany: lead.company || (lead as any).companyName,
       leadIndustry: (lead.metadata?.industry as string) || "general",
       previousMessages: messages.map((m) => ({
         role: m.direction === "inbound" ? "user" : "assistant",

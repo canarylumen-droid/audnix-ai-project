@@ -37,6 +37,7 @@ interface UserProfile {
   defaultCtaText?: string;
   metadata?: any;
   defaultPaymentLink?: string;
+  offerDescription?: string;
   aiStickerFollowupsEnabled?: boolean;
 }
 
@@ -63,6 +64,7 @@ export default function SettingsPage() {
     voiceNotesEnabled: true,
     autonomousMode: true,
     defaultPaymentLink: "",
+    offerDescription: "",
     aiStickerFollowupsEnabled: true,
   });
 
@@ -79,6 +81,7 @@ export default function SettingsPage() {
         voiceNotesEnabled: user.voiceNotesEnabled ?? true,
         autonomousMode: (user as any).config?.autonomousMode !== false,
         defaultPaymentLink: user.defaultPaymentLink || "",
+        offerDescription: (user as any).offerDescription || "",
         aiStickerFollowupsEnabled: user.aiStickerFollowupsEnabled ?? true,
       });
     }
@@ -293,10 +296,20 @@ export default function SettingsPage() {
                     <Input
                       value={formData.defaultPaymentLink}
                       onChange={e => handleFieldChange('defaultPaymentLink', e.target.value)}
-                      placeholder="Enter Your Payment link"
+                      placeholder="Enter Your Payment link (e.g. Stripe)"
                       className="rounded-xl h-11 border-primary/30 focus-visible:ring-primary"
                     />
-                    <p className="text-[10px] text-muted-foreground">Used autonomously when a lead agrees to buy on call.</p>
+                    <p className="text-[10px] text-muted-foreground">Used autonomously when a lead explicitly asks for an invoice or agrees to buy on call.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mr-2">Offer Description / Pricing</Label>
+                    <Input
+                      value={formData.offerDescription}
+                      onChange={e => handleFieldChange('offerDescription', e.target.value)}
+                      placeholder="e.g. Done-for-you leads at $3,000/month"
+                      className="rounded-xl h-11 border-primary/30 focus-visible:ring-primary"
+                    />
+                    <p className="text-[10px] text-muted-foreground">AI will use this exact offer and price instead of guessing or using BANT.</p>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Timezone</Label>

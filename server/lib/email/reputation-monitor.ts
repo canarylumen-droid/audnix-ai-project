@@ -3,6 +3,7 @@ import { integrations, bounceTracker, domainVerifications } from '../../../share
 import { eq, and, sql, gte, desc } from 'drizzle-orm';
 import { decrypt } from '../crypto/encryption.js';
 import { wsSync } from '../websocket-sync.js';
+import { pubsubService } from '../realtime/pubsub-service.js';
 
 /**
  * Calculates a 0-100 reputation score mapping bounces to penalty weights
@@ -137,7 +138,24 @@ export async function calculateReputationScore(integrationId: string): Promise<n
   });
   wsSync.notifyStatsUpdated(mailbox.userId);
 
+  // Notify System (Real-time Pub/Sub)
+  await pubsubService.publishEvent('reputation_changed', {
+    integrationId,
+    score,
+    userId: mailbox.userId,
+    status: newWarmupStatus
+  });
+
   return score;
+}
+
+/**
+ * Triggers an immediate reputation check for a specific integration.
+ * Used for real-time events like bounces or manual refreshes.
+ */
+export async function triggerImmediateReputationCheck(integrationId: string) {
+  console.log(`🚀 [Reputation] Triggering immediate real-time check for ${integrationId}`);
+  return await calculateReputationScore(integrationId);
 }
 
 /**

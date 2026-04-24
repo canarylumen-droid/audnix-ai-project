@@ -23,6 +23,9 @@ COPY . .
 # Environment variables
 ENV NODE_ENV=production
 ENV PORT=5000
+ENV S3_BUCKET_NAME=""
+# Force IPv4 preference for DNS resolution to avoid ENETUNREACH on IPv6-unfriendly networks
+ENV NODE_OPTIONS="--dns-result-order=ipv4first"
 
 # Expose the API port
 EXPOSE 5000
@@ -32,5 +35,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD wget --quiet --tries=1 --spider http://localhost:5000/api/health/status || exit 1
 
 # Start the application
-# We use a single entrypoint that can distinguish between 'web' and 'worker' roles
-CMD ["npm", "start"]
+# Support role-based execution (api, worker, notification)
+# Default to 'api' if no APP_ROLE is provided
+CMD ["sh", "-c", "npm run db:patch-target-url && if [ \"$APP_ROLE\" = \"worker\" ]; then npm run start:worker; else npm start; fi"]

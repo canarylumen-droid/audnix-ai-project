@@ -88,6 +88,8 @@ import { workerHealthMonitor } from "./lib/monitoring/worker-health.js";
 import { quotaService } from "./lib/monitoring/quota-service.js";
 import { apiLimiter, authLimiter } from "./middleware/rate-limit.js";
 import { sentinel } from "./middleware/sentinel.js";
+import { advancedStorage } from "./lib/storage/advanced-storage.js";
+import { pubsubService } from "./lib/realtime/pubsub-service.js";
 import { fileURLToPath } from "url";
 import fs from "fs";
 import * as path from "path";
@@ -526,6 +528,25 @@ async function runMigrations() {
 }
 
 (async () => {
+  // Step 0: Validate Critical Environment Variables for Production Readiness
+  const criticalEnv = ['DATABASE_URL', 'REDIS_URL', 'GEMINI_API_KEY', 'ENCRYPTION_KEY'];
+  const missing = criticalEnv.filter(k => !process.env[k]);
+  if (missing.length > 0) {
+    console.error(`❌ [Advanced Infra] CRITICAL FAILURE: Missing required environment variables: ${missing.join(', ')}`);
+    if (process.env.NODE_ENV === 'production') {
+      console.error('🛑 System cannot start in production without these keys. Exiting.');
+      process.exit(1);
+    }
+  }
+
+  if (!process.env.GOOGLE_PUB_SUB_TOPIC) {
+    console.warn("⚠️ [Advanced Infra] GOOGLE_PUB_SUB_TOPIC not set. Real-time push notifications will be disabled.");
+  }
+  
+  // Initialize services
+  const _storage = advancedStorage;
+  const _pubsub = pubsubService;
+
   app.get("/health", async (_req, res) => {
     try {
       if (process.env.DATABASE_URL) {
@@ -587,17 +608,35 @@ async function runMigrations() {
   }
   
   if (!process.env.VERCEL) {
+    const appRole = process.env.APP_ROLE || 'api';
     const PORT = parseInt(process.env.PORT || "5000", 10);
-    server.listen(PORT, "0.0.0.0", () => {
-      log(`🚀 Server running at http://0.0.0.0:${PORT}`);
-      
-      // Post-startup initialization (Non-blocking)
-      (async () => {
+    
+    if (appRole !== 'worker') {
+      server.listen(PORT, "0.0.0.0", () => {
+        log(`🚀 [${appRole.toUpperCase()}] API Server running at http://0.0.0.0:${PORT}`);
+      });
+    } else {
+      log(`⚙️ [WORKER] Starting background synchronization node...`);
+    }
+
+    // Post-startup initialization (Non-blocking)
+    (async () => {
         if (process.env.DATABASE_URL) {
           try {
             log("📦 Initializing database & migrations...");
-            await runMigrations();
-            log("✅ Database ready");
+            
+            // Phase 55: Distributed Migration Lock
+            // Only one node in the entire cluster should attempt migrations
+            const { acquireDistributedLock } = await import('./lib/redis.js');
+            const migrationLock = await acquireDistributedLock('db:migrations', 300); // 5 minute lock
+            
+            if (migrationLock) {
+              log("🛡️ [Migration] Lock acquired. Running migrations...");
+              await runMigrations();
+              log("✅ [Migration] Database ready");
+            } else {
+              log("⏳ [Migration] Another node is handling migrations. Skipping.");
+            }
           } catch (e) {
             log(`❌ Migration failed: ${e instanceof Error ? e.message : String(e)}`, "error");
             quotaService.reportDbError(e);
@@ -612,7 +651,15 @@ async function runMigrations() {
               return;
             }
 
-            log("⚙️ Starting background workers (Lazy Loaded)...");
+            const appRole = process.env.APP_ROLE || 'api';
+            const shouldRunWorkers = appRole === 'worker' || !process.env.APP_ROLE;
+
+            if (!shouldRunWorkers) {
+              log(`ℹ️ [${appRole.toUpperCase()}] Skipping background workers suite.`);
+              return;
+            }
+
+            log(`⚙️ [${appRole.toUpperCase()}] Starting background workers (Lazy Loaded)...`);
             
             // Worker error wrapper for graceful degradation
             const startWorker = async (name: string, startFn: () => any) => {
@@ -759,7 +806,6 @@ async function runMigrations() {
           setTimeout(startBackgroundProcesses, WORKER_STARTUP_DELAY);
         }
       })();
-    });
 
     // Graceful Shutdown Handlers
     const shutdown = async (signal: string) => {

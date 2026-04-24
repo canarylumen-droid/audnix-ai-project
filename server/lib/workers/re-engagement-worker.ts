@@ -47,6 +47,12 @@ export class ReEngagementWorker {
         .limit(30);
 
       for (const lead of targets) {
+        // Phase 50 Fix: Multi-node race condition prevention
+        const reserved = await storage.reserveLeadForAction(lead.id, 're-engagement-worker', 30000);
+        if (!reserved) {
+          console.log(`🧊 [Re-Engagement] Skipping lead ${lead.id} - Already reserved by another worker`);
+          continue;
+        }
         await this.processReEngagement(lead);
       }
 

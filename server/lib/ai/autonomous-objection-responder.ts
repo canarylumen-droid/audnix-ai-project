@@ -21,6 +21,7 @@ import {
 } from "../sales-engine/objections-database.js";
 
 interface LeadObjectionContext {
+  userId: string;
   leadName: string;
   leadCompany?: string;
   leadIndustry: string;
@@ -164,12 +165,33 @@ export async function generateAutonomousObjectionResponse(
   // Step 1: Identify objection intelligently
   const objection = await intelligentIdentifyObjection(leadMessage, context);
 
-  // Step 2: Generate tailored response using GPT-4
+  // Step 2: Fetch Machine Learning patterns (Past Successes)
+  let pastLearnings = "";
+  try {
+    const { storage } = await import('../../storage.js');
+    const allPatterns = await storage.getLearningPatterns(context.userId);
+    const industryPatterns = allPatterns
+      .filter(p => p.patternKey.startsWith(`objection:${context.leadIndustry}`))
+      .sort((a, b) => {
+        const aScore = a.successCount / (a.successCount + a.failureCount || 1);
+        const bScore = b.successCount / (b.successCount + b.failureCount || 1);
+        return bScore - aScore;
+      });
+      
+    if (industryPatterns.length > 0) {
+      pastLearnings = industryPatterns.map(p => `- ${p.patternKey.replace('objection_', '')}: Success rate ${Math.round((p.successCount/(p.successCount+p.failureCount))*100)}%`).join('\n');
+    }
+  } catch (e) {
+    console.warn("ML Learning lookup failed", e);
+  }
+
+  // Step 3: Generate tailored response using GPT-4
   const prompt = buildObjectionResponsePrompt(
     leadMessage,
     objection,
     context,
-    EXPANDED_OBJECTIONS
+    EXPANDED_OBJECTIONS,
+    pastLearnings
   );
 
   try {
@@ -285,7 +307,8 @@ function buildObjectionResponsePrompt(
   leadMessage: string,
   objection: any,
   context: LeadObjectionContext,
-  allObjections: any[]
+  allObjections: any[],
+  pastLearnings: string = ""
 ): string {
   const reframes = objection?.reframes || [
     "Let's reframe this differently",
@@ -311,6 +334,9 @@ Reframes: ${reframes.join(" | ")}
 Stories: ${stories.join(" | ")}
 Questions: ${questions.join(" | ")}
 Closing Tactics: ${tactics.join(" | ")}
+
+### ML-DRIVEN INTELLIGENCE (WHAT WORKED PREVIOUSLY)
+${pastLearnings || "No specific patterns learned yet. Rely on baseline strategy."}
 
 YOUR RESPONSE REQUIREMENTS:
 1. Acknowledge their concern (don't dismiss it)
@@ -365,8 +391,15 @@ export async function recordObjectionLearning(data: {
   dealClosed: boolean;
 }) {
   console.log(`[LEARNING] Objection handler improved from ${data.objectionType}`);
-  // In production: Save to database for ML improvement
-  // For now: Log for monitoring
+  try {
+    const { storage } = await import('../../storage.js');
+    const lead = await storage.getLead(data.leadId);
+    if (lead) {
+      await storage.recordLearningPattern(lead.userId, `objection_learning_${data.objectionType}`, data.dealClosed);
+    }
+  } catch (error) {
+    console.error("Failed to record objection learning:", error);
+  }
 }
 
 

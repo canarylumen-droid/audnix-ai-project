@@ -174,6 +174,8 @@ async function processEmailForLead(
       provider: 'email',
       isRead: email.isRead || direction === 'outbound', // Sent emails are usually considered read
       externalId: email.messageId || undefined,
+      uid: email.uid,
+      integrationId: email.integrationId,
       metadata: {
         subject: email.subject,
         html: email.html, // Store full HTML in metadata if needed
@@ -198,6 +200,8 @@ async function processEmailForLead(
         htmlBody: email.html,
         direction,
         provider: 'custom_email',
+        uid: email.uid,
+        integrationId: email.integrationId,
         sentAt: email.date || new Date(),
         metadata: {
           internalThreadId: threadId

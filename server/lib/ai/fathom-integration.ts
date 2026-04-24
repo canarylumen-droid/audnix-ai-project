@@ -168,12 +168,22 @@ export async function processFathomWebhook(payload: FathomWebhookPayload) {
           .set({ analysis: analysis as any })
           .where(and(eq(fathomCalls.fathomMeetingId, fathomMeetingId), eq(fathomCalls.leadId, lead.id)));
 
-        // Phase 3: Persist BANT to Leads table autonomously
-        if (analysis.bant) {
-           await db.update(leads)
-             .set({ bant: analysis.bant })
-             .where(eq(leads.id, lead.id));
-           console.log(`🧠 BANT Data automatically enriched for ${lead.email}`);
+        // Phase 3: Persist Buying Intent to Leads metadata autonomously
+        if (analysis.buyingIntent || analysis.conversationalStage) {
+           const leadRec = await db.select().from(leads).where(eq(leads.id, lead.id)).limit(1);
+           if (leadRec.length > 0) {
+              const currentMetadata = leadRec[0].metadata || {};
+              await db.update(leads)
+                .set({ 
+                  metadata: {
+                    ...currentMetadata,
+                    buyingIntent: analysis.buyingIntent,
+                    conversationalStage: analysis.conversationalStage
+                  } as any
+                })
+                .where(eq(leads.id, lead.id));
+              console.log(`🧠 Buying Intent & Stage automatically enriched for ${lead.email}`);
+           }
         }
 
         // Phase 4: Save Primary Objection into Battle Card queue

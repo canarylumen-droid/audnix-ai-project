@@ -418,8 +418,9 @@ export class MemStorage implements IStorage {
       businessLogo: null,
       metadata: insertUser.metadata || {},
       intelligenceMetadata: {},
-      defaultPaymentLink: null,
-      aiStickerFollowupsEnabled: true,
+      defaultPaymentLink: insertUser.defaultPaymentLink || null,
+      offerDescription: insertUser.offerDescription || null,
+      aiStickerFollowupsEnabled: insertUser.aiStickerFollowupsEnabled ?? true,
     };
     this.users.set(id, user);
     return user;
@@ -654,8 +655,10 @@ export class MemStorage implements IStorage {
       repliedAt: null,
       isRead: message.isRead ?? (message.direction === 'outbound'),
       externalId: null,
+      uid: message.uid || null,
       metadata: message.metadata || {},
       createdAt: now,
+      updatedAt: now,
     };
     this.messages.set(id, newMessage);
     
@@ -923,6 +926,8 @@ export class MemStorage implements IStorage {
       userId,
       patternKey: key,
       strength: success ? 1 : 0,
+      successCount: success ? 1 : 0,
+      failureCount: success ? 0 : 1,
       lastUsedAt: new Date(),
       metadata: {},
       createdAt: new Date(),

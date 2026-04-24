@@ -3,6 +3,7 @@ import path from "path";
 import { promises as fs } from "fs";
 import { createClient } from "@supabase/supabase-js";
 import { embed as generateEmbedding } from "./ai/ai-service.js";
+import { advancedStorage } from "./storage/advanced-storage.js";
 import type { Request } from "express";
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
@@ -182,15 +183,7 @@ export async function uploadToSupabase(
   filePath: string,
   fileBuffer?: Buffer | string
 ): Promise<string> {
-  // If Supabase not configured, use local filesystem fallback
-  if (!supabase) {
-    return await uploadToLocalStorage(bucket, filePath, fileBuffer);
-  }
-
-  // Ensure bucket exists before uploading
-  await ensureBucketExists(bucket);
-
-  // If fileBuffer is a string (file path), read it
+  // Resolve fileBuffer into a Buffer object
   let buffer: Buffer;
   if (typeof fileBuffer === 'string') {
     const resolvedPath = path.resolve(fileBuffer);
@@ -215,6 +208,14 @@ export async function uploadToSupabase(
     throw new Error("No file data provided");
   }
 
+  // If Supabase not configured, use AdvancedStorageService (S3 -> Redis -> Local)
+  if (!supabase) {
+    return await advancedStorage.upload(bucket, filePath, buffer, 'application/octet-stream');
+  }
+
+  // Ensure bucket exists before uploading
+  await ensureBucketExists(bucket);
+
   try {
     const { error } = await supabase.storage
       .from(bucket)
@@ -233,9 +234,9 @@ export async function uploadToSupabase(
 
     return publicUrl;
   } catch (supabaseError) {
-    // Fallback to local storage if Supabase upload fails
-    console.warn(`Supabase upload failed, falling back to local storage:`, supabaseError);
-    return await uploadToLocalStorage(bucket, filePath, buffer);
+    // Fallback to AdvancedStorageService if Supabase upload fails
+    console.warn(`Supabase upload failed, falling back to AdvancedStorageService:`, supabaseError);
+    return await advancedStorage.upload(bucket, filePath, buffer, 'application/octet-stream');
   }
 }
 

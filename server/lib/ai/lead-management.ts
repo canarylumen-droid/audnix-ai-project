@@ -50,11 +50,10 @@ interface TimelineEvent {
   timestamp: Date;
 }
 
-interface BantQualification {
-  budget: "has_budget" | "no_budget" | "unknown";
-  authority: "decision_maker" | "influencer" | "not_involved" | "unknown";
-  need: "has_need" | "no_need" | "unknown";
-  timeline: "immediate" | "this_quarter" | "this_year" | "no_timeline" | "unknown";
+interface ConversationalStage {
+  stage: "needs_identified" | "offer_made" | "invoice_requested" | "payment_sent" | "closed_won" | "unknown";
+  buying_intent: "high" | "medium" | "low" | "none";
+  objections_present: boolean;
   qualification_score: number;
 }
 
@@ -361,12 +360,12 @@ const oauth = null; // Placeholder for future use
 
 // AI initialization removed in favor of unified ai-service
 
-// ============ BANT QUALIFICATION ============
+// ============ CONVERSATIONAL STAGE QUALIFICATION ============
 
-export async function completeBantQualification(lead: Lead): Promise<BantQualification> {
+export async function completeConversationalQualification(lead: Lead): Promise<ConversationalStage> {
   /**
-   * BANT = Budget, Authority, Need, Timeline
-   * Score 0-100 (all yes = 100)
+   * Determine the stage of the conversation to know when to drop payment links
+   * Score 0-100 (ready to buy = 100)
    */
 
   try {
@@ -379,10 +378,9 @@ export async function completeBantQualification(lead: Lead): Promise<BantQualifi
 
     if (messages.length === 0) {
       return {
-        budget: "unknown",
-        authority: "unknown",
-        need: "unknown",
-        timeline: "unknown",
+        stage: "unknown",
+        buying_intent: "none",
+        objections_present: false,
         qualification_score: 0,
       };
     }
@@ -391,28 +389,27 @@ export async function completeBantQualification(lead: Lead): Promise<BantQualifi
       .map(m => `${m.direction === 'outbound' ? 'Assistant' : 'Lead'}: ${m.body}`)
       .join('\n');
 
-    const prompt = `Analyze the following conversation and determine the BANT qualification for this lead.
+    const prompt = `Analyze the following conversation and determine the sales stage for this lead.
     
 Conversation:
 ${conversationText}
 
 Criteria:
-- Budget: Has the lead mentioned having a budget or asked about pricing in a way that implies they can afford it?
-- Authority: Is this lead the decision maker? (e.g., CEO, Founder, Manager)
-- Need: Has the lead expressed a specific problem or need our solution solves?
-- Timeline: Has the lead mentioned a target date or urgency?
+- stage: What stage is the conversation in? (needs_identified, offer_made, invoice_requested, payment_sent, closed_won)
+- buying_intent: Is there explicitly stated buying intent? (high, medium, low, none)
+- objections_present: Are there unresolved objections?
+- qualification_score: Overall readiness to buy (0-100)
 
 Return JSON only:
 {
-  "budget": "has_budget" | "no_budget" | "unknown",
-  "authority": "decision_maker" | "influencer" | "not_involved" | "unknown",
-  "need": "has_need" | "no_need" | "unknown",
-  "timeline": "immediate" | "this_quarter" | "this_year" | "no_timeline" | "unknown",
+  "stage": "needs_identified" | "offer_made" | "invoice_requested" | "payment_sent" | "closed_won" | "unknown",
+  "buying_intent": "high" | "medium" | "low" | "none",
+  "objections_present": boolean,
   "qualification_score": number (0-100)
 }`;
 
     const response = await generateReply(
-      'You are a professional sales analyst specializing in BANT qualification.',
+      'You are a professional sales analyst tracking deal progression.',
       prompt,
       {
         model: MODELS.lead_intelligence,
@@ -425,19 +422,17 @@ Return JSON only:
     const analysis = JSON.parse(response.text || '{}');
 
     return {
-      budget: analysis.budget || "unknown",
-      authority: analysis.authority || "unknown",
-      need: analysis.need || "unknown",
-      timeline: analysis.timeline || "unknown",
+      stage: analysis.stage || "unknown",
+      buying_intent: analysis.buying_intent || "none",
+      objections_present: analysis.objections_present || false,
       qualification_score: analysis.qualification_score || 0,
     };
   } catch (error) {
-    console.error('BANT qualification error:', error);
+    console.error('Qualification error:', error);
     return {
-      budget: "unknown",
-      authority: "unknown",
-      need: "unknown",
-      timeline: "unknown",
+      stage: "unknown",
+      buying_intent: "none",
+      objections_present: false,
       qualification_score: 0,
     };
   }
@@ -451,23 +446,24 @@ export async function enrichLeadCompany(lead: Lead): Promise<CompanyEnrichment> 
    * In production: integrate with Clearbit, Hunter, etc.
    */
 
-  // Extract domain from email
   const emailDomain = lead.email?.split("@")[1] || '';
   const metadata = lead.metadata as Record<string, unknown> | null;
-  const company = typeof metadata?.company === 'string' ? metadata.company : '';
+  const company = typeof metadata?.company === 'string' ? metadata.company : (lead.company || '');
   const companySize = typeof metadata?.companySize === 'string' ? metadata.companySize : 'unknown';
   const industry = typeof metadata?.industry === 'string' ? metadata.industry : 'unknown';
+  const revenue = typeof metadata?.revenue === 'string' ? metadata.revenue : 'unknown';
+  const employees = typeof metadata?.employees === 'number' ? metadata.employees : 0;
 
   return {
     company_name: company,
     company_size: companySize,
     industry: industry,
-    revenue_estimate: "unknown",
-    employee_count: 0,
+    revenue_estimate: revenue,
+    employee_count: employees,
     website: emailDomain ? `https://${emailDomain}` : "",
-    linkedin_url: "",
-    tech_stack: [],
-    competitors: [],
+    linkedin_url: typeof metadata?.linkedin_url === 'string' ? metadata.linkedin_url : "",
+    tech_stack: Array.isArray(metadata?.tech_stack) ? metadata.tech_stack : [],
+    competitors: Array.isArray(metadata?.competitors) ? metadata.competitors : [],
   };
 }
 
@@ -479,35 +475,70 @@ export async function addTimelineEvent(
   actionData: Record<string, unknown>,
   actorId?: string
 ): Promise<void> {
-  /**
-   * Log activity: email sent, opened, replied, status changed, etc.
-   */
-
   console.log(`📝 Timeline: Lead ${leadId} - ${actionType}`, actionData);
 
-  // Suppress unused variable warning - actorId used for audit trail in production
-  void actorId;
+  try {
+    const lead = await storage.getLead(leadId);
+    if (!lead) return;
 
-  // In production: save to lead_timeline table
+    await storage.createAuditLog({
+      leadId,
+      userId: lead.userId,
+      action: actionType,
+      details: actionData
+    });
+  } catch (error) {
+    console.error(`Failed to add timeline event for lead ${leadId}:`, error);
+  }
 }
 
-export async function getLeadTimeline(_leadId: string): Promise<TimelineEvent[]> {
-  /**
-   * Get complete audit trail for lead
-   */
-
-  // In production: query lead_timeline table
-  return [];
+export async function getLeadTimeline(leadId: string): Promise<TimelineEvent[]> {
+  try {
+    const lead = await storage.getLead(leadId);
+    if (!lead) return [];
+    
+    const logs = await storage.getAuditLogs(lead.userId);
+    return logs.filter(log => log.leadId === leadId).map(log => ({
+      leadId: leadId,
+      actionType: log.action,
+      actionData: log.details as Record<string, unknown>,
+      actorId: log.userId,
+      timestamp: log.createdAt
+    }));
+  } catch (error) {
+    console.error(`Failed to get timeline for lead ${leadId}:`, error);
+    return [];
+  }
 }
 
 // ============ LEAD TAGS & CUSTOM FIELDS ============
 
 export async function addLeadTag(leadId: string, tagName: string): Promise<void> {
   console.log(`🏷️ Tagged: Lead ${leadId} with "${tagName}"`);
-  // In production: insert into lead_tag_mapping
+  try {
+    const lead = await storage.getLead(leadId);
+    if (lead) {
+      const tags = lead.tags || [];
+      if (!tags.includes(tagName)) {
+        tags.push(tagName);
+        await storage.updateLead(leadId, { tags });
+      }
+    }
+  } catch (error) {
+    console.error(`Failed to add tag to lead ${leadId}:`, error);
+  }
 }
 
 export async function setCustomFieldValue(leadId: string, fieldName: string, value: unknown): Promise<void> {
   console.log(`📋 Custom field: Lead ${leadId} - ${fieldName} = ${value}`);
-  // In production: insert into lead_custom_field_values
+  try {
+    const lead = await storage.getLead(leadId);
+    if (lead) {
+      const metadata = (lead.metadata || {}) as Record<string, unknown>;
+      metadata[fieldName] = value;
+      await storage.updateLead(leadId, { metadata });
+    }
+  } catch (error) {
+    console.error(`Failed to set custom field for lead ${leadId}:`, error);
+  }
 }
