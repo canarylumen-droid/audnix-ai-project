@@ -38,6 +38,14 @@ export const smtpSettingsInsert = createInsertSchema(smtpSettings);
 export type SmtpSettings = z.infer<typeof smtpSettingsSelect>;
 export type InsertSmtpSettings = z.infer<typeof smtpSettingsInsert>;
 
+export const userSessions = pgTable("user_sessions", {
+  sid: text("sid").primaryKey(),
+  sess: jsonb("sess").notNull(),
+  expire: timestamp("expire").notNull(),
+}, (table) => ({
+  expireIdx: index("IDX_user_sessions_expire").on(table.expire),
+}));
+
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   supabaseId: text("supabase_id"),
