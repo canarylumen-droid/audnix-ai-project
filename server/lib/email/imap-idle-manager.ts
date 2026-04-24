@@ -488,40 +488,37 @@ class ImapIdleManager {
                         integrationId,
                         userId: integration.userId
                     };
-                    console.error(`IMAP Error for integration ${integrationId} (User: ${integration.userId}):`, JSON.stringify(errorDetails));
-                    
                     workerHealthMonitor.recordError('IMAP IDLE', err.message || 'Unknown IMAP error');
 
-                    // Set cooldown to prevent loop (5 minutes)
-                    this.failureCooldowns.set(integrationId, Date.now() + 5 * 60 * 1000);
-
                     const fatalErrors = ['AUTHENTICATIONFAILED', 'Not authenticated', 'Invalid credentials', 'Login failed', 'BAD', 'NO'];
-                    const retryableErrors = ['ETIMEDOUT', 'ECONNRESET', 'EPIPE', 'ECONNREFUSED', 'ENOTFOUND', 'ENETUNREACH'];
-                    
                     const errorStr = (err.code || err.message || '').toLowerCase();
                     const isFatal = fatalErrors.some(code => errorStr.includes(code.toLowerCase()));
-                    const isRetryable = retryableErrors.some(code => errorStr.includes(code.toLowerCase()));
+
+                    const integrationLatest = await storage.getIntegrationById(integrationId);
+                    if (integrationLatest) {
+                      // Phase 23: Production Safety. Link to Health Service to manage failure counts and "failed" state.
+                      await mailboxHealthService.handleMailboxFailure(integrationLatest, err.message || 'IMAP Connection Error');
+                      
+                      // Phase 26: 3-Strikes-and-Out. If the health service marked it as failed (3 failures), kill it now.
+                      const updated = await storage.getIntegrationById(integrationId);
+                      if (updated && updated.healthStatus === 'failed') {
+                        console.warn(`🛑 Strike 3 for integration ${integrationId}. Killing connection permanently.`);
+                        this.forceDisconnect(integrationId, integration.userId);
+                        return;
+                      }
+                    }
 
                     if (isFatal) {
-                        console.warn(`🛑 Fatal IMAP error for integration ${integrationId}. Stopping retries.`);
+                        console.warn(`🛑 Authentication issue for integration ${integrationId}. Retrying with long backoff (10m)...`);
                         try { imap.destroy(); } catch (e) {}
                         this.cleanupIntegration(integrationId);
-
-                        try {
-                            const integrationLatest = await storage.getIntegration(integration.userId, integrationId);
-                            if (integrationLatest) {
-                                await mailboxHealthService.handleMailboxFailure(integrationLatest, err.message || 'Authentication Failed');
-                            }
-                        } catch (e) {
-                            console.error('Failed to update integration with IMAP error:', e);
-                        }
+                        
+                        this.backoffDelays.set(integrationId, 10 * 60 * 1000); 
+                        this.reconnect(integrationId, integration);
                     } else {
-                        // Phase 20: Hardened Reconnection. 
-                        // Transient errors (timeouts, resets) no longer trigger a 5-minute freeze.
-                        console.warn(`⏳ Transient IMAP error for ${integrationId} (${err.code || 'unknown'}). Triggering fast reconnect...`);
-                        this.failureCooldowns.delete(integrationId); // Clear cooldown for transient errors
+                        console.warn(`⏳ Transient IMAP error for ${integrationId} (${err.code || 'unknown'}). Triggering reconnect...`);
                         try { imap.destroy(); } catch (e) {}
-                        this.reconnect(integrationId, integration); // Trigger fast reconnect backoff (starts at 5s)
+                        this.reconnect(integrationId, integration); 
                     }
                 } catch (fatalErr) {
                     console.error('[IMAP] CRITICAL: Exception in error handler:', fatalErr);
@@ -717,9 +714,12 @@ class ImapIdleManager {
                                     const lockKey = `imap:conn:${integrationId}`;
                                     const extended = await extendLock(lockKey, 300);
                                     if (!extended) {
-                                      console.warn(`[IMAP] 🚨 Lost distributed lock for ${integrationId}. Forcing disconnect to avoid conflicts.`);
-                                      this.forceDisconnect(integrationId, integration.userId);
-                                      return;
+                                      console.warn(`[IMAP] 🚨 Lost distributed lock for ${integrationId}. Attempting to re-acquire...`);
+                                      const reacquired = await acquireDistributedLock(lockKey, 300);
+                                      if (!reacquired) {
+                                        console.error(`[IMAP] ❌ Could not re-acquire lock for ${integrationId}. Someone else might be syncing.`);
+                                        return;
+                                      }
                                     }
 
                                     // NOOP is safer than full fetch for heartbeat unless we actually expect mail signal to be lost
@@ -1075,6 +1075,12 @@ class ImapIdleManager {
                 const checkInt = await storage.getIntegrationById(integrationId);
                 if (!checkInt || !checkInt.connected) {
                     console.log(`🔌 [IMAP Reconnect] Aborting — integration ${integrationId} is no longer connected or was deleted.`);
+                    return;
+                }
+                
+                // Phase 24: Production Safety — Stop retrying if mailbox is marked as failed (e.g. 10+ auth failures)
+                if (checkInt.healthStatus === 'failed') {
+                    console.log(`🔌 [IMAP Reconnect] Aborting — integration ${integrationId} is in FAILED state. User intervention required to fix credentials.`);
                     return;
                 }
             } catch (e) {

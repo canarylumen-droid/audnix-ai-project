@@ -6,7 +6,7 @@ import { generateReply, generateEmailSubject } from './ai-service.js';
 import { InstagramOAuth } from '../oauth/instagram.js';
 import { sendInstagramMessage } from '../channels/instagram.js';
 
-import { sendEmail } from '../channels/email.js';
+import { sendEmail, MailboxPausedError } from '../channels/email.js';
 import { executeCommentFollowUps } from './comment-detection.js';
 import { storage } from "../../storage.js";
 import { wsSync } from "../websocket-sync.js";
@@ -336,17 +336,32 @@ export class FollowUpWorker {
         return;
       }
 
-      // CHECK 2.5: Integration-level AI Mode
-      if (job.channel !== 'email') {
-        const matchingIntegration = await db.select()
-          .from(integrations)
-          .where(and(eq(integrations.userId, job.userId), eq(integrations.provider, job.channel as any)))
-          .limit(1);
-          
-        if (matchingIntegration.length > 0 && matchingIntegration[0].aiAutonomousMode === false) {
+      // CHECK 2.5: Integration-level Health & AI Mode
+      const matchingIntegrations = await db.select()
+        .from(integrations)
+        .where(and(eq(integrations.userId, job.userId), eq(integrations.provider, job.channel as any)))
+        .limit(1);
+      
+      const integration = matchingIntegrations[0];
+      
+      if (integration) {
+        if (integration.aiAutonomousMode === false) {
            console.log(`[FOLLOW_UP] Integration Autonomous Mode is OFF for ${job.channel}. Reverting job to pending.`);
            await db.update(followUpQueue).set({ status: 'pending' }).where(eq(followUpQueue.id, job.id));
            return;
+        }
+
+        // Infrastructure-level pause check (ENETUNREACH cooldown)
+        if (integration.mailboxPauseUntil && new Date(integration.mailboxPauseUntil) > new Date()) {
+          console.warn(`⏳ [FOLLOW_UP] Mailbox for ${job.channel} is paused until ${integration.mailboxPauseUntil}. Rescheduling.`);
+          const nextTry = new Date(new Date(integration.mailboxPauseUntil).getTime() + 5 * 60 * 1000);
+          await db.update(followUpQueue)
+            .set({ 
+              status: 'pending', 
+              scheduledAt: nextTry 
+            })
+            .where(eq(followUpQueue.id, job.id));
+          return;
         }
       }
 
@@ -582,6 +597,21 @@ export class FollowUpWorker {
         throw new Error('Failed to send message');
       }
     } catch (error) {
+      if (error instanceof MailboxPausedError) {
+        console.warn(`⏳ [FOLLOW_UP] Mailbox paused until ${error.pauseUntil}. Rescheduling job ${job.id}.`);
+        const nextTry = new Date(error.pauseUntil.getTime() + 5 * 60 * 1000);
+        if (db) {
+          await db.update(followUpQueue)
+            .set({ 
+              status: 'pending', 
+              scheduledAt: nextTry,
+              errorMessage: 'Mailbox temporarily paused (infrastructure cooldown)'
+            })
+            .where(eq(followUpQueue.id, job.id));
+        }
+        return;
+      }
+
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error(`Error processing job ${job.id}:`, error);
 

@@ -217,7 +217,10 @@ router.post('/:provider/disconnect', requireAuth, async (req: Request, res: Resp
     // If it's an email provider, kill the permanent IMAP socket instantly
     if (['custom_email', 'gmail', 'outlook'].includes(provider)) {
       try {
-        const { imapIdleManager } = await import('../lib/email/imap-idle-manager.ts');
+        const { imapIdleManager } = await import('../lib/email/imap-idle-manager.js');
+        if (integration?.id) {
+          imapIdleManager.forceDisconnect(integration.id, userId);
+        }
         await imapIdleManager.syncConnections();
       } catch (e) {
         console.warn('[Integrations] Failed to cleanup IMAP connections:', e);

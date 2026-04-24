@@ -430,7 +430,7 @@ class MailboxHealthService {
     }
 
     const currentFailures = (integration.failureCount || 0) + 1;
-    const failureThreshold = integration.provider === 'custom_email' ? 10 : this.MAX_FAILURES_BEFORE_REMOVE;
+    const failureThreshold = integration.provider === 'custom_email' ? 3 : this.MAX_FAILURES_BEFORE_REMOVE;
 
     if (currentFailures >= failureThreshold) {
       // CRITICAL: Mark as FAILED and remove from sending pool

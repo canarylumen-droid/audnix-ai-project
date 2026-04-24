@@ -4,6 +4,13 @@ import * as cheerio from 'cheerio';
 import { type Integration } from '../../../shared/schema.js';
 import dns from 'dns';
 
+export class MailboxPausedError extends Error {
+  constructor(public pauseUntil: Date) {
+    super(`Mailbox is temporarily paused until ${pauseUntil.toISOString()} due to network errors.`);
+    this.name = 'MailboxPausedError';
+  }
+}
+
 /**
  * Email messaging functions with branded templates using extracted PDF brand colors
  */
@@ -557,6 +564,11 @@ export async function sendEmail(
 
   if (!integration) {
     throw new Error('Email not connected. Please connect your business email in Settings.');
+  }
+
+  // 1.2. Check for infrastructure-level pause (ENETUNREACH cooldown)
+  if (integration.mailboxPauseUntil && new Date(integration.mailboxPauseUntil) > new Date()) {
+    throw new MailboxPausedError(new Date(integration.mailboxPauseUntil));
   }
 
   // 1.5. Check Daily Sending Limits (Gmail: 500, Custom: 2500)
