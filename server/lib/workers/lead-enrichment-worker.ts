@@ -124,21 +124,20 @@ export class LeadEnrichmentWorker {
    * Uses Gemini to synthesize search results + lead data into structured intelligence.
    */
   private async synthesizeIntelligence(lead: any, searchSnippets: string[]): Promise<any> {
-    const { GoogleGenAI } = await import('@google/genai');
-    const genai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+    const { generateReply } = await import('../ai/ai-service.js');
+    const { MODELS } = await import('../ai/model-config.js');
 
     const snippetsContext = searchSnippets.length > 0
       ? `\nReal-time search results about their company:\n${searchSnippets.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
       : '';
 
-    const prompt = `You are an elite B2B sales intelligence analyst. Analyze this lead and return ONLY a valid JSON object.
-
-Lead Data:
+    const systemPrompt = `You are an elite B2B sales intelligence analyst. Analyze the lead data and return ONLY a valid JSON object summarizing their business profile, pain points, and optimal contact strategy.`;
+    const userPrompt = `Lead Data:
 - Bio: ${lead.bio || 'Not provided'}
 - Niche/Industry: ${lead.niche || lead.metadata?.niche || 'Unknown'}
 - City/Location: ${lead.city || lead.metadata?.city || 'Unknown'}${snippetsContext}
 
-Return ONLY this JSON (no markdown, no explanation):
+Return ONLY this JSON structure:
 {
   "companySize": "1-10" | "11-50" | "51-200" | "201-500" | "500+" | null,
   "industry": "string or null",
@@ -153,17 +152,18 @@ Return ONLY this JSON (no markdown, no explanation):
   "confidence": 0.0 to 1.0
 }`;
 
-    const response = await genai.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: prompt,
+    const res = await generateReply(systemPrompt, userPrompt, {
+      jsonMode: true,
+      model: MODELS.intelligence_synthesis || 'gemini-1.5-flash',
+      temperature: 0.2
     });
 
-    const text = response.text || '';
-    const jsonStart = text.indexOf('{');
-    const jsonEnd = text.lastIndexOf('}') + 1;
-    if (jsonStart === -1 || jsonEnd === 0) throw new Error('AI returned no valid JSON');
-
-    return JSON.parse(text.substring(jsonStart, jsonEnd));
+    try {
+      return JSON.parse(res.text);
+    } catch (err) {
+      console.error("[LeadEnrichment] AI returned invalid JSON:", res.text.substring(0, 100));
+      throw new Error('AI returned no valid JSON');
+    }
   }
 
   /**

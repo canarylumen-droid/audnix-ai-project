@@ -25,4 +25,5 @@ export const MODELS = {
     objection_handling: process.env.ZAI_API_KEY ? Z_AI_STABLE_MODEL : OPENAI_INTELLIGENCE_MODEL,
     grammar_check: Z_AI_FAST_MODEL,
     outreach_generation: process.env.ZAI_API_KEY ? Z_AI_STABLE_MODEL : GENAI_STABLE_MODEL,
+    intelligence_synthesis: process.env.ZAI_API_KEY ? Z_AI_STABLE_MODEL : OPENAI_INTELLIGENCE_MODEL,
 };
