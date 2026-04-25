@@ -23,6 +23,15 @@ async function diagnose() {
     console.log('📊 Table: user_outreach_settings');
     console.table(res2.rows);
 
+    const res3 = await db.execute(sql`
+      SELECT column_name, data_type 
+      FROM information_schema.columns 
+      WHERE table_name = 'users'
+      ORDER BY column_name;
+    `);
+    console.log('📊 Table: users');
+    console.table(res3.rows);
+
   } catch (err: any) {
     console.error('❌ Diagnostic failed:', err.message);
   } finally {

@@ -62,6 +62,7 @@ import {
   MapPin,
   Smile,
   Image as ImageIcon,
+  Tags,
 } from "lucide-react";
 import { SiGoogle } from "react-icons/si";
 import {
@@ -100,6 +101,16 @@ const channelIcons = {
   gmail: SiGoogle,
   outlook: Mail
 };
+
+const DEFAULT_PERSONALIZATION_TAGS = [
+  { label: "First Name", value: "{{firstName}}" },
+  { label: "Last Name", value: "{{lastName}}" },
+  { label: "Company", value: "{{company}}" },
+  { label: "City", value: "{{city}}" },
+  { label: "Industry", value: "{{industry}}" },
+  { label: "Niche", value: "{{niche}}" },
+  { label: "Website", value: "{{website}}" },
+];
 
 const statusStyles = {
   new: "bg-primary/20 text-primary border-primary/20",
@@ -442,15 +453,29 @@ export default function InboxPage() {
 
   useEffect(() => {
     if (leadsData?.leads) {
-      setTypingLeadId(null); // Clear typing indicator generally when leads bulk update
-      
-      // SYNC: Only keep leads that are actually in the returned leadsData from the server
-      // This prevents "ghost" leads that were deleted from persisting in the local state.
+      setTypingLeadId(null);
       setAllLeads(leadsData.leads);
     } else if (leadsData?.leads?.length === 0) {
-      setAllLeads([]); // Clear if no leads for this mailbox
+      setAllLeads([]);
     }
   }, [leadsData]);
+
+  // Dynamic Tags for variables insertion
+  const allTags = useMemo(() => {
+    const dynamicTags = activeLead?.metadata ? 
+      Object.keys(activeLead.metadata)
+        .filter(k => !k.endsWith('_type') && k !== '_unmapped_cols')
+        .map(k => ({ label: k.replace(/_/g, ' '), value: `{{${k}}}` })) : 
+      [];
+    return [...DEFAULT_PERSONALIZATION_TAGS, ...dynamicTags.filter(dt => !DEFAULT_PERSONALIZATION_TAGS.some(st => st.value === dt.value))];
+  }, [activeLead]);
+
+  const insertTag = (tag: string) => {
+    setReplyMessage(prev => prev + tag);
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  };
 
   // Handle clearing unread status and status transition when lead is selected
   useEffect(() => {
@@ -1727,6 +1752,19 @@ export default function InboxPage() {
                           <button onClick={() => setActiveReplyTab('sticker')} className={cn("text-[10px] font-bold tracking-wider uppercase transition-colors flex items-center gap-1", activeReplyTab === 'sticker' ? "text-primary" : "text-muted-foreground hover:text-foreground")}>
                             <ImageIcon className="w-3 h-3" /> Sticker
                           </button>
+                          
+                          <div className="ml-auto flex items-center gap-2 overflow-x-auto max-w-[50%] scrollbar-hide pr-2">
+                             <Tags className="w-3 h-3 text-muted-foreground shrink-0" />
+                             {allTags.slice(0, 5).map(tag => (
+                               <button
+                                 key={tag.value}
+                                 onClick={() => insertTag(tag.value)}
+                                 className="text-[8px] font-black uppercase tracking-tighter px-2 py-1 rounded-full bg-primary/5 hover:bg-primary/15 border border-primary/10 text-primary transition-all shrink-0"
+                               >
+                                 {tag.label}
+                               </button>
+                             ))}
+                          </div>
                         </div>
                         
                         {/* Tab Content */}

@@ -94,7 +94,6 @@ export function decryptToJSON<T = any>(ciphertext: string): T {
     
     return parsed as T;
   } catch (error: any) {
-    console.error('[SECURITY] ⚠️ JSON deserialization failed:', error.message);
     throw new Error(`Data decryption failed: ${error.message}`);
   }
 }

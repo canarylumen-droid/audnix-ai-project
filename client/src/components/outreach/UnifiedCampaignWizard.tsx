@@ -32,12 +32,14 @@ interface UnifiedCampaignWizardProps {
   initialLeads?: any[];
 }
 
-const PERSONALIZATION_TAGS = [
+// Default tags if no leads are present
+const DEFAULT_PERSONALIZATION_TAGS = [
   { label: "First Name", value: "{{firstName}}" },
   { label: "Last Name", value: "{{lastName}}" },
   { label: "Company", value: "{{company}}" },
   { label: "City", value: "{{city}}" },
   { label: "Industry", value: "{{industry}}" },
+  { label: "Niche", value: "{{niche}}" },
   { label: "Website", value: "{{website}}" },
 ];
 
@@ -110,8 +112,20 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
   const totalDailyVolume = selectedMailboxes.reduce((sum, id) => sum + (mailboxLimits[id] || 0), 0);
   const maxTotalVolume = selectedMailboxes.reduce((sum, id) => sum + (mailboxLimits[id] || 0) * (mailboxMaxMultipliers[id] || 3), 0);
 
-  const estimatedDays = leads.length > 0 && totalDailyVolume > 0 ? Math.ceil(leads.length / totalDailyVolume) : 0;
+  // Weekend-aware velocity: if excluding weekends, only ~5/7 days are sending days
+  const effectiveDailyMultiplier = excludeWeekends ? 5 / 7 : 1;
+  const effectiveDailyVolume = totalDailyVolume * effectiveDailyMultiplier;
+  const estimatedDays = leads.length > 0 && effectiveDailyVolume > 0 ? Math.ceil(leads.length / effectiveDailyVolume) : 0;
   const isExtendedTimeline = estimatedDays > targetDays;
+
+  // How many more mailboxes (at 50/day each) to hit the target within targetDays
+  const requiredDailyVolume = leads.length > 0 && targetDays > 0 ? Math.ceil(leads.length / (targetDays * effectiveDailyMultiplier)) : 0;
+  const mailboxesNeeded = requiredDailyVolume > totalDailyVolume
+    ? Math.ceil((requiredDailyVolume - totalDailyVolume) / 50)
+    : 0;
+
+  // Safety check: any mailbox sending > 200/day is a reputation risk
+  const hasUnsafeMailbox = selectedMailboxes.some(id => (mailboxLimits[id] || 0) > 200);
 
   useEffect(() => {
     const saved = localStorage.getItem("campaign_draft");
@@ -249,6 +263,15 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
     }
   };
 
+  // Dynamic Tags from first lead's metadata
+  const dynamicTags = leads[0]?.metadata ? 
+    Object.keys(leads[0].metadata)
+      .filter(k => !k.endsWith('_type') && k !== '_unmapped_cols')
+      .map(k => ({ label: k.replace(/_/g, ' '), value: `{{${k}}}` })) : 
+    [];
+
+  const allTags = [...DEFAULT_PERSONALIZATION_TAGS, ...dynamicTags.filter(dt => !DEFAULT_PERSONALIZATION_TAGS.some(st => st.value === dt.value))];
+
   const handleGenerateSequence = async () => {
     setIsGeneratingAI(true);
     try {
@@ -286,7 +309,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
   const renderTagBar = (field: "subject" | "body" | "fs1" | "fb1" | "fs2" | "fb2" | "auto") => (
     <div className="flex flex-wrap gap-2 mb-3 items-center">
       <Tags className="w-3 h-3 text-muted-foreground mr-1" />
-      {PERSONALIZATION_TAGS.map(tag => (
+      {allTags.map(tag => (
         <button
           key={tag.value}
           onClick={() => insertTag(tag.value, field)}
@@ -310,13 +333,25 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
     const lastName = sampleLead.name?.trim().split(' ').slice(1).join(' ') || '';
 
     const process = (text: string) => {
-      return (text || "")
+      let processed = (text || "")
         .replace(/{{firstName}}/g, firstName)
         .replace(/{{lastName}}/g, lastName)
-        .replace(/{{company}}/g, sampleLead.company || 'Acme Corp')
-        .replace(/{{city}}/g, sampleLead.city || 'Remote')
-        .replace(/{{industry}}/g, sampleLead.industry || 'Business')
-        .replace(/{{website}}/g, sampleLead.website || 'your site');
+        .replace(/{{company}}/g, sampleLead.company || sampleLead.metadata?.company || 'Acme Corp')
+        .replace(/{{city}}/g, sampleLead.city || sampleLead.metadata?.city || 'Remote')
+        .replace(/{{industry}}/g, sampleLead.industry || sampleLead.metadata?.industry || 'Business')
+        .replace(/{{niche}}/g, sampleLead.niche || sampleLead.metadata?.niche || 'Business')
+        .replace(/{{website}}/g, sampleLead.website || sampleLead.metadata?.website || 'your site');
+
+      // Process any other dynamic metadata tags
+      if (sampleLead.metadata) {
+        Object.entries(sampleLead.metadata).forEach(([key, val]) => {
+          if (typeof val === 'string' && !key.endsWith('_type')) {
+            const regex = new RegExp(`{{${key}}}`, 'g');
+            processed = processed.replace(regex, val);
+          }
+        });
+      }
+      return processed;
     };
 
     const filledSubject = process(subj);
@@ -474,24 +509,59 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                             </div>
                           )}
                         </div>
-                        <div className="p-6 bg-primary/5 rounded-[2rem] border border-primary/10 space-y-6">
-                           <div className="flex items-center gap-2 text-primary">
-                             <Sparkles className="w-4 h-4" />
-                             <span className="text-[10px] font-black uppercase tracking-widest">Growth Engine Plan</span>
+                        <div className="p-8 bg-primary/5 rounded-[2.5rem] border border-primary/10 space-y-8">
+                           <div className="flex items-center justify-between">
+                             <div className="flex items-center gap-2 text-primary">
+                               <Sparkles className="w-5 h-5 animate-pulse" />
+                               <span className="text-[10px] font-black uppercase tracking-widest">Growth Engine Plan</span>
+                             </div>
+                             <div className="flex items-center gap-2">
+                               {hasUnsafeMailbox && (
+                                 <Badge variant="outline" className="bg-red-500/10 text-red-600 border-red-500/20 text-[9px] font-black px-3 py-1">
+                                   ⚠️ REPUTATION RISK
+                                 </Badge>
+                               )}
+                               {totalDailyVolume > 0 && !hasUnsafeMailbox && (
+                                 <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[9px] font-black px-3 py-1">
+                                   ✓ HEALTHY VELOCITY
+                                 </Badge>
+                               )}
+                             </div>
                            </div>
-                            <div className="grid grid-cols-2 gap-6">
+
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
                               <div>
-                                <p className="text-[9px] uppercase font-black opacity-40 mb-1">Daily Blast</p>
+                                <p className="text-[9px] uppercase font-black opacity-40 mb-1">Daily Capacity</p>
                                 <p className={cn("text-3xl font-black italic transition-all", totalDailyVolume === 0 ? "text-muted-foreground/30" : "text-foreground")}>
                                   ~{totalDailyVolume}
                                 </p>
+                                <p className="text-[10px] opacity-40 italic">Total throughput</p>
+                              </div>
+                              <div>
+                                <p className="text-[9px] uppercase font-black opacity-40 mb-1">Per Mailbox</p>
+                                <p className={cn("text-3xl font-black italic transition-all", totalDailyVolume === 0 ? "text-muted-foreground/30" : "text-foreground")}>
+                                  {selectedMailboxes.length > 0 ? Math.floor(totalDailyVolume / selectedMailboxes.length) : 0}
+                                </p>
+                                <p className="text-[10px] opacity-40 italic">Avg. daily limit</p>
                               </div>
                               <div>
                                 <p className="text-[9px] uppercase font-black opacity-40 text-amber-600 mb-1 flex items-center gap-1">
-                                  Retry Buffer <Badge variant="outline" className="text-[7px] h-3 px-1 border-amber-600/20 text-amber-600 font-black">AI BOOST</Badge>
+                                  Boost Buffer
                                 </p>
                                 <p className={cn("text-3xl font-black italic transition-all", totalDailyVolume === 0 ? "text-amber-600/30" : "text-amber-600")}>
                                   +{maxTotalVolume - totalDailyVolume}
+                                </p>
+                                <p className="text-[10px] text-amber-600/40 italic">AI adaptive retry</p>
+                              </div>
+                              <div>
+                                <p className="text-[9px] uppercase font-black opacity-40 text-primary mb-1">
+                                  {syncLimit === 'all' ? 'Workforce Velocity' : 'Campaign Velocity'}
+                                </p>
+                                <p className={cn("text-3xl font-black italic transition-all", totalDailyVolume === 0 ? "text-primary/30" : "text-primary")}>
+                                  {estimatedDays}d
+                                </p>
+                                <p className="text-[10px] text-primary/40 italic">
+                                  Time to finish {syncLimit === 'all' ? 'all' : leads.length} leads
                                 </p>
                               </div>
                             </div>
@@ -501,21 +571,34 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                                ⚠️ No mailboxes selected. Please check at least one "Connected Inbox" above to calculate your growth plan.
                              </div>
                            )}
-                          <div className="space-y-4">
-                            <Label className="text-[10px] font-black uppercase tracking-widest opacity-40">Campaign Duration Goal: {targetDays} Days</Label>
-                            <Slider value={[targetDays]} onValueChange={v => setTargetDays(v[0])} min={1} max={30} step={1} className="py-2" />
+
+                          <div className="space-y-4 pt-4 border-t border-primary/5">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-[10px] font-black uppercase tracking-widest opacity-40 italic">Campaign Duration Goal: {targetDays} Days</Label>
+                              <Badge className="bg-primary/10 text-primary text-[8px] font-black">{Math.round((totalDailyVolume * targetDays) / 1000)}k Target Volume</Badge>
+                            </div>
+                            <Slider value={[targetDays]} onValueChange={v => setTargetDays(v[0])} min={1} max={90} step={1} className="py-2" />
                             <p className="text-[10px] italic opacity-50">Set your ideal completion timeline. AI will warn you if daily limits exceed safety ceilings to reach this goal.</p>
                           </div>
                           
-                          {isExtendedTimeline && (
-                            <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl animate-in fade-in mt-4">
-                              <div className="flex items-center gap-2 mb-1">
-                                <Sparkles className="w-4 h-4 text-amber-500" />
-                                <span className="text-[10px] font-black uppercase tracking-widest text-amber-600">Timeline Extended</span>
+                          {(isExtendedTimeline || leads.length > 5000) && (
+                            <div className={cn(
+                              "p-5 rounded-3xl animate-in fade-in zoom-in-95 mt-4 transition-all",
+                              isExtendedTimeline ? "bg-amber-500/5 border border-amber-500/20" : "bg-primary/5 border border-primary/10"
+                            )}>
+                              <div className="flex items-center gap-2 mb-2">
+                                <Sparkles className={cn("w-4 h-4", isExtendedTimeline ? "text-amber-500" : "text-primary")} />
+                                <span className={cn("text-[10px] font-black uppercase tracking-widest", isExtendedTimeline ? "text-amber-600" : "text-primary")}>
+                                  {isExtendedTimeline ? "Timeline Optimization Required" : "High Volume Projection"}
+                                </span>
                               </div>
-                              <p className="text-[11px] text-amber-700/80 leading-relaxed font-bold">
-                                Based on your {leads.length} leads and current mailbox limits, this campaign will safely complete in <strong>{estimatedDays} days</strong> instead of {targetDays}. Increase mailbox limits or add more mailboxes to speed up sending.
-                              </p>
+                              <p className={cn("text-[11px] leading-relaxed font-bold", isExtendedTimeline ? "text-amber-700/80" : "text-foreground/70")}>
+                                 {isExtendedTimeline ? (
+                                   `Your ${leads.length.toLocaleString()} leads will complete in ~${estimatedDays} days at current velocity${excludeWeekends ? ' (weekends excluded)' : ''}. To hit your ${targetDays}-day goal, add ${mailboxesNeeded} more mailbox${mailboxesNeeded === 1 ? '' : 'es'} (~50/day each).`
+                                 ) : (
+                                   `Great! ${leads.length.toLocaleString()} leads across ${selectedMailboxes.length} mailbox${selectedMailboxes.length === 1 ? '' : 'es'} will finish in ~${estimatedDays} days — within your ${targetDays}-day target.${excludeWeekends ? ' (Weekends protected.)' : ''}`
+                                 )}
+                               </p>
                             </div>
                           )}
                         </div>

@@ -42,101 +42,115 @@ export function LeadsDisplayModal({
     setVisibleCount(prev => prev + 50);
   };
 
+  // Identify all unique metadata keys across visible leads to build columns
+  const allMetadataKeys = Array.from(new Set(
+    leads.flatMap(l => Object.keys((l as any).metadata || {}).filter(k => !k.endsWith('_type') && k !== '_unmapped_cols'))
+  )).sort();
+
+  const renderValue = (val: any, type?: string) => {
+    if (!val) return <span className="text-muted-foreground/30">—</span>;
+    
+    if (type === 'google_maps' || val.toString().includes('maps.google')) {
+      return (
+        <a href={val} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-primary hover:underline group/link">
+          <MapPin className="h-3 w-3" />
+          <span className="truncate max-w-[120px]">View Map</span>
+        </a>
+      );
+    }
+    
+    if (type === 'linkedin' || val.toString().includes('linkedin.com')) {
+      return (
+        <a href={val} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-blue-400 hover:underline">
+          <Linkedin className="h-3 w-3" />
+          <span className="truncate max-w-[120px]">LinkedIn</span>
+        </a>
+      );
+    }
+
+    if (type === 'website' || /^https?:\/\//i.test(val.toString())) {
+      return (
+        <a href={val} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-primary hover:underline">
+          <Globe className="h-3 w-3" />
+          <span className="truncate max-w-[120px]">{val.toString().replace(/^https?:\/\//i, '')}</span>
+        </a>
+      );
+    }
+
+    return <span className="truncate max-w-[150px]">{val.toString()}</span>;
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="w-[96vw] sm:max-w-[90vw] md:max-w-7xl h-auto max-h-[90vh] p-0 flex flex-col overflow-hidden border-border/20 bg-card/98 backdrop-blur-2xl rounded-[1rem] sm:rounded-[2rem] shadow-2xl focus:outline-none">
         <DialogHeader className="p-6 md:p-8 pb-4 shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <DialogTitle className="text-xl md:text-2xl font-bold tracking-tight">Imported Lead Profiles</DialogTitle>
+              <DialogTitle className="text-xl md:text-2xl font-bold tracking-tight">Intelligence Ingestion Preview</DialogTitle>
               <DialogDescription className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mt-1">
-                {leads.length} leads ready to import
+                {leads.length} data points mapped and verified
               </DialogDescription>
             </div>
-            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 font-bold uppercase tracking-widest text-[10px] px-3 py-1 self-start sm:self-auto">
-              Ready
-            </Badge>
+            <div className="flex items-center gap-2">
+               <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 font-bold uppercase tracking-widest text-[9px] px-2 py-0.5">
+                AI MAPPED
+              </Badge>
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 font-bold uppercase tracking-widest text-[9px] px-2 py-0.5">
+                {leads.length} ROWS
+              </Badge>
+            </div>
           </div>
         </DialogHeader>
 
         <div className="flex-1 overflow-hidden flex flex-col min-h-0">
           <ScrollArea className="flex-1 w-full">
-            <div className="w-full overflow-x-auto pb-4">
-              <table className="w-full text-left border-collapse table-fixed md:table-auto min-w-[800px]">
+            <div className="w-full overflow-x-auto pb-4 px-6">
+              <table className="w-full text-left border-collapse table-auto">
                 <thead className="sticky top-0 bg-background/95 backdrop-blur-xl z-20 border-b border-border/40">
                   <tr>
-                    <th className="px-4 md:px-6 py-4 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 whitespace-nowrap">Lead Details</th>
-                    <th className="hidden md:table-cell px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 whitespace-nowrap">Contact info</th>
-                    <th className="hidden sm:table-cell px-4 md:px-6 py-4 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 whitespace-nowrap">Firmographics</th>
-                    <th className="px-4 md:px-6 py-4 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 whitespace-nowrap">Social</th>
+                    <th className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Identity</th>
+                    <th className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Contact</th>
+                    <th className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Company</th>
+                    {allMetadataKeys.map(key => (
+                      <th key={key} className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">
+                        {key.replace(/_/g, ' ')}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border/20">
-                  {visibleLeads.map((lead, idx) => (
-                    <tr key={idx} className="group hover:bg-primary/5 transition-colors">
-                      <td className="px-4 md:px-6 py-4">
+                <tbody className="divide-y divide-border/10">
+                  {visibleLeads.map((lead: any, idx) => (
+                    <tr key={idx} className="group hover:bg-primary/5 transition-colors border-b border-border/5">
+                      <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
-                            <User className="h-4 w-4" />
+                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-black">
+                            {lead.name?.charAt(0) || '?'}
                           </div>
-                          <div className="min-w-0 max-w-[120px] md:max-w-none">
-                            <div className="font-bold text-sm tracking-tight truncate">{lead.name}</div>
-                            <div className="md:hidden text-xs text-muted-foreground truncate">{lead.email}</div>
-                            {lead.title && <div className="text-[10px] font-bold text-primary/60 uppercase tracking-widest truncate">{lead.title}</div>}
-                          </div>
+                          <div className="font-bold text-sm tracking-tight truncate max-w-[150px]">{lead.name}</div>
                         </div>
                       </td>
-                      <td className="hidden md:table-cell px-6 py-4">
-                        <div className="space-y-1.5">
-                          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground truncate">
-                            <Mail className="h-3 w-3 opacity-60" />
-                            {lead.email}
+                      <td className="px-4 py-4">
+                        <div className="flex flex-col gap-0.5">
+                          <div className="text-xs font-medium truncate max-w-[180px]">{lead.email}</div>
+                          {lead.phone && <div className="text-[10px] text-muted-foreground">{lead.phone}</div>}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="text-xs font-semibold truncate max-w-[150px]">{lead.company || lead.metadata?.company || "—"}</div>
+                      </td>
+                      {allMetadataKeys.map(key => (
+                        <td key={key} className="px-4 py-4">
+                          <div className="text-xs font-medium">
+                            {renderValue(lead.metadata?.[key], lead.metadata?.[`${key}_type`])}
                           </div>
-                          {lead.phone && (
-                            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                              <Phone className="h-3 w-3 opacity-60" />
-                              {lead.phone}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="hidden sm:table-cell px-4 md:px-6 py-4">
-                        <div className="space-y-1.5">
-                          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground truncate">
-                            <Building2 className="h-3 w-3 opacity-60" />
-                            {lead.company || "N/A"}
-                          </div>
-                          {lead.location && (
-                            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground truncate">
-                              <MapPin className="h-3 w-3 opacity-60" />
-                              {lead.location}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 md:px-6 py-4">
-                        <div className="flex flex-wrap gap-2">
-                          {lead.linkedin && (
-                            <div className="h-7 w-7 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center hover:bg-blue-500/20 cursor-pointer transition-colors">
-                              <Linkedin className="h-3.5 w-3.5" />
-                            </div>
-                          )}
-                          {lead.website && (
-                            <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 cursor-pointer transition-colors">
-                              <Globe className="h-3.5 w-3.5" />
-                            </div>
-                          )}
-                          {!lead.linkedin && !lead.website && (
-                            <span className="text-[10px] font-bold text-muted-foreground/40 italic">N/A</span>
-                          )}
-                        </div>
-                      </td>
+                        </td>
+                      ))}
                     </tr>
                   ))}
                 </tbody>
               </table>
               {hasMore && (
-                <div className="p-8 text-center border-t border-border/20 bg-muted/5 pb-12">
+                <div className="p-8 text-center bg-muted/5 pb-12">
                   <Button
                     variant="ghost"
                     size="sm"

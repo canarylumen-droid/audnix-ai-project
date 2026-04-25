@@ -391,6 +391,31 @@ export default function ProspectingPage() {
                                                 )}
                                             </div>
 
+                                            {/* Dynamic Metadata Intelligence */}
+                                            {lead.metadata && (
+                                                <div className="flex flex-wrap gap-2 pt-2">
+                                                    {Object.entries(lead.metadata).map(([key, val]: [string, any]) => {
+                                                        if (key.endsWith('_type')) return null;
+                                                        const type = lead.metadata[`${key}_type`];
+                                                        if (!type && !val?.toString().includes('http')) return null;
+                                                        
+                                                        const label = key.replace(/_/g, ' ');
+                                                        return (
+                                                            <a
+                                                                key={key}
+                                                                href={val}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="px-3 py-1.5 bg-primary/5 hover:bg-primary/10 border border-primary/20 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary transition-all flex items-center gap-2"
+                                                            >
+                                                                {type === 'google_maps' ? <MapPin className="w-3 h-3" /> : <Globe className="w-3 h-3" />}
+                                                                {label}
+                                                            </a>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+
                                             {lead.socialProfiles && Object.keys(lead.socialProfiles).length > 0 && (
                                                 <div className="flex gap-2">
                                                     {Object.entries(lead.socialProfiles).map(([platform, url]) => (

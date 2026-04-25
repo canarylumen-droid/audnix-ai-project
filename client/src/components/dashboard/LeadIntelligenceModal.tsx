@@ -32,6 +32,7 @@ import {
     Linkedin,
     Twitter,
     Globe,
+    MapPin,
 } from "lucide-react";
 
 import { PremiumLoader } from "@/components/ui/premium-loader";
@@ -318,6 +319,54 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                             <div className="text-center space-y-1">
                                 <p className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-widest">Success</p>
                                 <p className="text-xl font-black text-emerald-500 leading-none">{intelligence.stats?.hasReplied ? "YES" : "NO"}</p>
+                            </div>
+                        </div>
+
+                        {/* Lead Intelligence & Data Hub */}
+                        <div className="space-y-4">
+                            <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 ml-1">Intelligence Hub & Linked Assets</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                {lead?.metadata && Object.entries(lead.metadata).map(([key, val]: [string, any]) => {
+                                    if (key.endsWith('_type')) return null;
+                                    const type = lead.metadata[`${key}_type`];
+                                    if (!type && !val?.toString().includes('http')) return null;
+
+                                    const Icon = type === 'google_maps' ? MapPin : type === 'linkedin' ? Linkedin : type === 'instagram' ? Twitter : type === 'twitter' ? Twitter : Globe;
+                                    const colorClass = type === 'google_maps' ? 'text-emerald-500 bg-emerald-500/10' : type === 'linkedin' ? 'text-blue-500 bg-blue-500/10' : 'text-primary bg-primary/10';
+
+                                    return (
+                                        <a 
+                                            key={key} 
+                                            href={val} 
+                                            target="_blank" 
+                                            rel="noreferrer"
+                                            className="p-4 rounded-2xl bg-card/40 border border-border/40 hover:border-primary/40 transition-all group flex items-center gap-3"
+                                        >
+                                            <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${colorClass}`}>
+                                                <Icon className="h-5 w-5" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-[9px] font-black uppercase opacity-40 truncate">{key.replace(/_/g, ' ')}</p>
+                                                <p className="text-[11px] font-bold text-foreground truncate">{val}</p>
+                                            </div>
+                                        </a>
+                                    );
+                                })}
+
+                                {lead?.metadata?.businessPersona && (
+                                    <div className="p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 col-span-full">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <Badge className="bg-indigo-500 text-white border-0 text-[8px] font-black">AI PERSONA</Badge>
+                                        </div>
+                                        <p className="text-sm font-bold leading-snug">{lead.metadata.businessPersona}</p>
+                                        {lead.metadata.optimalContactTime && (
+                                            <div className="mt-3 flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-indigo-400">
+                                                <span className="flex items-center gap-1.5"><Clock className="h-3 w-3" /> Peak: {lead.metadata.optimalContactTime.start}:00 - {lead.metadata.optimalContactTime.end}:00</span>
+                                                <span className="flex items-center gap-1.5"><Activity className="h-3 w-3" /> Confidence: High</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
 

@@ -34,7 +34,10 @@ class GooglePubSubService {
       || (this.topicName ? `${this.topicName}-sub` : null);
 
     if (!this.topicName) {
-      console.warn('[PubSub] GOOGLE_PUB_SUB_TOPIC not set — real-time Gmail push disabled.');
+      if (!(global as any).__pubsub_warned) {
+        console.warn('[PubSub] GOOGLE_PUB_SUB_TOPIC not set — real-time Gmail push disabled.');
+        (global as any).__pubsub_warned = true;
+      }
       return;
     }
 

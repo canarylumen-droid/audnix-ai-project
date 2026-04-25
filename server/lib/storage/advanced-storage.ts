@@ -50,7 +50,10 @@ class AdvancedStorageService {
       });
       console.log(`[AdvancedStorage] ☁️  S3 ready (bucket: ${bucket}${endpoint ? ', custom endpoint' : ''})`);
     } else {
-      console.warn('[AdvancedStorage] S3 not configured — using Redis/local fallback.');
+      if (!(global as any).__s3_warned) {
+        console.warn('[AdvancedStorage] S3 not configured — using Redis/local fallback.');
+        (global as any).__s3_warned = true;
+      }
     }
   }
 
