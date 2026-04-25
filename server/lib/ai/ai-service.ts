@@ -54,11 +54,20 @@ function updateProviderHealth(provider: 'openai' | 'genai' | 'zai', isSuccess: b
     // Phase 24: Adaptive Exponential Backoff
     let delay = Math.min(COOLDOWN_BASE_MS * Math.pow(2, status.consecutiveErrors - 1), MAX_COOLDOWN_MS);
     
-    // Honor Retry-After if provided
-    const retryAfter = error?.headers?.['retry-after'];
-    if (isRateLimit && retryAfter) {
-      const waitSec = parseInt(retryAfter, 10);
+    // Honor Retry-After if provided in headers
+    const retryAfterHeader = error?.headers?.['retry-after'];
+    if (isRateLimit && retryAfterHeader) {
+      const waitSec = parseInt(retryAfterHeader, 10);
       if (!isNaN(waitSec)) delay = waitSec * 1000;
+    }
+
+    // Phase 24.1: Extract GenAI/OpenAI body-level retry info
+    if (isRateLimit && error?.response?.data?.error?.details) {
+      const retryInfo = error.response.data.error.details.find((d: any) => d['@type']?.includes('RetryInfo'));
+      if (retryInfo?.retryDelay) {
+        const waitSec = parseInt(retryInfo.retryDelay.replace('s', ''), 10);
+        if (!isNaN(waitSec)) delay = Math.max(delay, waitSec * 1000);
+      }
     }
 
     status.cooldownUntil = Date.now() + delay;
