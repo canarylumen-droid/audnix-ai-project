@@ -617,14 +617,21 @@ export class FollowUpWorker {
 
       // Update job with error
       if (db) {
+        // If email is not connected, mark as failed immediately to prevent infinite retry loops
+        const shouldFailImmediately = errorMessage.includes('Email not connected') || errorMessage.includes('credentials missing');
+        
         await db
           .update(followUpQueue)
           .set({
-            status: job.retryCount >= 3 ? 'failed' : 'pending',
+            status: (job.retryCount >= 3 || shouldFailImmediately) ? 'failed' : 'pending',
             errorMessage: errorMessage,
-            scheduledAt: new Date(Date.now() + 5 * 60 * 1000)
+            scheduledAt: shouldFailImmediately ? null : new Date(Date.now() + 5 * 60 * 1000)
           })
           .where(eq(followUpQueue.id, job.id));
+          
+        if (shouldFailImmediately) {
+          console.warn(`🛑 [FOLLOW_UP] Marking job ${job.id} as FAILED because email is not connected for user ${job.userId}.`);
+        }
       }
     }
   }

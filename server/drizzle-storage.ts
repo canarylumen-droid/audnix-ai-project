@@ -1306,6 +1306,7 @@ export class DrizzleStorage implements IStorage {
     // Phase 12: Ensure "Full Deletion" of settings for email providers to prevent ghosting
     if (['custom_email', 'gmail', 'outlook'].includes(provider)) {
       try {
+        // Purge legacy user_settings SMTP fields
         await db.execute(sql`
           UPDATE user_settings 
           SET smtp_host = NULL, 
@@ -1318,9 +1319,13 @@ export class DrizzleStorage implements IStorage {
               email_provider = 'sendgrid'
           WHERE user_id = ${userId}
         `);
-        console.log(`🧹 [Storage] Successfully purged user_settings for user ${userId} following bulk provider disconnect.`);
+        
+        // Also purge from the smtp_settings table to prevent UI ghosting in Settings
+        await db.delete(smtpSettings).where(eq(smtpSettings.userId, userId));
+        
+        console.log(`🧹 [Storage] Successfully purged all SMTP settings for user ${userId} following bulk provider disconnect.`);
       } catch (e) {
-        console.warn(`[Storage] Failed to clear user_settings during bulk disconnect:`, e);
+        console.warn(`[Storage] Failed to clear legacy settings during bulk disconnect:`, e);
       }
     }
   }
@@ -1347,6 +1352,7 @@ export class DrizzleStorage implements IStorage {
     // Phase 12: Ensure "Full Deletion" of settings for email providers to prevent ghosting
     if (integration && ['custom_email', 'gmail', 'outlook'].includes(integration.provider)) {
       try {
+        // Purge legacy user_settings SMTP fields
         await db.execute(sql`
           UPDATE user_settings 
           SET smtp_host = NULL, 
@@ -1359,9 +1365,13 @@ export class DrizzleStorage implements IStorage {
               email_provider = 'sendgrid'
           WHERE user_id = ${integration.userId}
         `);
-        console.log(`🧹 [Storage] Successfully purged user_settings for user ${integration.userId} following integration removal.`);
+        
+        // Also purge from the smtp_settings table to prevent UI ghosting in Settings
+        await db.delete(smtpSettings).where(eq(smtpSettings.userId, integration.userId));
+        
+        console.log(`🧹 [Storage] Successfully purged all SMTP settings for user ${integration.userId} following integration removal.`);
       } catch (e) {
-        console.warn(`[Storage] Failed to clear user_settings (table might not exist or already cleared):`, e);
+        console.warn(`[Storage] Failed to clear legacy settings (tables might not exist or already cleared):`, e);
       }
     }
 
