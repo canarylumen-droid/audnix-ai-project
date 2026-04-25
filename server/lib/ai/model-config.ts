@@ -11,7 +11,7 @@ export const OPENAI_INTELLIGENCE_MODEL = "gpt-4o";     // Flagship for complex s
 export const OPENAI_FAST_MODEL = "gpt-4o-mini";        // Fast/Cheap for simple classification/tasks
 
 // Z-AI (GLM) Models
-export const Z_AI_STABLE_MODEL = "glm-4-plus";        // Latest GLM-4 Plus for reasoning
+export const Z_AI_STABLE_MODEL = "glm-4";            // Fallback to standard GLM-4 for stability
 export const Z_AI_LATEST_MODEL = "glm-4-0520";        // Stable GLM-4-0520 (User's 4.6 equivalent)
 export const Z_AI_FAST_MODEL = "glm-4-flash";         // Ultra-fast GLM-4-Flash
 

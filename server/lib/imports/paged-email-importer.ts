@@ -99,14 +99,7 @@ async function processEmailForLead(
 
 
     if (!lead) {
-      if (direction === 'inbound') {
-        // [STRICT FILTER] Skip importing inbound emails from unknown senders
-        // This keeps the Audnix Inbox focused ONLY on recognition leads
-        results.skipped++;
-        return;
-      }
-
-      // Create lead for outbound intentional outreach
+      // Create lead for both inbound discovery and outbound intentional outreach
       lead = await storage.createLead({
         userId,
         name: extractNameFromEmail(emailAddress),
@@ -117,9 +110,10 @@ async function processEmailForLead(
         metadata: {
           firstEmailDate: email.date,
           imported: true,
-          discovery_source: 'outbound_outreach'
+          discovery_source: direction === 'inbound' ? 'inbound_import' : 'outbound_outreach'
         }
       });
+      console.log(`[DEBUG] Created new lead for ${direction} email: ${emailAddress}`);
     }
 
     // Check if message already exists to avoid duplicates
@@ -422,6 +416,9 @@ async function processEmailForLead(
                 campaignId: entry.campaignId
               });
 
+              // Notify frontend with full lead object to trigger toasts
+              wsSync.notifyLeadsUpdated(userId, { event: 'INSERT', lead: lead });
+
               await storage.createAuditLog({
                 userId,
                 leadId: lead.id,
@@ -565,10 +562,10 @@ async function processEmailForLead(
  */
 function isTransactionalEmail(email: any): boolean {
   const transactionalKeywords = [
-    // Financial
-    'receipt', 'invoice', 'confirmation', 'order', 'billing', 'payment',
+    // Financial (Stricter)
+    'receipt', 'invoice', 'billing', 'payment',
     // Security & OTP
-    'password', 'reset', 'verify', 'verification', 'otp', 'code', 'confirm',
+    'password', 'reset', 'verify', 'verification', 'otp', 'code',
     'two-factor', '2fa', 'authenticator', 'security alert', 'unusual activity',
     // System alerts
     'alert', 'notification', 'update', 'change', 'validate', 'expire',
@@ -577,7 +574,7 @@ function isTransactionalEmail(email: any): boolean {
     'no-reply', 'noreply', 'do-not-reply', 'bounced', 'undeliverable',
     'automatic', 'automated', 'no response', 'do not reply',
     // Service messages
-    'welcome', 'signup', 'registered', 'activation', 'account created'
+    'signup', 'registered', 'activation', 'account created'
   ];
 
   const subject = (email.subject || '').toLowerCase();

@@ -488,27 +488,32 @@ class ImapIdleManager {
                         integrationId,
                         userId: integration.userId
                     };
-                    workerHealthMonitor.recordError('IMAP IDLE', err.message || 'Unknown IMAP error');
+                    workerHealthMonitor.recordError('IMAP IDLE', err.message);
 
                     const fatalErrors = ['AUTHENTICATIONFAILED', 'Not authenticated', 'Invalid credentials', 'Login failed', 'BAD', 'NO'];
                     const errorStr = (err.code || err.message || '').toLowerCase();
-                    const isFatal = fatalErrors.some(code => errorStr.includes(code.toLowerCase()));
+                    const isAuthError = fatalErrors.some(code => errorStr.includes(code.toLowerCase()));
+                    const isTimeout = errorStr.includes('timed out') || errorStr.includes('etimedout');
 
                     const integrationLatest = await storage.getIntegrationById(integrationId);
                     if (integrationLatest) {
-                      // Phase 23: Production Safety. Link to Health Service to manage failure counts and "failed" state.
-                      await mailboxHealthService.handleMailboxFailure(integrationLatest, err.message || 'IMAP Connection Error');
-                      
-                      // Phase 26: 3-Strikes-and-Out. If the health service marked it as failed (3 failures), kill it now.
-                      const updated = await storage.getIntegrationById(integrationId);
-                      if (updated && updated.healthStatus === 'failed') {
-                        console.warn(`🛑 Strike 3 for integration ${integrationId}. Killing connection permanently.`);
-                        this.forceDisconnect(integrationId, integration.userId);
-                        return;
-                      }
+                        // Phase 23: Production Safety. Link to Health Service to manage failure counts and "failed" state.
+                        await mailboxHealthService.handleMailboxFailure(integrationLatest, err.message || 'IMAP Connection Error');
+
+                        // Verify if the health service actually marked it as failed (Strike 3)
+                        const updated = await storage.getIntegrationById(integrationId);
+                        if (updated && updated.healthStatus === 'failed' && isAuthError) {
+                            console.warn(`🛑 Strike 3 for integration ${integrationId} (Auth Error). Killing connection permanently.`);
+                            this.forceDisconnect(integrationId, integration.userId);
+                            return;
+                        }
+
+                        if (isTimeout) {
+                            console.log(`⏳ Transient timeout for ${integrationId}. standardized retry will follow.`);
+                        }
                     }
 
-                    if (isFatal) {
+                    if (isAuthError) {
                         console.warn(`🛑 Authentication issue for integration ${integrationId}. Retrying with long backoff (10m)...`);
                         try { imap.destroy(); } catch (e) {}
                         this.cleanupIntegration(integrationId);

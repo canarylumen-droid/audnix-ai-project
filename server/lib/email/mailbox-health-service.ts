@@ -394,38 +394,43 @@ class MailboxHealthService {
       return; // Do not increment failureCount for transient rate limits
     }
 
-    // --- Fast-pause ENETUNREACH: always an IPv6/network infrastructure issue ---
-    // Applying a 2-hour silence pause immediately to stop notification storms.
-    const isNetworkUnreachable = lowerError.includes('enetunreach');
+    // --- Fast-pause ENETUNREACH/TIMEOUT: always an infrastructure or provider issue ---
+    // Applying a silent pause immediately to stop notification storms.
+    const isNetworkUnreachable = lowerError.includes('enetunreach') || lowerError.includes('timed out') || lowerError.includes('etimedout');
     if (isNetworkUnreachable) {
       const alreadyPaused = integration.mailboxPauseUntil && new Date(integration.mailboxPauseUntil) > new Date();
       if (alreadyPaused) return; // Already silenced — do nothing
 
-      console.warn(`[MailboxHealth] 🌐 ENETUNREACH for ${integration.id}. Applying 2h silent pause.`);
-      const pauseUntil = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours
+      const isTimeout = lowerError.includes('timed out') || lowerError.includes('etimedout');
+      const pauseDuration = isTimeout ? 5 * 60 * 1000 : 2 * 60 * 60 * 1000; // 5m for timeout, 2h for unreachable
+      
+      console.warn(`[MailboxHealth] 🌐 ${isTimeout ? 'TIMEOUT' : 'ENETUNREACH'} for ${integration.id}. Applying ${isTimeout ? '5m' : '2h'} silent pause.`);
+      const pauseUntil = new Date(Date.now() + pauseDuration);
 
       await db.update(integrations)
         .set({
           mailboxPauseUntil: pauseUntil,
-          lastHealthError: `Network unreachable (IPv6 route missing): ${errorMessage}`,
+          lastHealthError: isTimeout ? `Connection timed out: ${errorMessage}` : `Network unreachable (IPv6 route missing): ${errorMessage}`,
           updatedAt: new Date(),
         })
         .where(eq(integrations.id, integration.id));
 
-      // Single notification only
-      await storage.createNotification({
-        userId: integration.userId,
-        type: 'mailbox_warning',
-        title: '🌐 Mailbox Network Issue',
-        message: `Your mailbox could not connect: network unreachable. It has been paused for 2 hours while we retry. This is typically a temporary DNS/IPv6 issue.`,
-        metadata: {
-          integrationId: integration.id,
-          provider: integration.provider,
-          error: errorMessage,
-          pauseUntil: pauseUntil.toISOString(),
-          activityType: 'mailbox_network_pause'
-        }
-      });
+      // Notification for network issues
+      if (!isTimeout) {
+          await storage.createNotification({
+            userId: integration.userId,
+            type: 'mailbox_warning',
+            title: '🌐 Mailbox Network Issue',
+            message: `Your mailbox could not connect: network unreachable. It has been paused for 2 hours while we retry. This is typically a temporary DNS/IPv6 issue.`,
+            metadata: {
+              integrationId: integration.id,
+              provider: integration.provider,
+              error: errorMessage,
+              pauseUntil: pauseUntil.toISOString(),
+              activityType: 'mailbox_network_pause'
+            }
+          });
+      }
       return;
     }
 
