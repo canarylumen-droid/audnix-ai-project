@@ -661,16 +661,16 @@ class MailboxHealthService {
 
           const bounceResult = await db.execute(sql`
             SELECT COUNT(*) as bounce_count FROM bounce_tracker
-            WHERE user_id = ${integration.userId}
+            WHERE integration_id = ${integration.id}
             AND created_at >= ${oneDayAgo.toISOString()}::timestamp
           `);
           const bounceCount = Number(bounceResult.rows[0]?.bounce_count || 0);
 
-          // Count total sends in the last 24h
+          // Count total sends in the last 24h via Audit Trail (Source of Truth for activity)
           const sentResult = await db.execute(sql`
-            SELECT COUNT(*) as sent_count FROM messages
-            WHERE user_id = ${integration.userId}
-            AND direction = 'outbound'
+            SELECT COUNT(*) as sent_count FROM audit_trail
+            WHERE integration_id = ${integration.id}
+            AND action IN ('ai_message_sent', 'manual_email_sent')
             AND created_at >= ${oneDayAgo.toISOString()}::timestamp
           `);
           const sentCount = Number(sentResult.rows[0]?.sent_count || 0);
@@ -684,7 +684,7 @@ class MailboxHealthService {
           const finalScore = await calculateReputationScore(integration.id);
           const bounceRate = sentCount > 0 ? bounceCount / sentCount : 0;
 
-          if (finalScore < 45) {
+          if (finalScore < 45 || (sentCount >= 5 && bounceRate >= this.SPAM_BOUNCE_CRITICAL)) {
             // Unpause handled by reputation-monitor itself or we can force it here
             const pauseUntil = new Date();
             pauseUntil.setHours(pauseUntil.getHours() + 24);

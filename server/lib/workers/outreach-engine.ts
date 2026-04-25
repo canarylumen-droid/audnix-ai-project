@@ -42,14 +42,24 @@ export class OutreachEngine {
   /**
    * Start the outreach engine
    */
-  start(): void {
+  async start(): Promise<void> {
     if (this.isRunning) return;
     this.isRunning = true;
-    console.log('🚀 Outreach Engine started (multi-mode)');
+    console.log('🚀 Outreach Engine started (BullMQ Master Mode)');
 
-    // Direct interval for traditional hosting
-    this.interval = setInterval(() => this.tick(), this.TICK_INTERVAL_MS);
-    this.tick(); // Run immediately
+    // Instead of local setInterval, we ensure a recurring job exists in BullMQ
+    const { outreachQueue } = await import('../queues/outreach-queue.js');
+    
+    // Add a repeatable job that runs every 1 minute
+    await outreachQueue.add('engine-tick', { type: 'tick' } as any, {
+      repeat: {
+        every: this.TICK_INTERVAL_MS,
+      },
+      jobId: 'outreach-engine-tick', // Constant ID to prevent duplicates
+    });
+
+    // Also run once immediately on startup
+    this.tick();
   }
 
   /**
@@ -115,7 +125,7 @@ export class OutreachEngine {
         
         if (outreachQueue) {
           // Enqueue ONLY autonomous tasks for the user.
-          await outreachQueue.add(`outreach-autonomous-${integration.userId}`, { 
+          await outreachQueue.add(`outreach-autonomous-${integration.userId}` as any, { 
             userId: integration.userId, 
             integrationId: integration.id,
             type: 'autonomous',
@@ -350,8 +360,10 @@ export class OutreachEngine {
       return false;
     }
 
+    // Enterprise Scaling: Calculate batch size based on available mailboxes
+    const activeMailboxes = await this.getAvailableMailboxes(userId);
+    const MAX_SENDS_PER_TICK = Math.max(10, activeMailboxes.length * 5); // 5 sends per mailbox per minute tick
     let sentInThisTick = 0;
-    const MAX_SENDS_PER_TICK = 10;
 
     for (const row of nextLeadsResult) {
       if (sentInThisTick >= MAX_SENDS_PER_TICK) break;

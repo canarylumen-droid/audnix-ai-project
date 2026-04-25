@@ -567,7 +567,7 @@ export const followUpQueue = pgTable("follow_up_queue", {
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
   channel: text("channel", { enum: ["email", "linkedin", "sms", "voice", "whatsapp", "instagram"] }).notNull(),
-  scheduledAt: timestamp("scheduled_at").notNull(),
+  scheduledAt: timestamp("scheduled_at"),
   status: text("status", { enum: ["pending", "processing", "completed", "failed"] }).notNull().default("pending"),
   processedAt: timestamp("processed_at"),
   context: jsonb("context").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),

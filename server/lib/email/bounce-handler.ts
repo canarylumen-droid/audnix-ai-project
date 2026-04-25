@@ -81,6 +81,12 @@ class BounceHandler {
         await calculateReputationScore(integrationId).catch(err => 
           console.error('[BounceHandler] Failed to update reputation score:', err)
         );
+
+        // --- NEW: Immediate Spam Risk Check ---
+        // If bounce rate spikes, pause the mailbox immediately instead of waiting for the 2m health loop.
+        await mailboxHealthService.detectSpamRisk().catch(err =>
+          console.error('[BounceHandler] Failed to run real-time spam risk check:', err)
+        );
       }
 
       // Stop any active campaign for this lead

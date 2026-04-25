@@ -1,35 +1,59 @@
-import { campaignQueueManager, campaignQueue, hasRedis } from './campaign-queue.js';
-import { storage } from '../../storage.js';
+import { createQueue, createWorker } from './queue-manager.js';
+
+export interface OutreachJobData {
+  userId: string;
+  campaignId?: string;
+  leadId?: string;
+  mailboxId?: string;
+  integrationId?: string;
+  priority?: number;
+  type: 'initial' | 'followup' | 'autonomous_reply' | 'autonomous';
+  isAutonomous?: boolean;
+}
+
+// The main queue for all outreach activities
+export const outreachQueue = createQueue<OutreachJobData>('outreach-engine');
 
 /**
- * Re-export the campaign queue as outreachQueue for backward compatibility.
+ * Helper to add a high-priority outreach job
  */
-export const outreachQueue = campaignQueue;
-
-/**
- * Bridge function to start the outreach worker. 
- * Since campaignWorker is auto-started in campaign-queue.ts, this is a no-op 
- * but kept for compatibility with server/index.ts.
- */
-export function startOutreachWorker() {
-  console.log('[OutreachBridge] Outreach Worker bridge active (delegated to CampaignWorker)');
+export async function enqueueHighPriorityOutreach(data: OutreachJobData) {
+  return await outreachQueue.add('high-priority-send', data, {
+    priority: 1, // Lower number = higher priority in BullMQ
+    jobId: `high-prio-${data.userId}-${data.leadId || 'general'}-${Date.now()}`
+  });
 }
 
 /**
- * Bridge function to dispatch an outreach campaign using the new 
- * per-mailbox BullMQ system. Maintains compatibility with existing routes.
+ * Helper to add a standard scheduled outreach job
+ */
+export async function enqueueStandardOutreach(data: OutreachJobData, delayMs: number = 0) {
+  return await outreachQueue.add('standard-send', data, {
+    delay: delayMs,
+    priority: 10,
+    jobId: `std-${data.userId}-${data.leadId || 'general'}-${Date.now()}`
+  });
+}
+
+/**
+ * Start the global outreach engine worker
+ */
+export async function startOutreachWorker() {
+  const { outreachEngine } = await import('../workers/outreach-engine.js');
+  return outreachEngine.start();
+}
+
+/**
+ * Dispatch an entire campaign to the background queue
  */
 export async function dispatchOutreachCampaign(userId: string, campaignId: string) {
-  const campaign = await storage.getOutreachCampaign(campaignId);
-  if (!campaign) {
-    throw new Error(`Campaign ${campaignId} not found`);
-  }
-
-  // startCampaign will register repeatable jobs for all mailboxes assigned to this campaign
-  await campaignQueueManager.startCampaign(campaign);
+  const job = await outreachQueue.add('campaign-dispatch', {
+    userId,
+    campaignId,
+    type: 'initial'
+  }, {
+    jobId: `campaign-${campaignId}-${Date.now()}`
+  });
   
-  return {
-    jobId: `campaign-root:${campaignId}`,
-    queued: hasRedis
-  };
+  return { jobId: job.id, queued: true };
 }

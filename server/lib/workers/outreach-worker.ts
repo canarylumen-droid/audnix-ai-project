@@ -128,36 +128,44 @@ export class AutonomousOutreachWorker {
   }
 
   /**
-   * Start the autonomous outreach worker
+   * Start the autonomous outreach worker (BullMQ Mode)
    */
-  start(): void {
+  async start(): Promise<void> {
     if (this.isRunning) {
       console.log('[AutoOutreach] Worker is already running');
       return;
     }
 
     this.isRunning = true;
-    console.log('✅ Autonomous outreach worker started (5s polling interval)');
+    console.log('✅ Autonomous outreach worker started (BullMQ Mode)');
 
-    // Poll every 10 seconds for strategic overhead
-    this.pollingInterval = setInterval(async () => {
-      await this.checkAndProcessUsers();
-    }, 10000);
+    const { createWorker } = await import('../queues/queue-manager.js');
 
-    // Process immediately on start
+    // Register a worker to process outreach tasks
+    createWorker('outreach-engine', async (job) => {
+      if (job.name === 'engine-tick') {
+        console.log('[BullMQ] Processing engine-tick...');
+        await this.checkAndProcessUsers();
+      } else if (job.name.startsWith('outreach-autonomous-')) {
+        const { userId, integrationId, isAutonomous } = job.data;
+        console.log(`[BullMQ] Processing autonomous outreach for user ${userId}...`);
+        await this.processUserOutreach(userId, integrationId, isAutonomous);
+      }
+    }, {
+      concurrency: 5, // Allow processing 5 users/tasks in parallel per node
+    });
+
+    // Initial check
     this.checkAndProcessUsers();
   }
 
-  /**
-   * Stop the worker
-   */
-  stop(): void {
-    if (this.pollingInterval) {
-      clearInterval(this.pollingInterval);
-      this.pollingInterval = null;
+  // Placeholder to avoid breaking other parts while refactoring
+  private async processUserOutreach(userId: string, integrationId: string, isAutonomous: boolean) {
+    // This will call the logic in outreach-engine.ts or processLeadsWithPriority
+    const leads = await this.getPrioritizedLeads(userId);
+    if (leads.length > 0) {
+      await this.processLeadsWithPriority(userId, leads);
     }
-    this.isRunning = false;
-    console.log('[AutoOutreach] Worker stopped');
   }
 
   /**

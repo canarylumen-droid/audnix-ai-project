@@ -883,7 +883,7 @@ export class MemStorage implements IStorage {
       userId: data.userId,
       leadId: data.leadId,
       channel: data.channel,
-      scheduledAt: data.scheduledAt instanceof Date ? data.scheduledAt : new Date(data.scheduledAt),
+      scheduledAt: data.scheduledAt ? (data.scheduledAt instanceof Date ? data.scheduledAt : new Date(data.scheduledAt)) : null,
       status: data.status || "pending",
       processedAt: null,
       context: data.context || {},
@@ -912,7 +912,7 @@ export class MemStorage implements IStorage {
 
   async getDueFollowUps(): Promise<FollowUpQueue[]> {
     const now = new Date();
-    return Array.from(this.followUps.values()).filter(f => f.status === 'pending' && f.scheduledAt <= now);
+    return Array.from(this.followUps.values()).filter(f => f.status === 'pending' && f.scheduledAt && f.scheduledAt <= now);
   }
 
   async getLearningPatterns(userId: string): Promise<AiLearningPattern[]> {

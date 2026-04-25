@@ -138,28 +138,7 @@ export class DrizzleStorage implements IStorage {
       return result[0];
     } catch (error) {
       console.error("Error in getUserByEmail:", { email, error });
-      // Fallback: If 'config' or other columns are missing, we'll try to get basic info
-      try {
-        const rawResult = await db.execute(sql`SELECT id, email, password, role, username FROM users WHERE email = ${email} LIMIT 1`);
-        if (rawResult.rows && rawResult.rows.length > 0) {
-          const row = rawResult.rows[0];
-          const plan = row.email === 'admin@audnixai.com' || row.email === 'team.replyflow@gmail.com' ? 'enterprise' : 'starter';
-          return {
-            id: row.id,
-            email: row.email,
-            password: row.password,
-            role: row.role,
-            username: row.username,
-            config: {},
-            metadata: {},
-            plan: plan,
-            subscriptionTier: plan
-          } as any;
-        }
-      } catch (fallbackError) {
-        console.error("Fallback getUserByEmail also failed:", fallbackError);
-      }
-      throw error;
+      return undefined;
     }
   }
 
@@ -2482,38 +2461,53 @@ export class DrizzleStorage implements IStorage {
     const opened = Number(msgCounts?.opened || 0);
     const averageResponseTime = await this.calculateAverageResponseTime(userId, integrationId);
 
-    // 2. Time Series
-    // We'll calculate this in JS loop but using targeted SQL counts to avoid loading all objects
+    // 2. Optimized Time Series (Single Query per Table)
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - (days - 1));
+    startDate.setHours(0, 0, 0, 0);
+
+    const messageSeries = await db.select({
+      day: sql<string>`date_trunc('day', ${messages.createdAt})`,
+      sent_email: sql<number>`count(*) filter (where direction = 'outbound' and provider = 'email')`,
+      sent_instagram: sql<number>`count(*) filter (where direction = 'outbound' and provider = 'instagram')`,
+      opened: sql<number>`count(*) filter (where direction = 'outbound' and opened_at is not null)`,
+    })
+      .from(messages)
+      .where(and(msgWhere, gte(messages.createdAt, startDate)))
+      .groupBy(sql`date_trunc('day', ${messages.createdAt})`)
+      .orderBy(sql`date_trunc('day', ${messages.createdAt})`);
+
+    const leadSeries = await db.select({
+      day: sql<string>`date_trunc('day', ${leads.updatedAt})`,
+      replied_email: sql<number>`count(*) filter (where status = 'replied' and channel = 'email')`,
+      replied_instagram: sql<number>`count(*) filter (where status = 'replied' and channel = 'instagram')`,
+      booked: sql<number>`count(*) filter (where status in ('converted', 'booked'))`
+    })
+      .from(leads)
+      .where(and(leadWhere, gte(leads.updatedAt, startDate)))
+      .groupBy(sql`date_trunc('day', ${leads.updatedAt})`)
+      .orderBy(sql`date_trunc('day', ${leads.updatedAt})`);
+
+    // Merge Series into final timeSeries array
     const timeSeries = [];
     for (let i = days - 1; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      const dayStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      const dayStart = new Date(date);
-      dayStart.setHours(0, 0, 0, 0);
-      const dayEnd = new Date(date);
-      dayEnd.setHours(23, 59, 59, 999);
-
-      const [dayMsg] = await db.select({
-        sent_email: sql<number>`count(*) filter (where direction = 'outbound' and provider = 'email')`,
-        sent_instagram: sql<number>`count(*) filter (where direction = 'outbound' and provider = 'instagram')`,
-        opened: sql<number>`count(*) filter (where direction = 'outbound' and opened_at is not null)`,
-      }).from(messages).where(and(msgWhere, gte(messages.createdAt, dayStart), lte(messages.createdAt, dayEnd)));
-
-      const [dayLeads] = await db.select({
-        replied_email: sql<number>`count(*) filter (where status = 'replied' and channel = 'email')`,
-        replied_instagram: sql<number>`count(*) filter (where status = 'replied' and channel = 'instagram')`,
-        booked: sql<number>`count(*) filter (where status in ('converted', 'booked'))`
-      }).from(leads).where(and(leadWhere, gte(leads.updatedAt, dayStart), lte(leads.updatedAt, dayEnd)));
+      const targetDate = new Date();
+      targetDate.setDate(targetDate.getDate() - i);
+      targetDate.setHours(0, 0, 0, 0);
+      
+      const dayStr = targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      
+      const msgData = messageSeries.find(m => new Date(m.day).getTime() === targetDate.getTime());
+      const leadData = leadSeries.find(l => new Date(l.day).getTime() === targetDate.getTime());
 
       timeSeries.push({
         name: dayStr,
-        sent_email: Number(dayMsg?.sent_email || 0),
-        sent_instagram: Number(dayMsg?.sent_instagram || 0),
-        opened: Number(dayMsg?.opened || 0),
-        replied_email: Number(dayLeads?.replied_email || 0),
-        replied_instagram: Number(dayLeads?.replied_instagram || 0),
-        booked: Number(dayLeads?.booked || 0)
+        sent_email: Number(msgData?.sent_email || 0),
+        sent_instagram: Number(msgData?.sent_instagram || 0),
+        opened: Number(msgData?.opened || 0),
+        replied_email: Number(leadData?.replied_email || 0),
+        replied_instagram: Number(leadData?.replied_instagram || 0),
+        booked: Number(leadData?.booked || 0)
       });
     }
 

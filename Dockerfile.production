@@ -1,0 +1,48 @@
+# --- Stage 1: Frontend Builder ---
+FROM node:20-alpine AS frontend-builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build:client
+
+# --- Stage 2: Backend Builder ---
+FROM node:20-alpine AS backend-builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+# Compile TypeScript to JavaScript
+RUN npm run build:server
+
+# --- Stage 3: Production Runner ---
+FROM node:20-alpine
+WORKDIR /app
+
+# Only copy production dependencies
+COPY package*.json ./
+RUN npm install --omit=dev
+
+# Copy compiled assets from previous stages
+COPY --from=frontend-builder /app/dist/public ./dist/public
+COPY --from=backend-builder /app/dist ./dist
+
+# Copy migrations and schema for DB patching
+COPY --from=backend-builder /app/migrations ./migrations
+COPY --from=backend-builder /app/shared ./shared
+
+# Environment variables
+ENV NODE_ENV=production
+ENV PORT=5000
+ENV NODE_OPTIONS="--dns-result-order=ipv4first"
+
+# Expose the API port
+EXPOSE 5000
+
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD wget --quiet --tries=1 --spider http://localhost:5000/api/health/status || exit 1
+
+# Start script handles DB migrations/patches before launching
+# Support APP_ROLE for scaling (api vs worker)
+CMD ["sh", "-c", "npm run db:patch-target-url && if [ \"$APP_ROLE\" = \"worker\" ]; then node dist/server/lib/workers/worker-entry.js; else node dist/server/index.js; fi"]

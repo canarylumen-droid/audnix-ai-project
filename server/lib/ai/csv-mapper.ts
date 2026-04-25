@@ -16,6 +16,8 @@ export const LEADS_SCHEMA = {
     bio: { description: "Brief background or specific info about the lead", required: false },
     channel: { description: "Communication channel (instagram/email)", required: false },
     reply_email: { description: "Alternative email address for replies", required: false },
+    niche: { description: "Business niche or industry category (e.g. Plumbing, SaaS)", required: false },
+    city: { description: "City or location for timezone and local intelligence", required: false },
 };
 
 export type LeadColumnMapping = {
@@ -30,6 +32,8 @@ export type LeadColumnMapping = {
     industry?: string;
     website?: string;
     notes?: string;
+    niche?: string;
+    city?: string;
 };
 
 export interface MappingResult {
@@ -184,10 +188,16 @@ function fallbackMapping(headers: string[]): MappingResult {
             /^channel$/i, /^source$/i, /^platform$/i, /^medium$/i, /^origin$/i
         ],
         industry: [
-            /^industry$/i, /^niche$/i, /^sector$/i, /^category$/i, /^market$/i
+            /^industry$/i, /^niche$/i, /^sector$/i, /^category$/i, /^market$/i, /^business[_\s-]?type$/i
+        ],
+        niche: [
+            /^niche$/i, /^industry$/i, /^sector$/i, /^category$/i, /^market$/i, /^business[_\s-]?type$/i, /^specialty$/i
+        ],
+        city: [
+            /^city$/i, /^town$/i, /^location$/i, /^municipality$/i, /^area$/i, /^suburb$/i, /^geo$/i
         ],
         website: [
-            /^website$/i, /^url$/i, /^link$/i, /^site$/i, /^domain$/i, /^web[_\s-]?addr/i
+            /^website$/i, /^url$/i, /^link$/i, /^site$/i, /^domain$/i, /^web[_\s-]?addr/i, /^home[_\s-]?page$/i
         ],
         notes: [
             /^notes$/i, /^description$/i, /^info$/i, /^comments$/i, /^about$/i,
@@ -234,7 +244,7 @@ function fallbackMapping(headers: string[]): MappingResult {
 export function extractLeadFromRow(
     row: Record<string, string>,
     mapping: LeadColumnMapping
-): { name?: string; email?: string; phone?: string; company?: string; channel?: string; role?: string; bio?: string; replyEmail?: string } {
+): { name?: string; email?: string; phone?: string; company?: string; channel?: string; role?: string; bio?: string; replyEmail?: string; niche?: string; city?: string } {
     let email = mapping.email ? row[mapping.email]?.trim() : undefined;
     
     // Fallback: If no email was mapped, search all columns for an email pattern
@@ -260,6 +270,8 @@ export function extractLeadFromRow(
         bio: mapping.bio ? row[mapping.bio]?.trim() : (mapping.notes ? row[mapping.notes]?.trim() : undefined),
         channel: mapping.channel ? row[mapping.channel]?.trim() : undefined,
         replyEmail: mapping.reply_email ? row[mapping.reply_email]?.trim() : undefined,
+        niche: mapping.niche ? row[mapping.niche]?.trim() : undefined,
+        city: mapping.city ? row[mapping.city]?.trim() : undefined,
     };
 }
 
@@ -276,10 +288,24 @@ export function extractExtraFieldsAsMetadata(
 
     for (const [column, value] of Object.entries(row)) {
         if (!mappedColumns.has(column) && value?.trim()) {
+            const trimmedValue = value.trim();
             // Convert column name to snake_case for metadata key
             const key = column.toLowerCase().replace(/[\s-]+/g, '_').replace(/[^a-z0-9_]/g, '');
             if (key) {
-                metadata[key] = value.trim();
+                metadata[key] = trimmedValue;
+                
+                // Identify link types for the UI
+                if (trimmedValue.includes('google.com/maps') || trimmedValue.includes('goo.gl/maps')) {
+                    metadata[`${key}_type`] = 'google_maps';
+                } else if (trimmedValue.includes('linkedin.com/')) {
+                    metadata[`${key}_type`] = 'linkedin';
+                } else if (trimmedValue.includes('instagram.com/')) {
+                    metadata[`${key}_type`] = 'instagram';
+                } else if (trimmedValue.includes('twitter.com/') || trimmedValue.includes('x.com/')) {
+                    metadata[`${key}_type`] = 'twitter';
+                } else if (/^https?:\/\//i.test(trimmedValue)) {
+                    metadata[`${key}_type`] = 'website';
+                }
             }
         }
     }

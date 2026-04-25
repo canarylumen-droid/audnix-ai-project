@@ -1,42 +1,38 @@
 import { storage } from '../../storage.js';
 import { db } from '../../db.js';
-import { leads, leadSocialDetails } from '../../../shared/schema.js';
+import { leads, leadTimezoneProfiles } from '../../../shared/schema.js';
 import { eq, and, sql, isNull, or } from 'drizzle-orm';
 import { workerHealthMonitor } from '../monitoring/worker-health.js';
 import { quotaService } from '../monitoring/quota-service.js';
-import { generateReply } from '../ai/ai-service.js';
 import { leadScoringEngine } from '../ai/lead-scoring-engine.js';
+import pLimit from 'p-limit';
 
 /**
- * Lead Enrichment Worker (Phase 36)
- * 
- * Autonomously researches leads to find:
- * 1. Company size and industry.
- * 2. Recent news or initiatives.
- * 3. Priority topics for the AI outreach.
+ * Lead Enrichment Worker (Phase 3 - Production Hardened)
+ *
+ * Two-stage pipeline:
+ * 1. Live Google Search via `google-it` — pulls real company news, size signals, and recent activity
+ * 2. Gemini AI synthesis — processes raw search results into structured outreach intelligence
+ *
+ * Throughput: Processes up to 25 leads per cycle with 3-parallel concurrency cap.
  */
 export class LeadEnrichmentWorker {
   private isRunning: boolean = false;
   private isProcessing: boolean = false;
   private interval: NodeJS.Timeout | null = null;
-  private readonly CHECK_INTERVAL_MS = 15 * 60 * 1000; // Check every 15 minutes
+  private readonly CHECK_INTERVAL_MS = 10 * 60 * 1000; // Every 10 minutes
+  private readonly BATCH_SIZE = 25; // High-throughput batch for 100k leads
+  private readonly CONCURRENCY = 3; // Parallel enrichments without burning API quota
 
-  /**
-   * Start the enrichment worker
-   */
   start(): void {
     if (this.isRunning) return;
     this.isRunning = true;
-    console.log('🔍 Lead Enrichment Worker started');
-
+    console.log('🔍 Lead Enrichment Worker started (Production mode — Live Search + AI)');
     this.interval = setInterval(() => this.tick(), this.CHECK_INTERVAL_MS);
-    // Use setTimeout for initial tick to avoid blocking startup
-    setTimeout(() => this.tick(), 5000);
+    // Stagger initial tick so it doesn't contend with boot
+    setTimeout(() => this.tick(), 15000);
   }
 
-  /**
-   * Stop the worker
-   */
   stop(): void {
     if (this.interval) {
       clearInterval(this.interval);
@@ -46,117 +42,211 @@ export class LeadEnrichmentWorker {
     console.log('🛑 Lead Enrichment Worker stopped');
   }
 
-  /**
-   * Main scan iteration
-   */
   async tick(): Promise<void> {
     if (this.isProcessing) return;
-    
-    // PHASE 50: Emergency Brake Check
+
     const health = workerHealthMonitor.isSystemPaused();
     if (health.paused) {
       console.warn(`🛑 [LeadEnrichment] Skipping cycle - System in EMERGENCY BRAKE: ${health.reason}`);
       return;
     }
 
-    if (quotaService.isRestricted()) {
-      return;
-    }
+    if (quotaService.isRestricted()) return;
 
     this.isProcessing = true;
 
     try {
-      // Find leads that need enrichment (status 'new' and not yet enriched)
-      // Check metadata -> enriched flag
       const leadsToEnrich = await db
         .select()
         .from(leads)
         .where(
           and(
-            eq(leads.status, 'new'),
+            or(
+              eq(leads.status, 'new'),
+              eq(leads.status, 'open')
+            ),
             or(
               isNull(sql`leads.metadata->'enriched'`),
-              eq(sql`leads.metadata->>'enriched'`, 'false')
+              eq(sql`leads.metadata->>'enriched'`, 'false'),
+              eq(sql`leads.metadata->>'enrichment_failed'`, 'false')
             )
           )
         )
-        .limit(10); // Process in small batches to stay within rate limits
+        .limit(this.BATCH_SIZE);
 
       if (leadsToEnrich.length === 0) return;
 
-      console.log(`🔍 Enriching ${leadsToEnrich.length} new leads...`);
+      console.log(`🔍 [LeadEnrichment] Processing ${leadsToEnrich.length} leads with ${this.CONCURRENCY} parallel workers...`);
 
-      for (const lead of leadsToEnrich) {
-        await this.enrichLead(lead);
-      }
+      // p-limit caps concurrency to avoid API rate limits
+      const limit = pLimit(this.CONCURRENCY);
+      await Promise.all(leadsToEnrich.map(lead => limit(() => this.enrichLead(lead))));
 
       workerHealthMonitor.recordSuccess('lead-enrichment-worker');
+      console.log(`✅ [LeadEnrichment] Batch complete.`);
     } catch (error: any) {
       console.error('[LeadEnrichmentWorker] Tick error:', error);
       workerHealthMonitor.recordError('lead-enrichment-worker', error?.message || 'Unknown error');
+    } finally {
+      this.isProcessing = false;
     }
   }
 
   /**
-   * Performs the actual enrichment using AI research
+   * Stage 1: Live Google Search
+   * Pulls real, current intelligence on the lead's company.
+   */
+  private async searchCompanyIntelligence(leadName: string, company: string, email?: string): Promise<string[]> {
+    try {
+      // google-it is already in package.json
+      const googleIt = (await import('google-it') as any).default;
+
+      const domain = email?.includes('@') ? email.split('@')[1] : null;
+      const query = company && company !== 'Unknown'
+        ? `${company} company size funding news 2024 2025`
+        : domain
+          ? `${domain} company business`
+          : `${leadName} professional company`;
+
+      const results = await googleIt({ query, limit: 5, disableConsole: true })
+        .catch(() => []);
+
+      return (results as any[]).map((r: any) => r.snippet || r.title || '').filter(Boolean);
+    } catch (err: any) {
+      // google-it can fail due to rate limits — gracefully degrade to AI-only
+      console.warn(`[LeadEnrichment] Google search failed for ${company}: ${err.message}`);
+      return [];
+    }
+  }
+
+  /**
+   * Stage 2: AI Synthesis
+   * Uses Gemini to synthesize search results + lead data into structured intelligence.
+   */
+  private async synthesizeIntelligence(lead: any, searchSnippets: string[]): Promise<any> {
+    const { GoogleGenAI } = await import('@google/genai');
+    const genai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+
+    const snippetsContext = searchSnippets.length > 0
+      ? `\nReal-time search results about their company:\n${searchSnippets.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
+      : '';
+
+    const prompt = `You are an elite B2B sales intelligence analyst. Analyze this lead and return ONLY a valid JSON object.
+
+Lead Data:
+- Bio: ${lead.bio || 'Not provided'}
+- Niche/Industry: ${lead.niche || lead.metadata?.niche || 'Unknown'}
+- City/Location: ${lead.city || lead.metadata?.city || 'Unknown'}${snippetsContext}
+
+Return ONLY this JSON (no markdown, no explanation):
+{
+  "companySize": "1-10" | "11-50" | "51-200" | "201-500" | "500+" | null,
+  "industry": "string or null",
+  "researchInsights": ["insight1", "insight2", "insight3"],
+  "suggestedAngle": "one sentence pitch angle",
+  "website": "domain.com or null",
+  "buyingSignals": ["signal1", "signal2"],
+  "painPoints": ["pain1", "pain2"],
+  "detectedTimezone": "IANA timezone string (e.g. America/New_York) or null",
+  "businessPersona": "Short description of business owner type based on niche",
+  "optimalContactTime": { "start": 9, "end": 17, "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"] },
+  "confidence": 0.0 to 1.0
+}`;
+
+    const response = await genai.models.generateContent({
+      model: 'gemini-2.0-flash',
+      contents: prompt,
+    });
+
+    const text = response.text || '';
+    const jsonStart = text.indexOf('{');
+    const jsonEnd = text.lastIndexOf('}') + 1;
+    if (jsonStart === -1 || jsonEnd === 0) throw new Error('AI returned no valid JSON');
+
+    return JSON.parse(text.substring(jsonStart, jsonEnd));
+  }
+
+  /**
+   * Main enrichment pipeline for a single lead
    */
   async enrichLead(lead: any): Promise<void> {
     try {
-      const researchPrompt = `Perform a deep research task for this lead. 
-Lead Name: ${lead.name}
-Company: ${lead.company || 'Unknown'}
-Email: ${lead.email || 'Unknown'}
-Current Bio: ${lead.bio || 'None'}
+      // Stage 1: Live search
+      const snippets = await this.searchCompanyIntelligence(
+        lead.name || '',
+        lead.company || 'Unknown',
+        lead.email
+      );
 
-Goal: Find three key insights about their business or role that we can use for outreach.
-Return a JSON object with these fields:
-- companySize: "1-10", "11-50", "51-200", "201-500", "500+" or null
-- industry: string or null
-- researchInsights: string[] (top 3 things we found)
-- suggestedAngle: string (how should we pitch them?)
-- website: string or null`;
+      // Stage 2: AI synthesis (with real search context)
+      const data = await this.synthesizeIntelligence(lead, snippets);
 
-      // Use AI to simulate/perform research (in a real prod app, you might use a Google Search API here)
-      const researchResult = await generateReply("You are an expert lead researcher analyzing a prospect.", researchPrompt, { model: 'gpt-4' }).catch(() => null);
-      
-      if (!researchResult || typeof researchResult !== 'object' || !researchResult.text) return;
-
-      // Extract JSON from AI response
-      const aiText = researchResult.text;
-      const jsonStart = aiText.indexOf('{');
-      const jsonEnd = aiText.lastIndexOf('}') + 1;
-      if (jsonStart === -1 || jsonEnd === 0) return;
-
-      const data = JSON.parse(aiText.substring(jsonStart, jsonEnd));
-
-      // Update lead metadata
       const updatedMetadata = {
         ...lead.metadata,
         enriched: true,
         enrichedAt: new Date().toISOString(),
+        enrichmentSource: snippets.length > 0 ? 'google+gemini' : 'gemini-only',
         companySize: data.companySize,
         industry: data.industry || lead.metadata?.industry,
         insights: data.researchInsights,
         suggestedAngle: data.suggestedAngle,
-        website: data.website
+        website: data.website,
+        buyingSignals: data.buyingSignals || [],
+        painPoints: data.painPoints || [],
+        detectedTimezone: data.detectedTimezone,
+        businessPersona: data.businessPersona,
+        optimalContactTime: data.optimalContactTime
       };
 
       await storage.updateLead(lead.id, {
         metadata: updatedMetadata,
-        company: lead.company || data.companyNames?.[0] || null,
+        company: lead.company || data.website || null,
+        timezone: data.detectedTimezone || lead.timezone,
         updatedAt: new Date()
       });
 
-      // --- PHASE 38: TRIGGER SCORING AFTER ENRICHMENT ---
+      // Sync to specialized timezone profiles table for high-precision outreach
+      if (data.detectedTimezone || data.optimalContactTime) {
+        try {
+          await db.insert(leadTimezoneProfiles).values({
+            leadId: lead.id,
+            userId: lead.userId,
+            detectedTimezone: data.detectedTimezone,
+            detectedCity: lead.city || lead.metadata?.city || null,
+            niche: lead.niche || lead.metadata?.niche || data.industry || null,
+            preferredContactStart: data.optimalContactTime?.start || 10,
+            preferredContactEnd: data.optimalContactTime?.end || 18,
+            preferredDays: data.optimalContactTime?.days || ["Monday","Tuesday","Wednesday","Thursday","Friday"],
+            detectionConfidence: data.confidence || 0.5,
+            detectionSource: 'city_niche_inference'
+          }).onConflictDoUpdate({
+            target: [leadTimezoneProfiles.leadId],
+            set: {
+              detectedTimezone: data.detectedTimezone,
+              lastUpdatedAt: new Date()
+            }
+          });
+        } catch (err) {
+          console.warn(`[LeadEnrichment] Could not sync TZ profile: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        }
+      }
+
+      // Trigger lead scoring immediately after enrichment
       await leadScoringEngine.updateAndNotify(lead.id);
 
-      console.log(`✅ Lead enriched & scored: ${lead.name} (${data.industry || 'General'})`);
+      console.log(`✅ Enriched & scored: ${lead.name} (${data.industry || 'Unknown industry'}, source: ${updatedMetadata.enrichmentSource})`);
 
-    } catch (error) {
-      console.error(`❌ Failed to enrich lead ${lead.id}:`, error);
-      // Mark as failed so we don't keep retrying if it's a permanent error
+    } catch (error: any) {
+      console.error(`❌ Failed to enrich lead ${lead.id} (${lead.name}): ${error.message}`);
+      // Mark as failed with specific error so we don't retry forever
       await storage.updateLead(lead.id, {
-        metadata: { ...lead.metadata, enrichment_failed: true, enriched: true }
+        metadata: {
+          ...lead.metadata,
+          enrichment_failed: true,
+          enriched: true,
+          enrichmentError: error.message,
+          enrichedAt: new Date().toISOString()
+        }
       });
     }
   }
