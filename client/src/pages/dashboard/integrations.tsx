@@ -311,6 +311,7 @@ export default function IntegrationsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/custom-email/status"] });
       queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
       toast({ title: "Disconnected", description: "Integration removed successfully." });
     }
   });
@@ -347,6 +348,7 @@ export default function IntegrationsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/custom-email/status"] });
       queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
       toast({ title: "Email Disconnected" });
     }
   });

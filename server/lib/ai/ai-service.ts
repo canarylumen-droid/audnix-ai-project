@@ -230,8 +230,14 @@ export async function generateReply(
   const tryOpenAI = async () => {
     if (!isProviderAvailable('openai')) return null;
     try {
+      // Phase 25: Prevent model leakage. If requested model is Z-AI specific, use OpenAI default.
+      const requestedModel = options?.model || MODELS.sales_reasoning || AI_MODEL;
+      const modelName = (requestedModel.startsWith('glm-') || requestedModel.startsWith('gemini-')) 
+        ? OPENAI_INTELLIGENCE_MODEL 
+        : requestedModel;
+
       const response = await openai!.chat.completions.create({
-        model: options?.model || MODELS.sales_reasoning || AI_MODEL,
+        model: modelName,
         messages: [
           { role: "system", content: systemPrompt },
           ...(options?.history || []),
@@ -257,7 +263,9 @@ export async function generateReply(
   const tryGenAI = async () => {
     if (!isProviderAvailable('genai')) return null;
     try {
-      const modelName = options?.model?.includes("gemini") ? options.model : MODELS.content_generation || "gemini-1.5-pro";
+      // Phase 25: Prevent model leakage. If requested model is not Gemini, use GenAI default.
+      const requestedModel = options?.model || MODELS.sales_reasoning || AI_MODEL;
+      const modelName = requestedModel.includes("gemini") ? requestedModel : GENAI_STABLE_MODEL;
       
       const result = await genai!.models.generateContent({
         model: modelName,
@@ -287,8 +295,14 @@ export async function generateReply(
   const tryZAI = async () => {
     if (!isProviderAvailable('zai')) return null;
     try {
+      // Phase 25: Prevent model leakage. If requested model is not GLM, use Z-AI default.
+      const requestedModel = options?.model || MODELS.sales_reasoning || AI_MODEL;
+      const modelName = (requestedModel.startsWith('gpt-') || requestedModel.startsWith('gemini-'))
+        ? (MODELS.sales_reasoning || "glm-4")
+        : requestedModel;
+
       const response = await zai!.chat.completions.create({
-        model: options?.model || MODELS.sales_reasoning || AI_MODEL,
+        model: modelName,
         messages: [
           { role: "system", content: systemPrompt },
           ...(options?.history || []),

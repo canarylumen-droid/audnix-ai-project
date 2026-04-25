@@ -1302,6 +1302,27 @@ export class DrizzleStorage implements IStorage {
     await db
       .delete(integrations)
       .where(and(eq(integrations.userId, userId), eq(integrations.provider, provider as any)));
+
+    // Phase 12: Ensure "Full Deletion" of settings for email providers to prevent ghosting
+    if (['custom_email', 'gmail', 'outlook'].includes(provider)) {
+      try {
+        await db.execute(sql`
+          UPDATE user_settings 
+          SET smtp_host = NULL, 
+              smtp_port = NULL, 
+              smtp_username = NULL, 
+              smtp_password_encrypted = NULL, 
+              smtp_from_email = NULL, 
+              smtp_from_name = NULL, 
+              smtp_verified = FALSE,
+              email_provider = 'sendgrid'
+          WHERE user_id = ${userId}
+        `);
+        console.log(`🧹 [Storage] Successfully purged user_settings for user ${userId} following bulk provider disconnect.`);
+      } catch (e) {
+        console.warn(`[Storage] Failed to clear user_settings during bulk disconnect:`, e);
+      }
+    }
   }
 
   async deleteIntegration(userId: string, provider: string): Promise<void> {
@@ -1312,6 +1333,9 @@ export class DrizzleStorage implements IStorage {
     checkDatabase();
     if (!isValidUUID(id)) return;
     
+    // Fetch integration details before deletion to cleanup associated settings
+    const [integration] = await db.select().from(integrations).where(eq(integrations.id, id)).limit(1);
+    
     // Safely unlink constraints from connected entities to allow deletion
     try {
       await db.update(leads).set({ integrationId: null as any }).where(eq(leads.integrationId, id));
@@ -1320,6 +1344,27 @@ export class DrizzleStorage implements IStorage {
       await db.update(messages).set({ integrationId: null as any }).where(eq(messages.integrationId, id));
     } catch (e) {}
     
+    // Phase 12: Ensure "Full Deletion" of settings for email providers to prevent ghosting
+    if (integration && ['custom_email', 'gmail', 'outlook'].includes(integration.provider)) {
+      try {
+        await db.execute(sql`
+          UPDATE user_settings 
+          SET smtp_host = NULL, 
+              smtp_port = NULL, 
+              smtp_username = NULL, 
+              smtp_password_encrypted = NULL, 
+              smtp_from_email = NULL, 
+              smtp_from_name = NULL, 
+              smtp_verified = FALSE,
+              email_provider = 'sendgrid'
+          WHERE user_id = ${integration.userId}
+        `);
+        console.log(`🧹 [Storage] Successfully purged user_settings for user ${integration.userId} following integration removal.`);
+      } catch (e) {
+        console.warn(`[Storage] Failed to clear user_settings (table might not exist or already cleared):`, e);
+      }
+    }
+
     const result = await db
       .delete(integrations)
       .where(eq(integrations.id, id));

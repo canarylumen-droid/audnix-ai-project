@@ -555,11 +555,17 @@ export async function sendEmail(
     integration = await storage.getIntegrationById(options.integrationId);
   }
 
+  // 1.1. Robust Fallback: If requested integration is disconnected or missing, find ANY working one for this user
   if (!integration || !integration.connected) {
     const integrations = await storage.getIntegrations(userId);
-    integration = integrations.find(i =>
+    const fallback = integrations.find(i =>
       ['custom_email', 'gmail', 'outlook'].includes(i.provider) && i.connected
     );
+    
+    if (fallback) {
+      if (integration) console.warn(`[EmailService] Integration ${integration.id} is disconnected. Falling back to ${fallback.id}.`);
+      integration = fallback;
+    }
   }
 
   if (!integration) {
