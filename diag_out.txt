@@ -1,3 +1,1 @@
-Found 2 integrations.
-ID: 17f504bb-d82a-4a4e-8dbb-eacd2447a649, Provider: custom_email, Parts: 3, Length: 474, Connected: true
-ID: 21f491ac-9464-4ab4-91d5-4eacb68c8e62, Provider: custom_email, Parts: 3, Length: 478, Connected: true
+Found 0 integrations.

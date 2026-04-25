@@ -361,14 +361,14 @@ class ImapIdleManager {
             let config: EmailConfig = {};
             if (!isOAuthProvider) {
                 if (!integration.encryptedMeta) {
-                    console.warn(`[IMAP] Skipping integration ${integrationId} — encryptedMeta is missing (User: ${integration.userId})`);
+                    console.debug(`[IMAP] Skipping integration ${integrationId} — encryptedMeta is missing (User: ${integration.userId})`);
                     return;
                 }
                 try {
                     const credentialsStr = await decrypt(integration.encryptedMeta);
                     config = JSON.parse(credentialsStr) as EmailConfig;
                 } catch (decryptErr) {
-                    console.warn(`[IMAP] Skipping integration ${integrationId} — failed to decrypt/parse config: ${(decryptErr as any)?.message}`);
+                    console.debug(`[IMAP] Skipping integration ${integrationId} — failed to decrypt/parse config: ${(decryptErr as any)?.message}`);
                     return;
                 }
             }
@@ -556,7 +556,7 @@ class ImapIdleManager {
             let config: EmailConfig = {};
             if (!isOAuthProvider) {
                 if (!integration.encryptedMeta) {
-                    console.warn(`[IMAP Persistent] Skipping ${folderName} for ${integrationId} — encryptedMeta missing.`);
+                    console.debug(`[IMAP Persistent] Skipping ${folderName} for ${integrationId} — encryptedMeta missing.`);
                     return;
                 }
                 const credentialsStr = await decrypt(integration.encryptedMeta);
@@ -572,7 +572,7 @@ class ImapIdleManager {
             }
 
             if (!imapHost) {
-                console.warn(`[IMAP Persistent] Skipping folder ${folderName} for ${integrationId} — imap_host not found.`);
+                console.debug(`[IMAP Persistent] Skipping folder ${folderName} for ${integrationId} — imap_host not found.`);
                 return;
             }
 
