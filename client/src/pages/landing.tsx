@@ -252,9 +252,8 @@ export default function Landing() {
             {Object.entries({
               Solutions: [
                 { name: "Agencies", href: "/solutions/agencies" },
-                { name: "Founders", href: "/solutions/founders" },
-                { name: "Creators", href: "/solutions/creators" },
-                { name: "Sales Teams", href: "/solutions/sales-teams" }
+                { name: "Founders", href: "/solutions/sales-teams" },
+                { name: "Creators", href: "/solutions/creators" }
               ],
               Product: [
                 { name: "Lead Discovery", href: "/find-leads" },

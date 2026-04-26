@@ -1,9 +1,22 @@
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Search, ArrowLeft, Sparkles, Globe } from "lucide-react";
 
 export default function NotFound() {
+  useEffect(() => {
+    // Tell Google not to index this 404 page (Fixes "Soft 404" issues)
+    const meta = document.createElement('meta');
+    meta.name = "robots";
+    meta.content = "noindex";
+    document.head.appendChild(meta);
+    
+    return () => {
+      document.head.removeChild(meta);
+    };
+  }, []);
+
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-[#030303] relative overflow-hidden">
       {/* Dynamic Background Elements */}
